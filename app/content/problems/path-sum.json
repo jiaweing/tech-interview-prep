@@ -1,0 +1,284 @@
+{
+ "id": "path-sum",
+ "title": "Root-to-Leaf Path Sum",
+ "pattern": "trees",
+ "fine": "Tree DFS",
+ "level": "easy",
+ "statement": "<p>A pricing engine walks a decision tree. It starts at the root, and at each node it adds that node's adjustment to the price, then moves to one child, until it reaches a node with no children. Adjustments can be negative. QA asks: can any complete route produce a total of exactly <code>target</code>?</p><p>Trees use LeetCode's list format: <code>tree[0]</code> is the root, then the children of each node, left before right, level by level. <code>None</code> marks a missing child, and missing nodes list no children. Trailing <code>None</code>s may be left off, and <code>[]</code> is the empty tree.</p><p>A <b>leaf</b> is a node with no children. A path must start at the root and end at a leaf; stopping at a node that still has a child does not count. The empty tree has no paths, so its answer is <code>False</code>, even for <code>target = 0</code>.</p><p>Write <code>def solution(tree, target)</code> that returns <code>True</code> if at least one root-to-leaf path has values that add up to exactly <code>target</code>, and <code>False</code> otherwise. Trees can be 10,000 levels deep, so avoid recursion.</p>",
+ "examples": [
+  {
+   "input": "tree = [5, 4, 8, 11, None, 13, 4, 7, 2, None, None, None, 1], target = 22",
+   "output": "True",
+   "why": "The path 5 → 4 → 11 → 2 adds up to 22."
+  },
+  {
+   "input": "tree = [1, 2, 3], target = 5",
+   "output": "False",
+   "why": "The two paths add up to 3 and 4. Neither is 5."
+  },
+  {
+   "input": "tree = [], target = 0",
+   "output": "False",
+   "why": "The empty tree has no root-to-leaf path at all."
+  }
+ ],
+ "constraints": [
+  "0 &le; number of nodes &le; 20,001",
+  "-1,000 &le; node value &le; 1,000",
+  "-10^7 &le; <code>target</code> &le; 10^7",
+  "the tree can be 10,000 levels deep"
+ ],
+ "starter": "def solution(tree, target):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "What exactly counts as a path, and what does not?",
+   "a": "Only full routes: root to a leaf, a node with no left and no right child. In <code>[1, 2]</code> with target 1, the root alone sums to 1 but it has a child, so it is not a leaf and the answer is <code>False</code>."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "In <code>[1, 2, 3]</code>, list every root-to-leaf sum.",
+   "a": "Two leaves, so two paths: 1 + 2 = 3 and 1 + 3 = 4. Target 5 matches neither, so <code>False</code>. Notice that each sum is the parent's running sum plus the child's value: you never need the whole path, only the total so far."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first idea that works?",
+   "a": "Record every root-to-leaf path as a list of values, then sum each list. Copying the path at every node costs O(height) per node, so a deep tree takes O(n * h), which is O(n^2) on a chain."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Which pattern?",
+   "a": "<b>Depth-first search carrying a running sum</b>. Push <code>(node, sum including node)</code> on an explicit stack. When you pop a leaf, compare its sum with <code>target</code>. Otherwise push each child with <code>sum + child.val</code>. Values can be negative, so you cannot stop early when a sum passes the target."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li>Build the tree. If it is empty, return <code>False</code>.</li><li><code>stack = [(root, root.val)]</code>.</li><li>Pop <code>(node, total)</code>. If <code>node</code> has no children and <code>total == target</code>, return <code>True</code>.</li><li>Push each existing child with <code>total + child.val</code>.</li><li>When the stack is empty, return <code>False</code>.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "Empty tree with <code>target = 0</code> (still <code>False</code>). A sum that matches at a node with one child (not a leaf). A single node equal to the target. Negative values, where a path can go above the target and come back. Zero values. A 10,000-deep tree, where recursion overflows."
+  }
+ ],
+ "hints": [
+  "You never need the whole path, only its total so far. A child's total is its parent's total plus the child's value.",
+  "Use a stack of <code>(node, total)</code> pairs. Only check the target when the popped node has no children.",
+  "Do not prune when a total passes the target: a later negative value can bring it back. The empty tree returns <code>False</code> before anything else."
+ ],
+ "solution": "from collections import deque\n\nclass Node:\n    def __init__(self, val):\n        self.val = val\n        self.left = None\n        self.right = None\n\ndef build(tree):\n    # LeetCode list -> linked nodes. Each popped parent takes the next two slots.\n    if not tree or tree[0] is None:\n        return None\n    root = Node(tree[0])\n    queue = deque([root])\n    i = 1\n    while queue and i < len(tree):\n        node = queue.popleft()\n        if i < len(tree) and tree[i] is not None:\n            node.left = Node(tree[i])\n            queue.append(node.left)\n        i += 1\n        if i < len(tree) and tree[i] is not None:\n            node.right = Node(tree[i])\n            queue.append(node.right)\n        i += 1\n    return root\n\ndef solution(tree, target):\n    root = build(tree)\n    if root is None:\n        return False                  # no root, so no root-to-leaf path\n    stack = [(root, root.val)]        # (node, sum of the path from the root to it)\n    while stack:\n        node, total = stack.pop()\n        if node.left is None and node.right is None:\n            if total == target:       # only a leaf ends a path\n                return True\n            continue\n        for child in (node.left, node.right):\n            if child is not None:\n                stack.append((child, total + child.val))\n    return False\n",
+ "brute": "from collections import deque\n\nclass Node:\n    def __init__(self, val):\n        self.val = val\n        self.left = None\n        self.right = None\n\ndef build(tree):\n    # LeetCode list -> linked nodes. Each popped parent takes the next two slots.\n    if not tree or tree[0] is None:\n        return None\n    root = Node(tree[0])\n    queue = deque([root])\n    i = 1\n    while queue and i < len(tree):\n        node = queue.popleft()\n        if i < len(tree) and tree[i] is not None:\n            node.left = Node(tree[i])\n            queue.append(node.left)\n        i += 1\n        if i < len(tree) and tree[i] is not None:\n            node.right = Node(tree[i])\n            queue.append(node.right)\n        i += 1\n    return root\n\ndef solution(tree, target):\n    # Record every root-to-leaf path as a full list, then sum each one.\n    # Copying the path at every node is O(n * height).\n    root = build(tree)\n    if root is None:\n        return False\n    paths = []\n    stack = [(root, [root.val])]\n    while stack:\n        node, path = stack.pop()\n        if node.left is None and node.right is None:\n            paths.append(path)\n        for child in (node.left, node.right):\n            if child is not None:\n                stack.append((child, path + [child.val]))\n    return any(sum(path) == target for path in paths)\n",
+ "explain": "<p>Example 1: the root 5 has children 4 and 8; 4 leads to 11, whose children are 7 and 2; 8 leads to 13 and 4, and that 4 has a right child 1. Target 22.</p><ul><li>Start with <code>(5, 5)</code>. Pop it and push <code>(4, 9)</code> and <code>(8, 13)</code>.</li><li>Pop <code>(8, 13)</code>: push <code>(13, 26)</code> and <code>(4, 17)</code>. Pop <code>(4, 17)</code>: push <code>(1, 18)</code>. The leaves 1 (sum 18) and 13 (sum 26) do not match.</li><li>Pop <code>(4, 9)</code>: push <code>(11, 20)</code>. Pop it: push <code>(7, 27)</code> and <code>(2, 22)</code>.</li><li>Pop <code>(2, 22)</code>: a leaf with sum 22. Return <b>True</b>.</li></ul><p>Each node is pushed and popped once, and each stack entry holds one number instead of a whole path, so the work is O(n). The stack holds at most about one entry per level plus the waiting siblings, so it grows with the height of the tree, not with recursion depth.</p>",
+ "complexity": "O(n) time, O(height) extra space for the stack",
+ "tests": [
+  {
+   "args": [
+    [
+     5,
+     4,
+     8,
+     11,
+     null,
+     13,
+     4,
+     7,
+     2,
+     null,
+     null,
+     null,
+     1
+    ],
+    22
+   ],
+   "expected": true,
+   "label": "example 1 (LeetCode 112)",
+   "cat": "example",
+   "why": "one of four paths matches"
+  },
+  {
+   "args": [
+    [
+     1,
+     2,
+     3
+    ],
+    5
+   ],
+   "expected": false,
+   "label": "example 2",
+   "cat": "example",
+   "why": "no path matches"
+  },
+  {
+   "args": [
+    [],
+    0
+   ],
+   "expected": false,
+   "label": "example 3",
+   "cat": "example",
+   "why": "empty tree, even with target 0"
+  },
+  {
+   "args": [
+    [
+     5
+    ],
+    5
+   ],
+   "expected": true,
+   "label": "one node equals target",
+   "cat": "single",
+   "why": "the root is a leaf"
+  },
+  {
+   "args": [
+    [
+     1,
+     2
+    ],
+    1
+   ],
+   "expected": false,
+   "label": "root matches but is not a leaf",
+   "cat": "edge",
+   "why": "the root has a child, so its sum does not count"
+  },
+  {
+   "args": [
+    [
+     0,
+     0,
+     0
+    ],
+    0
+   ],
+   "expected": true,
+   "label": "all zeros",
+   "cat": "zero",
+   "why": "a sum of zero is a real match"
+  },
+  {
+   "args": [
+    [
+     -2,
+     null,
+     -3
+    ],
+    -5
+   ],
+   "expected": true,
+   "label": "negative path",
+   "cat": "negative",
+   "why": "-2 + -3 = -5"
+  },
+  {
+   "args": [
+    [
+     1,
+     -2,
+     -3,
+     1,
+     3,
+     -2,
+     null,
+     -1
+    ],
+    -1
+   ],
+   "expected": true,
+   "label": "negatives that come back",
+   "cat": "negative",
+   "why": "1 - 2 + 1 - 1 = -1, though the sum dips first"
+  },
+  {
+   "args": [
+    [
+     1,
+     2,
+     2,
+     3,
+     null,
+     null,
+     3
+    ],
+    6
+   ],
+   "expected": true,
+   "label": "equal values",
+   "cat": "dupes",
+   "why": "both 1 → 2 → 3 paths sum to 6"
+  },
+  {
+   "args": [
+    [
+     1000,
+     1000,
+     -1000
+    ],
+    2000
+   ],
+   "expected": true,
+   "label": "value limits",
+   "cat": "boundary",
+   "why": "large values on the left path"
+  },
+  {
+   "args": [
+    [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14,
+     15
+    ],
+    25
+   ],
+   "expected": true,
+   "label": "full tree of 15",
+   "cat": "medium",
+   "why": "1 + 3 + 7 + 14 = 25 ends at a leaf"
+  },
+  {
+   "args": [
+    [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14,
+     15
+    ],
+    11
+   ],
+   "expected": false,
+   "label": "full tree, inner sum only",
+   "cat": "medium",
+   "why": "1 + 3 + 7 = 11 stops at an inner node; every leaf path sums to at least 15"
+  }
+ ],
+ "perf": {
+  "label": "performance: a comb 8,001 levels deep (16,001 nodes) whose only match is the deepest leaf",
+  "gen": "[[1, 0, 1] + [a for i in range(7998) for a in (None, None, 0, 1)] + [None, None, 0, 5], 8005]",
+  "expected": true
+ }
+}

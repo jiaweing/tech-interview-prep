@@ -7,7 +7,7 @@ const { chromium } = require('playwright');
   await p.waitForFunction(() => typeof window.pyTests === 'function', null, { timeout: 60000 });
   const out = await p.evaluate(async (ids) => {
     const res = [];
-    const probs = window.DATA.problems.filter(P => (P.govtech || P.al) && (!ids.length || ids.includes(P.id)));
+    const probs = window.DATA.problems.filter(P => !ids.length || ids.includes(P.id));
     for (const P of probs) {
       const tests = P.tests.concat(P.perf ? [{ label: P.perf.label, gen: P.perf.gen, expected: P.perf.expected, cat: 'large' }] : []);
       const t0 = performance.now();

@@ -1,0 +1,329 @@
+{
+ "id": "tree-lca",
+ "title": "Lowest Common Ancestor",
+ "pattern": "trees",
+ "fine": "Tree DFS",
+ "level": "medium",
+ "statement": "<p>A shop stores its product categories as a binary tree of category ids. When a basket holds items from two categories <code>p</code> and <code>q</code>, the shop shows the most specific category that contains both: the deepest node whose subtree holds both <code>p</code> and <code>q</code>. That node is their <b>lowest common ancestor</b>. A node counts as part of its own subtree, so if <code>p</code> sits under <code>q</code>, the answer is <code>q</code>.</p><p>Trees use LeetCode's list format: <code>tree[0]</code> is the root, then the children of each node, left before right, level by level. <code>None</code> marks a missing child, and missing nodes list no children. Trailing <code>None</code>s may be left off, and <code>[]</code> is the empty tree.</p><p>The tree is a plain binary tree, not a search tree, so values are in no order. All values are distinct, <code>p != q</code>, and both appear in the tree.</p><p>Write <code>def solution(tree, p, q)</code> that returns the value of the lowest common ancestor of the nodes with values <code>p</code> and <code>q</code>. Trees can be 10,000 levels deep, so avoid recursion.</p>",
+ "examples": [
+  {
+   "input": "tree = [3, 5, 1, 6, 2, 0, 8, None, None, 7, 4], p = 5, q = 1",
+   "output": "3",
+   "why": "5 and 1 are the root's two children, so they meet at the root, 3."
+  },
+  {
+   "input": "tree = [3, 5, 1, 6, 2, 0, 8, None, None, 7, 4], p = 5, q = 4",
+   "output": "5",
+   "why": "4 is under 5, and a node counts as its own ancestor, so the answer is 5."
+  },
+  {
+   "input": "tree = [1, 2], p = 1, q = 2",
+   "output": "1",
+   "why": "The root is one of the two values."
+  }
+ ],
+ "constraints": [
+  "2 &le; number of nodes &le; 20,001",
+  "-10^9 &le; node value &le; 10^9, all distinct",
+  "<code>p != q</code>, and both are in the tree",
+  "the tree can be 10,000 levels deep"
+ ],
+ "starter": "def solution(tree, p, q):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "What is special about the lowest common ancestor on the path from the root?",
+   "a": "Walk from the root down to <code>p</code> and from the root down to <code>q</code>. The two paths start together and split at some node. The last node they share is the answer. If one path is a prefix of the other, the shorter path ends at <code>p</code> or <code>q</code> itself, and that node is the answer."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "In <code>[3, 5, 1, 6, 2, 0, 8, None, None, 7, 4]</code>, find the answer for (5, 1) and for (5, 4).",
+   "a": "Path to 5: 3, 5. Path to 1: 3, 1. They share only 3, so the answer is 3. Path to 4: 3, 5, 2, 4. The path to 5 is 3, 5: it is a prefix, so the answer is 5, an ancestor of itself."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first idea that works?",
+   "a": "For every node, collect all values in its subtree and check whether both <code>p</code> and <code>q</code> are there. The deepest node that passes is the answer. That is O(n) per node, so O(n^2) on a deep tree."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Which pattern?",
+   "a": "<b>Depth-first search that records parents</b>. Walk the tree with an explicit stack and store each node's parent, until you have seen both <code>p</code> and <code>q</code>. Then climb from <code>p</code> to the root and put every ancestor in a set. Climb from <code>q</code>: the first node already in the set is the answer. (The recursive version returns the node where results from both sides meet; it is short, but too deep for a 10,000-level tree.)"
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li>Build the tree. <code>parent = {root.val: None}</code>, <code>stack = [root]</code>.</li><li>While <code>p</code> or <code>q</code> is not in <code>parent</code>: pop a node, record <code>parent[child.val] = node.val</code> for each child, and push the child.</li><li>Climb from <code>p</code> to the root, adding each value to <code>ancestors</code>.</li><li>Climb from <code>q</code> until the value is in <code>ancestors</code>; return it.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "One value is an ancestor of the other (the answer is that value). One of them is the root. The two nodes are siblings. The tree is a long chain, where recursion overflows. A value of 0 or a negative value (do not test <code>if value:</code>). The two nodes are on very different depths."
+  }
+ ],
+ "hints": [
+  "Write out the path from the root to <code>p</code> and the path from the root to <code>q</code>. Where do they stop agreeing?",
+  "Nodes only point down, but you need to walk up. A dict from each value to its parent's value, filled during one DFS, gives you an up pointer.",
+  "Put every ancestor of <code>p</code> (including <code>p</code>) in a set. Then climb from <code>q</code>; the first value you meet that is in the set is the answer."
+ ],
+ "solution": "from collections import deque\n\nclass Node:\n    def __init__(self, val):\n        self.val = val\n        self.left = None\n        self.right = None\n\ndef build(tree):\n    # LeetCode list -> linked nodes. Each popped parent takes the next two slots.\n    if not tree or tree[0] is None:\n        return None\n    root = Node(tree[0])\n    queue = deque([root])\n    i = 1\n    while queue and i < len(tree):\n        node = queue.popleft()\n        if i < len(tree) and tree[i] is not None:\n            node.left = Node(tree[i])\n            queue.append(node.left)\n        i += 1\n        if i < len(tree) and tree[i] is not None:\n            node.right = Node(tree[i])\n            queue.append(node.right)\n        i += 1\n    return root\n\ndef solution(tree, p, q):\n    root = build(tree)\n    parent = {root.val: None}       # value -> parent value; the root has none\n    stack = [root]\n    while p not in parent or q not in parent:\n        node = stack.pop()\n        for child in (node.left, node.right):\n            if child is not None:\n                parent[child.val] = node.val\n                stack.append(child)\n    ancestors = set()               # p and every node above it\n    value = p\n    while value is not None:\n        ancestors.add(value)\n        value = parent[value]\n    value = q                       # climb from q to the first shared ancestor\n    while value not in ancestors:\n        value = parent[value]\n    return value\n",
+ "brute": "from collections import deque\n\nclass Node:\n    def __init__(self, val):\n        self.val = val\n        self.left = None\n        self.right = None\n\ndef build(tree):\n    # LeetCode list -> linked nodes. Each popped parent takes the next two slots.\n    if not tree or tree[0] is None:\n        return None\n    root = Node(tree[0])\n    queue = deque([root])\n    i = 1\n    while queue and i < len(tree):\n        node = queue.popleft()\n        if i < len(tree) and tree[i] is not None:\n            node.left = Node(tree[i])\n            queue.append(node.left)\n        i += 1\n        if i < len(tree) and tree[i] is not None:\n            node.right = Node(tree[i])\n            queue.append(node.right)\n        i += 1\n    return root\n\ndef subtree_values(node):\n    values = set()\n    stack = [node]\n    while stack:\n        cur = stack.pop()\n        values.add(cur.val)\n        for child in (cur.left, cur.right):\n            if child is not None:\n                stack.append(child)\n    return values\n\ndef solution(tree, p, q):\n    # Check every node's whole subtree; keep the deepest node that holds both.\n    # O(n) per node, so O(n^2) on a deep tree.\n    root = build(tree)\n    best = None\n    best_depth = -1\n    stack = [(root, 0)]\n    while stack:\n        node, depth = stack.pop()\n        values = subtree_values(node)\n        if p in values and q in values and depth > best_depth:\n            best = node.val\n            best_depth = depth\n        for child in (node.left, node.right):\n            if child is not None:\n                stack.append((child, depth + 1))\n    return best\n",
+ "explain": "<p>Example 2: <code>[3, 5, 1, 6, 2, 0, 8, None, None, 7, 4]</code>, <code>p = 5</code>, <code>q = 4</code>.</p><ul><li>The DFS records parents: 5 and 1 under 3; 0 and 8 under 1; 6 and 2 under 5; 7 and 4 under 2. Once 5 and 4 are both recorded, it stops.</li><li>Climb from 5: ancestors are {5, 3}.</li><li>Climb from 4: 4 is not in the set, 2 is not, 5 is. Return <b>5</b>.</li></ul><p>Why it works: the ancestors of <code>q</code>, from <code>q</code> upward, go from deepest to shallowest. The first one that is also an ancestor of <code>p</code> is therefore the deepest common one. The root is an ancestor of both, so the climb always stops. Each node is visited at most once by the DFS and at most once by each climb, so the total is O(n).</p>",
+ "complexity": "O(n) time, O(n) extra space for the parent map",
+ "tests": [
+  {
+   "args": [
+    [
+     3,
+     5,
+     1,
+     6,
+     2,
+     0,
+     8,
+     null,
+     null,
+     7,
+     4
+    ],
+    5,
+    1
+   ],
+   "expected": 3,
+   "label": "example 1 (LeetCode 236)",
+   "cat": "example",
+   "why": "split at the root"
+  },
+  {
+   "args": [
+    [
+     3,
+     5,
+     1,
+     6,
+     2,
+     0,
+     8,
+     null,
+     null,
+     7,
+     4
+    ],
+    5,
+    4
+   ],
+   "expected": 5,
+   "label": "example 2",
+   "cat": "example",
+   "why": "p is an ancestor of q"
+  },
+  {
+   "args": [
+    [
+     1,
+     2
+    ],
+    1,
+    2
+   ],
+   "expected": 1,
+   "label": "example 3",
+   "cat": "example",
+   "why": "two nodes, p is the root"
+  },
+  {
+   "args": [
+    [
+     3,
+     5,
+     1,
+     6,
+     2,
+     0,
+     8,
+     null,
+     null,
+     7,
+     4
+    ],
+    7,
+    4
+   ],
+   "expected": 2,
+   "label": "siblings deep down",
+   "cat": "small",
+   "why": "both are children of 2"
+  },
+  {
+   "args": [
+    [
+     3,
+     5,
+     1,
+     6,
+     2,
+     0,
+     8,
+     null,
+     null,
+     7,
+     4
+    ],
+    6,
+    4
+   ],
+   "expected": 5,
+   "label": "cousins in the left subtree",
+   "cat": "small",
+   "why": "they meet at 5"
+  },
+  {
+   "args": [
+    [
+     3,
+     5,
+     1,
+     6,
+     2,
+     0,
+     8,
+     null,
+     null,
+     7,
+     4
+    ],
+    4,
+    8
+   ],
+   "expected": 3,
+   "label": "across the root, different depths",
+   "cat": "edge",
+   "why": "4 is three levels down, 8 two"
+  },
+  {
+   "args": [
+    [
+     1,
+     null,
+     2,
+     null,
+     3,
+     null,
+     4
+    ],
+    4,
+    2
+   ],
+   "expected": 2,
+   "label": "chain, q above p",
+   "cat": "edge",
+   "why": "the higher node is the answer"
+  },
+  {
+   "args": [
+    [
+     0,
+     -1,
+     -2,
+     -3,
+     -4
+    ],
+    -3,
+    -4
+   ],
+   "expected": -1,
+   "label": "zero and negative values",
+   "cat": "negative",
+   "why": "they meet at -1"
+  },
+  {
+   "args": [
+    [
+     0,
+     -1,
+     -2
+    ],
+    -2,
+    0
+   ],
+   "expected": 0,
+   "label": "zero root as an answer",
+   "cat": "zero",
+   "why": "a falsy answer must still be returned"
+  },
+  {
+   "args": [
+    [
+     1000000000,
+     -1000000000,
+     7
+    ],
+    -1000000000,
+    7
+   ],
+   "expected": 1000000000,
+   "label": "value limits",
+   "cat": "boundary",
+   "why": "the largest and smallest values"
+  },
+  {
+   "args": [
+    [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14,
+     15
+    ],
+    8,
+    11
+   ],
+   "expected": 2,
+   "label": "full tree, far apart in one half",
+   "cat": "medium",
+   "why": "8 is under 4 and 11 under 5; both under 2"
+  },
+  {
+   "args": [
+    [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14,
+     15
+    ],
+    9,
+    15
+   ],
+   "expected": 1,
+   "label": "full tree, opposite halves",
+   "cat": "medium",
+   "why": "they meet at the root"
+  }
+ ],
+ "perf": {
+  "label": "performance: a comb 10,000 levels deep (20,000 nodes); the two values are leaves near the bottom",
+  "gen": "[[0] + [a for i in range(1, 10000) for a in (-i, i, None, None)] + [-10000], -10000, -9001]",
+  "expected": 9000
+ }
+}

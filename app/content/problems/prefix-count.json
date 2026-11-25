@@ -1,0 +1,886 @@
+{
+ "id": "prefix-count",
+ "title": "Count Words by Prefix",
+ "pattern": "trie",
+ "fine": "Trie",
+ "level": "medium",
+ "statement": "<p>A search box logs every term users submit, and the product team keeps asking how many logged terms start with some prefix: how many start with <code>\"pay\"</code>, how many with <code>\"pa\"</code>. Terms and questions arrive mixed together, so each answer must reflect only the terms logged before it.</p><p>Write <code>def solution(ops)</code>. <code>ops</code> is a list of operations, each a pair <code>[name, word]</code>:</p><ul><li><code>[\"insert\", word]</code> logs one copy of <code>word</code>. Logging the same word twice counts it twice.</li><li><code>[\"count\", prefix]</code> asks how many logged words, so far, start with <code>prefix</code>. A word starts with itself, and every word starts with the empty prefix <code>\"\"</code>.</li></ul><p>Return a list with the answer to each <code>count</code>, in the order they appear. Words and prefixes use only <code>a</code> to <code>z</code>.</p>",
+ "examples": [
+  {
+   "input": "ops = [[\"insert\", \"apple\"], [\"count\", \"apple\"], [\"count\", \"app\"], [\"insert\", \"app\"], [\"count\", \"app\"]]",
+   "output": "[1, 1, 2]",
+   "why": "Before <code>app</code> is inserted, only <code>apple</code> starts with <code>app</code>; afterwards both do."
+  },
+  {
+   "input": "ops = [[\"insert\", \"car\"], [\"insert\", \"car\"], [\"insert\", \"cart\"], [\"count\", \"car\"], [\"count\", \"cart\"], [\"count\", \"ca\"], [\"count\", \"cat\"]]",
+   "output": "[3, 1, 3, 0]",
+   "why": "Both copies of <code>car</code> count. <code>cat</code> leaves the path after <code>ca</code>."
+  },
+  {
+   "input": "ops = [[\"count\", \"\"], [\"insert\", \"go\"], [\"count\", \"\"], [\"count\", \"golang\"]]",
+   "output": "[0, 1, 0]",
+   "why": "The empty prefix matches every word so far. A prefix longer than every word matches none."
+  }
+ ],
+ "constraints": [
+  "0 &le; <code>len(ops)</code> &le; 30,000",
+  "1 &le; length of an inserted word &le; 20",
+  "0 &le; length of a prefix &le; 20",
+  "only lowercase letters <code>a</code> to <code>z</code>"
+ ],
+ "starter": "def solution(ops):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "What does a <code>count</code> depend on?",
+   "a": "Only on the words inserted before it, with repeats. After inserting <code>\"car\"</code>, <code>\"car\"</code> and <code>\"cart\"</code>, the prefix <code>\"car\"</code> matches all 3, <code>\"cart\"</code> matches 1, and <code>\"cat\"</code> matches 0. A prefix longer than every word matches nothing."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Draw the words <code>car</code>, <code>car</code>, <code>cart</code> as a tree of letters, and write on each letter how many words pass through it.",
+   "a": "c: 3, a: 3, r: 3, t: 1. The answer for a prefix is the number on the node where the prefix ends: <code>\"ca\"</code> ends on a (3), <code>\"cart\"</code> ends on t (1). If you fall off the tree, the answer is 0."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first idea that works?",
+   "a": "Keep a list of inserted words, and for each <code>count</code> check <code>word.startswith(prefix)</code> on all of them. That is O(W * L) per query for W words, so a long log with many queries is O(n^2)."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Which pattern?",
+   "a": "<b>A trie with a pass count on each node</b>. Each node maps a letter to a child and stores how many inserted words go through it. Insert walks the word, creating nodes and adding 1 on each. Count walks the prefix and returns the number on its last node. Both cost O(length of the word), whatever the number of words."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li>A node has <code>children</code> (a dict) and <code>count</code>. Make a root.</li><li>Insert: add 1 to the root's count, then for each letter, create the child if missing, move to it, add 1.</li><li>Count: start at the root; for each letter, if the child is missing append 0 and stop; else move. If you finish, append the node's count.</li><li>Return the list of answers.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "A <code>count</code> before any insert (0). The empty prefix: the root's count, so the root must count every insert too. The same word inserted twice. A prefix that equals a whole word, and one that is longer than every word. A prefix that shares only its first letters with a word."
+  }
+ ],
+ "hints": [
+  "Words that share a prefix share the start of their path in a tree of letters. How could one node answer \"how many words pass through here\"?",
+  "Store a <code>count</code> on every node. When you insert a word, add 1 to the count of each node on its path, including the root.",
+  "To answer a query, walk the prefix from the root. If a letter is missing the answer is 0; otherwise it is the count on the node where the prefix ends. The empty prefix ends at the root."
+ ],
+ "solution": "class TrieNode:\n    def __init__(self):\n        self.children = {}   # letter -> TrieNode\n        self.count = 0       # how many inserted words pass through this node\n\ndef solution(ops):\n    root = TrieNode()\n    answers = []\n    for name, word in ops:\n        if name == \"insert\":\n            node = root\n            node.count += 1                  # every word starts with \"\"\n            for ch in word:\n                if ch not in node.children:\n                    node.children[ch] = TrieNode()\n                node = node.children[ch]\n                node.count += 1\n        else:\n            node = root\n            for ch in word:\n                node = node.children.get(ch)\n                if node is None:             # fell off the trie: no match\n                    break\n            answers.append(node.count if node is not None else 0)\n    return answers\n",
+ "brute": "def solution(ops):\n    # Keep every word and test each one on every query: O(words) per count.\n    words = []\n    answers = []\n    for name, word in ops:\n        if name == \"insert\":\n            words.append(word)\n        else:\n            answers.append(sum(1 for w in words if w.startswith(word)))\n    return answers\n",
+ "explain": "<p>Example 2: insert <code>car</code>, <code>car</code>, <code>cart</code>, then count <code>car</code>, <code>cart</code>, <code>ca</code>, <code>cat</code>.</p><ul><li>The first <code>car</code> creates c, a, r with count 1 each, and the root count is 1. The second <code>car</code> raises them all to 2. <code>cart</code> raises root, c, a, r to 3 and creates t with 1.</li><li><code>car</code> ends on r: <b>3</b>. <code>cart</code> ends on t: <b>1</b>. <code>ca</code> ends on a: <b>3</b>.</li><li><code>cat</code>: a has no child t, so <b>0</b>. The answer is <code>[3, 1, 3, 0]</code>.</li></ul><p>A word passes through exactly the nodes of its own prefixes, so a node's count is the number of words that start with the letters on the path to it. Insert and count each take O(L) for a word of length L, no matter how many words are stored. This is LeetCode 208 with a number in place of the yes/no <code>startsWith</code>: a prefix exists when its count is above 0. To also answer exact matches, store a second counter for words that end at each node.</p>",
+ "complexity": "O(total length of all words and prefixes) time, O(total length of inserted words) space",
+ "tests": [
+  {
+   "args": [
+    [
+     [
+      "insert",
+      "apple"
+     ],
+     [
+      "count",
+      "apple"
+     ],
+     [
+      "count",
+      "app"
+     ],
+     [
+      "insert",
+      "app"
+     ],
+     [
+      "count",
+      "app"
+     ]
+    ]
+   ],
+   "expected": [
+    1,
+    1,
+    2
+   ],
+   "label": "example 1 (LeetCode 208)",
+   "cat": "example",
+   "why": "counts change as words arrive"
+  },
+  {
+   "args": [
+    [
+     [
+      "insert",
+      "car"
+     ],
+     [
+      "insert",
+      "car"
+     ],
+     [
+      "insert",
+      "cart"
+     ],
+     [
+      "count",
+      "car"
+     ],
+     [
+      "count",
+      "cart"
+     ],
+     [
+      "count",
+      "ca"
+     ],
+     [
+      "count",
+      "cat"
+     ]
+    ]
+   ],
+   "expected": [
+    3,
+    1,
+    3,
+    0
+   ],
+   "label": "example 2",
+   "cat": "example",
+   "why": "repeats count, a missing letter gives 0"
+  },
+  {
+   "args": [
+    [
+     [
+      "count",
+      ""
+     ],
+     [
+      "insert",
+      "go"
+     ],
+     [
+      "count",
+      ""
+     ],
+     [
+      "count",
+      "golang"
+     ]
+    ]
+   ],
+   "expected": [
+    0,
+    1,
+    0
+   ],
+   "label": "example 3",
+   "cat": "example",
+   "why": "empty prefix and a too-long prefix"
+  },
+  {
+   "args": [
+    []
+   ],
+   "expected": [],
+   "label": "no operations",
+   "cat": "empty",
+   "why": "nothing to answer"
+  },
+  {
+   "args": [
+    [
+     [
+      "count",
+      "a"
+     ]
+    ]
+   ],
+   "expected": [
+    0
+   ],
+   "label": "count before any insert",
+   "cat": "zero",
+   "why": "an empty log matches nothing"
+  },
+  {
+   "args": [
+    [
+     [
+      "insert",
+      "z"
+     ],
+     [
+      "count",
+      "z"
+     ]
+    ]
+   ],
+   "expected": [
+    1
+   ],
+   "label": "one letter",
+   "cat": "single",
+   "why": "a word is a prefix of itself"
+  },
+  {
+   "args": [
+    [
+     [
+      "insert",
+      "dog"
+     ],
+     [
+      "insert",
+      "dog"
+     ],
+     [
+      "insert",
+      "dog"
+     ],
+     [
+      "count",
+      "do"
+     ],
+     [
+      "count",
+      "dog"
+     ],
+     [
+      "count",
+      "dogs"
+     ]
+    ]
+   ],
+   "expected": [
+    3,
+    3,
+    0
+   ],
+   "label": "same word three times",
+   "cat": "dupes",
+   "why": "each copy counts"
+  },
+  {
+   "args": [
+    [
+     [
+      "insert",
+      "abc"
+     ],
+     [
+      "count",
+      "abd"
+     ],
+     [
+      "count",
+      "abcd"
+     ],
+     [
+      "count",
+      "b"
+     ]
+    ]
+   ],
+   "expected": [
+    0,
+    0,
+    0
+   ],
+   "label": "near misses",
+   "cat": "edge",
+   "why": "a shared start is not enough"
+  },
+  {
+   "args": [
+    [
+     [
+      "insert",
+      "aaaaaaaaaaaaaaaaaaaa"
+     ],
+     [
+      "insert",
+      "a"
+     ],
+     [
+      "count",
+      "aaaaaaaaaaaaaaaaaaaa"
+     ],
+     [
+      "count",
+      "a"
+     ]
+    ]
+   ],
+   "expected": [
+    1,
+    2
+   ],
+   "label": "longest word",
+   "cat": "boundary",
+   "why": "a 20-letter word"
+  },
+  {
+   "args": [
+    [
+     [
+      "insert",
+      "tea"
+     ],
+     [
+      "insert",
+      "ten"
+     ],
+     [
+      "insert",
+      "to"
+     ],
+     [
+      "insert",
+      "inn"
+     ],
+     [
+      "count",
+      "t"
+     ],
+     [
+      "count",
+      "te"
+     ],
+     [
+      "count",
+      "i"
+     ],
+     [
+      "insert",
+      "tent"
+     ],
+     [
+      "count",
+      "ten"
+     ],
+     [
+      "count",
+      ""
+     ]
+    ]
+   ],
+   "expected": [
+    3,
+    2,
+    1,
+    2,
+    5
+   ],
+   "label": "small dictionary",
+   "cat": "medium",
+   "why": "branches at t and e"
+  }
+ ],
+ "perf": {
+  "label": "performance: 15,000 operations, 14,500 inserts and 500 counts",
+  "gen": "[[['count', ''.join('abcd'[(i // 4 ** j) % 4] for j in range(i % 3 + 1))] if i % 30 == 29 else ['insert', ''.join('abcd'[(i * 7919 // 4 ** j) % 4] for j in range(3 + i % 6))] for i in range(15000)]]",
+  "expected": [
+   0,
+   1,
+   1,
+   1,
+   1,
+   2,
+   3,
+   4,
+   5,
+   5,
+   6,
+   5,
+   6,
+   6,
+   7,
+   7,
+   8,
+   8,
+   9,
+   8,
+   9,
+   9,
+   10,
+   11,
+   11,
+   12,
+   12,
+   12,
+   12,
+   13,
+   13,
+   14,
+   14,
+   15,
+   15,
+   15,
+   15,
+   16,
+   17,
+   18,
+   19,
+   19,
+   20,
+   19,
+   20,
+   20,
+   21,
+   21,
+   22,
+   22,
+   23,
+   22,
+   23,
+   23,
+   24,
+   25,
+   25,
+   26,
+   26,
+   26,
+   26,
+   27,
+   27,
+   28,
+   28,
+   29,
+   29,
+   29,
+   29,
+   30,
+   31,
+   32,
+   33,
+   33,
+   34,
+   33,
+   34,
+   34,
+   35,
+   35,
+   36,
+   36,
+   37,
+   36,
+   37,
+   37,
+   38,
+   39,
+   39,
+   40,
+   40,
+   40,
+   40,
+   41,
+   41,
+   42,
+   42,
+   43,
+   43,
+   43,
+   43,
+   44,
+   45,
+   46,
+   47,
+   47,
+   48,
+   47,
+   48,
+   48,
+   49,
+   49,
+   50,
+   50,
+   51,
+   50,
+   51,
+   51,
+   52,
+   53,
+   53,
+   54,
+   54,
+   54,
+   54,
+   55,
+   55,
+   56,
+   56,
+   57,
+   57,
+   57,
+   57,
+   58,
+   59,
+   60,
+   61,
+   61,
+   62,
+   61,
+   62,
+   62,
+   63,
+   63,
+   64,
+   64,
+   65,
+   64,
+   65,
+   65,
+   66,
+   67,
+   67,
+   68,
+   68,
+   68,
+   68,
+   69,
+   69,
+   70,
+   70,
+   71,
+   71,
+   71,
+   71,
+   72,
+   73,
+   74,
+   75,
+   75,
+   76,
+   75,
+   76,
+   76,
+   77,
+   77,
+   78,
+   78,
+   79,
+   78,
+   79,
+   79,
+   80,
+   81,
+   81,
+   82,
+   82,
+   82,
+   82,
+   83,
+   83,
+   84,
+   84,
+   85,
+   85,
+   85,
+   85,
+   86,
+   87,
+   88,
+   89,
+   89,
+   90,
+   89,
+   90,
+   90,
+   91,
+   91,
+   92,
+   92,
+   93,
+   92,
+   93,
+   93,
+   94,
+   95,
+   95,
+   96,
+   96,
+   96,
+   96,
+   97,
+   97,
+   98,
+   98,
+   99,
+   99,
+   99,
+   99,
+   100,
+   101,
+   102,
+   103,
+   103,
+   104,
+   103,
+   104,
+   104,
+   105,
+   105,
+   106,
+   106,
+   107,
+   106,
+   107,
+   107,
+   108,
+   109,
+   109,
+   110,
+   110,
+   110,
+   110,
+   111,
+   111,
+   112,
+   112,
+   113,
+   113,
+   113,
+   113,
+   114,
+   115,
+   116,
+   117,
+   117,
+   118,
+   117,
+   118,
+   118,
+   119,
+   119,
+   120,
+   120,
+   121,
+   120,
+   121,
+   121,
+   122,
+   123,
+   123,
+   124,
+   124,
+   124,
+   124,
+   125,
+   125,
+   126,
+   126,
+   127,
+   127,
+   127,
+   127,
+   128,
+   129,
+   130,
+   131,
+   131,
+   132,
+   131,
+   132,
+   132,
+   133,
+   133,
+   134,
+   134,
+   135,
+   134,
+   135,
+   135,
+   136,
+   137,
+   137,
+   138,
+   138,
+   138,
+   138,
+   139,
+   139,
+   140,
+   140,
+   141,
+   141,
+   141,
+   141,
+   142,
+   143,
+   144,
+   145,
+   145,
+   146,
+   145,
+   146,
+   146,
+   147,
+   147,
+   148,
+   148,
+   149,
+   148,
+   149,
+   149,
+   150,
+   151,
+   151,
+   152,
+   152,
+   152,
+   152,
+   153,
+   153,
+   154,
+   154,
+   155,
+   155,
+   155,
+   155,
+   156,
+   157,
+   158,
+   159,
+   159,
+   160,
+   159,
+   160,
+   160,
+   161,
+   161,
+   162,
+   162,
+   163,
+   162,
+   163,
+   163,
+   164,
+   165,
+   165,
+   166,
+   166,
+   166,
+   166,
+   167,
+   167,
+   168,
+   168,
+   169,
+   169,
+   169,
+   169,
+   170,
+   171,
+   172,
+   173,
+   173,
+   174,
+   173,
+   174,
+   174,
+   175,
+   175,
+   176,
+   176,
+   177,
+   176,
+   177,
+   177,
+   178,
+   179,
+   179,
+   180,
+   180,
+   180,
+   180,
+   181,
+   181,
+   182,
+   182,
+   183,
+   183,
+   183,
+   183,
+   184,
+   185,
+   186,
+   187,
+   187,
+   188,
+   187,
+   188,
+   188,
+   189,
+   189,
+   190,
+   190,
+   191,
+   190,
+   191,
+   191,
+   192,
+   193,
+   193,
+   194,
+   194,
+   194,
+   194,
+   195,
+   195,
+   196,
+   196,
+   197,
+   197,
+   197,
+   197,
+   198,
+   199,
+   200,
+   201,
+   201,
+   202,
+   201,
+   202,
+   202,
+   203,
+   203,
+   204,
+   204,
+   205,
+   204,
+   205,
+   205,
+   206,
+   207,
+   207,
+   208,
+   208,
+   208,
+   208,
+   209,
+   209,
+   210,
+   210,
+   211,
+   211,
+   211,
+   211,
+   212,
+   213,
+   214,
+   215,
+   215,
+   216,
+   215,
+   216,
+   216,
+   217,
+   217,
+   218,
+   218,
+   219,
+   218
+  ]
+ }
+}

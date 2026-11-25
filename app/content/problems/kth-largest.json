@@ -1,0 +1,292 @@
+{
+ "id": "kth-largest",
+ "title": "K-th Largest Value",
+ "pattern": "heap",
+ "fine": "Heap: top k and k-way merge",
+ "level": "medium",
+ "statement": "<p>A monitoring service collects request latencies in milliseconds. To set an alert threshold it needs the <code>k</code>-th slowest request of the batch: the <code>k</code>-th largest value. The batch is large and <code>k</code> is small, so you want to keep only the <code>k</code> values that matter instead of ordering all of them.</p><p>Write <code>def solution(nums, k)</code> that returns the <code>k</code>-th largest value in <code>nums</code>, counting duplicates: it is the value at position <code>k</code> (1-based) if you sorted <code>nums</code> from largest to smallest. In <code>[5, 5, 4]</code> the 1st and 2nd largest are both 5 and the 3rd is 4. Do not modify the caller's list. Aim for O(n log k) time with a heap of size <code>k</code>.</p>",
+ "examples": [
+  {
+   "input": "nums = [3, 2, 1, 5, 6, 4], k = 2",
+   "output": "5",
+   "why": "From largest: 6, 5, ... so the 2nd largest is 5."
+  },
+  {
+   "input": "nums = [3, 2, 3, 1, 2, 4, 5, 5, 6], k = 4",
+   "output": "4",
+   "why": "From largest: 6, 5, 5, 4. Both 5s take a place."
+  },
+  {
+   "input": "nums = [-1, -1], k = 2",
+   "output": "-1",
+   "why": "Duplicates count, so the 2nd largest of two equal values is that value."
+  }
+ ],
+ "constraints": [
+  "1 &le; <code>k</code> &le; <code>len(nums)</code> &le; 100,000",
+  "-10,000 &le; <code>nums[i]</code> &le; 10,000"
+ ],
+ "starter": "def solution(nums, k):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "Do duplicates count as separate places?",
+   "a": "Yes. The answer is a position in the sorted order, not the k-th distinct value. In <code>[3, 2, 3, 1, 2, 4, 5, 5, 6]</code> sorted from largest: 6, 5, 5, 4, ... so the 4th largest is 4, and both 5s take a place."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Keep the 2 largest values of <code>[3, 2, 1, 5, 6, 4]</code> as you read left to right. Which one is the answer?",
+   "a": "Read 3: {3}. Read 2: {2, 3}. Read 1: smaller than both, skip. Read 5: drop 2, {3, 5}. Read 6: drop 3, {5, 6}. Read 4: smaller than 5, skip. The 2 largest are {5, 6}, and the answer is the <b>smaller</b> of them, 5. At each step you only compared with the smallest kept value."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first idea that works?",
+   "a": "Sort and index: <code>sorted(nums)[-k]</code>, O(n log n). Slower still: remove the maximum <code>k</code> times, O(n * k). Both work; the heap keeps the memory at O(k) and the time at O(n log k), which matters when the data is a stream."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Which pattern?",
+   "a": "<b>A min-heap of size k</b>. The heap holds the k largest values seen so far, and its root <code>heap[0]</code> is the smallest of them: the current k-th largest. A new value only matters if it beats the root; then it replaces the root. Python's <code>heapq</code> is a min-heap, which is exactly what you need here."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li><code>heap = []</code>.</li><li>For each value: if the heap has fewer than <code>k</code> items, <code>heappush</code> it.</li><li>Otherwise, if the value is greater than <code>heap[0]</code>, <code>heapreplace(heap, value)</code> (pop the root and push the value in one step).</li><li>Return <code>heap[0]</code>.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "<code>k = 1</code> (the maximum) and <code>k = len(nums)</code> (the minimum). All values equal. Negative values and zeros. Duplicates around the k-th place. A value equal to the root: replacing it changes nothing, so <code>&gt;</code> and <code>&gt;=</code> both give the right answer."
+  }
+ ],
+ "hints": [
+  "You only need the <code>k</code> largest values, not a full sort. Which of those <code>k</code> is the answer?",
+  "Keep the <code>k</code> largest values in a min-heap. Its smallest item, <code>heap[0]</code>, is the k-th largest so far.",
+  "Push until the heap has <code>k</code> items. After that, a value only enters if it is greater than <code>heap[0]</code>: use <code>heapq.heapreplace(heap, value)</code>."
+ ],
+ "solution": "import heapq\n\ndef solution(nums, k):\n    heap = []                      # min-heap of the k largest values seen so far\n    for value in nums:\n        if len(heap) < k:\n            heapq.heappush(heap, value)\n        elif value > heap[0]:      # beats the smallest of the top k\n            heapq.heapreplace(heap, value)\n    return heap[0]                 # smallest of the k largest = k-th largest\n",
+ "brute": "def solution(nums, k):\n    # Remove the current maximum k - 1 times; the maximum left is the answer.\n    # Each max() and remove() is O(n), so this is O(n * k).\n    rest = list(nums)\n    for _ in range(k - 1):\n        rest.remove(max(rest))\n    return max(rest)\n",
+ "explain": "<p>Example 2, <code>nums = [3, 2, 3, 1, 2, 4, 5, 5, 6]</code>, <code>k = 4</code>:</p><ul><li>Push 3, 2, 3, 1. The heap holds {1, 2, 3, 3}; its root is 1.</li><li>2 &gt; 1: replace, heap {2, 2, 3, 3}. 4 &gt; 2: replace, {2, 3, 3, 4}. 5 &gt; 2: replace, {3, 3, 4, 5}.</li><li>5 &gt; 3: replace, {3, 4, 5, 5}. 6 &gt; 3: replace, {4, 5, 5, 6}.</li><li>The root is <b>4</b>.</li></ul><p>The heap always holds the 4 largest values read so far. Any value that is not greater than the root cannot be in the final top 4, because 4 larger-or-equal values already exist. Each push or replace costs O(log k), so the total is O(n log k) time and O(k) memory. <code>heapq.nlargest(k, nums)[-1]</code> does the same in one line. A quickselect (partition like quicksort, recurse into one side) gets O(n) on average.</p>",
+ "complexity": "O(n log k) time, O(k) extra space",
+ "tests": [
+  {
+   "args": [
+    [
+     3,
+     2,
+     1,
+     5,
+     6,
+     4
+    ],
+    2
+   ],
+   "expected": 5,
+   "label": "example 1 (LeetCode 215)",
+   "cat": "example",
+   "why": "a small shuffled list"
+  },
+  {
+   "args": [
+    [
+     3,
+     2,
+     3,
+     1,
+     2,
+     4,
+     5,
+     5,
+     6
+    ],
+    4
+   ],
+   "expected": 4,
+   "label": "example 2",
+   "cat": "example",
+   "why": "duplicates take places"
+  },
+  {
+   "args": [
+    [
+     -1,
+     -1
+    ],
+    2
+   ],
+   "expected": -1,
+   "label": "example 3",
+   "cat": "example",
+   "why": "two equal values"
+  },
+  {
+   "args": [
+    [
+     7
+    ],
+    1
+   ],
+   "expected": 7,
+   "label": "one value",
+   "cat": "single",
+   "why": "k = 1 and one value"
+  },
+  {
+   "args": [
+    [
+     4,
+     9,
+     1,
+     7
+    ],
+    1
+   ],
+   "expected": 9,
+   "label": "k = 1 is the maximum",
+   "cat": "small",
+   "why": "the largest value"
+  },
+  {
+   "args": [
+    [
+     4,
+     9,
+     1,
+     7
+    ],
+    4
+   ],
+   "expected": 1,
+   "label": "k = n is the minimum",
+   "cat": "boundary",
+   "why": "the smallest value"
+  },
+  {
+   "args": [
+    [
+     5,
+     5,
+     5,
+     5,
+     5
+    ],
+    3
+   ],
+   "expected": 5,
+   "label": "all equal",
+   "cat": "dupes",
+   "why": "every place holds 5"
+  },
+  {
+   "args": [
+    [
+     0,
+     0,
+     -1,
+     0
+    ],
+    3
+   ],
+   "expected": 0,
+   "label": "zeros",
+   "cat": "zero",
+   "why": "falsy values are real values"
+  },
+  {
+   "args": [
+    [
+     -5,
+     -10,
+     -3,
+     -8
+    ],
+    2
+   ],
+   "expected": -5,
+   "label": "all negative",
+   "cat": "negative",
+   "why": "the 2nd largest is -5"
+  },
+  {
+   "args": [
+    [
+     10000,
+     -10000,
+     0,
+     10000
+    ],
+    3
+   ],
+   "expected": 0,
+   "label": "value limits",
+   "cat": "boundary",
+   "why": "the smallest and largest values"
+  },
+  {
+   "args": [
+    [
+     0,
+     37,
+     74,
+     10,
+     47,
+     84,
+     20,
+     57,
+     94,
+     30,
+     67,
+     3,
+     40,
+     77,
+     13,
+     50,
+     87,
+     23,
+     60,
+     97,
+     33,
+     70,
+     6,
+     43,
+     80,
+     16,
+     53,
+     90,
+     26,
+     63,
+     100,
+     36,
+     73,
+     9,
+     46,
+     83,
+     19,
+     56,
+     93,
+     29,
+     66,
+     2,
+     39,
+     76,
+     12,
+     49,
+     86,
+     22,
+     59,
+     96
+    ],
+    10
+   ],
+   "expected": 83,
+   "label": "fifty values",
+   "cat": "medium",
+   "why": "mixed order with gaps"
+  }
+ ],
+ "perf": {
+  "label": "performance: 100,000 values, k = 1,000",
+  "gen": "[[(i * 7919) % 20001 - 10000 for i in range(100000)], 1000]",
+  "expected": 9801
+ }
+}
