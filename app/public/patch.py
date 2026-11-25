@@ -20,11 +20,10 @@ html = once(html, '<title>$10k</title>\n', '<title>Tech Interview Prep</title>\n
 html = html.replace('<title>$10k cheat sheet</title>', '<title>Tech Interview Prep cheat sheet</title>')
 
 # ---------- round picker: generic rounds, Learn, Companies ----------
-OPT = lambda k, n, r: '<button class="realm-opt" type="button" role="option" data-realm="' + k + '" aria-selected="false"><span><b>' + n + '</b> <span class="muted">' + r + '</span></span>' + CHECK + '</button>'
+OPT = lambda k, n, r: '<button class="realm-opt" type="button" role="option" data-realm="' + k + '" aria-selected="false"><span><b>' + n + '</b></span>' + CHECK + '</button>'
 MENU = ('<div class="realm-menu" id="realmMenu" role="listbox" aria-label="Interview round" hidden>'
-        '<div class="dd-label">Rounds</div>' + OPT('lc', 'Coding', 'Live coding') + OPT('sd', 'System design', '') + OPT('dd', 'Behavioural', 'Deep dive') +
-        '<div class="dd-label">Learn the basics</div>' + OPT('ex', 'Explained', 'From zero') +
-        '<div class="dd-label">Companies</div>' + OPT('co', 'Company packs', 'Rounds and reported tasks') + '</div></div>')
+        '<div class="dd-label">Practise</div>' + OPT('lc', 'Coding', '') + OPT('sd', 'System design', '') + OPT('dd', 'Behavioural', '') + OPT('co', 'Companies', '') +
+        '<div class="dd-label">Learn</div>' + OPT('ex', 'Explained', '') + '</div></div>')
 html = _sub1(r'<div class="realm-menu" id="realmMenu".*?</div></div>', MENU, html, _re.S)
 html = _sub1(r'<nav class="tnav" data-realm="lc" aria-label="Live coding">.*?</nav>',
              '<nav class="tnav" data-realm="lc" aria-label="Coding">' + tab('home', 'learn', 'Learn', 'learn') + tab('problems', 'practice', 'Practice', 'practice') + tab('leetcode', 'leetcode', 'LeetCode', 'list') + tab('cheatsheet', 'cheat', 'Cheatsheet', 'cheat') + '</nav>', html, _re.S)
@@ -37,7 +36,7 @@ html = once(html, "isAL = !!window.AL && (", "isAL = false && (")
 html = once(html, "  const isME = /^me(-|$)/.test(h) || h === 'trophies',", "  const isCO = !!window.CO && /^co(-|$)/.test(h);\n  const isME = /^me(-|$)/.test(h) || h === 'trophies',")
 html = once(html, "const realm = isEX ? 'ex' : isME ? 'me' : isSD", "const realm = isEX ? 'ex' : isME ? 'me' : isCO ? 'co' : isSD")
 html = once(html, "al: ['Short code', 'AppLovin'], me: ['Profile', '']", "co: ['Companies', ''], me: ['Profile', '']")
-html = once(html, "lc: ['Live coding', 'Round 2'], sd: ['System design', 'Round 3'], dd: ['Deep dive', 'Round 1']", "lc: ['Coding', 'Live coding'], sd: ['System design', ''], dd: ['Behavioural', 'Deep dive']")
+html = once(html, "lc: ['Live coding', 'Round 2'], sd: ['System design', 'Round 3'], dd: ['Deep dive', 'Round 1']", "lc: ['Coding', ''], sd: ['System design', ''], dd: ['Behavioural', '']")
 html = once(html, ": 'me-trophies') : isSD ? SD.tabFor(h)", ": 'me-trophies') : isCO ? 'co' : h === 'leetcode' ? 'leetcode' : isSD ? SD.tabFor(h)")
 html = once(html, "  else if (isME) viewProfile(page, h);\n", "  else if (isME) viewProfile(page, h);\n  else if (isCO) CO.render(page, h);\n  else if (h === 'leetcode') LCI.render(page);\n")
 html = once(html, "const home = { sd: 'sd', dd: 'dd', al: 'al', ex: 'ex-py' }[r] || 'home';", "const home = { sd: 'sd', dd: 'dd', co: 'co', ex: 'ex-py' }[r] || 'home';")
@@ -77,3 +76,8 @@ html = once(html, "function viewHome(page) {\n  viewHome0(page);\n", "function v
 
 # a pattern lesson also lists the problems it names (problems filed under another pattern included)
 html = once(html, "  const probs = PROBLEMS.filter(p => p.pattern === P.id);", "  const probs = PROBLEMS.filter(p => p.pattern === P.id || (P.problems || []).includes(p.id));")
+
+# the round button shows the round's name only
+html = once(html, '<b id="realmLab">Coding</b><span class="realm-sub" id="realmSub">Live coding</span>', '<b id="realmLab">Coding</b><span class="realm-sub" id="realmSub"></span>')
+html = once(html, "ex: ['Explained', 'From zero']", "ex: ['Explained', '']")
+html = html.replace('</style>\n', '.realm-sub:empty { display: none; }\n</style>\n', 1)
