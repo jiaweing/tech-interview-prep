@@ -29,7 +29,7 @@ def check(path):
         if not a.get('from'): E.append('al.from missing')
         if len(a.get('extensions', [])) < 3: E.append('al.extensions needs 3-5 items')
         if len(a.get('talk', [])) < 3: E.append('al.talk needs 3-5 code-level talking points')
-    else:
+    elif 'govtech' in P:   # optional: a problem reported at GovTech
         g = P.get('govtech') or {}
         for k in ('round','source','evidence','tag','extensions'):
             if k not in g: E.append('govtech.%s missing' % k)

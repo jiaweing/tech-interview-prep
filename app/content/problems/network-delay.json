@@ -1,0 +1,357 @@
+{
+ "id": "network-delay",
+ "title": "Network Delay Time",
+ "pattern": "graphs",
+ "fine": "Shortest path",
+ "level": "medium",
+ "statement": "<p>A CDN pushes a config update from one origin server to every edge server. There are <code>n</code> servers, numbered <code>1</code> to <code>n</code>. Each entry <code>[u, v, w]</code> in <code>times</code> is a one-way link: an update that reaches server <code>u</code> reaches server <code>v</code> <code>w</code> milliseconds later. Every server forwards the update on all its outgoing links as soon as it gets it.</p><p>Write <code>def solution(times, n, k)</code>. The update starts at server <code>k</code> at time 0. Return the time, in milliseconds, at which the <b>last</b> server receives it. That is the largest shortest-path distance from <code>k</code>. If some server can never receive it, return <code>-1</code>.</p>",
+ "examples": [
+  {
+   "input": "times = [[2, 1, 1], [2, 3, 1], [3, 4, 1]], n = 4, k = 2",
+   "output": "2",
+   "why": "The LeetCode 743 example 1. Servers 1 and 3 get it at 1, server 4 at 2."
+  },
+  {
+   "input": "times = [[1, 2, 1]], n = 2, k = 1",
+   "output": "1",
+   "why": "The LeetCode 743 example 2. One link of 1 ms."
+  },
+  {
+   "input": "times = [[1, 2, 1]], n = 2, k = 2",
+   "output": "-1",
+   "why": "The LeetCode 743 example 3. The only link goes from 1 to 2, so server 1 never receives the update."
+  }
+ ],
+ "constraints": [
+  "1 &le; n &le; 5,000",
+  "0 &le; len(times) &le; 20,000",
+  "1 &le; u, v &le; n and u &ne; v",
+  "0 &le; w &le; 1,000",
+  "1 &le; k &le; n",
+  "two links may join the same pair of servers with different delays"
+ ],
+ "starter": "def solution(times, n, k):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "When does one server receive the update, and what do you return?",
+   "a": "A server receives the update at the length of its <b>shortest</b> path from <code>k</code>, where a path's length is the sum of its link delays. The answer is the maximum of those shortest distances over all <code>n</code> servers, or -1 if one is unreachable. Links are one-way, and server <code>k</code> itself has time 0."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Solve <code>times = [[1, 2, 9], [1, 3, 2], [3, 2, 3]]</code>, <code>n = 3</code>, <code>k = 1</code>.",
+   "a": "Server 1 at 0. Server 3 at 2 (direct). Server 2: direct is 9, but via 3 it is 2 + 3 = 5. So server 2 gets it at 5, and the last arrival is <b>5</b>. The direct link is not always the fastest; the fewest hops is not always the fastest either."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first idea that works?",
+   "a": "<b>Bellman-Ford</b>: start every distance at infinity except <code>k</code> (0), then go over every link and lower <code>dist[v]</code> to <code>dist[u] + w</code> when that is smaller. Repeat until a full pass changes nothing; at most <code>n - 1</code> passes are needed. That is O(n x E), which is slow when a long chain is listed backwards."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Which pattern?",
+   "a": "<b>Dijkstra's algorithm with a min-heap.</b> All delays are non-negative, so the server with the smallest tentative time can be finalised: no later path can beat it. Pop it from a <code>heapq</code>, relax its outgoing links, and push any improved neighbours. BFS is not enough, because links have different delays."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li>Build an adjacency list <code>graph[u] = [(v, w), ...]</code>.</li><li><code>dist = {}</code> for finished servers; heap = <code>[(0, k)]</code>.</li><li>Pop <code>(d, u)</code>. If <code>u</code> is already finished, skip it (it is a stale entry). Otherwise set <code>dist[u] = d</code> and push <code>(d + w, v)</code> for every unfinished neighbour.</li><li>When the heap is empty: if <code>len(dist) &lt; n</code> return -1, else return <code>max(dist.values())</code>.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "One server (answer 0). A server with no incoming link (-1). Links that point only away from <code>k</code>'s part of the graph. A longer path that is faster than a direct link. Two links between the same pair. Zero-delay links. A long chain listed backwards, which makes Bellman-Ford do one pass per link."
+  }
+ ],
+ "hints": [
+  "Each server receives the update along its fastest path. The answer is the slowest of those fastest arrivals.",
+  "Delays differ, so BFS by hop count is wrong. Which algorithm finds shortest paths when every edge weight is non-negative?",
+  "Use <code>heapq</code> with <code>(time, server)</code> pairs. When you pop a server for the first time, its time is final; skip it if you pop it again."
+ ],
+ "solution": "import heapq\n\ndef solution(times, n, k):\n    graph = [[] for _ in range(n + 1)]   # graph[u] = [(v, w), ...]\n    for u, v, w in times:\n        graph[u].append((v, w))\n    dist = {}                             # server -> final arrival time\n    heap = [(0, k)]\n    while heap:\n        d, u = heapq.heappop(heap)\n        if u in dist:\n            continue                      # a stale, slower entry\n        dist[u] = d                       # smallest time popped first: it is final\n        for v, w in graph[u]:\n            if v not in dist:\n                heapq.heappush(heap, (d + w, v))\n    if len(dist) < n:\n        return -1                         # some server never got the update\n    return max(dist.values())\n",
+ "brute": "def solution(times, n, k):\n    # Bellman-Ford: relax every link, pass after pass, until nothing changes.\n    # Up to n - 1 passes over all E links: O(n * E).\n    big = float('inf')\n    dist = [big] * (n + 1)\n    dist[k] = 0\n    for _ in range(n - 1):\n        changed = False\n        for u, v, w in times:\n            if dist[u] + w < dist[v]:\n                dist[v] = dist[u] + w\n                changed = True\n        if not changed:\n            break\n    best = max(dist[1:])\n    return -1 if best == big else best\n",
+ "explain": "<p>Example 4, <code>times = [[1, 2, 9], [1, 3, 2], [3, 2, 3], [2, 4, 1], [3, 4, 10]]</code>, <code>n = 4</code>, <code>k = 1</code>:</p><ul><li>Heap [(0, 1)]. Pop server 1: final time 0. Push (9, 2) and (2, 3).</li><li>Pop (2, 3): final 2. Push (5, 2) and (12, 4).</li><li>Pop (5, 2): final 5. Push (6, 4).</li><li>Pop (6, 4): final 6. Pop (9, 2) and (12, 4): both stale, skipped.</li></ul><p>All 4 servers are final with times 0, 5, 2, 6. Return <b>6</b>. The key fact: because no delay is negative, the smallest time in the heap cannot be improved by any path through a server with a larger time. So the first pop of each server is its true arrival time, and the stale entries are just skipped.</p>",
+ "complexity": "O(E log E) time with the heap, O(n + E) space",
+ "tests": [
+  {
+   "args": [
+    [
+     [
+      2,
+      1,
+      1
+     ],
+     [
+      2,
+      3,
+      1
+     ],
+     [
+      3,
+      4,
+      1
+     ]
+    ],
+    4,
+    2
+   ],
+   "expected": 2,
+   "label": "example 1 (LeetCode 743)",
+   "cat": "example",
+   "why": "server 4 is two hops away"
+  },
+  {
+   "args": [
+    [
+     [
+      1,
+      2,
+      1
+     ]
+    ],
+    2,
+    1
+   ],
+   "expected": 1,
+   "label": "example 2 (LeetCode 743)",
+   "cat": "example",
+   "why": "one link"
+  },
+  {
+   "args": [
+    [
+     [
+      1,
+      2,
+      1
+     ]
+    ],
+    2,
+    2
+   ],
+   "expected": -1,
+   "label": "example 3 (LeetCode 743)",
+   "cat": "example",
+   "why": "the link points away from server 2"
+  },
+  {
+   "args": [
+    [
+     [
+      1,
+      2,
+      9
+     ],
+     [
+      1,
+      3,
+      2
+     ],
+     [
+      3,
+      2,
+      3
+     ],
+     [
+      2,
+      4,
+      1
+     ],
+     [
+      3,
+      4,
+      10
+     ]
+    ],
+    4,
+    1
+   ],
+   "expected": 6,
+   "label": "detour beats direct link",
+   "cat": "medium",
+   "why": "server 2 via 3 is 5, not 9"
+  },
+  {
+   "args": [
+    [],
+    1,
+    1
+   ],
+   "expected": 0,
+   "label": "one server",
+   "cat": "single",
+   "why": "the origin has the update at time 0"
+  },
+  {
+   "args": [
+    [],
+    3,
+    2
+   ],
+   "expected": -1,
+   "label": "no links",
+   "cat": "empty",
+   "why": "nobody else is reachable"
+  },
+  {
+   "args": [
+    [
+     [
+      1,
+      2,
+      0
+     ],
+     [
+      2,
+      3,
+      0
+     ]
+    ],
+    3,
+    1
+   ],
+   "expected": 0,
+   "label": "zero delays",
+   "cat": "zero",
+   "why": "everyone gets it at time 0"
+  },
+  {
+   "args": [
+    [
+     [
+      1,
+      2,
+      5
+     ],
+     [
+      1,
+      2,
+      3
+     ],
+     [
+      2,
+      1,
+      1
+     ]
+    ],
+    2,
+    1
+   ],
+   "expected": 3,
+   "label": "two links, same pair",
+   "cat": "dupes",
+   "why": "take the faster of the two"
+  },
+  {
+   "args": [
+    [
+     [
+      1,
+      2,
+      1
+     ],
+     [
+      2,
+      3,
+      1
+     ],
+     [
+      4,
+      3,
+      1
+     ]
+    ],
+    4,
+    1
+   ],
+   "expected": -1,
+   "label": "one server cut off",
+   "cat": "edge",
+   "why": "server 4 has no incoming link"
+  },
+  {
+   "args": [
+    [
+     [
+      1,
+      2,
+      1
+     ],
+     [
+      2,
+      3,
+      2
+     ],
+     [
+      1,
+      3,
+      4
+     ],
+     [
+      3,
+      4,
+      1
+     ],
+     [
+      2,
+      4,
+      5
+     ],
+     [
+      4,
+      5,
+      3
+     ],
+     [
+      3,
+      5,
+      1
+     ]
+    ],
+    5,
+    1
+   ],
+   "expected": 4,
+   "label": "many paths",
+   "cat": "medium",
+   "why": "server 5 via 1-2-3-5 at 4"
+  },
+  {
+   "args": [
+    [
+     [
+      3,
+      1,
+      1000
+     ],
+     [
+      3,
+      2,
+      1
+     ],
+     [
+      2,
+      1,
+      1
+     ],
+     [
+      1,
+      4,
+      1000
+     ]
+    ],
+    4,
+    3
+   ],
+   "expected": 1002,
+   "label": "large delays",
+   "cat": "boundary",
+   "why": "the 1,000 ms link to 1 loses to 2 ms; then 1,000 more to 4"
+  }
+ ],
+ "perf": {
+  "label": "performance: 5,000 servers, a 1 ms chain listed backwards plus 10,000 slower shortcuts",
+  "gen": "[[[i, i + 1, 1 + (i * 7) % 3] for i in range(4999, 0, -1)] + [[i, (i * 7919) % 5000 + 1, 2000 + (i * 31) % 997] for i in range(1, 5001) if (i * 7919) % 5000 + 1 != i] + [[i, (i * 104729) % 5000 + 1, 4000 + (i * 17) % 991] for i in range(1, 5001) if (i * 104729) % 5000 + 1 != i], 5000, 1]",
+  "expected": 2724
+ }
+}

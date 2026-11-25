@@ -1,0 +1,358 @@
+{
+ "id": "count-components",
+ "title": "Count Connected Components",
+ "pattern": "graphs",
+ "fine": "Union-find",
+ "level": "medium",
+ "statement": "<p>A data centre has <code>n</code> machines, numbered <code>0</code> to <code>n - 1</code>. Each entry <code>[a, b]</code> in <code>edges</code> is a network cable between machines <code>a</code> and <code>b</code>. Cables work both ways. Machines that can reach each other through any chain of cables form one <b>cluster</b>; a machine with no cables is a cluster on its own.</p><p>Write <code>def solution(n, edges)</code> that returns the number of clusters as an integer.</p><p>The same pair can be cabled twice, and a cable <code>[a, a]</code> from a machine to itself is allowed; neither changes the answer.</p>",
+ "examples": [
+  {
+   "input": "n = 5, edges = [[0, 1], [1, 2], [3, 4]]",
+   "output": "2",
+   "why": "The LeetCode 323 example 1. {0, 1, 2} and {3, 4}."
+  },
+  {
+   "input": "n = 5, edges = [[0, 1], [1, 2], [2, 3], [3, 4]]",
+   "output": "1",
+   "why": "The LeetCode 323 example 2. One chain joins all five machines."
+  },
+  {
+   "input": "n = 4, edges = []",
+   "output": "4",
+   "why": "No cables: each of the 4 machines is its own cluster."
+  }
+ ],
+ "constraints": [
+  "1 &le; n &le; 20,000",
+  "0 &le; len(edges) &le; 20,000",
+  "0 &le; a, b &lt; n"
+ ],
+ "starter": "def solution(n, edges):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "What are you counting?",
+   "a": "The <b>connected components</b> of an undirected graph with <code>n</code> nodes. Every node belongs to exactly one component, isolated nodes included. Start from <code>n</code> components: each cable that joins two different components merges them into one, so the count drops by 1."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Count <code>n = 5</code>, <code>edges = [[0, 1], [1, 2], [3, 4]]</code>.",
+   "a": "Start with 5 clusters: {0} {1} {2} {3} {4}. Cable 0-1 merges two: 4 left. Cable 1-2 merges {0, 1} with {2}: 3 left. Cable 3-4: 2 left. Answer <b>2</b>. A cable between two machines already in the same cluster would change nothing."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first idea that works?",
+   "a": "Give every machine a cluster label equal to its number. For each cable <code>[a, b]</code> with different labels, rewrite every machine labelled like <code>b</code> to <code>a</code>'s label. Count the distinct labels at the end. Each relabel scans all <code>n</code> machines, so it is O(n x E)."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Which pattern?",
+   "a": "<b>Union-find</b> (disjoint set union). Each cluster is a tree of parent pointers; its root names the cluster. <code>find(x)</code> walks up to the root, <code>union(a, b)</code> links one root under the other. With union by size and path halving, each operation is almost O(1). A BFS or DFS over an adjacency list also works in O(n + E); union-find shines when cables arrive one at a time."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li><code>parent = list(range(n))</code>, <code>size = [1] * n</code>, <code>count = n</code>.</li><li><code>find(x)</code>: while <code>parent[x] != x</code>, point <code>x</code> at its grandparent and move up. Return <code>x</code>.</li><li>For each cable, find both roots. If they are equal, skip. Otherwise hang the smaller tree under the larger and subtract 1 from <code>count</code>.</li><li>Return <code>count</code>.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "No cables (answer <code>n</code>). One machine. A cable repeated, or listed both ways. A self-cable <code>[a, a]</code>. A cycle, whose last cable joins two machines already together. A long chain, which makes naive unions build a tall tree and makes a recursive <code>find</code> overflow the stack."
+  }
+ ],
+ "hints": [
+  "Start with <code>n</code> clusters. When does one cable reduce the count, and when does it not?",
+  "Keep a parent pointer per machine; follow pointers up to a root to name the cluster. A cable joins two clusters only if their roots differ.",
+  "Make <code>find</code> a loop, not recursion, and shorten paths as you go (<code>parent[x] = parent[parent[x]]</code>). Attach the smaller tree under the bigger one."
+ ],
+ "solution": "def solution(n, edges):\n    parent = list(range(n))   # each machine starts as its own root\n    size = [1] * n\n\n    def find(x):\n        while parent[x] != x:\n            parent[x] = parent[parent[x]]   # path halving keeps trees flat\n            x = parent[x]\n        return x\n\n    count = n\n    for a, b in edges:\n        ra, rb = find(a), find(b)\n        if ra == rb:\n            continue              # already in one cluster (repeat, cycle or self-cable)\n        if size[ra] < size[rb]:\n            ra, rb = rb, ra\n        parent[rb] = ra           # hang the smaller tree under the bigger\n        size[ra] += size[rb]\n        count -= 1                # two clusters became one\n    return count\n",
+ "brute": "def solution(n, edges):\n    # Relabel: merging two clusters rewrites every label of one of them.\n    # Each merge scans all n machines: O(n * E).\n    label = list(range(n))\n    for a, b in edges:\n        la, lb = label[a], label[b]\n        if la == lb:\n            continue\n        for i in range(n):\n            if label[i] == lb:\n                label[i] = la\n    return len(set(label))\n",
+ "explain": "<p>Example 4, <code>n = 6</code>, <code>edges = [[0, 1], [2, 3], [1, 3], [0, 2], [4, 4]]</code>:</p><ul><li>Start: 6 roots, count 6.</li><li>0-1: roots 0 and 1 differ. Hang 1 under 0. Count 5.</li><li>2-3: hang 3 under 2. Count 4.</li><li>1-3: <code>find(1)</code> = 0, <code>find(3)</code> = 2. Different: hang 2 under 0. Count 3.</li><li>0-2: both roots are 0. A cycle cable; skip.</li><li>4-4: same root. Skip.</li></ul><p>Return <b>3</b>: {0, 1, 2, 3}, {4} and {5}. Union by size keeps every tree at most log2(n) tall, and path halving flattens it further on each <code>find</code>, so each cable costs almost O(1). Both choices also keep <code>find</code> a short loop, so no recursion is needed.</p>",
+ "complexity": "O(n + E x &alpha;(n)) time, which is effectively linear; O(n) space",
+ "tests": [
+  {
+   "args": [
+    5,
+    [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      3,
+      4
+     ]
+    ]
+   ],
+   "expected": 2,
+   "label": "example 1 (LeetCode 323)",
+   "cat": "example",
+   "why": "two clusters"
+  },
+  {
+   "args": [
+    5,
+    [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      2,
+      3
+     ],
+     [
+      3,
+      4
+     ]
+    ]
+   ],
+   "expected": 1,
+   "label": "example 2 (LeetCode 323)",
+   "cat": "example",
+   "why": "one chain"
+  },
+  {
+   "args": [
+    4,
+    []
+   ],
+   "expected": 4,
+   "label": "example 3 (no cables)",
+   "cat": "example",
+   "why": "every machine stands alone"
+  },
+  {
+   "args": [
+    6,
+    [
+     [
+      0,
+      1
+     ],
+     [
+      2,
+      3
+     ],
+     [
+      1,
+      3
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      4,
+      4
+     ]
+    ]
+   ],
+   "expected": 3,
+   "label": "cycle and self-cable",
+   "cat": "edge",
+   "why": "the last two cables change nothing"
+  },
+  {
+   "args": [
+    1,
+    []
+   ],
+   "expected": 1,
+   "label": "one machine",
+   "cat": "single",
+   "why": "one cluster"
+  },
+  {
+   "args": [
+    3,
+    [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      0
+     ],
+     [
+      0,
+      1
+     ]
+    ]
+   ],
+   "expected": 2,
+   "label": "repeated cables",
+   "cat": "dupes",
+   "why": "the same pair three times merges once"
+  },
+  {
+   "args": [
+    4,
+    [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      2,
+      0
+     ],
+     [
+      3,
+      3
+     ]
+    ]
+   ],
+   "expected": 2,
+   "label": "triangle plus a self-loop",
+   "cat": "small",
+   "why": "the loop on 3 keeps it alone"
+  },
+  {
+   "args": [
+    7,
+    [
+     [
+      6,
+      5
+     ],
+     [
+      5,
+      4
+     ],
+     [
+      4,
+      3
+     ],
+     [
+      3,
+      2
+     ],
+     [
+      2,
+      1
+     ],
+     [
+      1,
+      0
+     ]
+    ]
+   ],
+   "expected": 1,
+   "label": "chain listed backwards",
+   "cat": "boundary",
+   "why": "all seven join one cluster"
+  },
+  {
+   "args": [
+    8,
+    [
+     [
+      0,
+      4
+     ],
+     [
+      1,
+      5
+     ],
+     [
+      2,
+      6
+     ],
+     [
+      3,
+      7
+     ],
+     [
+      4,
+      1
+     ],
+     [
+      6,
+      3
+     ]
+    ]
+   ],
+   "expected": 2,
+   "label": "two interleaved clusters",
+   "cat": "medium",
+   "why": "{0, 1, 4, 5} and {2, 3, 6, 7}"
+  },
+  {
+   "args": [
+    10,
+    [
+     [
+      0,
+      9
+     ],
+     [
+      1,
+      8
+     ],
+     [
+      2,
+      7
+     ],
+     [
+      9,
+      8
+     ],
+     [
+      5,
+      5
+     ]
+    ]
+   ],
+   "expected": 6,
+   "label": "mixed",
+   "cat": "medium",
+   "why": "clusters {0, 1, 8, 9}, {2, 7}, then 3, 4, 5, 6 alone"
+  },
+  {
+   "args": [
+    5,
+    [
+     [
+      0,
+      1
+     ],
+     [
+      2,
+      3
+     ],
+     [
+      3,
+      4
+     ],
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "expected": 1,
+   "label": "merge two built clusters",
+   "cat": "small",
+   "why": "the last cable joins {0, 1} with {2, 3, 4}"
+  }
+ ],
+ "perf": {
+  "label": "performance: 20,000 machines, 18,000 cables, many merges of large clusters",
+  "gen": "[20000, [[(i * 7919) % 20000, (i * 104729 + 13) % 20000] for i in range(18000)]]",
+  "expected": 2000
+ }
+}
