@@ -1,0 +1,264 @@
+{
+ "id": "databricks",
+ "name": "Databricks",
+ "role": "Software engineer",
+ "summary": "Candidates report a recruiter call, one coding phone screen, then a virtual onsite of about four to five one-hour rounds: algorithm coding, a concurrency or systems programming round, system design, and a behavioural round. Coding is reported as medium to hard, often practical and multi-part with follow-ups.",
+ "rounds": [
+  {
+   "name": "Recruiter screen",
+   "minutes": 30,
+   "kind": "behavioural",
+   "what": "Background, interest in Databricks and fit for the role.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/databricks-interview-questions"
+  },
+  {
+   "name": "Online assessment (some candidates)",
+   "minutes": 70,
+   "kind": "coding",
+   "what": "CodeSignal test with four questions, usually two medium and two hard.",
+   "practice": "leetcode",
+   "source": "https://www.aced.io/companies/databricks"
+  },
+  {
+   "name": "Technical phone screen",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Live coding in CoderPad or similar, LeetCode medium to hard, often with a follow-up part.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/databricks-interview-questions"
+  },
+  {
+   "name": "Hiring manager call",
+   "minutes": 60,
+   "kind": "behavioural",
+   "what": "Mostly behavioural: past work, what you enjoy, team questions. Timing before or after the onsite varies.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/databricks-interview-questions"
+  },
+  {
+   "name": "Onsite coding (algorithms)",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "One or two rounds of clean, correct implementation with edge cases, built up in stages.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/databricks-interview-questions"
+  },
+  {
+   "name": "Onsite concurrency / systems programming",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Multithreading and I/O trade-offs, such as a logger or a cached remote file reader.",
+   "practice": "problems",
+   "source": "https://interviewing.io/databricks-interview-questions"
+  },
+  {
+   "name": "Onsite system design",
+   "minutes": 60,
+   "kind": "design",
+   "what": "Open-ended design expanded from an initial prompt, sometimes done in a shared doc.",
+   "practice": "sd-practice",
+   "source": "https://interviewing.io/databricks-interview-questions"
+  },
+  {
+   "name": "Onsite cross-functional / behavioural",
+   "minutes": 60,
+   "kind": "behavioural",
+   "what": "Teamwork, conflict and ownership, plus a deep dive on a project you are proud of.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/databricks-interview-questions"
+  }
+ ],
+ "tips": [
+  "Practise LeetCode questions tagged Databricks from the last few months; reports repeat questions from that pool.",
+  "Budget time for edge cases; simple-looking problems lead into follow-ups.",
+  "Prepare concurrency basics: locks, queues, buffered writes and disk or network latency trade-offs.",
+  "Expect a project deep dive in the behavioural round and know your numbers.",
+  "References are reported to carry weight in the final decision."
+ ],
+ "reported": [
+  {
+   "lc": "house-robber",
+   "tag": "reported",
+   "note": "New grad technical round, Oct 2025, with House Robber II as follow-up",
+   "source": "https://static.glassdoor.es/Interview/Databricks-Software-Engineer-New-Grad-Interview-Questions-EI_IE954734.0,10_KO11,37.htm"
+  },
+  {
+   "lc": "house-robber-ii",
+   "tag": "reported",
+   "note": "Onsite coding, Aug 2025, circular variant as follow-up",
+   "source": "https://prachub.com/interview-experiences/databricks-software-engineer-interview-experience-passed-the-phone-screen-tripped-up-by-an-unusual-system-programming-onsite-round"
+  },
+  {
+   "lc": "remove-interval",
+   "tag": "reported",
+   "note": "Onsite coding, Aug 2025, follow-up on streaming deletes",
+   "source": "https://prachub.com/interview-experiences/databricks-software-engineer-interview-experience-passed-the-phone-screen-tripped-up-by-an-unusual-system-programming-onsite-round"
+  },
+  {
+   "title": "Fastest commute on a grid with transport modes (BFS / Dijkstra)",
+   "tag": "reported",
+   "note": "Phone screen, 2025 and early 2026, follow-up drops the mode restriction",
+   "source": "https://www.1point3acres.com/interview/thread/1164869"
+  },
+  {
+   "title": "Cached remote file reader with offset and length (concurrency)",
+   "tag": "reported",
+   "note": "Onsite systems programming round, Aug 2025",
+   "source": "https://prachub.com/interview-experiences/databricks-software-engineer-interview-experience-passed-the-phone-screen-tripped-up-by-an-unusual-system-programming-onsite-round"
+  },
+  {
+   "title": "Key-value store with put, get and average calls over the last 5 minutes",
+   "tag": "reported",
+   "note": "Phone screen, late 2025",
+   "source": "https://www.1point3acres.com/interview/thread/1157471"
+  },
+  {
+   "title": "Path between two nodes in an implicit Fibonacci tree (LC 2096 variant)",
+   "tag": "reported",
+   "note": "Phone screen, mid 2025",
+   "source": "https://www.1point3acres.com/interview/thread/1147977"
+  },
+  {
+   "lc": "longest-increasing-subsequence",
+   "tag": "reported",
+   "note": "Phone screen, late 2025, with a permutations question",
+   "source": "https://www.1point3acres.com/interview/thread/1154914"
+  },
+  {
+   "lc": "smallest-rectangle-enclosing-black-pixels",
+   "tag": "reported",
+   "note": "Phone screen, early 2025",
+   "source": "https://www.1point3acres.com/interview/thread/1119081"
+  },
+  {
+   "lc": "ip-to-cidr",
+   "tag": "reported",
+   "note": "Phone screen, 2023",
+   "source": "https://www.1point3acres.com/interview/thread/1014490"
+  },
+  {
+   "title": "Design a bookstore price query system with caching",
+   "tag": "reported",
+   "note": "Design phone screen, 2026",
+   "source": "https://www.1point3acres.com/interview/thread/1176356"
+  },
+  {
+   "lc": "design-tic-tac-toe",
+   "tag": "listed",
+   "note": "Variable-size tic-tac-toe, onsite coding",
+   "source": "https://interviewing.io/databricks-interview-questions"
+  },
+  {
+   "lc": "moving-average-from-data-stream",
+   "tag": "listed",
+   "note": "Onsite coding, with max, min and space limits",
+   "source": "https://interviewing.io/databricks-interview-questions"
+  },
+  {
+   "lc": "lru-cache",
+   "tag": "listed",
+   "note": "Phone screen",
+   "source": "https://interviewing.io/databricks-interview-questions"
+  },
+  {
+   "title": "Bit-packed run-length encoder and decoder",
+   "tag": "listed",
+   "note": "Onsite coding",
+   "source": "https://interviewing.io/databricks-interview-questions"
+  },
+  {
+   "title": "Efficient logger that drains a message queue to disk",
+   "tag": "listed",
+   "note": "Concurrency round",
+   "source": "https://interviewing.io/databricks-interview-questions"
+  },
+  {
+   "title": "Cheapest copy of a book across distributors",
+   "tag": "listed",
+   "note": "System design round",
+   "source": "https://interviewing.io/databricks-interview-questions"
+  },
+  {
+   "title": "Snapshot set iterator",
+   "tag": "listed",
+   "note": "Coding, 2026 question bank",
+   "source": "https://prachub.com/companies/databricks/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "title": "First-match CIDR firewall rules for an IP or block",
+   "tag": "listed",
+   "note": "Coding, 2026 question bank",
+   "source": "https://prachub.com/companies/databricks/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "title": "Referral credit tracker with indirect referrals",
+   "tag": "listed",
+   "note": "Coding, 2026 question bank",
+   "source": "https://prachub.com/companies/databricks/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "closest-leaf-in-a-binary-tree",
+   "tag": "listed",
+   "note": "Coding, 2026 question bank",
+   "source": "https://prachub.com/companies/databricks/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "title": "Merge two sorted key-value streams, summing shared keys",
+   "tag": "listed",
+   "note": "Coding, 2026 question bank",
+   "source": "https://prachub.com/companies/databricks/positions/software-engineer/categories/coding-and-algorithms"
+  }
+ ],
+ "sources": [
+  {
+   "label": "interviewing.io: Databricks interview process and questions",
+   "url": "https://interviewing.io/databricks-interview-questions"
+  },
+  {
+   "label": "Aced (formerly Exponent): Databricks interview guide",
+   "url": "https://www.aced.io/companies/databricks"
+  },
+  {
+   "label": "PracHub: Databricks SWE candidate experience, Aug 2025",
+   "url": "https://prachub.com/interview-experiences/databricks-software-engineer-interview-experience-passed-the-phone-screen-tripped-up-by-an-unusual-system-programming-onsite-round"
+  },
+  {
+   "label": "PracHub: Databricks SWE coding question bank",
+   "url": "https://prachub.com/companies/databricks/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "label": "Glassdoor: Databricks new grad SWE interviews",
+   "url": "https://static.glassdoor.es/Interview/Databricks-Software-Engineer-New-Grad-Interview-Questions-EI_IE954734.0,10_KO11,37.htm"
+  },
+  {
+   "label": "1point3acres: Databricks phone screen, key-value QPS (2025)",
+   "url": "https://www.1point3acres.com/interview/thread/1157471"
+  },
+  {
+   "label": "1point3acres: Databricks phone screen, optimal commute (2026)",
+   "url": "https://www.1point3acres.com/interview/thread/1164869"
+  },
+  {
+   "label": "1point3acres: Databricks phone screen, bookstore price system (2026)",
+   "url": "https://www.1point3acres.com/interview/thread/1176356"
+  },
+  {
+   "label": "1point3acres: Databricks phone screen, LC 2096 variant (2025)",
+   "url": "https://www.1point3acres.com/interview/thread/1147977"
+  },
+  {
+   "label": "1point3acres: Databricks phone screen, LC 300 (2025)",
+   "url": "https://www.1point3acres.com/interview/thread/1154914"
+  },
+  {
+   "label": "1point3acres: Databricks phone screen, IP to CIDR (2023)",
+   "url": "https://www.1point3acres.com/interview/thread/1014490"
+  },
+  {
+   "label": "1point3acres: Databricks phone screen, LC 302 (2025)",
+   "url": "https://www.1point3acres.com/interview/thread/1119081"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time."
+}

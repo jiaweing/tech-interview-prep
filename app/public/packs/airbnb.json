@@ -1,0 +1,278 @@
+{
+ "id": "airbnb",
+ "name": "Airbnb",
+ "role": "Software engineer",
+ "summary": "Candidates report a recruiter call, one live coding screen, then an onsite with coding, system design and separate core values interviews. Coding is described as medium to hard, often with product-style follow-ups, and the code is expected to run.",
+ "rounds": [
+  {
+   "name": "Recruiter call",
+   "minutes": 30,
+   "kind": "behavioural",
+   "what": "Background, motivation for Airbnb and role fit.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/airbnb-interview-questions"
+  },
+  {
+   "name": "Technical phone screen",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "One or two problems on CoderPad; sources say runnable code is expected, not pseudocode.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/airbnb-interview-questions"
+  },
+  {
+   "name": "Onsite coding",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "A multi-part problem with follow-up requirements, solved in a real editor with test cases.",
+   "practice": "problems",
+   "source": "https://www.hellointerview.com/guides/airbnb/g9"
+  },
+  {
+   "name": "Code review",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Reported for senior loops since 2024: review existing code or pull requests for bugs and quality.",
+   "practice": "problems",
+   "source": "https://www.hellointerview.com/guides/airbnb/g9"
+  },
+  {
+   "name": "System design",
+   "minutes": 60,
+   "kind": "design",
+   "what": "Open-ended design with two or three deep dives; schema and trade-offs come up.",
+   "practice": "sd-practice",
+   "source": "https://www.hellointerview.com/guides/airbnb/g9"
+  },
+  {
+   "name": "Core values interviews",
+   "kind": "behavioural",
+   "what": "Conversations with non-engineers on Airbnb's values; candidates say a weak result here can block an offer.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/airbnb-interview-questions"
+  },
+  {
+   "name": "Project deep dive",
+   "kind": "behavioural",
+   "what": "Senior candidates walk through one project they led; it weighs on leveling.",
+   "practice": "dd-mock",
+   "source": "https://www.hellointerview.com/guides/airbnb/g9"
+  }
+ ],
+ "tips": [
+  "Write complete code that runs and passes your own tests; sources say pseudocode is not accepted.",
+  "Clarify requirements first, since many prompts are product-style with follow-up parts.",
+  "Get a working version before optimising; candidates describe one hard problem per round.",
+  "Prepare stories about belonging, being a host and handling ambiguity for the values rounds.",
+  "For a code review round, establish what the code should do, then rank issues by impact."
+ ],
+ "reported": [
+  {
+   "lc": "pour-water",
+   "tag": "reported",
+   "note": "Virtual onsite coding on CoderPad; code had to run and pass given cases",
+   "source": "https://www.glassdoor.co.uk/Interview/Airbnb-Interview-E391850-RVW26049853.htm"
+  },
+  {
+   "lc": "sliding-puzzle",
+   "tag": "reported",
+   "note": "Coding round, L4, Bangalore",
+   "source": "https://leetcode.com/discuss/interview-question/1837611/airbnb-l4-interview-bangalore"
+  },
+  {
+   "lc": "alien-dictionary",
+   "tag": "reported",
+   "note": "Phone screen",
+   "source": "https://leetcode.com/discuss/interview-question/434620/airbnb-phone-alien-dictionary-boxes-and-candies"
+  },
+  {
+   "lc": "maximum-candies-you-can-get-from-boxes",
+   "tag": "reported",
+   "note": "Phone screen, asked with Alien Dictionary",
+   "source": "https://leetcode.com/discuss/interview-question/434620/airbnb-phone-alien-dictionary-boxes-and-candies"
+  },
+  {
+   "lc": "cheapest-flights-within-k-stops",
+   "tag": "reported",
+   "note": "Intern, second interview",
+   "source": "https://www.glassdoor.co.in/Interview/Airbnb-Interview-E391850-RVW23662694.htm"
+  },
+  {
+   "lc": "smallest-common-region",
+   "tag": "reported",
+   "note": "Phone screen",
+   "source": "https://leetcode.com/discuss/interview-experience/983456/"
+  },
+  {
+   "title": "Ten wizards problem",
+   "tag": "reported",
+   "note": "Phone screen, asked with Smallest Common Region",
+   "source": "https://leetcode.com/discuss/interview-experience/983456/"
+  },
+  {
+   "lc": "edit-distance",
+   "tag": "reported",
+   "note": "Phone screen, SDE2, 2024",
+   "source": "https://www.1point3acres.com/interview/thread/1080431"
+  },
+  {
+   "title": "Menu item combinations with quantity limits (backtracking)",
+   "tag": "reported",
+   "note": "Phone screen, 2024",
+   "source": "https://www.1point3acres.com/interview/thread/1102558"
+  },
+  {
+   "title": "Split stay: two listings that cover a date range",
+   "tag": "reported",
+   "note": "Phone screen, 2025",
+   "source": "https://www.1point3acres.com/interview/thread/1144028"
+  },
+  {
+   "title": "Hard maze shortest path (BFS)",
+   "tag": "reported",
+   "note": "First technical round",
+   "source": "https://www.glassdoor.co.in/Interview/Airbnb-Interview-E391850-RVW91990165.htm"
+  },
+  {
+   "lc": "fraction-to-recurring-decimal",
+   "tag": "reported",
+   "note": "Online assessment, intern reports 2019 and 2021",
+   "source": "https://www.fastprep.io/experience/airbnb-swe-intern-oa-interviews-122-experiences-part-1-of-7-2sam6duguo"
+  },
+  {
+   "lc": "koko-eating-bananas",
+   "tag": "reported",
+   "note": "Online assessment, intern, 2019 (candy-eating variant)",
+   "source": "https://www.fastprep.io/experience/airbnb-swe-intern-oa-interviews-122-experiences-part-1-of-7-2sam6duguo"
+  },
+  {
+   "title": "Disk clustering (close to Put Marbles in Bags)",
+   "tag": "reported",
+   "note": "Online assessment, intern, Jan 2025",
+   "source": "https://www.fastprep.io/experience/airbnb-swe-intern-oa-interviews-122-experiences-part-1-of-7-2sam6duguo"
+  },
+  {
+   "lc": "design-excel-sum-formula",
+   "tag": "listed",
+   "note": "Prep guide, senior coding",
+   "source": "https://www.hellointerview.com/guides/airbnb/g9"
+  },
+  {
+   "lc": "maximum-profit-in-job-scheduling",
+   "tag": "listed",
+   "note": "Prep guide, senior coding",
+   "source": "https://www.hellointerview.com/guides/airbnb/g9"
+  },
+  {
+   "title": "URL query string parser",
+   "tag": "listed",
+   "note": "Prep guide, senior coding",
+   "source": "https://www.hellointerview.com/guides/airbnb/g9"
+  },
+  {
+   "lc": "text-justification",
+   "tag": "listed",
+   "note": "Company question list",
+   "source": "https://www.1point3acres.com/interview/problems/company/airbnb"
+  },
+  {
+   "lc": "add-bold-tag-in-string",
+   "tag": "listed",
+   "note": "Company question list",
+   "source": "https://www.1point3acres.com/interview/problems/company/airbnb"
+  },
+  {
+   "title": "Nested list iterator with remove",
+   "tag": "listed",
+   "note": "Question bank, 2026",
+   "source": "https://prachub.com/companies/airbnb/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "smallest-sufficient-team",
+   "tag": "listed",
+   "note": "Question bank (fewest people covering every skill)",
+   "source": "https://prachub.com/companies/airbnb/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "consecutive-numbers-sum",
+   "tag": "listed",
+   "note": "Question bank, 2026",
+   "source": "https://prachub.com/companies/airbnb/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "title": "Design a booking waitlist system",
+   "tag": "listed",
+   "note": "System design, prep guide",
+   "source": "https://www.hellointerview.com/guides/airbnb/g9"
+  },
+  {
+   "title": "Design a real-time chat system with hot groups",
+   "tag": "listed",
+   "note": "System design, onsite, question bank",
+   "source": "https://prachub.com/interview-guide/airbnb-software-engineer-interview-guide"
+  }
+ ],
+ "sources": [
+  {
+   "label": "interviewing.io: Airbnb interview process",
+   "url": "https://interviewing.io/airbnb-interview-questions"
+  },
+  {
+   "label": "Hello Interview: Airbnb G9 guide",
+   "url": "https://www.hellointerview.com/guides/airbnb/g9"
+  },
+  {
+   "label": "PracHub: Airbnb coding questions",
+   "url": "https://prachub.com/companies/airbnb/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "label": "PracHub: Airbnb software engineer guide",
+   "url": "https://prachub.com/interview-guide/airbnb-software-engineer-interview-guide"
+  },
+  {
+   "label": "FastPrep: Airbnb intern OA and interview reports",
+   "url": "https://www.fastprep.io/experience/airbnb-swe-intern-oa-interviews-122-experiences-part-1-of-7-2sam6duguo"
+  },
+  {
+   "label": "Glassdoor: Airbnb review, Pour Water",
+   "url": "https://www.glassdoor.co.uk/Interview/Airbnb-Interview-E391850-RVW26049853.htm"
+  },
+  {
+   "label": "Glassdoor: Airbnb intern review, cheapest flights",
+   "url": "https://www.glassdoor.co.in/Interview/Airbnb-Interview-E391850-RVW23662694.htm"
+  },
+  {
+   "label": "Glassdoor: Airbnb review, maze BFS",
+   "url": "https://www.glassdoor.co.in/Interview/Airbnb-Interview-E391850-RVW91990165.htm"
+  },
+  {
+   "label": "LeetCode Discuss: Airbnb L4 Bangalore",
+   "url": "https://leetcode.com/discuss/interview-question/1837611/airbnb-l4-interview-bangalore"
+  },
+  {
+   "label": "LeetCode Discuss: Airbnb phone, Smallest Common Region and 10 Wizards",
+   "url": "https://leetcode.com/discuss/interview-experience/983456/"
+  },
+  {
+   "label": "LeetCode Discuss: Airbnb phone, Alien Dictionary and Boxes and Candies",
+   "url": "https://leetcode.com/discuss/interview-question/434620/airbnb-phone-alien-dictionary-boxes-and-candies"
+  },
+  {
+   "label": "1point3acres: Airbnb phone screen, menu combinations (2024)",
+   "url": "https://www.1point3acres.com/interview/thread/1102558"
+  },
+  {
+   "label": "1point3acres: Airbnb phone screen, split stay (2025)",
+   "url": "https://www.1point3acres.com/interview/thread/1144028"
+  },
+  {
+   "label": "1point3acres: Airbnb SDE2 phone screen (2024)",
+   "url": "https://www.1point3acres.com/interview/thread/1080431"
+  },
+  {
+   "label": "1point3acres: Airbnb problem list",
+   "url": "https://www.1point3acres.com/interview/problems/company/airbnb"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time."
+}

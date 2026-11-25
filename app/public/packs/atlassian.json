@@ -1,0 +1,239 @@
+{
+ "id": "atlassian",
+ "name": "Atlassian",
+ "role": "Software engineer",
+ "summary": "Candidates report a recruiter call and a Karat screen (coding plus short system design questions), then an onsite of data structures coding, code design, system design, a manager interview and a values interview. A hiring committee makes the final decision.",
+ "rounds": [
+  {
+   "name": "Recruiter call",
+   "minutes": 30,
+   "kind": "behavioural",
+   "what": "Past experience, interest in Atlassian and which roles fit.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/atlassian-interview-questions"
+  },
+  {
+   "name": "Karat screen",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Run by Karat: a medium coding question from Atlassian's bank, with recent reports adding several rapid system design questions.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/atlassian-interview-questions"
+  },
+  {
+   "name": "Data structures coding",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Medium-level algorithm problem in your own IDE and language, with follow-up requirements.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/atlassian-interview-questions"
+  },
+  {
+   "name": "Code design",
+   "kind": "coding",
+   "what": "Build an extensible, production-quality design such as a game, rate limiter or rating system.",
+   "practice": "problems",
+   "source": "https://www.atlassian.com/company/careers/resources/interviewing/engineering"
+  },
+  {
+   "name": "System design",
+   "minutes": 60,
+   "kind": "design",
+   "what": "Discussion of architecture and scaling, with trade-offs on reliability and cost; no coding.",
+   "practice": "sd-practice",
+   "source": "https://www.atlassian.com/company/careers/resources/interviewing/engineering"
+  },
+  {
+   "name": "Manager interview",
+   "minutes": 60,
+   "kind": "behavioural",
+   "what": "Deep dive into one or two past projects: scope, impact, collaboration and lessons.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/atlassian-interview-questions"
+  },
+  {
+   "name": "Values interview",
+   "minutes": 45,
+   "kind": "behavioural",
+   "what": "Scenario questions on Atlassian's five values, often with an interviewer from outside engineering.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/atlassian-interview-questions"
+  }
+ ],
+ "tips": [
+  "Learn Atlassian's five values and tie your stories to them.",
+  "In code design, start simple and keep the design open to new requirements.",
+  "Talk through trade-offs before coding; missing a line is not a deal-breaker.",
+  "Practise short system design answers for the Karat screen as well as coding.",
+  "Prepare one or two past projects in depth for the manager round."
+ ],
+ "reported": [
+  {
+   "lc": "design-snake-game",
+   "tag": "reported",
+   "note": "Code design, 2025, several reports",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Atlassian"
+  },
+  {
+   "title": "Closest common parent group in an employee directory",
+   "tag": "reported",
+   "note": "Data structures round, 2025, several reports",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Atlassian"
+  },
+  {
+   "lc": "stock-price-fluctuation",
+   "tag": "reported",
+   "note": "Data structures, SDE-2, Jul 2025",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Atlassian"
+  },
+  {
+   "title": "Customer support agent rating system",
+   "tag": "reported",
+   "note": "Code design, P40 and P50, 2025",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Atlassian"
+  },
+  {
+   "title": "Design a tagging system for popular content",
+   "tag": "reported",
+   "note": "System design, 2025, several reports",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Atlassian"
+  },
+  {
+   "lc": "lru-cache",
+   "tag": "reported",
+   "note": "Principal loop, Sep 2025",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Atlassian"
+  },
+  {
+   "title": "Optimise grocery shopping department visits",
+   "tag": "reported",
+   "note": "Technical phone screen, Oct 2025",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Atlassian"
+  },
+  {
+   "title": "Find missing request IDs",
+   "tag": "reported",
+   "note": "Karat screen, P40, 2025",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Atlassian"
+  },
+  {
+   "title": "Detect attendance violations",
+   "tag": "reported",
+   "note": "Karat screen coding, 2025",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Atlassian"
+  },
+  {
+   "title": "Tennis court booking system",
+   "tag": "reported",
+   "note": "Question list from a 2025 candidate",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Atlassian"
+  },
+  {
+   "title": "Cinema movie scheduling",
+   "tag": "reported",
+   "note": "Principal loop, Sep 2025",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Atlassian"
+  },
+  {
+   "title": "Design Google Docs style collaborative editing",
+   "tag": "reported",
+   "note": "System design and Karat, 2025",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Atlassian"
+  },
+  {
+   "title": "Design an image fetcher or web crawler",
+   "tag": "reported",
+   "note": "System design, Dec 2025",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Atlassian"
+  },
+  {
+   "title": "Karat quick design: friend counts, consistency, pipeline throughput",
+   "tag": "reported",
+   "note": "Karat screen, 2025",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Atlassian"
+  },
+  {
+   "title": "Rate limiter with fixed time buckets",
+   "tag": "listed",
+   "note": "Code design",
+   "source": "https://www.1point3acres.com/interview/problems/company/atlassian"
+  },
+  {
+   "lc": "moving-average-from-data-stream",
+   "tag": "listed",
+   "note": "Moving window average",
+   "source": "https://www.1point3acres.com/interview/problems/company/atlassian"
+  },
+  {
+   "lc": "merge-intervals",
+   "tag": "listed",
+   "note": "Coding",
+   "source": "https://www.1point3acres.com/interview/problems/company/atlassian"
+  },
+  {
+   "lc": "exclusive-time-of-functions",
+   "tag": "listed",
+   "note": "Coding",
+   "source": "https://www.1point3acres.com/interview/problems/company/atlassian"
+  },
+  {
+   "lc": "alphabet-board-path",
+   "tag": "listed",
+   "note": "Coding",
+   "source": "https://prachub.com/companies/atlassian"
+  },
+  {
+   "title": "Highlight the shortest unique substring in each label",
+   "tag": "listed",
+   "note": "Coding, 2026",
+   "source": "https://prachub.com/companies/atlassian"
+  },
+  {
+   "title": "Music player with queue, loop and shuffle",
+   "tag": "listed",
+   "note": "Code design, 2026",
+   "source": "https://prachub.com/companies/atlassian"
+  },
+  {
+   "title": "Trie-based URL router with wildcards",
+   "tag": "listed",
+   "note": "Coding, 2025",
+   "source": "https://prachub.com/companies/atlassian"
+  },
+  {
+   "title": "Sequential and parallel URL requests",
+   "tag": "listed",
+   "note": "Coding, 2026",
+   "source": "https://prachub.com/companies/atlassian"
+  },
+  {
+   "title": "Design a job scheduler",
+   "tag": "listed",
+   "note": "System design",
+   "source": "https://interviewing.io/atlassian-interview-questions"
+  }
+ ],
+ "sources": [
+  {
+   "label": "Atlassian: engineering interview handbook",
+   "url": "https://www.atlassian.com/company/careers/resources/interviewing/engineering"
+  },
+  {
+   "label": "interviewing.io: Atlassian interview process",
+   "url": "https://interviewing.io/atlassian-interview-questions"
+  },
+  {
+   "label": "CodingKaro: Atlassian LeetCode Discuss experiences",
+   "url": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Atlassian"
+  },
+  {
+   "label": "1point3acres: Atlassian coding problems",
+   "url": "https://www.1point3acres.com/interview/problems/company/atlassian"
+  },
+  {
+   "label": "PracHub: Atlassian question list",
+   "url": "https://prachub.com/companies/atlassian"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time."
+}

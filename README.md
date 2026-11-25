@@ -1,6 +1,6 @@
 # Tech Interview Prep
 
-Practise for software engineering interviews in one page: learn the patterns from zero, solve problems in a real editor against hidden tests, work through system design, and run spoken mock interviews with Claude as the interviewer.
+Practise for software engineering interviews in one page: a course that takes every pattern from zero, problems in a real editor against hidden tests, all of LeetCode in one list, the questions candidates report at 38 companies, system design, and spoken mock interviews with Claude as the interviewer.
 
 Everything is in Python. It is one self-contained HTML file: open it in a browser, host it anywhere, or use it as a claude.ai artifact with your own Claude.
 
@@ -10,17 +10,26 @@ Everything is in Python. It is one self-contained HTML file: open it in a browse
 
 | Part | What you get |
 |---|---|
+| Course | 18 units from Python basics to graphs and dynamic programming. Each unit has its lessons, problems here with hidden tests, and the LeetCode classics for it; "Up next" always points at the next thing to do |
 | Coding | 93 problems with a task, hints, a step-by-step "think it through", a model solution, and hidden tests that run your Python in the browser, including a speed test on a big input |
-| LeetCode list | All 4,124 LeetCode problems, searchable by name, number, difficulty and pattern, plus a core list of 155 classics grouped into 18 patterns. Each opens on LeetCode, with a video search link; your ticks stay in your browser |
+| LeetCode list | All 4,124 LeetCode problems, searchable by name, number, difficulty, pattern and the company where candidates report them, plus a core list of 155 classics grouped into 18 patterns. Each opens on LeetCode, with a video search link |
 | System design | 22 designs drawn as diagrams with animated request flows, 18 building blocks with small simulations, 19 timed rounds with model answers and a rubric, a 109-question drill, a whiteboard and a cheatsheet |
 | Behavioural | A project worksheet, 60 deep-dive questions with what the interviewer is probing and what a strong answer covers, and a timed mock |
 | Explained | 86 lessons from zero on Python, data structures, algorithms and system design, each with a step-through animation, a "Which one?" flowchart and side-by-side tables for the lookalikes |
-| Companies | Company packs: rounds, timings, the tasks candidates report, and the public sources. GovTech Singapore and AppLovin come with it; adding a company is one JSON file |
+| Companies | 38 company packs: rounds and timings, 820 questions candidates report (404 of them LeetCode problems), and 338 public sources, one cited on every question. Google, Meta, Amazon, Apple, Microsoft, Netflix, Airbnb, Uber, Stripe, Databricks, OpenAI, Jane Street, Grab, Shopee and more; adding a company is one JSON file |
 | Mock interviews | Claude plays the interviewer out loud for a coding problem, a design question or your deep dive, listens to your answers, asks follow-ups, keeps time and scores you at the end |
 
-| Home | LeetCode list |
+| The course | LeetCode list |
 |---|---|
-| ![Home with the usual interview loop](docs/screenshots/home-light.png) | ![LeetCode list, core problems by pattern](docs/screenshots/leetcode-light.png) |
+| ![The course on the home page](docs/screenshots/home-light.png) | ![LeetCode list, core problems by pattern](docs/screenshots/leetcode-light.png) |
+
+### The course
+
+The home page is a course in 18 units: Python for interviews; arrays, strings and hashing; two pointers; sliding window; prefix sums and Kadane; simulation and parsing; sorting and intervals; stacks and queues; binary search; linked lists; trees; heaps; tries; graphs; backtracking; dynamic programming; greedy, math and bits; and interview ready. Each unit lists its Explained lessons, the problems here that use the pattern, and its LeetCode classics. Progress comes from what you do anyway: lessons you open, problems you solve, LeetCode problems you tick.
+
+### Companies
+
+Each company pack lists the rounds candidates report and how long they take, what helps, and the questions they were asked, split into first-hand reports and prep-site lists. Every question links its source. Coding questions link to LeetCode or to the problem here; design prompts and practical tasks are listed by name. Pick a company and the mock interviewer plays its rounds; open its LeetCode questions to see them in the LeetCode list.
 
 ### Coding
 
@@ -32,7 +41,7 @@ The **cheatsheet** puts every pattern on one page, with a flowchart from the wor
 
 | A design, dark mode | A company pack |
 |---|---|
-| ![URL shortener design with a diagram](docs/screenshots/design-dark.png) | ![GovTech Singapore company pack](docs/screenshots/company-light.png) |
+| ![URL shortener design with a diagram](docs/screenshots/design-dark.png) | ![Google company pack](docs/screenshots/company-light.png) |
 
 Each design starts from requirements and numbers, then the API, the data model, the diagram and one deep dive, and ends with follow-up questions. Timed rounds give you a prompt, clarifying answers on request, a whiteboard, and a model answer and rubric to compare against. With Claude available, **AI grade** reads your notes and whiteboard and scores them against the rubric.
 
@@ -67,6 +76,8 @@ For when you are rusty. Every lesson says what the thing is in plain words, give
 
 Publish `app/dist/artifact.html` as an artifact with the `sample`, `tts`, `dictation` and `downloads` capabilities. Each viewer then uses their own Claude: the mock interviewer, AI grading and the chat panel run on their account, with Claude voices and dictation where claude.ai offers them (dictation needs Chrome or Edge on the web).
 
+Progress syncs to each viewer's Claude account when they open the artifact signed in, so it follows them across devices (people with view-only access keep it in their browser).
+
 ### Self-hosted
 
 Open `index.html` in a browser, or serve the folder:
@@ -83,14 +94,14 @@ Outside claude.ai the page brings its own versions of those capabilities:
 - **Voice**: the browser's own speech recognition and speech synthesis (Chrome, Edge and Safari).
 - **Python**: runs in the browser with Brython, loaded from a CDN, so the editor needs a connection the first time.
 
-Your progress, ticks, notes and worksheet stay in your browser. Nothing is sent anywhere except the requests you make to Claude.
+Self-hosted, your progress, ticks, notes and worksheet stay in your browser. Nothing is sent anywhere except the requests you make to Claude.
 
 ## How accurate is it?
 
 - **Every problem is checked.** `tools/verify_problem.py` runs each reference solution against its tests in Python, and `tools/brython_check.js` runs them again in the browser and times the speed test.
-- **Every page renders.** `tools/sweep.js` opens all 266 pages and fails on a script error, an empty page, or text such as `undefined` or `NaN`.
+- **Every page renders.** `tools/sweep.js` opens all 302 pages and fails on a script error, an empty page, or text such as `undefined` or `NaN`.
 - **LeetCode is linked, not copied.** The list holds titles, links, difficulty, topics and acceptance rates from LeetCode's public problem list. Problem statements stay on LeetCode. The problems in this app are written for it.
-- **Company packs come from public reports.** Each pack lists its sources. Tasks marked "listed" come from prep sites and are unverified. Interview processes change and differ by team: treat a pack as a likely shape, not an official agenda.
+- **Company packs come from public reports.** Every question cites the page it came from: a candidate's own account (Glassdoor, LeetCode Discuss, Blind, 1point3acres and pages that collect them) is marked "reported"; a prep site's list is marked "prep-site list" and is unverified. Round structure comes from the company's own careers pages where they publish one. Where a report only said a question was similar to a LeetCode problem, its note says so. Interview processes change and differ by team: treat a pack as a likely shape, not an official agenda. `tools/check_packs.py` checks every pack's format, links and LeetCode slugs.
 - **System design numbers are rough on purpose.** Latencies, sizes and costs are orders of magnitude for estimating in an interview, not benchmarks of any product.
 
 ## Build it yourself
@@ -141,6 +152,8 @@ Add `app/public/packs/<id>.json` and rebuild:
   "caveat": "Built from public candidate reports."
 }
 ```
+
+Questions can also be `{"lc": "<leetcode-slug>", ...}` for a LeetCode problem or `{"title": "...", ...}` for anything else, and each one names its `source` (one of the pack's source URLs). Run `python3 tools/check_packs.py` before you open a pull request.
 
 `kind` is `coding`, `design` or `behavioural`; the mock interviewer uses the matching round's name, length and description. `problem` is the id of a problem in `app/content/problems/` (the file name without `.json`). `tag` is `reported` for a candidate's own report, or `listed` for a prep site's list. Only add what a public source supports, and link it.
 

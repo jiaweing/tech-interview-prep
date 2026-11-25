@@ -1,0 +1,278 @@
+{
+ "id": "uber",
+ "name": "Uber",
+ "role": "Software engineer",
+ "summary": "Candidates report an online assessment or a 60-minute business phone screen, then an onsite with data structures and algorithms, a low-level design (machine coding) round, system design and a hiring manager round. Recent reports describe medium to hard problems and runnable code.",
+ "rounds": [
+  {
+   "name": "Online assessment",
+   "kind": "coding",
+   "what": "CodeSignal problems for some candidates; one 2026 intern OA was 65 minutes with three problems.",
+   "practice": "leetcode",
+   "source": "https://interviewexperiences.in/experience/uber/uber-2027-swe-intern-oa-experience"
+  },
+  {
+   "name": "Recruiter call",
+   "minutes": 30,
+   "kind": "behavioural",
+   "what": "Role, level and interest in Uber.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/uber-interview-questions"
+  },
+  {
+   "name": "Business phone screen",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "One or two algorithm problems, about LeetCode medium; code should run and be tested.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/uber-interview-questions"
+  },
+  {
+   "name": "Onsite coding",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Algorithmic problem solving, similar to the phone screen or harder.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/uber-interview-questions"
+  },
+  {
+   "name": "Low-level design",
+   "kind": "coding",
+   "what": "Build a small system with runnable code; design patterns and concurrency are discussed.",
+   "practice": "problems",
+   "source": "https://interviewexperiences.in/experience/uber/uber-l4sde-2-interview-experience"
+  },
+  {
+   "name": "System design",
+   "minutes": 60,
+   "kind": "design",
+   "what": "Design at scale; several rejected SDE2 candidates cite this round.",
+   "practice": "sd-practice",
+   "source": "https://interviewing.io/uber-interview-questions"
+  },
+  {
+   "name": "Collaboration and leadership",
+   "minutes": 75,
+   "kind": "behavioural",
+   "what": "Hiring manager round on teamwork, failures and leadership through past projects.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/uber-interview-questions"
+  },
+  {
+   "name": "Bar raiser",
+   "minutes": 60,
+   "kind": "behavioural",
+   "what": "Cross-team interviewer, often a deep dive into one past project; some candidates got a coding problem here.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/uber-interview-questions"
+  }
+ ],
+ "tips": [
+  "Prepare for LeetCode hard as well as medium; several 2025-2026 reports describe hard problems.",
+  "Write code that runs and test it yourself on CodeSignal.",
+  "In the low-level design round, aim for working code with clean classes and be ready to discuss thread safety.",
+  "Practise real-time and notification system designs; candidates often name system design as the deciding round.",
+  "Know one past project in depth, with numbers, for the bar raiser and hiring manager rounds."
+ ],
+ "reported": [
+  {
+   "lc": "alien-dictionary",
+   "tag": "reported",
+   "note": "Phone screen, L4, US",
+   "source": "https://leetcode.com/discuss/interview-experience/7217970/"
+  },
+  {
+   "lc": "find-the-closest-palindrome",
+   "tag": "reported",
+   "note": "Bar raiser coding, L4, US",
+   "source": "https://leetcode.com/discuss/interview-experience/7217970/"
+  },
+  {
+   "lc": "kth-smallest-element-in-a-bst",
+   "tag": "reported",
+   "note": "Onsite coding, L4, US (similar problem)",
+   "source": "https://leetcode.com/discuss/interview-experience/7217970/"
+  },
+  {
+   "lc": "first-unique-number",
+   "tag": "reported",
+   "note": "Phone screen, new grad, 2026",
+   "source": "https://interviewexperiences.in/experience/uber/uber-new-grad-sde-phone-screen-usa-first-unique-number"
+  },
+  {
+   "lc": "design-hit-counter",
+   "tag": "reported",
+   "note": "Onsite coding, SDE2, 2026",
+   "source": "https://interviewexperiences.in/experience/uber/uber-sde-2-backend-engineer-june-2026-reject"
+  },
+  {
+   "lc": "my-calendar-i",
+   "tag": "reported",
+   "note": "Onsite coding, SDE2, 2026",
+   "source": "https://interviewexperiences.in/experience/uber/uber-sde-2-backend-engineer-june-2026-reject"
+  },
+  {
+   "lc": "insert-delete-getrandom-o1",
+   "tag": "reported",
+   "note": "Low-level design, SDE2, 2026, generic follow-up",
+   "source": "https://interviewexperiences.in/experience/uber/uber-interview-experiencesoftware-engineer-ii-6-rounds"
+  },
+  {
+   "lc": "the-earliest-moment-when-everyone-become-friends",
+   "tag": "reported",
+   "note": "Onsite coding, SDE2, 2026 (riders connected by shared rides)",
+   "source": "https://interviewexperiences.in/experience/uber/uber-interview-experiencesoftware-engineer-ii-6-rounds"
+  },
+  {
+   "title": "Longest itinerary visiting the most unique cities",
+   "tag": "reported",
+   "note": "Business phone screen, SDE2, 2026",
+   "source": "https://interviewexperiences.in/experience/uber/uber-interview-experiencesoftware-engineer-ii-6-rounds"
+  },
+  {
+   "lc": "minimum-number-of-refueling-stops",
+   "tag": "reported",
+   "note": "Onsite coding, SDE2, 2026",
+   "source": "https://interviewexperiences.in/experience/uber/uber-sde-ii-interview-experience-1"
+  },
+  {
+   "lc": "dungeon-game",
+   "tag": "reported",
+   "note": "Onsite coding, SDE2, 2026 (similar problem)",
+   "source": "https://interviewexperiences.in/experience/uber/uber-interview-experience-sde-ii-6-rounds"
+  },
+  {
+   "title": "Count intervals that avoid forbidden pairs",
+   "tag": "reported",
+   "note": "Business phone screen, SDE2, 2026",
+   "source": "https://interviewexperiences.in/experience/uber/uber-interview-experience-sde-ii-6-rounds"
+  },
+  {
+   "title": "Hard quad tree problem",
+   "tag": "reported",
+   "note": "Coding screen, L4, 2025",
+   "source": "https://interviewexperiences.in/experience/uber/uber-l4sde-2-interview-experience"
+  },
+  {
+   "title": "Optimal BST variant (DP on trees)",
+   "tag": "reported",
+   "note": "Screening round, SDE2, Nov 2025",
+   "source": "https://leetcode.com/discuss/post/7672800/interview-experience-sde2-uber-nov-2025-v0b3r/"
+  },
+  {
+   "lc": "bus-routes",
+   "tag": "reported",
+   "note": "Phone screen, older report",
+   "source": "https://leetcode.com/discuss/interview-question/343628/uber-phone-screen-bus-routes"
+  },
+  {
+   "lc": "random-pick-with-weight",
+   "tag": "reported",
+   "note": "Onsite coding, SDE2, 2021",
+   "source": "https://roundz.substack.com/p/interview-experience-87-uber-sde2-l4"
+  },
+  {
+   "lc": "optimal-account-balancing",
+   "tag": "reported",
+   "note": "Onsite coding, SDE2, 2021",
+   "source": "https://roundz.substack.com/p/interview-experience-87-uber-sde2-l4"
+  },
+  {
+   "title": "Parking lot design in runnable code",
+   "tag": "reported",
+   "note": "Business phone screen, SDE2, 2026",
+   "source": "https://interviewexperiences.in/experience/uber/uber-sde-ii-interview-experience-1"
+  },
+  {
+   "title": "File system with wildcard search",
+   "tag": "reported",
+   "note": "Low-level design, SDE2, 2026",
+   "source": "https://interviewexperiences.in/experience/uber/uber-interview-experience-sde-ii-6-rounds"
+  },
+  {
+   "title": "Design a stock price alert system",
+   "tag": "reported",
+   "note": "System design, SDE2, 2026",
+   "source": "https://interviewexperiences.in/experience/uber/uber-interview-experiencesoftware-engineer-ii-6-rounds"
+  },
+  {
+   "title": "Design an order processing system with top-k items",
+   "tag": "reported",
+   "note": "System design, L4, 2025",
+   "source": "https://interviewexperiences.in/experience/uber/uber-l4sde-2-interview-experience"
+  },
+  {
+   "lc": "number-of-islands-ii",
+   "tag": "listed",
+   "note": "Question bank",
+   "source": "https://prachub.com/companies/uber/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "escape-the-spreading-fire",
+   "tag": "listed",
+   "note": "Question bank",
+   "source": "https://prachub.com/companies/uber/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "meeting-rooms-ii",
+   "tag": "listed",
+   "note": "Question bank, 2026",
+   "source": "https://prachub.com/companies/uber/positions/software-engineer/categories/coding-and-algorithms"
+  }
+ ],
+ "sources": [
+  {
+   "label": "interviewing.io: Uber interview process",
+   "url": "https://interviewing.io/uber-interview-questions"
+  },
+  {
+   "label": "LeetCode Discuss: Uber L4 US offer",
+   "url": "https://leetcode.com/discuss/interview-experience/7217970/"
+  },
+  {
+   "label": "LeetCode Discuss: Uber SDE2 Nov 2025",
+   "url": "https://leetcode.com/discuss/post/7672800/interview-experience-sde2-uber-nov-2025-v0b3r/"
+  },
+  {
+   "label": "LeetCode Discuss: Uber phone screen, Bus Routes",
+   "url": "https://leetcode.com/discuss/interview-question/343628/uber-phone-screen-bus-routes"
+  },
+  {
+   "label": "Interview Experiences: Uber L4 (SDE-2)",
+   "url": "https://interviewexperiences.in/experience/uber/uber-l4sde-2-interview-experience"
+  },
+  {
+   "label": "Interview Experiences: Uber new grad phone screen",
+   "url": "https://interviewexperiences.in/experience/uber/uber-new-grad-sde-phone-screen-usa-first-unique-number"
+  },
+  {
+   "label": "Interview Experiences: Uber SDE2 backend, June 2026",
+   "url": "https://interviewexperiences.in/experience/uber/uber-sde-2-backend-engineer-june-2026-reject"
+  },
+  {
+   "label": "Interview Experiences: Uber SWE II, 6 rounds (May 2026)",
+   "url": "https://interviewexperiences.in/experience/uber/uber-interview-experiencesoftware-engineer-ii-6-rounds"
+  },
+  {
+   "label": "Interview Experiences: Uber SDE II (Jul 2026)",
+   "url": "https://interviewexperiences.in/experience/uber/uber-sde-ii-interview-experience-1"
+  },
+  {
+   "label": "Interview Experiences: Uber SDE II, 6 rounds (Apr 2026)",
+   "url": "https://interviewexperiences.in/experience/uber/uber-interview-experience-sde-ii-6-rounds"
+  },
+  {
+   "label": "Interview Experiences: Uber 2027 intern OA",
+   "url": "https://interviewexperiences.in/experience/uber/uber-2027-swe-intern-oa-experience"
+  },
+  {
+   "label": "Roundz: Uber SDE2 L4 (2021)",
+   "url": "https://roundz.substack.com/p/interview-experience-87-uber-sde2-l4"
+  },
+  {
+   "label": "PracHub: Uber coding questions",
+   "url": "https://prachub.com/companies/uber/positions/software-engineer/categories/coding-and-algorithms"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time."
+}

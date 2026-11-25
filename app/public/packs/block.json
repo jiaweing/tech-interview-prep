@@ -1,0 +1,220 @@
+{
+ "id": "block",
+ "name": "Block (Square)",
+ "role": "Software engineer",
+ "summary": "Candidates report a recruiter call, a 60-minute pair-programming screen in CoderPad, then an onsite of two more pairing rounds, system design and a hiring manager conversation. Coding problems are reported to be practical and to grow in complexity as the round goes on.",
+ "rounds": [
+  {
+   "name": "Recruiter call",
+   "minutes": 30,
+   "kind": "behavioural",
+   "what": "Past experience, interest in Block and the role's expectations.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/block-interview-questions"
+  },
+  {
+   "name": "Technical phone screen",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "One coding problem pair-programmed with an engineer in CoderPad.",
+   "practice": "problems",
+   "source": "https://interviewing.io/block-interview-questions"
+  },
+  {
+   "name": "Onsite coding (two rounds)",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Two separate pair-programming rounds on practical problems that gain new requirements.",
+   "practice": "problems",
+   "source": "https://interviewing.io/block-interview-questions"
+  },
+  {
+   "name": "System design",
+   "minutes": 60,
+   "kind": "design",
+   "what": "High-level design with a two-person panel.",
+   "practice": "sd-practice",
+   "source": "https://interviewing.io/block-interview-questions"
+  },
+  {
+   "name": "Leadership",
+   "minutes": 60,
+   "kind": "behavioural",
+   "what": "Senior levels only: a panel of senior engineers on leadership and scope.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/block-interview-questions"
+  },
+  {
+   "name": "Hiring manager",
+   "minutes": 30,
+   "kind": "behavioural",
+   "what": "Juniors are often asked to teach something technical; seniors deep dive a past project.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/block-interview-questions"
+  }
+ ],
+ "tips": [
+  "Treat pairing as collaboration: talk through choices and take hints.",
+  "Write code that is easy to extend, since later parts add requirements.",
+  "Run your code and test edge cases as you go.",
+  "Prepare one past project you can explain in depth for the hiring manager.",
+  "Expect problems shaped by the business unit, such as merchant payments or peer transfers."
+ ],
+ "reported": [
+  {
+   "title": "Maximise crop profit under budget and time limits",
+   "tag": "reported",
+   "note": "Tech phone screen, late 2023",
+   "source": "https://www.1point3acres.com/interview/company/Block"
+  },
+  {
+   "lc": "rotating-the-box",
+   "tag": "reported",
+   "note": "New grad online assessment, 2021",
+   "source": "https://www.1point3acres.com/interview/company/Block"
+  },
+  {
+   "title": "File chunk upload",
+   "tag": "reported",
+   "note": "New grad online assessment, 2021",
+   "source": "https://www.1point3acres.com/interview/company/Block"
+  },
+  {
+   "title": "Build a Huffman-coding style tree",
+   "tag": "reported",
+   "note": "SDE phone screen, 2023",
+   "source": "https://www.1point3acres.com/bbs/thread-1003388-1-1.html"
+  },
+  {
+   "title": "Match left and right socks by colour, then new matching rules",
+   "tag": "reported",
+   "note": "Senior virtual onsite coding",
+   "source": "https://www.1point3acres.com/bbs/thread-963175-1-1.html"
+  },
+  {
+   "title": "Autocorrect feature",
+   "tag": "reported",
+   "note": "Full-stack phone screen",
+   "source": "https://leetcode.com/discuss/interview-question/2152174/square-block-phone-screen-feedback"
+  },
+  {
+   "title": "Split a bill with friends app",
+   "tag": "listed",
+   "note": "Pairing round example",
+   "source": "https://interviewing.io/block-interview-questions"
+  },
+  {
+   "lc": "three-equal-parts",
+   "tag": "listed",
+   "note": "Binary array partition",
+   "source": "https://interviewing.io/square-interview-questions"
+  },
+  {
+   "title": "Highest-volume merchant in any 24-hour window",
+   "tag": "listed",
+   "note": "Coding, 2026",
+   "source": "https://prachub.com/companies/block"
+  },
+  {
+   "title": "Flag transactions over a tier threshold in a rolling window",
+   "tag": "listed",
+   "note": "Coding, 2026",
+   "source": "https://prachub.com/companies/block"
+  },
+  {
+   "title": "Micro-deposit bank account verification state machine",
+   "tag": "listed",
+   "note": "Coding, 2026",
+   "source": "https://prachub.com/companies/block"
+  },
+  {
+   "title": "Transaction network queries",
+   "tag": "listed",
+   "note": "Coding, 2025",
+   "source": "https://prachub.com/companies/block"
+  },
+  {
+   "title": "Trust-aware card BIN database",
+   "tag": "listed",
+   "note": "Senior coding, 2026",
+   "source": "https://prachub.com/companies/block"
+  },
+  {
+   "lc": "detect-squares",
+   "tag": "listed",
+   "note": "Point store counting squares, 2026",
+   "source": "https://prachub.com/companies/block"
+  },
+  {
+   "title": "List the 2x2 blocks covering each black cell",
+   "tag": "listed",
+   "note": "Grid coding, 2026",
+   "source": "https://prachub.com/companies/block"
+  },
+  {
+   "title": "Generate a Minesweeper board with mine counts",
+   "tag": "listed",
+   "note": "Coding",
+   "source": "https://www.1point3acres.com/interview/problems/company/block"
+  },
+  {
+   "title": "Tournament progression chart in JavaScript",
+   "tag": "listed",
+   "note": "Frontend coding",
+   "source": "https://www.1point3acres.com/interview/problems/company/block"
+  },
+  {
+   "title": "Design a hotel booking system",
+   "tag": "listed",
+   "note": "System design, reported as retired",
+   "source": "https://interviewing.io/block-interview-questions"
+  },
+  {
+   "title": "Design a metrics monitoring and alerting system",
+   "tag": "listed",
+   "note": "System design, 2026",
+   "source": "https://prachub.com/companies/block"
+  },
+  {
+   "title": "Teach me something technical",
+   "tag": "listed",
+   "note": "Hiring manager round, junior levels",
+   "source": "https://interviewing.io/block-interview-questions"
+  }
+ ],
+ "sources": [
+  {
+   "label": "interviewing.io: Block/Square interview process",
+   "url": "https://interviewing.io/block-interview-questions"
+  },
+  {
+   "label": "interviewing.io: Square interview questions",
+   "url": "https://interviewing.io/square-interview-questions"
+  },
+  {
+   "label": "1point3acres: Block interview reports",
+   "url": "https://www.1point3acres.com/interview/company/Block"
+  },
+  {
+   "label": "1point3acres: Block coding problems",
+   "url": "https://www.1point3acres.com/interview/problems/company/block"
+  },
+  {
+   "label": "PracHub: Block and Square question list",
+   "url": "https://prachub.com/companies/block"
+  },
+  {
+   "label": "LeetCode Discuss: Square (Block) phone screen",
+   "url": "https://leetcode.com/discuss/interview-question/2152174/square-block-phone-screen-feedback"
+  },
+  {
+   "label": "1point3acres: Block/Square SDE phone screen and onsite",
+   "url": "https://www.1point3acres.com/bbs/thread-1003388-1-1.html"
+  },
+  {
+   "label": "1point3acres: Square/Block senior virtual onsite",
+   "url": "https://www.1point3acres.com/bbs/thread-963175-1-1.html"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time."
+}

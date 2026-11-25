@@ -1,0 +1,220 @@
+{
+ "id": "shopee",
+ "name": "Shopee (Sea Group)",
+ "role": "Software engineer",
+ "summary": "Candidates report an HR call followed by about three technical rounds that mix LeetCode medium to hard coding with computer science fundamentals (networking, operating systems, databases), then system design and a hiring-manager round for experienced hires.",
+ "rounds": [
+  {
+   "name": "Recruiter screen",
+   "kind": "behavioural",
+   "what": "Informal call on your resume and experience; some interns and senior candidates report skipping it.",
+   "practice": "dd-mock",
+   "source": "https://webflow.nodeflair.com/blog/shopee-software-engineer-interview-questions-and-processes"
+  },
+  {
+   "name": "Online assessment",
+   "kind": "coding",
+   "what": "Some candidates get an online coding test before the live rounds; NodeFlair reports mostly medium problems.",
+   "practice": "leetcode",
+   "source": "https://webflow.nodeflair.com/blog/shopee-software-engineer-interview-questions-and-processes"
+  },
+  {
+   "name": "Technical interview",
+   "minutes": 45,
+   "kind": "coding",
+   "what": "Live coding (one report: two problems in 45 minutes) plus questions on networking, operating systems and databases.",
+   "practice": "leetcode",
+   "source": "https://www.glassdoor.sg/Interview/Shopee-Interview-E1263091-RVW64540798.htm"
+  },
+  {
+   "name": "System design",
+   "minutes": 90,
+   "kind": "design",
+   "what": "SDE-2 report: a 90-minute round on designing a service, data sharing between microservices, HTTP and TCP, plus a coding problem.",
+   "practice": "sd-practice",
+   "source": "https://www.geeksforgeeks.org/interview-experiences/shopee-interview-experience-for-sde-2/"
+  },
+  {
+   "name": "Hiring manager",
+   "kind": "behavioural",
+   "what": "Walkthrough of a past project, production debugging and how you would collect and display metrics.",
+   "practice": "dd-mock",
+   "source": "https://www.geeksforgeeks.org/interview-experiences/shopee-interview-experience-for-sde-2/"
+  }
+ ],
+ "tips": [
+  "Aim for the optimal solution and be ready to explain and improve time and space complexity.",
+  "Revise CS fundamentals: TCP vs UDP, HTTP, processes vs threads, deadlock, indexes and isolation levels.",
+  "Some rounds require code that actually runs, so practise in a plain editor.",
+  "Prepare a past project in depth, including an incident you debugged in production."
+ ],
+ "reported": [
+  {
+   "lc": "number-of-islands",
+   "tag": "reported",
+   "note": "Round 1, SDE-2, Singapore (DFS)",
+   "source": "https://www.geeksforgeeks.org/interview-experiences/shopee-interview-experience-for-sde-2/"
+  },
+  {
+   "lc": "minimum-window-substring",
+   "tag": "reported",
+   "note": "Round 2 coding, SDE-2, Singapore",
+   "source": "https://www.geeksforgeeks.org/interview-experiences/shopee-interview-experience-for-sde-2/"
+  },
+  {
+   "title": "Explain a rolling-window rate limiter",
+   "tag": "reported",
+   "note": "Round 1 discussion, SDE-2, Singapore",
+   "source": "https://www.geeksforgeeks.org/interview-experiences/shopee-interview-experience-for-sde-2/"
+  },
+  {
+   "title": "Design an auth service and how to store passwords",
+   "tag": "reported",
+   "note": "Round 2 system design, SDE-2, Singapore",
+   "source": "https://www.geeksforgeeks.org/interview-experiences/shopee-interview-experience-for-sde-2/"
+  },
+  {
+   "lc": "binary-tree-maximum-path-sum",
+   "tag": "reported",
+   "note": "Technical interview, Singapore, hard question of two in 45 minutes",
+   "source": "https://www.glassdoor.sg/Interview/Shopee-Interview-E1263091-RVW64540798.htm"
+  },
+  {
+   "lc": "intersection-of-multiple-arrays",
+   "tag": "reported",
+   "note": "Technical interview, Singapore, easier question of two",
+   "source": "https://www.glassdoor.sg/Interview/Shopee-Interview-E1263091-RVW64540798.htm"
+  },
+  {
+   "lc": "lru-cache",
+   "tag": "reported",
+   "note": "Backend online technical interview, code had to run",
+   "source": "https://www.glassdoor.co.in/Interview/Shopee-Interview-E1263091-RVW35900749.htm"
+  },
+  {
+   "title": "Write a snippet that shows a race condition",
+   "tag": "reported",
+   "note": "Kuala Lumpur, alongside two LeetCode mediums and OS and B-tree questions",
+   "source": "https://www.glassdoor.com.mx/Entrevista/Shopee-Entrevista-E1263091-RVW93379259.htm"
+  },
+  {
+   "lc": "two-sum",
+   "tag": "listed",
+   "note": "Popular in a 2022 NodeFlair compilation (also with duplicates)",
+   "source": "https://webflow.nodeflair.com/blog/shopee-software-engineer-interview-questions-and-processes"
+  },
+  {
+   "lc": "merge-k-sorted-lists",
+   "tag": "listed",
+   "note": "Popular in a 2022 NodeFlair compilation",
+   "source": "https://webflow.nodeflair.com/blog/shopee-software-engineer-interview-questions-and-processes"
+  },
+  {
+   "lc": "merge-two-sorted-lists",
+   "tag": "listed",
+   "note": "Popular in a 2022 NodeFlair compilation",
+   "source": "https://webflow.nodeflair.com/blog/shopee-software-engineer-interview-questions-and-processes"
+  },
+  {
+   "lc": "design-hashmap",
+   "tag": "listed",
+   "note": "Popular in a 2022 NodeFlair compilation",
+   "source": "https://webflow.nodeflair.com/blog/shopee-software-engineer-interview-questions-and-processes"
+  },
+  {
+   "lc": "design-circular-deque",
+   "tag": "listed",
+   "note": "Popular in a 2022 NodeFlair compilation",
+   "source": "https://webflow.nodeflair.com/blog/shopee-software-engineer-interview-questions-and-processes"
+  },
+  {
+   "lc": "reverse-linked-list",
+   "tag": "listed",
+   "note": "Popular in a 2022 NodeFlair compilation",
+   "source": "https://webflow.nodeflair.com/blog/shopee-software-engineer-interview-questions-and-processes"
+  },
+  {
+   "lc": "reorder-list",
+   "tag": "listed",
+   "note": "Popular in a 2022 NodeFlair compilation",
+   "source": "https://webflow.nodeflair.com/blog/shopee-software-engineer-interview-questions-and-processes"
+  },
+  {
+   "lc": "kth-largest-element-in-an-array",
+   "tag": "listed",
+   "note": "Popular in a 2022 NodeFlair compilation",
+   "source": "https://webflow.nodeflair.com/blog/shopee-software-engineer-interview-questions-and-processes"
+  },
+  {
+   "lc": "remove-nth-node-from-end-of-list",
+   "tag": "listed",
+   "note": "NodeFlair compilation, 2022",
+   "source": "https://webflow.nodeflair.com/blog/shopee-software-engineer-interview-questions-and-processes"
+  },
+  {
+   "lc": "product-of-array-except-self",
+   "tag": "listed",
+   "note": "NodeFlair compilation, 2022",
+   "source": "https://webflow.nodeflair.com/blog/shopee-software-engineer-interview-questions-and-processes"
+  },
+  {
+   "lc": "top-k-frequent-words",
+   "tag": "listed",
+   "note": "NodeFlair compilation, 2022",
+   "source": "https://webflow.nodeflair.com/blog/shopee-software-engineer-interview-questions-and-processes"
+  },
+  {
+   "lc": "basic-calculator",
+   "tag": "listed",
+   "note": "NodeFlair compilation, 2022",
+   "source": "https://webflow.nodeflair.com/blog/shopee-software-engineer-interview-questions-and-processes"
+  },
+  {
+   "lc": "find-all-anagrams-in-a-string",
+   "tag": "listed",
+   "note": "NodeFlair compilation, 2022 (substrings of S1 that are permutations of S2)",
+   "source": "https://webflow.nodeflair.com/blog/shopee-software-engineer-interview-questions-and-processes"
+  },
+  {
+   "title": "Design a shop and cart system",
+   "tag": "listed",
+   "note": "System design prompt in a 2022 NodeFlair compilation",
+   "source": "https://webflow.nodeflair.com/blog/shopee-software-engineer-interview-questions-and-processes"
+  },
+  {
+   "title": "Design a peer-to-peer payment system",
+   "tag": "listed",
+   "note": "System design prompt in a 2022 NodeFlair compilation",
+   "source": "https://webflow.nodeflair.com/blog/shopee-software-engineer-interview-questions-and-processes"
+  },
+  {
+   "title": "Design a URL shortener",
+   "tag": "listed",
+   "note": "System design prompt in a 2022 NodeFlair compilation",
+   "source": "https://webflow.nodeflair.com/blog/shopee-software-engineer-interview-questions-and-processes"
+  }
+ ],
+ "sources": [
+  {
+   "label": "NodeFlair: Shopee software engineer interview questions and processes (2022)",
+   "url": "https://webflow.nodeflair.com/blog/shopee-software-engineer-interview-questions-and-processes"
+  },
+  {
+   "label": "GeeksforGeeks: Shopee interview experience for SDE-2",
+   "url": "https://www.geeksforgeeks.org/interview-experiences/shopee-interview-experience-for-sde-2/"
+  },
+  {
+   "label": "Glassdoor: Shopee interview review, Singapore (binary tree path sum)",
+   "url": "https://www.glassdoor.sg/Interview/Shopee-Interview-E1263091-RVW64540798.htm"
+  },
+  {
+   "label": "Glassdoor: Shopee backend interview review (LRU cache)",
+   "url": "https://www.glassdoor.co.in/Interview/Shopee-Interview-E1263091-RVW35900749.htm"
+  },
+  {
+   "label": "Glassdoor: Shopee interview review, Kuala Lumpur",
+   "url": "https://www.glassdoor.com.mx/Entrevista/Shopee-Entrevista-E1263091-RVW93379259.htm"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time."
+}

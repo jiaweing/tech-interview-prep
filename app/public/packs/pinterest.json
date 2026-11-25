@@ -1,0 +1,232 @@
+{
+ "id": "pinterest",
+ "name": "Pinterest",
+ "role": "Software engineer",
+ "summary": "Candidates report a recruiter call, one technical screen, then a virtual onsite with two or three coding rounds, a system design round and a hiring manager interview. Graph problems (BFS, topological sort, shortest path) come up often in reports.",
+ "rounds": [
+  {
+   "name": "Recruiter screen",
+   "minutes": 30,
+   "kind": "behavioural",
+   "what": "Background, why Pinterest and level alignment.",
+   "practice": "dd-mock",
+   "source": "https://prachub.com/interview-guide/pinterest-software-engineer-interview-guide"
+  },
+  {
+   "name": "Technical phone screen",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "One coding problem with a harder follow-up.",
+   "practice": "leetcode",
+   "source": "https://www.1point3acres.com/interview/thread/1179238"
+  },
+  {
+   "name": "Onsite coding",
+   "minutes": 45,
+   "kind": "coding",
+   "what": "Two or three rounds of medium problems, often graph or BFS based, with follow-ups.",
+   "practice": "leetcode",
+   "source": "https://roundz.substack.com/p/interview-experience-185-pinterest-software-engineering-ic15"
+  },
+  {
+   "name": "System design",
+   "minutes": 60,
+   "kind": "design",
+   "what": "Consumer-scale design such as feeds or autocomplete.",
+   "practice": "sd-practice",
+   "source": "https://roundz.substack.com/p/interview-experience-185-pinterest-software-engineering-ic15"
+  },
+  {
+   "name": "Hiring manager",
+   "minutes": 45,
+   "kind": "behavioural",
+   "what": "Past projects, team dynamics, challenges and why Pinterest.",
+   "practice": "dd-mock",
+   "source": "https://roundz.substack.com/p/interview-experience-185-pinterest-software-engineering-ic15"
+  },
+  {
+   "name": "Domain round",
+   "minutes": 60,
+   "kind": "design",
+   "what": "Optional and team dependent: depth in your specialism, such as backend or web.",
+   "practice": "sd-practice",
+   "source": "https://prachub.com/interview-guide/pinterest-software-engineer-interview-guide"
+  }
+ ],
+ "tips": [
+  "Practise BFS, DFS, shortest path and topological sort; they recur in reports.",
+  "Start with a simple working solution, then optimise and explain each step.",
+  "In design rounds, talk about feed freshness, latency and pagination as well as infrastructure.",
+  "Take the hiring manager round seriously and bring cross-functional stories.",
+  "Use the product and have a view on what you would build at Pinterest."
+ ],
+ "reported": [
+  {
+   "lc": "bus-routes",
+   "tag": "reported",
+   "note": "Onsite coding, 2025",
+   "source": "https://interviewexperiences.in/experience/pinterest/pinterest-onsite"
+  },
+  {
+   "lc": "count-subarrays-with-score-less-than-k",
+   "tag": "reported",
+   "note": "Onsite coding, 2025",
+   "source": "https://interviewexperiences.in/experience/pinterest/pinterest-onsite"
+  },
+  {
+   "lc": "shortest-path-in-a-grid-with-obstacles-elimination",
+   "tag": "reported",
+   "note": "Onsite coding, 2025",
+   "source": "https://interviewexperiences.in/experience/pinterest/pinterest-onsite"
+  },
+  {
+   "lc": "jump-game-iii",
+   "tag": "reported",
+   "note": "Onsite coding, IC15, 2025, follow-up for minimum steps",
+   "source": "https://roundz.substack.com/p/interview-experience-185-pinterest-software-engineering-ic15"
+  },
+  {
+   "lc": "course-schedule-ii",
+   "tag": "reported",
+   "note": "Onsite coding, IC15, 2025 (similar problem)",
+   "source": "https://roundz.substack.com/p/interview-experience-185-pinterest-software-engineering-ic15"
+  },
+  {
+   "lc": "put-boxes-into-the-warehouse-i",
+   "tag": "reported",
+   "note": "Phone screen, 2026, with a harder follow-up",
+   "source": "https://www.1point3acres.com/interview/thread/1179238"
+  },
+  {
+   "title": "Array expression evaluation with optimisation follow-ups",
+   "tag": "reported",
+   "note": "Phone screen, 2023",
+   "source": "https://www.1point3acres.com/interview/thread/1080838"
+  },
+  {
+   "title": "Rate limiter implementation and API",
+   "tag": "reported",
+   "note": "Phone screen, backend, 2023",
+   "source": "https://www.techinterview.org/companies/pinterest-interview/"
+  },
+  {
+   "title": "Group similar pins into clusters (connected components)",
+   "tag": "reported",
+   "note": "Onsite coding, backend, 2023",
+   "source": "https://www.techinterview.org/companies/pinterest-interview/"
+  },
+  {
+   "title": "Design autocomplete for Pinterest",
+   "tag": "reported",
+   "note": "System design, IC15, 2025",
+   "source": "https://roundz.substack.com/p/interview-experience-185-pinterest-software-engineering-ic15"
+  },
+  {
+   "title": "Design the Pinterest home feed",
+   "tag": "reported",
+   "note": "System design, onsite, 2025",
+   "source": "https://interviewexperiences.in/experience/pinterest/pinterest-onsite"
+  },
+  {
+   "lc": "shortest-way-to-form-string",
+   "tag": "listed",
+   "note": "Company question list",
+   "source": "https://www.1point3acres.com/interview/problems/company/pinterest"
+  },
+  {
+   "lc": "reconstruct-itinerary",
+   "tag": "listed",
+   "note": "Company question list",
+   "source": "https://www.1point3acres.com/interview/problems/company/pinterest"
+  },
+  {
+   "lc": "find-peak-element",
+   "tag": "listed",
+   "note": "Company question list (local maximum)",
+   "source": "https://www.1point3acres.com/interview/problems/company/pinterest"
+  },
+  {
+   "lc": "sparse-matrix-multiplication",
+   "tag": "listed",
+   "note": "Company question list",
+   "source": "https://www.1point3acres.com/interview/problems/company/pinterest"
+  },
+  {
+   "title": "Escape room race (object design)",
+   "tag": "listed",
+   "note": "Company question list, marked high frequency",
+   "source": "https://www.1point3acres.com/interview/problems/company/pinterest"
+  },
+  {
+   "lc": "expression-add-operators",
+   "tag": "listed",
+   "note": "Question bank, plus and times variant, 2026",
+   "source": "https://prachub.com/companies/pinterest/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "coin-change",
+   "tag": "listed",
+   "note": "Question bank, 2026",
+   "source": "https://prachub.com/companies/pinterest/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "title": "Top k frequent ad IDs in a time range",
+   "tag": "listed",
+   "note": "Question bank, 2026",
+   "source": "https://prachub.com/companies/pinterest/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "title": "Delete a subtree from a parent-index forest and compact it",
+   "tag": "listed",
+   "note": "Question bank, 2026",
+   "source": "https://prachub.com/companies/pinterest/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "title": "Minimum board transfers between two pins",
+   "tag": "listed",
+   "note": "Question bank, 2026",
+   "source": "https://prachub.com/companies/pinterest/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "optimal-account-balancing",
+   "tag": "listed",
+   "note": "Prep guide, onsite coding (settle debts)",
+   "source": "https://prachub.com/interview-guide/pinterest-software-engineer-interview-guide"
+  }
+ ],
+ "sources": [
+  {
+   "label": "PracHub: Pinterest software engineer guide",
+   "url": "https://prachub.com/interview-guide/pinterest-software-engineer-interview-guide"
+  },
+  {
+   "label": "techinterview.org: Pinterest interview",
+   "url": "https://www.techinterview.org/companies/pinterest-interview/"
+  },
+  {
+   "label": "Interview Experiences: Pinterest onsite (2025)",
+   "url": "https://interviewexperiences.in/experience/pinterest/pinterest-onsite"
+  },
+  {
+   "label": "Roundz: Pinterest SDE IC15 (2025)",
+   "url": "https://roundz.substack.com/p/interview-experience-185-pinterest-software-engineering-ic15"
+  },
+  {
+   "label": "1point3acres: Pinterest phone screen (2026)",
+   "url": "https://www.1point3acres.com/interview/thread/1179238"
+  },
+  {
+   "label": "1point3acres: Pinterest phone screen (2023)",
+   "url": "https://www.1point3acres.com/interview/thread/1080838"
+  },
+  {
+   "label": "PracHub: Pinterest coding questions",
+   "url": "https://prachub.com/companies/pinterest/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "label": "1point3acres: Pinterest problem list",
+   "url": "https://www.1point3acres.com/interview/problems/company/pinterest"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time."
+}

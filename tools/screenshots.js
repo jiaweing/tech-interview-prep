@@ -5,7 +5,7 @@ const PAGE = 'file://' + path.resolve(__dirname, '..', 'index.html');
 const OUT = path.resolve(__dirname, '..', 'docs', 'screenshots');
 const DESKTOP = [
   ['home-light', 'home', 'light'], ['problem-dark', 'p-mars-rover', 'dark'], ['leetcode-light', 'leetcode', 'light'],
-  ['company-light', 'co-govtech', 'light'], ['design-dark', 'sd-d-url-shortener', 'dark'], ['explained-light', 'x-sliding-window', 'light'],
+  ['company-light', 'co-google', 'light'], ['design-dark', 'sd-d-url-shortener', 'dark'], ['explained-light', 'x-sliding-window', 'light'],
   ['cheatsheet-dark', 'cheatsheet', 'dark'], ['which-light', 'ex-which', 'light'],
 ];
 (async () => {

@@ -1,0 +1,235 @@
+{
+ "id": "amazon",
+ "name": "Amazon",
+ "role": "Software development engineer",
+ "summary": "Candidates report an online assessment, then a loop of about four interviews that each mix coding or design with Leadership Principle questions. A bar raiser from outside the team sits on the loop; SDE II reports often include low-level and system design.",
+ "rounds": [
+  {
+   "name": "Online assessment",
+   "minutes": 90,
+   "kind": "coding",
+   "what": "Two coding problems, then about 20 minutes of design scenarios and a work style survey.",
+   "practice": "problems",
+   "source": "https://atoz.amazon/en-us/jobs/hiring-process/interview-prep/software-development-engineer-ii"
+  },
+  {
+   "name": "Phone screen",
+   "kind": "coding",
+   "what": "Used when the assessment is skipped: usually one coding problem, sometimes with Leadership Principle questions.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/guides/hiring-process/amazon"
+  },
+  {
+   "name": "Loop: coding",
+   "minutes": 55,
+   "kind": "coding",
+   "what": "Syntactically correct, tested code; no pseudocode.",
+   "practice": "leetcode",
+   "source": "https://atoz.amazon/en-us/jobs/hiring-process/interview-prep/software-development-engineer-ii"
+  },
+  {
+   "name": "Loop: system design",
+   "minutes": 55,
+   "kind": "design",
+   "what": "At least one design question, judged on practicality, reliability and scale.",
+   "practice": "sd-practice",
+   "source": "https://atoz.amazon/en-us/jobs/hiring-process/interview-prep/software-development-engineer-ii"
+  },
+  {
+   "name": "Leadership Principles",
+   "kind": "behavioural",
+   "what": "Each interviewer typically asks two or three behavioural questions tied to the principles.",
+   "practice": "dd-mock",
+   "source": "https://atoz.amazon/en-us/jobs/hiring-process/interview-prep/software-development-engineer-ii"
+  },
+  {
+   "name": "Bar raiser",
+   "kind": "coding",
+   "what": "An interviewer from outside the team who can veto the hire; reports show coding or design plus LP questions.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/guides/hiring-process/amazon"
+  }
+ ],
+ "tips": [
+  "Prepare STAR stories for the Leadership Principles; expect them in every round.",
+  "Use specific details and numbers from past work in your stories.",
+  "Write real, runnable code and walk through edge cases and bad input.",
+  "Bar raiser reports describe long word problems that hide a standard problem.",
+  "SDE II candidates report low-level design rounds on classes, interfaces and patterns."
+ ],
+ "reported": [
+  {
+   "lc": "minimum-window-substring",
+   "tag": "reported",
+   "note": "Intern technical round 1, 2026",
+   "source": "https://www.fastprep.io/experience/amazon-sde-onsite-interview-questions-9-experiences-3t8xylxf6q"
+  },
+  {
+   "title": "4sum",
+   "tag": "reported",
+   "note": "Intern technical round 2, 2026",
+   "source": "https://www.fastprep.io/experience/amazon-sde-onsite-interview-questions-9-experiences-3t8xylxf6q"
+  },
+  {
+   "lc": "maximum-candies-allocated-to-k-children",
+   "tag": "reported",
+   "note": "Intern technical round 2, 2026",
+   "source": "https://www.fastprep.io/experience/amazon-sde-onsite-interview-questions-9-experiences-3t8xylxf6q"
+  },
+  {
+   "lc": "squirrel-simulation",
+   "tag": "reported",
+   "note": "Intern onsite, AWS, Mar 2026",
+   "source": "https://www.fastprep.io/experience/amazon-sde-onsite-interview-questions-9-experiences-3t8xylxf6q"
+  },
+  {
+   "lc": "word-break",
+   "tag": "reported",
+   "note": "Hiring manager round, SDE II, Oct 2026",
+   "source": "https://www.fastprep.io/experience/amazon-sde-onsite-interview-questions-9-experiences-3t8xylxf6q"
+  },
+  {
+   "lc": "design-add-and-search-words-data-structure",
+   "tag": "reported",
+   "note": "Coding, SDE II, 2026",
+   "source": "https://www.fastprep.io/experience/amazon-sde-onsite-interview-questions-9-experiences-3t8xylxf6q"
+  },
+  {
+   "lc": "rotting-oranges",
+   "tag": "reported",
+   "note": "Coding, SDE II, 2026",
+   "source": "https://www.fastprep.io/experience/amazon-sde-onsite-interview-questions-9-experiences-3t8xylxf6q"
+  },
+  {
+   "lc": "first-unique-number",
+   "tag": "reported",
+   "note": "Coding, SDE II, 2026",
+   "source": "https://www.fastprep.io/experience/amazon-sde-onsite-interview-questions-9-experiences-3t8xylxf6q"
+  },
+  {
+   "lc": "search-a-2d-matrix-ii",
+   "tag": "reported",
+   "note": "Bar raiser coding, SDE II, 2026",
+   "source": "https://www.fastprep.io/experience/amazon-sde-onsite-interview-questions-9-experiences-3t8xylxf6q"
+  },
+  {
+   "lc": "shortest-path-in-a-grid-with-obstacles-elimination",
+   "tag": "reported",
+   "note": "Coding, SDE II, 2026",
+   "source": "https://www.fastprep.io/experience/amazon-sde-onsite-interview-questions-9-experiences-3t8xylxf6q"
+  },
+  {
+   "lc": "next-greater-element-i",
+   "tag": "reported",
+   "note": "60-minute coding round, SDE II, Oct 2026",
+   "source": "https://www.fastprep.io/experience/amazon-sde-onsite-interview-questions-9-experiences-3t8xylxf6q"
+  },
+  {
+   "lc": "search-in-rotated-sorted-array",
+   "tag": "reported",
+   "note": "60-minute coding round, SDE II, Oct 2026",
+   "source": "https://www.fastprep.io/experience/amazon-sde-onsite-interview-questions-9-experiences-3t8xylxf6q"
+  },
+  {
+   "lc": "binary-tree-zigzag-level-order-traversal",
+   "tag": "reported",
+   "note": "Coding round 1, SDE II, May 2026",
+   "source": "https://www.fastprep.io/experience/amazon-sde-onsite-interview-questions-9-experiences-3t8xylxf6q"
+  },
+  {
+   "lc": "minimum-cost-to-connect-sticks",
+   "tag": "reported",
+   "note": "Bar raiser, SDE II, Jun 2026, connect ropes story",
+   "source": "https://www.fastprep.io/experience/amazon-sde-onsite-interview-questions-9-experiences-3t8xylxf6q"
+  },
+  {
+   "title": "Design a job scheduler for one-time and repeating jobs",
+   "tag": "reported",
+   "note": "System design, SDE II, 2026",
+   "source": "https://www.fastprep.io/experience/amazon-sde-onsite-interview-questions-9-experiences-3t8xylxf6q"
+  },
+  {
+   "title": "LLD: notification system with SMS and email channels",
+   "tag": "reported",
+   "note": "Low-level design, SDE II, 2026",
+   "source": "https://www.fastprep.io/experience/amazon-sde-onsite-interview-questions-9-experiences-3t8xylxf6q"
+  },
+  {
+   "title": "Design a software rollout to a fleet of machines",
+   "tag": "reported",
+   "note": "System design, SDE II, Oct 2026",
+   "source": "https://www.fastprep.io/experience/amazon-sde-onsite-interview-questions-9-experiences-3t8xylxf6q"
+  },
+  {
+   "lc": "lru-cache",
+   "tag": "reported",
+   "note": "Coding, SDE II, Sep 2026",
+   "source": "https://www.fastprep.io/experience/september-amazon-full-time-interview-experiences-part-2-26mq402nyz"
+  },
+  {
+   "lc": "maximum-frequency-stack",
+   "tag": "reported",
+   "note": "Coding after LP questions, Sep 2026",
+   "source": "https://www.fastprep.io/experience/september-amazon-full-time-interview-experiences-part-2-26mq402nyz"
+  },
+  {
+   "lc": "container-with-most-water",
+   "tag": "reported",
+   "note": "DSA round, SDE II, Sep 2026, Trapping Rain Water follow-up",
+   "source": "https://www.fastprep.io/experience/september-amazon-full-time-interview-experiences-part-2-26mq402nyz"
+  },
+  {
+   "lc": "cheapest-flights-within-k-stops",
+   "tag": "reported",
+   "note": "DSA round, SDE II, Sep 2026",
+   "source": "https://www.fastprep.io/experience/september-amazon-full-time-interview-experiences-part-2-26mq402nyz"
+  },
+  {
+   "lc": "capacity-to-ship-packages-within-d-days",
+   "tag": "reported",
+   "note": "Phone screen, SDE II, Sep 2026",
+   "source": "https://www.fastprep.io/experience/september-amazon-full-time-interview-experiences-part-2-26mq402nyz"
+  },
+  {
+   "lc": "meeting-rooms-ii",
+   "tag": "reported",
+   "note": "Hiring manager round, SDE II, Sep 2026",
+   "source": "https://www.fastprep.io/experience/september-amazon-full-time-interview-experiences-part-2-26mq402nyz"
+  },
+  {
+   "lc": "time-based-key-value-store",
+   "tag": "reported",
+   "note": "Screen with a PM and an SDE, Sep 2026",
+   "source": "https://www.fastprep.io/experience/september-amazon-full-time-interview-experiences-part-2-26mq402nyz"
+  },
+  {
+   "title": "Design a distributed rate limiter",
+   "tag": "reported",
+   "note": "Hiring manager and LLD round, SDE II, Sep 2026",
+   "source": "https://www.fastprep.io/experience/september-amazon-full-time-interview-experiences-part-2-26mq402nyz"
+  }
+ ],
+ "sources": [
+  {
+   "label": "Amazon: SDE II interview prep",
+   "url": "https://atoz.amazon/en-us/jobs/hiring-process/interview-prep/software-development-engineer-ii"
+  },
+  {
+   "label": "Amazon: Leadership Principles",
+   "url": "https://atoz.amazon/en-us/discover/leadership-principles"
+  },
+  {
+   "label": "interviewing.io: Amazon hiring process guide",
+   "url": "https://interviewing.io/guides/hiring-process/amazon"
+  },
+  {
+   "label": "FastPrep: Amazon SDE onsite questions, 9 experiences",
+   "url": "https://www.fastprep.io/experience/amazon-sde-onsite-interview-questions-9-experiences-3t8xylxf6q"
+  },
+  {
+   "label": "FastPrep: September 2026 Amazon interview experiences",
+   "url": "https://www.fastprep.io/experience/september-amazon-full-time-interview-experiences-part-2-26mq402nyz"
+  }
+ ],
+ "caveat": "Built from public candidate reports and prep sites. Processes differ by team and change over time. \"Listed\" items come from prep sites and are unverified."
+}

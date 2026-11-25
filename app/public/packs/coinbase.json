@@ -1,0 +1,242 @@
+{
+ "id": "coinbase",
+ "name": "Coinbase",
+ "role": "Software engineer",
+ "summary": "Candidates report a CodeSignal assessment, sometimes with aptitude and culture tests, then a recruiter call and an onsite of practical coding, system design and a hiring manager round. Recent reports also mention AI-assisted coding rounds and crypto-flavoured problems.",
+ "rounds": [
+  {
+   "name": "CodeSignal assessment",
+   "minutes": 70,
+   "kind": "coding",
+   "what": "Timed online assessment; recent reports describe multi-level problems that build on each other.",
+   "practice": "problems",
+   "source": "https://interviewing.io/coinbase-interview-questions"
+  },
+  {
+   "name": "Aptitude and culture tests",
+   "kind": "behavioural",
+   "what": "Some pipelines add a short cognitive aptitude test and a long personality or work-style questionnaire.",
+   "practice": "dd-mock",
+   "source": "https://prachub.com/interview-experiences/coinbase-software-engineer-interview-experience-three-oas-a-block-mining-coding-round-and-two-ai-assisted-rounds"
+  },
+  {
+   "name": "Recruiter call",
+   "minutes": 30,
+   "kind": "behavioural",
+   "what": "Experience, interest in Coinbase and crypto, and level fit.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/coinbase-interview-questions"
+  },
+  {
+   "name": "Technical coding",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Build a small feature from input data as a pseudo project, getting as far as you can.",
+   "practice": "problems",
+   "source": "https://interviewing.io/coinbase-interview-questions"
+  },
+  {
+   "name": "AI-assisted coding",
+   "kind": "coding",
+   "what": "Recent reports: find a bug, design a feature, review a PR and debug a production issue with AI tools allowed.",
+   "practice": "problems",
+   "source": "https://prachub.com/interview-experiences/coinbase-software-engineer-interview-experience-three-oas-a-block-mining-coding-round-and-two-ai-assisted-rounds"
+  },
+  {
+   "name": "System design",
+   "minutes": 60,
+   "kind": "design",
+   "what": "Practical, product-focused service design, often microservices and their network topology.",
+   "practice": "sd-practice",
+   "source": "https://interviewing.io/coinbase-interview-questions"
+  },
+  {
+   "name": "Hiring manager",
+   "minutes": 60,
+   "kind": "behavioural",
+   "what": "Culture and behavioural fit, including mission alignment.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/coinbase-interview-questions"
+  }
+ ],
+ "tips": [
+  "Practise timed, multi-level CodeSignal-style problems where each level extends the last.",
+  "Write production-quality code with clear structure and tests, not just the shortest answer.",
+  "Have a specific reason for wanting to work on crypto or financial infrastructure.",
+  "For design, expect correctness, idempotency and auditability for ledgers and orders.",
+  "If you apply to several teams, ask whether a passed CodeSignal can be reused."
+ ],
+ "reported": [
+  {
+   "title": "In-memory banking system with transfers, scheduled payments and merges",
+   "tag": "reported",
+   "note": "Industry coding assessment, multi-level",
+   "source": "https://www.teamblind.com/post/coinbase-industry-coding-assessment-ic6-cutoff-insights-mfyenzwa"
+  },
+  {
+   "title": "Select mempool transactions for a block with parent dependencies",
+   "tag": "reported",
+   "note": "Technical phone screen, 2026",
+   "source": "https://www.1point3acres.com/interview/company/Coinbase"
+  },
+  {
+   "title": "Block mining: maximise fees under a size limit with dependencies",
+   "tag": "reported",
+   "note": "Onsite coding, 2026",
+   "source": "https://prachub.com/interview-experiences/coinbase-software-engineer-interview-experience-three-oas-a-block-mining-coding-round-and-two-ai-assisted-rounds"
+  },
+  {
+   "title": "Task management system coding challenge",
+   "tag": "reported",
+   "note": "New grad online assessment, 2026",
+   "source": "https://www.1point3acres.com/interview/company/Coinbase"
+  },
+  {
+   "title": "Ring buffer with backpressure",
+   "tag": "reported",
+   "note": "Onsite, 2026",
+   "source": "https://www.1point3acres.com/interview/company/Coinbase"
+  },
+  {
+   "title": "Jump boundary function for a Flappy Bird style game",
+   "tag": "reported",
+   "note": "AI-assisted online assessment, 2026",
+   "source": "https://prachub.com/interview-experiences/coinbase-software-engineer-interview-experience-three-oas-a-block-mining-coding-round-and-two-ai-assisted-rounds"
+  },
+  {
+   "title": "AI-assisted round: fix a bug, add a feature, review a PR",
+   "tag": "reported",
+   "note": "Virtual onsite, 2026",
+   "source": "https://prachub.com/interview-experiences/coinbase-software-engineer-interview-experience-three-oas-a-block-mining-coding-round-and-two-ai-assisted-rounds"
+  },
+  {
+   "title": "Delivery cost and order analysis, multi-level",
+   "tag": "reported",
+   "note": "Tech phone screen, May 2025",
+   "source": "https://www.1point3acres.com/interview/thread/1131169"
+  },
+  {
+   "title": "React buy and sell component",
+   "tag": "reported",
+   "note": "Frontend screen, Apr 2025",
+   "source": "https://discuss.frontendlead.com/t/coinbase-interview-experience/1697"
+  },
+  {
+   "title": "Design crypto order placement through third-party providers",
+   "tag": "reported",
+   "note": "System design, 2026",
+   "source": "https://prachub.com/interview-experiences/coinbase-software-engineer-interview-experience-three-oas-a-block-mining-coding-round-and-two-ai-assisted-rounds"
+  },
+  {
+   "title": "In-memory database with TTL and backups",
+   "tag": "listed",
+   "note": "Online assessment",
+   "source": "https://prachub.com/interview-guide/coinbase-software-engineer-interview-guide"
+  },
+  {
+   "title": "Task management system with TTL",
+   "tag": "listed",
+   "note": "Online assessment",
+   "source": "https://prachub.com/interview-guide/coinbase-software-engineer-interview-guide"
+  },
+  {
+   "title": "Crypto trading order management system",
+   "tag": "listed",
+   "note": "Coding, 2026",
+   "source": "https://prachub.com/companies/coinbase"
+  },
+  {
+   "title": "Cursor-based query pagination with filters",
+   "tag": "listed",
+   "note": "Onsite coding",
+   "source": "https://prachub.com/companies/coinbase"
+  },
+  {
+   "lc": "moving-average-from-data-stream",
+   "tag": "listed",
+   "note": "Moving average with a circular buffer, 2026",
+   "source": "https://prachub.com/companies/coinbase"
+  },
+  {
+   "title": "Kth highest user score with updates and removals",
+   "tag": "listed",
+   "note": "Coding, 2026",
+   "source": "https://prachub.com/companies/coinbase"
+  },
+  {
+   "lc": "task-scheduler-ii",
+   "tag": "listed",
+   "note": "Ordered tasks with cooldown",
+   "source": "https://www.1point3acres.com/interview/problems/company/coinbase"
+  },
+  {
+   "title": "Drone food delivery with charging stations",
+   "tag": "listed",
+   "note": "Coding",
+   "source": "https://www.1point3acres.com/interview/problems/company/coinbase"
+  },
+  {
+   "title": "Group log lines by thread id and sort by timestamp",
+   "tag": "listed",
+   "note": "Coding",
+   "source": "https://www.1point3acres.com/interview/problems/company/coinbase"
+  },
+  {
+   "title": "Design a bank account ledger",
+   "tag": "listed",
+   "note": "System design",
+   "source": "https://prachub.com/companies/coinbase"
+  },
+  {
+   "title": "Design a real-time asset price service",
+   "tag": "listed",
+   "note": "System design, 2026",
+   "source": "https://prachub.com/companies/coinbase"
+  },
+  {
+   "title": "Deliver limit-order fill notifications under backpressure",
+   "tag": "listed",
+   "note": "System design, 2026",
+   "source": "https://prachub.com/companies/coinbase"
+  }
+ ],
+ "sources": [
+  {
+   "label": "interviewing.io: Coinbase interview process",
+   "url": "https://interviewing.io/coinbase-interview-questions"
+  },
+  {
+   "label": "PracHub: Coinbase software engineer guide",
+   "url": "https://prachub.com/interview-guide/coinbase-software-engineer-interview-guide"
+  },
+  {
+   "label": "PracHub: Coinbase candidate experience, 2026",
+   "url": "https://prachub.com/interview-experiences/coinbase-software-engineer-interview-experience-three-oas-a-block-mining-coding-round-and-two-ai-assisted-rounds"
+  },
+  {
+   "label": "PracHub: Coinbase question list",
+   "url": "https://prachub.com/companies/coinbase"
+  },
+  {
+   "label": "1point3acres: Coinbase interview reports",
+   "url": "https://www.1point3acres.com/interview/company/Coinbase"
+  },
+  {
+   "label": "1point3acres: Coinbase coding problems",
+   "url": "https://www.1point3acres.com/interview/problems/company/coinbase"
+  },
+  {
+   "label": "1point3acres: Coinbase phone screen, May 2025",
+   "url": "https://www.1point3acres.com/interview/thread/1131169"
+  },
+  {
+   "label": "Blind: Coinbase industry coding assessment",
+   "url": "https://www.teamblind.com/post/coinbase-industry-coding-assessment-ic6-cutoff-insights-mfyenzwa"
+  },
+  {
+   "label": "FrontendLead: Coinbase interview experience",
+   "url": "https://discuss.frontendlead.com/t/coinbase-interview-experience/1697"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time."
+}

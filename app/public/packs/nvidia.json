@@ -1,0 +1,252 @@
+{
+ "id": "nvidia",
+ "name": "Nvidia",
+ "role": "Software engineer",
+ "summary": "Candidates report a recruiter call, a one-hour technical phone screen, an optional hiring manager call, and an onsite of coding, system design and a manager or director round. Questions vary by team and often lean on C/C++, systems and GPU performance rather than pure LeetCode.",
+ "rounds": [
+  {
+   "name": "Recruiter call",
+   "minutes": 30,
+   "kind": "behavioural",
+   "what": "Background, interest in Nvidia and a basic skills check.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/nvidia-interview-questions"
+  },
+  {
+   "name": "Technical phone screen",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "About 15 minutes of chat, then a 45-minute coding or role-specific problem, often in C++ for systems and GPU teams.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/nvidia-interview-questions"
+  },
+  {
+   "name": "Hiring manager call",
+   "minutes": 30,
+   "kind": "behavioural",
+   "what": "Not always held; experience, culture fit and a pitch for the team.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/nvidia-interview-questions"
+  },
+  {
+   "name": "Onsite coding",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Usually two CoderPad rounds, from practical domain tasks to LeetCode-style problems; reasoning matters more than perfect code.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/nvidia-interview-questions"
+  },
+  {
+   "name": "System design",
+   "minutes": 60,
+   "kind": "design",
+   "what": "One or two rounds; some teams add CPU and GPU architecture or team-specific design.",
+   "practice": "sd-practice",
+   "source": "https://interviewing.io/nvidia-interview-questions"
+  },
+  {
+   "name": "Hiring manager or director",
+   "minutes": 60,
+   "kind": "behavioural",
+   "what": "Mostly conversational: projects, experience and open-ended technical opinions.",
+   "practice": "dd-mock",
+   "source": "https://prachub.com/interview-experiences/nvidia-software-engineer-interview-experience-three-system-design-rounds-and-a-director-round"
+  }
+ ],
+ "tips": [
+  "Ask the hiring manager early which language and rounds to expect; GPU and CUDA teams often use C++.",
+  "Reports say there is no shared question bank, so each interviewer picks their own problems; practise practical tasks as well as LeetCode.",
+  "For systems roles, review C, bit manipulation, linked lists, memory layout and OS basics such as mutexes and interrupts.",
+  "Expect performance follow-ups: parallelising a solution, memory access patterns and faster copies.",
+  "The full process is reported to take six to eight weeks."
+ ],
+ "reported": [
+  {
+   "lc": "reverse-nodes-in-k-group",
+   "tag": "reported",
+   "note": "Senior GPU MODS technical screen, Nov 2026",
+   "source": "https://prachub.com/interview-experiences/nvidia-software-engineer-interview-c-and-os-questions-bit-manipulation-linked-lists-and-a-rejection"
+  },
+  {
+   "lc": "minimum-size-subarray-sum",
+   "tag": "reported",
+   "note": "Second round, Nov 2026, smallest subarray above a sum",
+   "source": "https://prachub.com/interview-experiences/nvidia-software-engineer-interview-c-and-os-questions-bit-manipulation-linked-lists-and-a-rejection"
+  },
+  {
+   "title": "Swap the two nibbles in each byte of a 32-bit integer",
+   "tag": "reported",
+   "note": "Technical screen, Nov 2026",
+   "source": "https://prachub.com/interview-experiences/nvidia-software-engineer-interview-c-and-os-questions-bit-manipulation-linked-lists-and-a-rejection"
+  },
+  {
+   "title": "First character in a string that repeats",
+   "tag": "reported",
+   "note": "Second round, Nov 2026",
+   "source": "https://prachub.com/interview-experiences/nvidia-software-engineer-interview-c-and-os-questions-bit-manipulation-linked-lists-and-a-rejection"
+  },
+  {
+   "title": "Delete a node from the end of a linked list",
+   "tag": "reported",
+   "note": "Second round, Nov 2026",
+   "source": "https://prachub.com/interview-experiences/nvidia-software-engineer-interview-c-and-os-questions-bit-manipulation-linked-lists-and-a-rejection"
+  },
+  {
+   "title": "Find bugs in a C snippet (local array return, out of bounds, infinite loop)",
+   "tag": "reported",
+   "note": "Second round, Nov 2026",
+   "source": "https://prachub.com/interview-experiences/nvidia-software-engineer-interview-c-and-os-questions-bit-manipulation-linked-lists-and-a-rejection"
+  },
+  {
+   "title": "Count distinct strings with a hand-built hash table, then make it parallel safe",
+   "tag": "reported",
+   "note": "GPU search engine team phone screen, Jul 2026",
+   "source": "https://prachub.com/interview-experiences/nvidia-software-engineer-interview-experience-gpu-search-engine-team-phone-screen-on-counting-distinct-strings"
+  },
+  {
+   "title": "Hash-partition an array into P partitions and return offsets (C++)",
+   "tag": "reported",
+   "note": "Senior phone screen, Oct 2026, GPU optimisation follow-ups",
+   "source": "https://prachub.com/interview-experiences/nvidia-senior-software-engineer-interview-experience-gpu-hash-partition-phone-screen-in-cplusplus-two-weeks-to-the-next-round"
+  },
+  {
+   "title": "Implement paged KV cache access in C++",
+   "tag": "reported",
+   "note": "Intern technical screen, Nov 2026",
+   "source": "https://prachub.com/interview-experiences/nvidia-intern-software-engineer-interview-experience-60-minute-round-on-a-paged-kv-cache-in-cplusplus-plus-gpu-questions"
+  },
+  {
+   "title": "Small-string-optimised C++ string class and its size",
+   "tag": "reported",
+   "note": "Phone screen, Dec 2025",
+   "source": "https://prachub.com/interview-experiences/nvidia-software-engineer-interview-experience-phone-screen-on-a-high-performance-string-class"
+  },
+  {
+   "title": "Collect CPU, memory and disk metrics and POST them as JSON",
+   "tag": "reported",
+   "note": "Onsite HackerRank VM round, Oct 2026",
+   "source": "https://prachub.com/interview-experiences/nvidia-software-engineer-interview-experience-three-onsite-rounds-rejected-three-days-later"
+  },
+  {
+   "title": "Parse server health-check logs with duplicate and malformed records",
+   "tag": "reported",
+   "note": "SDET-style team first round, Oct 2026",
+   "source": "https://prachub.com/interview-experiences/nvidia-software-engineer-sdet-interview-experience-easy-first-round-on-structured-logs-despite-the-8-year-requirement"
+  },
+  {
+   "title": "Design a task scheduler",
+   "tag": "reported",
+   "note": "Onsite system design, Oct 2026",
+   "source": "https://prachub.com/interview-experiences/nvidia-software-engineer-interview-experience-three-system-design-rounds-and-a-director-round"
+  },
+  {
+   "title": "Design a version-aware package download service that fetches dependencies",
+   "tag": "reported",
+   "note": "Onsite system design, Oct 2026",
+   "source": "https://prachub.com/interview-experiences/nvidia-software-engineer-interview-experience-three-system-design-rounds-and-a-director-round"
+  },
+  {
+   "title": "Design a key-value store",
+   "tag": "reported",
+   "note": "Onsite system design, Oct 2026",
+   "source": "https://prachub.com/interview-experiences/nvidia-software-engineer-interview-experience-three-system-design-rounds-and-a-director-round"
+  },
+  {
+   "lc": "lfu-cache",
+   "tag": "listed",
+   "note": "Nvidia problem list",
+   "source": "https://www.1point3acres.com/interview/problems/company/nvidia"
+  },
+  {
+   "lc": "merge-intervals",
+   "tag": "listed",
+   "note": "Nvidia problem list",
+   "source": "https://www.1point3acres.com/interview/problems/company/nvidia"
+  },
+  {
+   "lc": "reaching-points",
+   "tag": "listed",
+   "note": "Nvidia problem list",
+   "source": "https://www.1point3acres.com/interview/problems/company/nvidia"
+  },
+  {
+   "lc": "find-the-duplicate-number",
+   "tag": "listed",
+   "note": "Nvidia problem list",
+   "source": "https://www.1point3acres.com/interview/problems/company/nvidia"
+  },
+  {
+   "lc": "encode-and-decode-strings",
+   "tag": "listed",
+   "note": "Nvidia problem list",
+   "source": "https://www.1point3acres.com/interview/problems/company/nvidia"
+  },
+  {
+   "lc": "top-k-frequent-elements",
+   "tag": "listed",
+   "note": "Nvidia problem list, data stream version",
+   "source": "https://www.1point3acres.com/interview/problems/company/nvidia"
+  },
+  {
+   "lc": "count-substrings-without-repeating-character",
+   "tag": "listed",
+   "note": "Nvidia problem list",
+   "source": "https://www.1point3acres.com/interview/problems/company/nvidia"
+  },
+  {
+   "title": "Implement a reference-counted smart pointer",
+   "tag": "listed",
+   "note": "Nvidia problem list",
+   "source": "https://www.1point3acres.com/interview/problems/company/nvidia"
+  },
+  {
+   "title": "Implement aligned memory allocation",
+   "tag": "listed",
+   "note": "Nvidia problem list",
+   "source": "https://www.1point3acres.com/interview/problems/company/nvidia"
+  }
+ ],
+ "sources": [
+  {
+   "label": "interviewing.io: Nvidia interview process",
+   "url": "https://interviewing.io/nvidia-interview-questions"
+  },
+  {
+   "label": "PracHub: three onsite rounds, Oct 2026",
+   "url": "https://prachub.com/interview-experiences/nvidia-software-engineer-interview-experience-three-onsite-rounds-rejected-three-days-later"
+  },
+  {
+   "label": "PracHub: C and OS questions, bit manipulation and linked lists, Nov 2026",
+   "url": "https://prachub.com/interview-experiences/nvidia-software-engineer-interview-c-and-os-questions-bit-manipulation-linked-lists-and-a-rejection"
+  },
+  {
+   "label": "PracHub: GPU search engine team phone screen, Jul 2026",
+   "url": "https://prachub.com/interview-experiences/nvidia-software-engineer-interview-experience-gpu-search-engine-team-phone-screen-on-counting-distinct-strings"
+  },
+  {
+   "label": "PracHub: GPU hash partition phone screen, Oct 2026",
+   "url": "https://prachub.com/interview-experiences/nvidia-senior-software-engineer-interview-experience-gpu-hash-partition-phone-screen-in-cplusplus-two-weeks-to-the-next-round"
+  },
+  {
+   "label": "PracHub: three system design rounds and a director round, Oct 2026",
+   "url": "https://prachub.com/interview-experiences/nvidia-software-engineer-interview-experience-three-system-design-rounds-and-a-director-round"
+  },
+  {
+   "label": "PracHub: intern round on a paged KV cache, Nov 2026",
+   "url": "https://prachub.com/interview-experiences/nvidia-intern-software-engineer-interview-experience-60-minute-round-on-a-paged-kv-cache-in-cplusplus-plus-gpu-questions"
+  },
+  {
+   "label": "PracHub: first round on structured logs, Oct 2026",
+   "url": "https://prachub.com/interview-experiences/nvidia-software-engineer-sdet-interview-experience-easy-first-round-on-structured-logs-despite-the-8-year-requirement"
+  },
+  {
+   "label": "PracHub: phone screen on a string class, Dec 2025",
+   "url": "https://prachub.com/interview-experiences/nvidia-software-engineer-interview-experience-phone-screen-on-a-high-performance-string-class"
+  },
+  {
+   "label": "1point3acres: Nvidia interview problems",
+   "url": "https://www.1point3acres.com/interview/problems/company/nvidia"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time."
+}

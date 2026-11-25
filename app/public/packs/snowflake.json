@@ -1,0 +1,271 @@
+{
+ "id": "snowflake",
+ "name": "Snowflake",
+ "role": "Software engineer",
+ "summary": "Candidates report a recruiter call, two back-to-back technical screens (coding, sometimes system design), then an onsite with a project presentation, coding, a team-specific expertise round and a behavioural round. Recent reports lean on tree and grid problems with follow-ups; interns and new grads often take an online assessment first.",
+ "rounds": [
+  {
+   "name": "Recruiter call",
+   "minutes": 30,
+   "kind": "behavioural",
+   "what": "Background, interests and how they fit the role.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/snowflake-interview-questions"
+  },
+  {
+   "name": "Online assessment (interns, some new grads)",
+   "kind": "coding",
+   "what": "Three coding problems on an online platform.",
+   "practice": "leetcode",
+   "source": "https://www.1point3acres.com/interview/thread/1092336"
+  },
+  {
+   "name": "Technical screens",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Usually two back-to-back one-hour rounds: data structures and algorithms, sometimes one system design.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/snowflake-interview-questions"
+  },
+  {
+   "name": "Onsite presentation",
+   "minutes": 30,
+   "kind": "behavioural",
+   "what": "Walk team engineers through a past technical project and its depth.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/snowflake-interview-questions"
+  },
+  {
+   "name": "Onsite coding",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Around LeetCode medium, often with a database or performance twist.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/snowflake-interview-questions"
+  },
+  {
+   "name": "Onsite expertise",
+   "minutes": 60,
+   "kind": "design",
+   "what": "Team-specific: coding, system design, or a deep dive in a language or framework.",
+   "practice": "sd-practice",
+   "source": "https://interviewing.io/snowflake-interview-questions"
+  },
+  {
+   "name": "Onsite behavioural",
+   "minutes": 60,
+   "kind": "behavioural",
+   "what": "Values, collaboration and fit, usually with a manager.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/snowflake-interview-questions"
+  }
+ ],
+ "tips": [
+  "Expect database and back-end flavour: indexes, query cost, storage and data pipelines.",
+  "Practise tree manipulation with follow-ups, such as deleting nodes and recomputing height.",
+  "Prepare a 30 minute talk on a project with real technical depth.",
+  "In system design, state trade-offs explicitly and use rough numbers to justify scale.",
+  "Ask the recruiter which format your team uses; rounds vary by team."
+ ],
+ "reported": [
+  {
+   "title": "N-ary tree: delete nodes, promote children, return height; then fewest deletions to cap height",
+   "tag": "reported",
+   "note": "Technical screen, Sep and Oct 2026",
+   "source": "https://prachub.com/interview-experiences/snowflake-software-engineer-interview-experience-two-one-hour-coding-rounds-tree-height-and-connect-four"
+  },
+  {
+   "title": "Check whether the last move wins Connect Four",
+   "tag": "reported",
+   "note": "Technical screen, Sep and Oct 2026",
+   "source": "https://prachub.com/interview-experiences/snowflake-software-engineer-interview-experience-tree-deletions-and-four-in-a-row-detection"
+  },
+  {
+   "lc": "throne-inheritance",
+   "tag": "reported",
+   "note": "IC1 screen, Sep 2026",
+   "source": "https://prachub.com/interview-experiences/snowflake-software-engineer-interview-experience-two-coding-rounds-and-four-problems"
+  },
+  {
+   "title": "Access control list (ACL) problem",
+   "tag": "reported",
+   "note": "IC1 screen, Sep 2026",
+   "source": "https://prachub.com/interview-experiences/snowflake-software-engineer-interview-experience-two-coding-rounds-and-four-problems"
+  },
+  {
+   "title": "Web crawler: shortest click path between pages",
+   "tag": "reported",
+   "note": "IC1 screen, Sep 2026",
+   "source": "https://prachub.com/interview-experiences/snowflake-software-engineer-interview-experience-two-coding-rounds-and-four-problems"
+  },
+  {
+   "lc": "top-k-frequent-elements",
+   "tag": "reported",
+   "note": "Onsite coding, 2025",
+   "source": "https://www.1point3acres.com/interview/thread/1128706"
+  },
+  {
+   "title": "Task scheduling",
+   "tag": "reported",
+   "note": "Intern online assessment, 2025",
+   "source": "https://www.1point3acres.com/interview/thread/1092336"
+  },
+  {
+   "title": "Union of bit strings",
+   "tag": "reported",
+   "note": "Intern online assessment, 2025",
+   "source": "https://www.1point3acres.com/interview/thread/1092336"
+  },
+  {
+   "title": "Design a key-value store",
+   "tag": "reported",
+   "note": "Coding or design round, date not shown",
+   "source": "https://www.aced.io/guides/snowflake-software-engineer-interview/experiences"
+  },
+  {
+   "lc": "balanced-binary-tree",
+   "tag": "reported",
+   "note": "Senior SWE coding, date not shown",
+   "source": "https://www.aced.io/guides/snowflake-software-engineer-interview/experiences"
+  },
+  {
+   "title": "Design a leaderboard system",
+   "tag": "reported",
+   "note": "Senior SWE system design, date not shown",
+   "source": "https://www.aced.io/guides/snowflake-software-engineer-interview/experiences"
+  },
+  {
+   "lc": "decode-string",
+   "tag": "listed",
+   "note": "Coding",
+   "source": "https://interviewing.io/snowflake-interview-questions"
+  },
+  {
+   "title": "Event store with fast inserts and time-range retrieval",
+   "tag": "listed",
+   "note": "System design",
+   "source": "https://interviewing.io/snowflake-interview-questions"
+  },
+  {
+   "lc": "find-median-from-data-stream",
+   "tag": "listed",
+   "note": "Coding",
+   "source": "https://prepfully.com/interview-guides/snowflake-software-engineer-interview"
+  },
+  {
+   "lc": "design-circular-deque",
+   "tag": "listed",
+   "note": "Fixed-size deque, coding",
+   "source": "https://prepfully.com/interview-guides/snowflake-software-engineer-interview"
+  },
+  {
+   "lc": "merge-k-sorted-lists",
+   "tag": "listed",
+   "note": "Builds up from merging two sorted arrays",
+   "source": "https://prepfully.com/interview-guides/snowflake-software-engineer-interview"
+  },
+  {
+   "lc": "kth-largest-element-in-an-array",
+   "tag": "listed",
+   "note": "Coding",
+   "source": "https://prepfully.com/interview-guides/snowflake-software-engineer-interview"
+  },
+  {
+   "lc": "boundary-of-binary-tree",
+   "tag": "listed",
+   "note": "Outer boundary of a binary tree",
+   "source": "https://prepfully.com/interview-guides/snowflake-software-engineer-interview"
+  },
+  {
+   "lc": "insert-interval",
+   "tag": "listed",
+   "note": "Coding",
+   "source": "https://prepfully.com/interview-guides/snowflake-software-engineer-interview"
+  },
+  {
+   "lc": "univalued-binary-tree",
+   "tag": "listed",
+   "note": "Coding",
+   "source": "https://prepfully.com/interview-guides/snowflake-software-engineer-interview"
+  },
+  {
+   "lc": "minimum-add-to-make-parentheses-valid",
+   "tag": "listed",
+   "note": "Coding",
+   "source": "https://prepfully.com/interview-guides/snowflake-software-engineer-interview"
+  },
+  {
+   "lc": "lfu-cache",
+   "tag": "listed",
+   "note": "LRU tie-break, question bank",
+   "source": "https://prachub.com/companies/snowflake/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "min-stack",
+   "tag": "listed",
+   "note": "Question bank, 2026",
+   "source": "https://prachub.com/companies/snowflake/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "course-schedule-ii",
+   "tag": "listed",
+   "note": "Intern question bank, 2026",
+   "source": "https://prachub.com/companies/snowflake/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "shortest-word-distance",
+   "tag": "listed",
+   "note": "Question bank",
+   "source": "https://prachub.com/companies/snowflake/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "sum-of-scores-of-built-strings",
+   "tag": "listed",
+   "note": "Question bank, 2026",
+   "source": "https://prachub.com/companies/snowflake/positions/software-engineer/categories/coding-and-algorithms"
+  }
+ ],
+ "sources": [
+  {
+   "label": "interviewing.io: Snowflake interview process and questions",
+   "url": "https://interviewing.io/snowflake-interview-questions"
+  },
+  {
+   "label": "Prepfully: Snowflake software engineer interview guide",
+   "url": "https://prepfully.com/interview-guides/snowflake-software-engineer-interview"
+  },
+  {
+   "label": "PracHub: Snowflake SWE coding question bank",
+   "url": "https://prachub.com/companies/snowflake/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "label": "PracHub: Snowflake screen, tree height and Connect Four (Oct 2026)",
+   "url": "https://prachub.com/interview-experiences/snowflake-software-engineer-interview-experience-two-one-hour-coding-rounds-tree-height-and-connect-four"
+  },
+  {
+   "label": "PracHub: Snowflake IC1 screen, two rounds and four problems (Sep 2026)",
+   "url": "https://prachub.com/interview-experiences/snowflake-software-engineer-interview-experience-two-coding-rounds-and-four-problems"
+  },
+  {
+   "label": "PracHub: Snowflake screen, tree deletions and four in a row (Sep 2026)",
+   "url": "https://prachub.com/interview-experiences/snowflake-software-engineer-interview-experience-tree-deletions-and-four-in-a-row-detection"
+  },
+  {
+   "label": "Aced (formerly Exponent): Snowflake SWE candidate experiences",
+   "url": "https://www.aced.io/guides/snowflake-software-engineer-interview/experiences"
+  },
+  {
+   "label": "1point3acres: Snowflake onsite, kth frequent element (2025)",
+   "url": "https://www.1point3acres.com/interview/thread/1128706"
+  },
+  {
+   "label": "1point3acres: Snowflake intern online assessment (2025)",
+   "url": "https://www.1point3acres.com/interview/thread/1092336"
+  },
+  {
+   "label": "1point3acres: Snowflake two-round technical screen (2025)",
+   "url": "https://www.1point3acres.com/interview/thread/1131199"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time."
+}

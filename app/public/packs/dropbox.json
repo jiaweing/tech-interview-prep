@@ -1,0 +1,238 @@
+{
+ "id": "dropbox",
+ "name": "Dropbox",
+ "role": "Software engineer",
+ "summary": "Candidates report a recruiter call, a CodeSignal assessment with progressive multi-part questions, then a loop of two coding rounds, a project deep dive, system design and a behavioural round with the hiring manager. Coding is reported as practical and multi-step, often around files, storage or stateful classes.",
+ "rounds": [
+  {
+   "name": "Recruiter call",
+   "minutes": 30,
+   "kind": "behavioural",
+   "what": "Past experience, why Dropbox and what you are looking for.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/dropbox-interview-questions"
+  },
+  {
+   "name": "CodeSignal assessment",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Up to four progressive parts with built-in tests, around LeetCode medium to medium-hard.",
+   "practice": "problems",
+   "source": "https://interviewing.io/dropbox-interview-questions"
+  },
+  {
+   "name": "Onsite coding (x2)",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Progressive problems: start small, discuss scale and complexity, then code the next level; concurrency may come up.",
+   "practice": "problems",
+   "source": "https://interviewing.io/dropbox-interview-questions"
+  },
+  {
+   "name": "Project deep dive",
+   "minutes": 60,
+   "kind": "behavioural",
+   "what": "A project you choose, probed by an expert on implementation, architecture and trade-offs.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/dropbox-interview-questions"
+  },
+  {
+   "name": "System design",
+   "minutes": 60,
+   "kind": "design",
+   "what": "A practical Dropbox-style product or component, such as file sync, storage or content delivery.",
+   "practice": "sd-practice",
+   "source": "https://interviewing.io/dropbox-interview-questions"
+  },
+  {
+   "name": "Behavioural (hiring manager)",
+   "minutes": 60,
+   "kind": "behavioural",
+   "what": "Leading projects, disagreements, ambiguity, learning quickly and mentoring.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/dropbox-interview-questions"
+  }
+ ],
+ "tips": [
+  "Ask whether more parts are coming; coding questions usually grow in stages.",
+  "Get comfortable with the CodeSignal editor, multiple files and its tests before the assessment.",
+  "Reason about concurrency trade-offs rather than reciting threading APIs.",
+  "Pick a deep-dive project you built end to end and know your own contributions in detail.",
+  "Write a correct simple version first, then optimise."
+ ],
+ "reported": [
+  {
+   "title": "Banking-system class with basic operations",
+   "tag": "reported",
+   "note": "Online assessment, Jan 2026",
+   "source": "https://prachub.com/interview-experiences/dropbox-software-engineer-interview-experience-a-hangman-variant-and-a-recursive-async-job-twist"
+  },
+  {
+   "title": "Worst-case guesses for adaptive hangman",
+   "tag": "reported",
+   "note": "Onsite coding, Jan 2026",
+   "source": "https://prachub.com/interview-experiences/dropbox-software-engineer-interview-experience-a-hangman-variant-and-a-recursive-async-job-twist"
+  },
+  {
+   "title": "Recursive distributed file crawler with async jobs",
+   "tag": "reported",
+   "note": "Onsite coding then design follow-up, Jan 2026",
+   "source": "https://prachub.com/interview-experiences/dropbox-software-engineer-interview-experience-a-hangman-variant-and-a-recursive-async-job-twist"
+  },
+  {
+   "title": "Records with field values and TTL expiry",
+   "tag": "reported",
+   "note": "Online assessment, 2025",
+   "source": "https://1point3acres.com/interview/company/dropbox"
+  },
+  {
+   "title": "Bank system problem",
+   "tag": "reported",
+   "note": "Online assessment, 2024",
+   "source": "https://1point3acres.com/interview/company/dropbox"
+  },
+  {
+   "lc": "find-duplicate-file-in-system",
+   "tag": "reported",
+   "note": "Phone screen, follow-ups on very large and small files (date not shown)",
+   "source": "https://www.glassdoor.com/Interview/Phone-Interview-was-about-duplicate-files-QTN_4074284.htm"
+  },
+  {
+   "title": "Key-value store with nested transactions, commit and rollback",
+   "tag": "listed",
+   "note": "Candidate-described prompt",
+   "source": "https://prachub.com/interview-guide/dropbox-software-engineer-interview-guide-2026"
+  },
+  {
+   "lc": "design-phone-directory",
+   "tag": "listed",
+   "note": "ID allocator with bitsets or heaps",
+   "source": "https://prachub.com/interview-guide/dropbox-software-engineer-interview-guide-2026"
+  },
+  {
+   "lc": "top-k-frequent-words",
+   "tag": "listed",
+   "note": "Top K words across files under a path",
+   "source": "https://prachub.com/interview-guide/dropbox-software-engineer-interview-guide-2026"
+  },
+  {
+   "lc": "number-of-1-bits",
+   "tag": "listed",
+   "note": "Count set bits efficiently",
+   "source": "https://prachub.com/interview-guide/dropbox-software-engineer-interview-guide-2026"
+  },
+  {
+   "title": "Course registration with credit limits and GPA rules",
+   "tag": "listed",
+   "note": "Candidate-described prompt",
+   "source": "https://prachub.com/interview-guide/dropbox-software-engineer-interview-guide-2026"
+  },
+  {
+   "title": "In-memory cloud storage with file ownership and per-user capacity",
+   "tag": "listed",
+   "note": "Question bank",
+   "source": "https://prachub.com/interview-guide/dropbox-software-engineer-interview-guide-2026"
+  },
+  {
+   "title": "Key-value store and token bucket rate limiter",
+   "tag": "listed",
+   "note": "Onsite coding, question bank",
+   "source": "https://prachub.com/companies/dropbox/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "title": "Hierarchical folder access check",
+   "tag": "listed",
+   "note": "Technical screen, question bank",
+   "source": "https://prachub.com/companies/dropbox/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "title": "Word guessing game with hit and miss feedback",
+   "tag": "listed",
+   "note": "Question bank, 2025 to 2026",
+   "source": "https://prachub.com/companies/dropbox/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "title": "Design an S3-like object store",
+   "tag": "listed",
+   "note": "System design, question bank",
+   "source": "https://prachub.com/interview-guide/dropbox-software-engineer-interview-guide-2026"
+  },
+  {
+   "lc": "path-with-maximum-minimum-value",
+   "tag": "listed",
+   "note": "Question bank, 2026",
+   "source": "https://prachub.com/companies/dropbox/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "maximum-width-of-binary-tree",
+   "tag": "listed",
+   "note": "Question bank, 2026",
+   "source": "https://prachub.com/companies/dropbox/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "task-scheduler",
+   "tag": "listed",
+   "note": "Question bank, 2026",
+   "source": "https://prachub.com/companies/dropbox/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "word-pattern-ii",
+   "tag": "listed",
+   "note": "Question bank, 2026",
+   "source": "https://prachub.com/companies/dropbox/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "accounts-merge",
+   "tag": "listed",
+   "note": "Question bank, 2026",
+   "source": "https://prachub.com/companies/dropbox/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "guess-the-word",
+   "tag": "listed",
+   "note": "Minimax guessing, question bank",
+   "source": "https://prachub.com/companies/dropbox/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "candy",
+   "tag": "listed",
+   "note": "Question bank",
+   "source": "https://prachub.com/companies/dropbox/positions/software-engineer/categories/coding-and-algorithms"
+  }
+ ],
+ "sources": [
+  {
+   "label": "interviewing.io: Dropbox interview process and questions",
+   "url": "https://interviewing.io/dropbox-interview-questions"
+  },
+  {
+   "label": "Aced (formerly Exponent): Dropbox interview guide",
+   "url": "https://www.aced.io/companies/dropbox"
+  },
+  {
+   "label": "PracHub: Dropbox SWE candidate experience (Jan 2026)",
+   "url": "https://prachub.com/interview-experiences/dropbox-software-engineer-interview-experience-a-hangman-variant-and-a-recursive-async-job-twist"
+  },
+  {
+   "label": "PracHub: Dropbox software engineer interview guide 2026",
+   "url": "https://prachub.com/interview-guide/dropbox-software-engineer-interview-guide-2026"
+  },
+  {
+   "label": "PracHub: Dropbox SWE coding question bank",
+   "url": "https://prachub.com/companies/dropbox/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "label": "1point3acres: Dropbox interview threads list",
+   "url": "https://1point3acres.com/interview/company/dropbox"
+  },
+  {
+   "label": "Glassdoor: Dropbox phone interview about duplicate files",
+   "url": "https://www.glassdoor.com/Interview/Phone-Interview-was-about-duplicate-files-QTN_4074284.htm"
+  },
+  {
+   "label": "1point3acres: Dropbox SDE onsite (2023)",
+   "url": "https://www.1point3acres.com/interview/thread/1031118"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time."
+}

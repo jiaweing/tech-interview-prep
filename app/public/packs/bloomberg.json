@@ -1,0 +1,276 @@
+{
+ "id": "bloomberg",
+ "name": "Bloomberg",
+ "role": "Software engineer",
+ "summary": "Candidates report a recruiter call, a one-hour technical phone screen (resume questions then one or two coding problems), and a virtual onsite of two technical rounds, an HR round and a senior or engineering manager round. Hiring is by team, and you can be stopped after any onsite round.",
+ "rounds": [
+  {
+   "name": "Recruiter call",
+   "minutes": 30,
+   "kind": "behavioural",
+   "what": "Your experience, why Bloomberg, and the role's expectations.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/bloomberg-interview-questions"
+  },
+  {
+   "name": "Technical phone screen",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Resume questions, then one or two data structure problems in HackerRank; code is usually not run.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/bloomberg-interview-questions"
+  },
+  {
+   "name": "Onsite technical 1",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Coding round, often two medium problems with follow-ups on complexity and alternatives.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/bloomberg-interview-questions"
+  },
+  {
+   "name": "Onsite technical 2",
+   "minutes": 60,
+   "kind": "design",
+   "what": "Coding or system design depending on team and level; design prompts are often finance flavoured, such as a stock exchange.",
+   "practice": "sd-practice",
+   "source": "https://interviewing.io/bloomberg-interview-questions"
+  },
+  {
+   "name": "HR round",
+   "minutes": 25,
+   "kind": "behavioural",
+   "what": "Why Bloomberg, career goals, other processes and soft skills.",
+   "practice": "dd-mock",
+   "source": "https://roundz.substack.com/p/interview-experience-bloomberg-software-engineer-new-graduate"
+  },
+  {
+   "name": "Senior manager round",
+   "minutes": 60,
+   "kind": "behavioural",
+   "what": "A deep dive into a past project, sometimes extended into a design discussion, plus behavioural questions.",
+   "practice": "dd-mock",
+   "source": "https://roundz.substack.com/p/interview-experience-bloomberg-software-engineer-new-graduate"
+  }
+ ],
+ "tips": [
+  "Candidates repeat that Bloomberg recycles questions, so work through the Bloomberg-tagged LeetCode list and shared phone screen lists.",
+  "Prepare a specific answer to why Bloomberg; it comes up in nearly every round.",
+  "Expect to explain your solution line by line, since code is often not executed.",
+  "Know one project deeply, including throughput, latency and caching trade-offs.",
+  "Some teams require you to finish both coding problems in the screen to pass."
+ ],
+ "reported": [
+  {
+   "lc": "decode-string",
+   "tag": "reported",
+   "note": "Senior phone screen, Aug 2026",
+   "source": "https://prachub.com/interview-experiences/bloomberg-software-engineer-interview-decode-string-screen-stock-exchange-design-and-meeting-rooms-ii"
+  },
+  {
+   "lc": "meeting-rooms-ii",
+   "tag": "reported",
+   "note": "Senior virtual onsite, Aug 2026",
+   "source": "https://prachub.com/interview-experiences/bloomberg-software-engineer-interview-decode-string-screen-stock-exchange-design-and-meeting-rooms-ii"
+  },
+  {
+   "title": "Data structure supporting insert, delete and current top K frequent",
+   "tag": "reported",
+   "note": "Phone screen, Mar 2026",
+   "source": "https://prachub.com/interview-experiences/bloomberg-software-engineer-interview-experience-top-k-frequent-elements-phone-screen"
+  },
+  {
+   "lc": "insert-delete-getrandom-o1",
+   "tag": "reported",
+   "note": "Onsite, late 2025, framed as a lottery system",
+   "source": "https://prachub.com/interview-experiences/bloomberg-software-engineer-interview-experience-phone-screen-super-day-and-em-round-to-offer"
+  },
+  {
+   "lc": "maximum-nesting-depth-of-the-parentheses",
+   "tag": "reported",
+   "note": "Onsite, late 2025",
+   "source": "https://prachub.com/interview-experiences/bloomberg-software-engineer-interview-experience-phone-screen-super-day-and-em-round-to-offer"
+  },
+  {
+   "lc": "shortest-path-in-a-grid-with-obstacles-elimination",
+   "tag": "reported",
+   "note": "Onsite, late 2025",
+   "source": "https://prachub.com/interview-experiences/bloomberg-software-engineer-interview-experience-phone-screen-super-day-and-em-round-to-offer"
+  },
+  {
+   "title": "Implement a simplified grep that is easy to extend with flags",
+   "tag": "reported",
+   "note": "Onsite coding, Dec 2025",
+   "source": "https://prachub.com/interview-experiences/bloomberg-software-engineer-interview-experience-simplified-grep-friend-request-math-and-a-bq-round"
+  },
+  {
+   "lc": "friends-of-appropriate-ages",
+   "tag": "reported",
+   "note": "Onsite coding, Dec 2025",
+   "source": "https://prachub.com/interview-experiences/bloomberg-software-engineer-interview-experience-simplified-grep-friend-request-math-and-a-bq-round"
+  },
+  {
+   "lc": "subarray-product-less-than-k",
+   "tag": "reported",
+   "note": "Onsite coding, Sep 2025",
+   "source": "https://prachub.com/interview-experiences/bloomberg-software-engineer-interview-experience-three-onsite-rounds-in-one-day"
+  },
+  {
+   "lc": "group-anagrams",
+   "tag": "reported",
+   "note": "Onsite coding, Sep 2025",
+   "source": "https://prachub.com/interview-experiences/bloomberg-software-engineer-interview-experience-three-onsite-rounds-in-one-day"
+  },
+  {
+   "lc": "invalid-transactions",
+   "tag": "reported",
+   "note": "Phone screen, May 2026, variant with a $2,000 rule",
+   "source": "https://prachub.com/interview-experiences/bloomberg-software-engineer-interview-experience-detecting-fraudulent-transactions-within-60-minutes"
+  },
+  {
+   "lc": "coin-change",
+   "tag": "reported",
+   "note": "Phone screen, Oct 2026, variant that returns the coins used",
+   "source": "https://prachub.com/interview-experiences/bloomberg-software-engineer-interview-experience-two-teams-two-technical-screens-rejected-by-both"
+  },
+  {
+   "title": "Recommend films from users whose history contains all of a new user's films",
+   "tag": "reported",
+   "note": "Phone screen, Oct 2026",
+   "source": "https://prachub.com/interview-experiences/bloomberg-software-engineer-interview-experience-two-teams-two-technical-screens-rejected-by-both"
+  },
+  {
+   "title": "Sorted set of distinct integers with add reporting duplicates, then reduce memory",
+   "tag": "reported",
+   "note": "Phone screen, Oct 2026",
+   "source": "https://prachub.com/interview-experiences/bloomberg-software-engineer-interview-experience-two-teams-two-technical-screens-rejected-by-both"
+  },
+  {
+   "title": "Nth term of the Van Eck sequence",
+   "tag": "reported",
+   "note": "New grad onsite, Oct 2025",
+   "source": "https://prachub.com/interview-experiences/bloomberg-new-grad-software-engineer-interview-experience-rejected-after-a-van-eck-sequence-question"
+  },
+  {
+   "title": "Find and fix seeded bugs in a Python ticket booking system with an AI assistant",
+   "tag": "reported",
+   "note": "Technical screen, Nov 2026",
+   "source": "https://prachub.com/interview-experiences/bloomberg-software-engineer-interview-experience-first-round-was-ai-assisted-debugging-of-a-booking-system"
+  },
+  {
+   "title": "Design a stock exchange with real-time order matching",
+   "tag": "reported",
+   "note": "Senior system design, Aug 2026",
+   "source": "https://prachub.com/interview-experiences/bloomberg-software-engineer-interview-decode-string-screen-stock-exchange-design-and-meeting-rooms-ii"
+  },
+  {
+   "title": "Design the API behind a signed-in greeting, then return top N active users",
+   "tag": "reported",
+   "note": "System design with team lead, Sep 2025",
+   "source": "https://prachub.com/interview-experiences/bloomberg-software-engineer-interview-experience-three-onsite-rounds-in-one-day"
+  },
+  {
+   "lc": "design-underground-system",
+   "tag": "listed",
+   "note": "On a community Bloomberg phone screen list",
+   "source": "https://leetcode.com/discuss/post/964672/bloomberg-phone-interview-prepration-lis-ge8t/"
+  },
+  {
+   "lc": "remove-all-adjacent-duplicates-in-string-ii",
+   "tag": "listed",
+   "note": "On a community Bloomberg phone screen list",
+   "source": "https://leetcode.com/discuss/post/964672/bloomberg-phone-interview-prepration-lis-ge8t/"
+  },
+  {
+   "lc": "copy-list-with-random-pointer",
+   "tag": "listed",
+   "note": "On a community Bloomberg phone screen list",
+   "source": "https://leetcode.com/discuss/post/964672/bloomberg-phone-interview-prepration-lis-ge8t/"
+  },
+  {
+   "lc": "flatten-a-multilevel-doubly-linked-list",
+   "tag": "listed",
+   "note": "Bloomberg problem list",
+   "source": "https://www.1point3acres.com/interview/problems/company/bloomberg"
+  },
+  {
+   "lc": "trapping-rain-water",
+   "tag": "listed",
+   "note": "Bloomberg problem list",
+   "source": "https://www.1point3acres.com/interview/problems/company/bloomberg"
+  },
+  {
+   "lc": "top-k-frequent-words",
+   "tag": "listed",
+   "note": "Bloomberg problem list",
+   "source": "https://www.1point3acres.com/interview/problems/company/bloomberg"
+  },
+  {
+   "lc": "online-stock-span",
+   "tag": "listed",
+   "note": "Bloomberg problem list",
+   "source": "https://www.1point3acres.com/interview/problems/company/bloomberg"
+  },
+  {
+   "lc": "alien-dictionary",
+   "tag": "listed",
+   "note": "Bloomberg problem list",
+   "source": "https://www.1point3acres.com/interview/problems/company/bloomberg"
+  }
+ ],
+ "sources": [
+  {
+   "label": "interviewing.io: Bloomberg interview process",
+   "url": "https://interviewing.io/bloomberg-interview-questions"
+  },
+  {
+   "label": "Roundz: Bloomberg new grad SWE experience, 2025",
+   "url": "https://roundz.substack.com/p/interview-experience-bloomberg-software-engineer-new-graduate"
+  },
+  {
+   "label": "PracHub: Decode String screen and stock exchange design, Aug 2026",
+   "url": "https://prachub.com/interview-experiences/bloomberg-software-engineer-interview-decode-string-screen-stock-exchange-design-and-meeting-rooms-ii"
+  },
+  {
+   "label": "PracHub: top K frequent phone screen, Mar 2026",
+   "url": "https://prachub.com/interview-experiences/bloomberg-software-engineer-interview-experience-top-k-frequent-elements-phone-screen"
+  },
+  {
+   "label": "PracHub: phone screen, super day and EM round, 2025",
+   "url": "https://prachub.com/interview-experiences/bloomberg-software-engineer-interview-experience-phone-screen-super-day-and-em-round-to-offer"
+  },
+  {
+   "label": "PracHub: simplified grep and BQ round, Dec 2025",
+   "url": "https://prachub.com/interview-experiences/bloomberg-software-engineer-interview-experience-simplified-grep-friend-request-math-and-a-bq-round"
+  },
+  {
+   "label": "PracHub: three onsite rounds in one day, Sep 2025",
+   "url": "https://prachub.com/interview-experiences/bloomberg-software-engineer-interview-experience-three-onsite-rounds-in-one-day"
+  },
+  {
+   "label": "PracHub: AI-assisted debugging screen, Nov 2026",
+   "url": "https://prachub.com/interview-experiences/bloomberg-software-engineer-interview-experience-first-round-was-ai-assisted-debugging-of-a-booking-system"
+  },
+  {
+   "label": "PracHub: Van Eck sequence new grad round, Oct 2025",
+   "url": "https://prachub.com/interview-experiences/bloomberg-new-grad-software-engineer-interview-experience-rejected-after-a-van-eck-sequence-question"
+  },
+  {
+   "label": "PracHub: fraudulent transactions screen, May 2026",
+   "url": "https://prachub.com/interview-experiences/bloomberg-software-engineer-interview-experience-detecting-fraudulent-transactions-within-60-minutes"
+  },
+  {
+   "label": "PracHub: two teams, two technical screens, Oct 2026",
+   "url": "https://prachub.com/interview-experiences/bloomberg-software-engineer-interview-experience-two-teams-two-technical-screens-rejected-by-both"
+  },
+  {
+   "label": "1point3acres: Bloomberg interview problems",
+   "url": "https://www.1point3acres.com/interview/problems/company/bloomberg"
+  },
+  {
+   "label": "LeetCode Discuss: Bloomberg phone interview preparation list",
+   "url": "https://leetcode.com/discuss/post/964672/bloomberg-phone-interview-prepration-lis-ge8t/"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time."
+}

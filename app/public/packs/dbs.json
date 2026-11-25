@@ -1,0 +1,141 @@
+{
+ "id": "dbs",
+ "name": "DBS Bank",
+ "role": "Software engineer",
+ "summary": "Candidates report a HackerRank online test with coding problems and CS multiple-choice questions, then technical interviews that lean on Java, SQL, data structures and their own projects, and an HR or manager round. Graduate hires through Hack2Hire also report a team hackathon. Public coding detail is thin.",
+ "rounds": [
+  {
+   "name": "Online assessment",
+   "minutes": 90,
+   "kind": "coding",
+   "what": "HackerRank test with coding problems plus multiple-choice questions on core CS subjects.",
+   "practice": "leetcode",
+   "source": "https://www.geeksforgeeks.org/?p=979536"
+  },
+  {
+   "name": "Hackathon (Hack2Hire graduate track)",
+   "kind": "coding",
+   "what": "Team build of a small web application or API over several hours, with mentors watching teamwork and contribution.",
+   "practice": "problems",
+   "source": "https://www.geeksforgeeks.org/?p=375401"
+  },
+  {
+   "name": "Technical interview",
+   "kind": "coding",
+   "what": "Data structures (arrays, trees, linked lists, sorting), OOP, OS and DBMS, plus questions about your projects.",
+   "practice": "leetcode",
+   "source": "https://www.geeksforgeeks.org/?p=379794"
+  },
+  {
+   "name": "HR or manager interview",
+   "minutes": 30,
+   "kind": "behavioural",
+   "what": "Mostly non-technical: background, projects, teamwork and expectations.",
+   "practice": "dd-mock",
+   "source": "https://www.geeksforgeeks.org/?p=979536"
+  }
+ ],
+ "tips": [
+  "Expect Java, Spring and SQL questions next to standard data structures problems.",
+  "Prepare to walk through your own projects and your exact contribution.",
+  "In the Hack2Hire hackathon, mentors watch teamwork, so contribute visibly and help the team ship.",
+  "Read input bounds first and state your assumptions before coding."
+ ],
+ "reported": [
+  {
+   "title": "Split group expenses (Splitwise style)",
+   "tag": "reported",
+   "note": "Online test, hard, Hack2Hire Senior Officer write-up updated 2023",
+   "source": "https://www.geeksforgeeks.org/?p=979536"
+  },
+  {
+   "title": "Binary tree problem",
+   "tag": "reported",
+   "note": "Online test, medium to hard, same write-up",
+   "source": "https://www.geeksforgeeks.org/?p=979536"
+  },
+  {
+   "title": "Build a flight booking or crowdfunding platform",
+   "tag": "reported",
+   "note": "Hackathon problem statements, same write-up",
+   "source": "https://www.geeksforgeeks.org/?p=979536"
+  },
+  {
+   "title": "Dynamic programming maximum-sum problem",
+   "tag": "reported",
+   "note": "Online test, Hack2Hire, 2020",
+   "source": "https://www.geeksforgeeks.org/?p=379794"
+  },
+  {
+   "title": "Build a loan approval API",
+   "tag": "reported",
+   "note": "Hackathon task, Hack2Hire, 2020",
+   "source": "https://www.geeksforgeeks.org/?p=379794"
+  },
+  {
+   "title": "How would you approach designing a payment system",
+   "tag": "reported",
+   "note": "Technical question, Singapore, Sept 2025",
+   "source": "https://www.glassdoor.ie/Interview/DBS-Bank-Interview-E611812-RVW98569770.htm"
+  },
+  {
+   "lc": "trapping-rain-water",
+   "tag": "listed",
+   "note": "Prep guide question list, 2026",
+   "source": "https://prachub.com/interview-guide/dbs-bank-software-engineer-interview-questions-guide-2026"
+  },
+  {
+   "lc": "valid-palindrome",
+   "tag": "listed",
+   "note": "Prep guide question list, 2026",
+   "source": "https://prachub.com/interview-guide/dbs-bank-software-engineer-interview-questions-guide-2026"
+  },
+  {
+   "title": "Swap two numbers without a temporary variable",
+   "tag": "listed",
+   "note": "Prep guide question list, 2026",
+   "source": "https://prachub.com/interview-guide/dbs-bank-software-engineer-interview-questions-guide-2026"
+  },
+  {
+   "title": "Implement a linked list",
+   "tag": "listed",
+   "note": "Prep guide question list, 2026",
+   "source": "https://prachub.com/interview-guide/dbs-bank-software-engineer-interview-questions-guide-2026"
+  },
+  {
+   "title": "Running balance from ledger entries (window functions)",
+   "tag": "listed",
+   "note": "Prep guide SQL question, 2026",
+   "source": "https://prachub.com/interview-guide/dbs-bank-software-engineer-interview-questions-guide-2026"
+  },
+  {
+   "title": "Scale a customer-facing application under load",
+   "tag": "listed",
+   "note": "Prep guide system design question, 2026",
+   "source": "https://prachub.com/interview-guide/dbs-bank-software-engineer-interview-questions-guide-2026"
+  }
+ ],
+ "sources": [
+  {
+   "label": "PracHub: DBS Bank software engineer interview guide (2026)",
+   "url": "https://prachub.com/interview-guide/dbs-bank-software-engineer-interview-questions-guide-2026"
+  },
+  {
+   "label": "GeeksforGeeks: DBS interview experience for Senior Officer (Hack2Hire)",
+   "url": "https://www.geeksforgeeks.org/?p=979536"
+  },
+  {
+   "label": "GeeksforGeeks: DBS Technical Associate hiring experience 2020",
+   "url": "https://www.geeksforgeeks.org/?p=375401"
+  },
+  {
+   "label": "GeeksforGeeks: DBS Hack2Hire hackathon interview experience 2020",
+   "url": "https://www.geeksforgeeks.org/?p=379794"
+  },
+  {
+   "label": "Glassdoor: DBS Bank interview review, Singapore, 2025",
+   "url": "https://www.glassdoor.ie/Interview/DBS-Bank-Interview-E611812-RVW98569770.htm"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time. Many DBS reports come from its Hyderabad technology centre."
+}

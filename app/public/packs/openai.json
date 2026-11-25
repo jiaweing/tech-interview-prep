@@ -1,0 +1,251 @@
+{
+ "id": "openai",
+ "name": "OpenAI",
+ "role": "Software engineer",
+ "summary": "OpenAI describes intro calls, a team-specific skills assessment, then 4 to 6 hours of final interviews. Candidates report a coding screen and a system design screen, then an onsite with practical multi-part coding, system design, a project presentation and behavioural rounds; coding problems are reported to be practical builds rather than puzzles.",
+ "rounds": [
+  {
+   "name": "Recruiter call",
+   "minutes": 30,
+   "kind": "behavioural",
+   "what": "Past experience, interest in OpenAI and what you want next.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/openai-interview-questions"
+  },
+  {
+   "name": "Skills-based assessment",
+   "kind": "coding",
+   "what": "Varies by team: pair coding, a take-home or a technical test, judged on approach and reasoning.",
+   "practice": "problems",
+   "source": "https://openai.com/interview-guide/"
+  },
+  {
+   "name": "Technical phone screen",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Practical data structures and algorithms in CoderPad, often a multi-part build.",
+   "practice": "problems",
+   "source": "https://interviewing.io/openai-interview-questions"
+  },
+  {
+   "name": "System design screen",
+   "minutes": 60,
+   "kind": "design",
+   "what": "Design a complete system with follow-ups on scale, reliability and trade-offs.",
+   "practice": "sd-practice",
+   "source": "https://interviewing.io/openai-interview-questions"
+  },
+  {
+   "name": "Onsite coding",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "About four progressive parts; judged on working, tested, well-structured code.",
+   "practice": "problems",
+   "source": "https://interviewing.io/openai-interview-questions"
+  },
+  {
+   "name": "Onsite system design",
+   "minutes": 60,
+   "kind": "design",
+   "what": "More detailed than the screen and may include some coding.",
+   "practice": "sd-practice",
+   "source": "https://interviewing.io/openai-interview-questions"
+  },
+  {
+   "name": "Project presentation",
+   "minutes": 45,
+   "kind": "behavioural",
+   "what": "Present a recent hard technical project with slides, including trade-offs and impact.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/openai-interview-questions"
+  },
+  {
+   "name": "Behavioural with a senior manager",
+   "minutes": 45,
+   "kind": "behavioural",
+   "what": "Resume deep dive plus questions on ethics and AI safety.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/openai-interview-questions"
+  },
+  {
+   "name": "Working with teams",
+   "minutes": 30,
+   "kind": "behavioural",
+   "what": "Cross-functional work, conflict and competing ideas.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/openai-interview-questions"
+  }
+ ],
+ "tips": [
+  "Practise building complete components under time pressure; candidates report typing for the whole hour.",
+  "Get a simple working version first, then extend it as new parts arrive.",
+  "OpenAI says it looks for well-designed solutions, high-quality code, performance and good test coverage.",
+  "Check with your recruiter whether AI tools are allowed in each round.",
+  "Read OpenAI's recent blog posts and charter before the intro and behavioural calls."
+ ],
+ "reported": [
+  {
+   "title": "In-memory database: create tables, query, add indexing",
+   "tag": "reported",
+   "note": "Phone screen, 2025",
+   "source": "https://www.1point3acres.com/interview/thread/1125010"
+  },
+  {
+   "title": "Resumable iterator / iterator interface design",
+   "tag": "reported",
+   "note": "Interview, late 2024",
+   "source": "https://www.1point3acres.com/interview/thread/1102588"
+  },
+  {
+   "title": "GPU credits (multi-part)",
+   "tag": "reported",
+   "note": "Onsite coding, Jul 2026, edge cases ran the clock down",
+   "source": "https://prachub.com/interview-experiences/openai-software-engineer-interview-experience-a-down-to-the-wire-coding-round-and-design-chatgpt"
+  },
+  {
+   "title": "Fault-tolerant task queue with retries, dead-letter queue and dependencies",
+   "tag": "reported",
+   "note": "Phone screen, Oct 2026",
+   "source": "https://prachub.com/interview-experiences/openai-software-engineer-interview-experience-fault-tolerant-queue-coding-and-online-devbox-design-phone-screens"
+  },
+  {
+   "title": "Design ChatGPT",
+   "tag": "reported",
+   "note": "Onsite system design, Jul 2026",
+   "source": "https://prachub.com/interview-experiences/openai-software-engineer-interview-experience-a-down-to-the-wire-coding-round-and-design-chatgpt"
+  },
+  {
+   "title": "Design an online devbox service",
+   "tag": "reported",
+   "note": "System design screen, Oct 2026",
+   "source": "https://prachub.com/interview-experiences/openai-software-engineer-interview-experience-fault-tolerant-queue-coding-and-online-devbox-design-phone-screens"
+  },
+  {
+   "title": "Design a video generation service with one GPU per task",
+   "tag": "reported",
+   "note": "Onsite system design, Sep 2026",
+   "source": "https://prachub.com/interview-experiences/openai-software-engineer-interview-experience-virtual-onsite-design-round-sora-with-one-gpu-per-task"
+  },
+  {
+   "title": "Spreadsheet with formula cells",
+   "tag": "listed",
+   "note": "Onsite high-frequency list, 2025",
+   "source": "https://www.1point3acres.com/interview/thread/1149658"
+  },
+  {
+   "lc": "web-crawler-multithreaded",
+   "tag": "listed",
+   "note": "Concurrent fetch, dedupe and failures",
+   "source": "https://www.hellointerview.com/blog/openai-coding-questions"
+  },
+  {
+   "lc": "time-based-key-value-store",
+   "tag": "listed",
+   "note": "Coding",
+   "source": "https://www.hellointerview.com/blog/openai-coding-questions"
+  },
+  {
+   "title": "Serialize and deserialize a key-value store with arbitrary characters",
+   "tag": "listed",
+   "note": "Coding",
+   "source": "https://www.hellointerview.com/blog/openai-coding-questions"
+  },
+  {
+   "title": "Unix cd command with symlink resolution",
+   "tag": "listed",
+   "note": "Coding, handles . .. and cycles",
+   "source": "https://www.hellointerview.com/blog/openai-coding-questions"
+  },
+  {
+   "lc": "meeting-rooms-ii",
+   "tag": "listed",
+   "note": "Meeting rooms scheduling variant",
+   "source": "https://www.hellointerview.com/blog/openai-coding-questions"
+  },
+  {
+   "title": "In-memory SQL table with select, where and joins",
+   "tag": "listed",
+   "note": "Coding",
+   "source": "https://www.hellointerview.com/blog/openai-coding-questions"
+  },
+  {
+   "title": "KL divergence and cross entropy calculations",
+   "tag": "listed",
+   "note": "Coding, some teams",
+   "source": "https://interviewing.io/openai-interview-questions"
+  },
+  {
+   "title": "IPv4 iterator and CIDR expansion",
+   "tag": "listed",
+   "note": "Question bank, 2025",
+   "source": "https://prachub.com/companies/openai/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "title": "Toy-language types and generic substitution",
+   "tag": "listed",
+   "note": "Question bank, 2025",
+   "source": "https://prachub.com/companies/openai/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "title": "Follow graph with snapshots and recommendations",
+   "tag": "listed",
+   "note": "Question bank, 2026",
+   "source": "https://prachub.com/companies/openai/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "title": "Leftmost-fit memory allocator with free by owner",
+   "tag": "listed",
+   "note": "Question bank, 2026",
+   "source": "https://prachub.com/companies/openai/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "title": "Distributed rate limiter",
+   "tag": "listed",
+   "note": "Question bank, 2026",
+   "source": "https://prachub.com/companies/openai/positions/software-engineer/categories/coding-and-algorithms"
+  }
+ ],
+ "sources": [
+  {
+   "label": "OpenAI: interview guide",
+   "url": "https://openai.com/interview-guide/"
+  },
+  {
+   "label": "interviewing.io: OpenAI interview process and questions",
+   "url": "https://interviewing.io/openai-interview-questions"
+  },
+  {
+   "label": "Hello Interview: OpenAI coding questions",
+   "url": "https://www.hellointerview.com/blog/openai-coding-questions"
+  },
+  {
+   "label": "PracHub: OpenAI SWE coding question bank",
+   "url": "https://prachub.com/companies/openai/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "label": "PracHub: OpenAI onsite, GPU credits and Design ChatGPT (Jul 2026)",
+   "url": "https://prachub.com/interview-experiences/openai-software-engineer-interview-experience-a-down-to-the-wire-coding-round-and-design-chatgpt"
+  },
+  {
+   "label": "PracHub: OpenAI screens, task queue and devbox design (Oct 2026)",
+   "url": "https://prachub.com/interview-experiences/openai-software-engineer-interview-experience-fault-tolerant-queue-coding-and-online-devbox-design-phone-screens"
+  },
+  {
+   "label": "PracHub: OpenAI onsite design, one GPU per task (Sep 2026)",
+   "url": "https://prachub.com/interview-experiences/openai-software-engineer-interview-experience-virtual-onsite-design-round-sora-with-one-gpu-per-task"
+  },
+  {
+   "label": "1point3acres: OpenAI phone screen, in-memory DB (2025)",
+   "url": "https://www.1point3acres.com/interview/thread/1125010"
+  },
+  {
+   "label": "1point3acres: OpenAI interview, iterator design (2024)",
+   "url": "https://www.1point3acres.com/interview/thread/1102588"
+  },
+  {
+   "label": "1point3acres: OpenAI onsite coding question summary (2025)",
+   "url": "https://www.1point3acres.com/interview/thread/1149658"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time."
+}

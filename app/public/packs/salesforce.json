@@ -1,0 +1,251 @@
+{
+ "id": "salesforce",
+ "name": "Salesforce",
+ "role": "Software engineer (MTS)",
+ "summary": "Salesforce describes a recruiter call, a hiring manager call, a timed HackerRank assessment, a virtual technical loop and a required half-day onsite. Candidates report two medium data structure rounds for MTS, with low-level and high-level design added at SMTS and above, plus a hiring manager round.",
+ "rounds": [
+  {
+   "name": "Recruiter connect",
+   "minutes": 30,
+   "kind": "behavioural",
+   "what": "Background, interest in Salesforce Engineering and basic fit.",
+   "practice": "dd-mock",
+   "source": "https://trailhead.salesforce.com/content/learn/modules/strategies-for-successful-software-engineer-interviews-26/explore-your-interview-roadmap"
+  },
+  {
+   "name": "Hiring manager connect",
+   "minutes": 45,
+   "kind": "behavioural",
+   "what": "Mostly non-technical talk about one project, your decisions and how you collaborate.",
+   "practice": "dd-mock",
+   "source": "https://trailhead.salesforce.com/content/learn/modules/strategies-for-successful-software-engineer-interviews-26/explore-your-interview-roadmap"
+  },
+  {
+   "name": "HackerRank assessment",
+   "minutes": 90,
+   "kind": "coding",
+   "what": "Timed take-home with about two medium data structure problems; one candidate was told 80% was needed to pass.",
+   "practice": "leetcode",
+   "source": "https://prachub.com/interview-experiences/salesforce-senior-software-engineer-interview-experience-online-round-one-onsite-day-of-eliminations-smts-offer-two-days-later"
+  },
+  {
+   "name": "Virtual DSA rounds",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "One or two medium problems per round with follow-ups; code may be run in HackerRank.",
+   "practice": "leetcode",
+   "source": "https://prachub.com/interview-experiences/salesforce-senior-software-engineer-interview-experience-online-round-one-onsite-day-of-eliminations-smts-offer-two-days-later"
+  },
+  {
+   "name": "Low-level and system design",
+   "minutes": 90,
+   "kind": "design",
+   "what": "Class design (for example a ticket booking system) and high-level design; mainly reported at SMTS and above.",
+   "practice": "sd-practice",
+   "source": "https://prachub.com/interview-experiences/salesforce-senior-software-engineer-interview-experience-online-round-one-onsite-day-of-eliminations-smts-offer-two-days-later"
+  },
+  {
+   "name": "Final onsite and hiring manager",
+   "kind": "behavioural",
+   "what": "Half-day in person for every engineering candidate; values, a project walk-through and why Salesforce.",
+   "practice": "dd-mock",
+   "source": "https://trailhead.salesforce.com/content/learn/modules/strategies-for-successful-software-engineer-interviews-26/explore-your-interview-roadmap"
+  }
+ ],
+ "tips": [
+  "Prepare three to five STAR stories: a hard technical problem, cross-team work, quality, and handling ambiguity.",
+  "Salesforce says every engineering candidate, including remote hires, has an in-person onsite; block out a half day.",
+  "Expect follow-ups that extend a coding question, such as returning the path after finding the distance.",
+  "Multi-tenancy, permissions and data isolation come up in design discussions.",
+  "Bring a specific question for each interviewer; the Q&A time counts."
+ ],
+ "reported": [
+  {
+   "title": "Shortest path from S to P in a grid with obstacles, then return the path",
+   "tag": "reported",
+   "note": "Senior onsite DSA, Aug 2026",
+   "source": "https://prachub.com/interview-experiences/salesforce-software-engineer-interview-hackerrank-assessment-and-a-grid-shortest-path-with-a-path-follow-up"
+  },
+  {
+   "title": "Top K most frequent elements in an infinite stream",
+   "tag": "reported",
+   "note": "MTS onsite round 1, Aug 2026",
+   "source": "https://prachub.com/interview-experiences/salesforce-member-of-technical-staff-interview-experience-three-rounds-from-streaming-top-k-to-payment-design"
+  },
+  {
+   "title": "Convert a sorted doubly linked list into a balanced BST in place",
+   "tag": "reported",
+   "note": "MTS onsite round 1, Aug 2026",
+   "source": "https://prachub.com/interview-experiences/salesforce-member-of-technical-staff-interview-experience-three-rounds-from-streaming-top-k-to-payment-design"
+  },
+  {
+   "title": "Implement merge sort and explain its recursion tree",
+   "tag": "reported",
+   "note": "MTS onsite round 2, Aug 2026",
+   "source": "https://prachub.com/interview-experiences/salesforce-member-of-technical-staff-interview-experience-three-rounds-from-streaming-top-k-to-payment-design"
+  },
+  {
+   "lc": "lowest-common-ancestor-of-a-binary-tree-iii",
+   "tag": "reported",
+   "note": "Onsite coding, Apr 2026, follow-up for a DAG",
+   "source": "https://prachub.com/interview-experiences/salesforce-software-engineer-interview-experience-five-onsite-rounds-every-one-circles-back-to-multi-tenancy"
+  },
+  {
+   "lc": "valid-word-abbreviation",
+   "tag": "reported",
+   "note": "Onsite coding, Apr 2026",
+   "source": "https://prachub.com/interview-experiences/salesforce-software-engineer-interview-experience-five-onsite-rounds-every-one-circles-back-to-multi-tenancy"
+  },
+  {
+   "lc": "generalized-abbreviation",
+   "tag": "reported",
+   "note": "Follow-up in the same round, Apr 2026",
+   "source": "https://prachub.com/interview-experiences/salesforce-software-engineer-interview-experience-five-onsite-rounds-every-one-circles-back-to-multi-tenancy"
+  },
+  {
+   "lc": "kth-smallest-element-in-a-bst",
+   "tag": "reported",
+   "note": "Onsite coding, Apr 2026, follow-up on frequent updates",
+   "source": "https://prachub.com/interview-experiences/salesforce-software-engineer-interview-experience-five-onsite-rounds-every-one-circles-back-to-multi-tenancy"
+  },
+  {
+   "lc": "minimum-operations-to-reduce-an-integer-to-0",
+   "tag": "reported",
+   "note": "Senior online assessment, Sep 2026",
+   "source": "https://prachub.com/interview-experiences/salesforce-seniorplus-software-engineer-interview-experience-two-oa-questions-string-segmentation-and-power-of-two-operations"
+  },
+  {
+   "title": "Delete one letter, then split into fewest substrings with no repeats",
+   "tag": "reported",
+   "note": "Senior online assessment, Sep 2026",
+   "source": "https://prachub.com/interview-experiences/salesforce-seniorplus-software-engineer-interview-experience-two-oa-questions-string-segmentation-and-power-of-two-operations"
+  },
+  {
+   "lc": "generate-parentheses",
+   "tag": "reported",
+   "note": "SMTS virtual round, 2026",
+   "source": "https://prachub.com/interview-experiences/salesforce-senior-software-engineer-interview-experience-online-round-one-onsite-day-of-eliminations-smts-offer-two-days-later"
+  },
+  {
+   "lc": "longest-palindromic-substring",
+   "tag": "reported",
+   "note": "SMTS onsite, 2026, variant",
+   "source": "https://prachub.com/interview-experiences/salesforce-senior-software-engineer-interview-experience-online-round-one-onsite-day-of-eliminations-smts-offer-two-days-later"
+  },
+  {
+   "lc": "maximum-number-of-events-that-can-be-attended",
+   "tag": "reported",
+   "note": "Coding round, Mar 2026",
+   "source": "https://prachub.com/interview-experiences/salesforce-software-engineer-interview-experience-failed-the-coding-vo-on-leetcode-1353"
+  },
+  {
+   "lc": "course-schedule-ii",
+   "tag": "reported",
+   "note": "MTS DSA round 1, 2025",
+   "source": "https://leetcode.com/discuss/interview-experience/6480372/"
+  },
+  {
+   "lc": "rotting-oranges",
+   "tag": "reported",
+   "note": "MTS DSA round 1, 2025",
+   "source": "https://leetcode.com/discuss/interview-experience/6480372/"
+  },
+  {
+   "lc": "meeting-rooms-ii",
+   "tag": "reported",
+   "note": "MTS DSA round 2, 2025, similar problem",
+   "source": "https://leetcode.com/discuss/interview-experience/6480372/"
+  },
+  {
+   "lc": "longest-substring-of-all-vowels-in-order",
+   "tag": "reported",
+   "note": "MTS DSA round 2, 2025",
+   "source": "https://leetcode.com/discuss/interview-experience/6480372/"
+  },
+  {
+   "lc": "all-nodes-distance-k-in-binary-tree",
+   "tag": "reported",
+   "note": "SMTS coding round, 2024",
+   "source": "https://nerddesignlab.substack.com/p/interview-experience-smts-salesforce"
+  },
+  {
+   "title": "Design a payment processing platform with idempotency and retries",
+   "tag": "reported",
+   "note": "MTS system design, Aug 2026",
+   "source": "https://prachub.com/interview-experiences/salesforce-member-of-technical-staff-interview-experience-three-rounds-from-streaming-top-k-to-payment-design"
+  },
+  {
+   "title": "Design an internal enterprise messaging system with channels and DMs",
+   "tag": "reported",
+   "note": "System design, Apr 2026, multi-tenant focus",
+   "source": "https://prachub.com/interview-experiences/salesforce-software-engineer-interview-experience-five-onsite-rounds-every-one-circles-back-to-multi-tenancy"
+  },
+  {
+   "title": "Low-level design of a movie ticket booking system that prevents double booking",
+   "tag": "reported",
+   "note": "SMTS round, 2026",
+   "source": "https://prachub.com/interview-experiences/salesforce-senior-software-engineer-interview-experience-online-round-one-onsite-day-of-eliminations-smts-offer-two-days-later"
+  },
+  {
+   "title": "Design a ride-hailing service with matching and surge pricing",
+   "tag": "reported",
+   "note": "SMTS design round, 2026",
+   "source": "https://prachub.com/interview-experiences/salesforce-senior-software-engineer-interview-experience-online-round-one-onsite-day-of-eliminations-smts-offer-two-days-later"
+  },
+  {
+   "title": "Design an e-commerce flash sale system",
+   "tag": "reported",
+   "note": "SMTS high-level design, 2024",
+   "source": "https://nerddesignlab.substack.com/p/interview-experience-smts-salesforce"
+  },
+  {
+   "title": "Implement a rate limiter for CI jobs",
+   "tag": "reported",
+   "note": "Senior first round with a director, Oct 2026",
+   "source": "https://prachub.com/interview-experiences/salesforce-senior-software-engineer-interview-experience-first-round-with-a-director-rate-limiter-and-credentials-questions"
+  }
+ ],
+ "sources": [
+  {
+   "label": "Salesforce Trailhead: explore your interview roadmap",
+   "url": "https://trailhead.salesforce.com/content/learn/modules/strategies-for-successful-software-engineer-interviews-26/explore-your-interview-roadmap"
+  },
+  {
+   "label": "PracHub: HackerRank assessment and grid shortest path, Aug 2026",
+   "url": "https://prachub.com/interview-experiences/salesforce-software-engineer-interview-hackerrank-assessment-and-a-grid-shortest-path-with-a-path-follow-up"
+  },
+  {
+   "label": "PracHub: MTS three rounds, Aug 2026",
+   "url": "https://prachub.com/interview-experiences/salesforce-member-of-technical-staff-interview-experience-three-rounds-from-streaming-top-k-to-payment-design"
+  },
+  {
+   "label": "PracHub: five onsite rounds on multi-tenancy, Apr 2026",
+   "url": "https://prachub.com/interview-experiences/salesforce-software-engineer-interview-experience-five-onsite-rounds-every-one-circles-back-to-multi-tenancy"
+  },
+  {
+   "label": "PracHub: senior online assessment, Sep 2026",
+   "url": "https://prachub.com/interview-experiences/salesforce-seniorplus-software-engineer-interview-experience-two-oa-questions-string-segmentation-and-power-of-two-operations"
+  },
+  {
+   "label": "PracHub: SMTS online round and onsite day, 2026",
+   "url": "https://prachub.com/interview-experiences/salesforce-senior-software-engineer-interview-experience-online-round-one-onsite-day-of-eliminations-smts-offer-two-days-later"
+  },
+  {
+   "label": "PracHub: coding round on LeetCode 1353, Mar 2026",
+   "url": "https://prachub.com/interview-experiences/salesforce-software-engineer-interview-experience-failed-the-coding-vo-on-leetcode-1353"
+  },
+  {
+   "label": "PracHub: senior first round with a director, Oct 2026",
+   "url": "https://prachub.com/interview-experiences/salesforce-senior-software-engineer-interview-experience-first-round-with-a-director-rate-limiter-and-credentials-questions"
+  },
+  {
+   "label": "LeetCode Discuss: Salesforce MTS 2025",
+   "url": "https://leetcode.com/discuss/interview-experience/6480372/"
+  },
+  {
+   "label": "Substack: SMTS interview experience, Hyderabad",
+   "url": "https://nerddesignlab.substack.com/p/interview-experience-smts-salesforce"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time."
+}

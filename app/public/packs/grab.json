@@ -1,0 +1,231 @@
+{
+ "id": "grab",
+ "name": "Grab",
+ "role": "Software engineer",
+ "summary": "Candidates report a Codility online assessment, then a live coding round at roughly LeetCode medium level, a system design round and a culture-fit or hiring-manager round. Many detailed public write-ups come from Grab's Bangalore office; Singapore reports describe a similar shape.",
+ "rounds": [
+  {
+   "name": "Online assessment",
+   "kind": "coding",
+   "what": "Codility test; candidates describe two or three easy to medium algorithm problems used as a screen.",
+   "practice": "leetcode",
+   "source": "https://webflow.nodeflair.com/blog/grab-software-engineer-interview-questions-and-process"
+  },
+  {
+   "name": "Recruiter screen",
+   "kind": "behavioural",
+   "what": "Informal call on background, motivation and why Grab, plus simple behavioural questions.",
+   "practice": "dd-mock",
+   "source": "https://webflow.nodeflair.com/blog/grab-software-engineer-interview-questions-and-process"
+  },
+  {
+   "name": "Live coding",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "One or two data structures and algorithms problems solved live on an online coding platform.",
+   "practice": "leetcode",
+   "source": "https://webflow.nodeflair.com/blog/grab-software-engineer-interview-questions-and-process"
+  },
+  {
+   "name": "System design",
+   "minutes": 60,
+   "kind": "design",
+   "what": "Whiteboard-style design discussion; Grab says it looks at scalability, security and monitoring, and candidates often get payments or ride-hailing prompts.",
+   "practice": "sd-practice",
+   "source": "https://webflow.nodeflair.com/blog/grab-software-engineer-interview-questions-and-process"
+  },
+  {
+   "name": "Culture fit and hiring manager",
+   "kind": "behavioural",
+   "what": "Conversation on collaboration and Grab's 4H values (Heart, Hunger, Honour, Humility), often with a deep dive into a past project.",
+   "practice": "dd-mock",
+   "source": "https://www.grab.careers/en/how-we-hire/engineering/"
+  }
+ ],
+ "tips": [
+  "Think out loud: Grab says it values how you approach a problem as much as the answer.",
+  "Prepare one or two stories for each of the 4Hs: Heart, Hunger, Honour and Humility.",
+  "Know one past project in depth, including its weak points and how you would fix them.",
+  "Expect payment and ride-hailing flavoured design prompts, and drive the requirements yourself.",
+  "Review scalability, reliability and maintainability basics before the design round."
+ ],
+ "reported": [
+  {
+   "lc": "longest-palindromic-substring",
+   "tag": "reported",
+   "note": "DSA round, senior, Bangalore, Feb 2025 (two problems in about an hour)",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Grab"
+  },
+  {
+   "lc": "trapping-rain-water",
+   "tag": "reported",
+   "note": "DSA round, senior, Bangalore, Feb 2025",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Grab"
+  },
+  {
+   "lc": "paint-house-iii",
+   "tag": "reported",
+   "note": "DSA round, SDE II, Bangalore, 2025",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Grab"
+  },
+  {
+   "lc": "copy-list-with-random-pointer",
+   "tag": "reported",
+   "note": "DSA round, senior, Bangalore, 2025",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Grab"
+  },
+  {
+   "title": "Design QR-based card payments",
+   "tag": "reported",
+   "note": "System design, senior, Bangalore, Feb 2025",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Grab"
+  },
+  {
+   "title": "Design a UPI-like payment system",
+   "tag": "reported",
+   "note": "System design, SDE II, Bangalore, 2025",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Grab"
+  },
+  {
+   "title": "Design payments with vendor integration and reconciliation",
+   "tag": "reported",
+   "note": "System design, senior, Bangalore, 2025",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Grab"
+  },
+  {
+   "lc": "next-greater-element-iii",
+   "tag": "reported",
+   "note": "DSA round, SDE1, Bangalore, 2021",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Grab"
+  },
+  {
+   "lc": "subarray-sum-equals-k",
+   "tag": "reported",
+   "note": "DSA round, SDE1, Bangalore, 2021",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Grab"
+  },
+  {
+   "lc": "merge-k-sorted-lists",
+   "tag": "reported",
+   "note": "DSA round, SDE1, Bangalore, 2021",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Grab"
+  },
+  {
+   "lc": "lfu-cache",
+   "tag": "reported",
+   "note": "Design round, SDE1, Bangalore, 2021 (in-memory cache with LFU eviction)",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Grab"
+  },
+  {
+   "title": "Design a credit card payment flow",
+   "tag": "reported",
+   "note": "Tech round 1 with coding, software engineer, write-up updated 2023",
+   "source": "https://www.geeksforgeeks.org/?p=1049528"
+  },
+  {
+   "lc": "two-sum",
+   "tag": "reported",
+   "note": "First coding question, Jakarta, Dec 2024 (LeetCode easy)",
+   "source": "https://www.glassdoor.com.mx/Entrevista/Grab-Entrevista-E958580-RVW93807505.htm"
+  },
+  {
+   "title": "Find a duplicate in an array",
+   "tag": "reported",
+   "note": "Same interview, Jakarta, Dec 2024",
+   "source": "https://www.glassdoor.com.mx/Entrevista/Grab-Entrevista-E958580-RVW93807505.htm"
+  },
+  {
+   "lc": "insert-delete-getrandom-o1",
+   "tag": "listed",
+   "note": "Named as a popular, repeatedly asked question in a 2022 NodeFlair compilation",
+   "source": "https://webflow.nodeflair.com/blog/grab-software-engineer-interview-questions-and-process"
+  },
+  {
+   "title": "Maximum path sum between two leaves of a binary tree",
+   "tag": "listed",
+   "note": "Named as popular in a 2022 NodeFlair compilation",
+   "source": "https://webflow.nodeflair.com/blog/grab-software-engineer-interview-questions-and-process"
+  },
+  {
+   "lc": "adding-two-negabinary-numbers",
+   "tag": "listed",
+   "note": "NodeFlair compilation, 2022",
+   "source": "https://webflow.nodeflair.com/blog/grab-software-engineer-interview-questions-and-process"
+  },
+  {
+   "lc": "meeting-rooms-ii",
+   "tag": "listed",
+   "note": "NodeFlair compilation, 2022",
+   "source": "https://webflow.nodeflair.com/blog/grab-software-engineer-interview-questions-and-process"
+  },
+  {
+   "lc": "lru-cache",
+   "tag": "listed",
+   "note": "NodeFlair compilation, 2022",
+   "source": "https://webflow.nodeflair.com/blog/grab-software-engineer-interview-questions-and-process"
+  },
+  {
+   "title": "Design Grab's rider and driver matching system",
+   "tag": "listed",
+   "note": "Popular system design prompt in a 2022 NodeFlair compilation",
+   "source": "https://webflow.nodeflair.com/blog/grab-software-engineer-interview-questions-and-process"
+  },
+  {
+   "title": "Design a URL shortener",
+   "tag": "listed",
+   "note": "Popular system design prompt in a 2022 NodeFlair compilation",
+   "source": "https://webflow.nodeflair.com/blog/grab-software-engineer-interview-questions-and-process"
+  },
+  {
+   "lc": "simplify-path",
+   "tag": "listed",
+   "note": "Grab question list on a prep site",
+   "source": "https://www.talentd.in/fleetcode/companies/grab?difficulty=medium"
+  },
+  {
+   "lc": "house-robber",
+   "tag": "listed",
+   "note": "Grab question list on a prep site",
+   "source": "https://www.talentd.in/fleetcode/companies/grab?difficulty=medium"
+  },
+  {
+   "lc": "accounts-merge",
+   "tag": "listed",
+   "note": "Grab question list on a prep site",
+   "source": "https://www.talentd.in/fleetcode/companies/grab?difficulty=medium"
+  },
+  {
+   "lc": "minimum-cost-for-tickets",
+   "tag": "listed",
+   "note": "Grab question list on a prep site",
+   "source": "https://www.talentd.in/fleetcode/companies/grab?difficulty=medium"
+  }
+ ],
+ "sources": [
+  {
+   "label": "Grab careers: how we hire engineers",
+   "url": "https://www.grab.careers/en/how-we-hire/engineering/"
+  },
+  {
+   "label": "NodeFlair: Grab software engineer interview questions and process (2022)",
+   "url": "https://webflow.nodeflair.com/blog/grab-software-engineer-interview-questions-and-process"
+  },
+  {
+   "label": "CodingKaro: Grab LeetCode Discuss interview experiences",
+   "url": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Grab"
+  },
+  {
+   "label": "GeeksforGeeks: Grab interview experience for software engineer",
+   "url": "https://www.geeksforgeeks.org/?p=1049528"
+  },
+  {
+   "label": "Glassdoor: Grab interview review, Jakarta, Dec 2024",
+   "url": "https://www.glassdoor.com.mx/Entrevista/Grab-Entrevista-E958580-RVW93807505.htm"
+  },
+  {
+   "label": "Talentd: Grab question list",
+   "url": "https://www.talentd.in/fleetcode/companies/grab?difficulty=medium"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time."
+}

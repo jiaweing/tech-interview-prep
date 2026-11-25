@@ -1,0 +1,246 @@
+{
+ "id": "stripe",
+ "name": "Stripe",
+ "role": "Software engineer",
+ "summary": "Candidates report a recruiter call, a 60-minute practical coding screen, then an onsite of coding, bug bash, integration, system design and behavioural rounds. Questions are reported to be multi-part, work-like problems rather than classic LeetCode puzzles.",
+ "rounds": [
+  {
+   "name": "Recruiter call",
+   "minutes": 30,
+   "kind": "behavioural",
+   "what": "Background, interest in Stripe and fit for the role.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/stripe-interview-questions"
+  },
+  {
+   "name": "Technical phone screen",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "A practical multi-part coding problem in CoderPad or your own IDE, often parsing and processing records.",
+   "practice": "problems",
+   "source": "https://interviewing.io/stripe-interview-questions"
+  },
+  {
+   "name": "Onsite coding",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Practical coding with attention to complexity, readable code and tests.",
+   "practice": "problems",
+   "source": "https://interviewing.io/stripe-interview-questions"
+  },
+  {
+   "name": "Bug bash",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Find and fix bugs in an unfamiliar codebase with a methodical, hypothesis-driven approach.",
+   "practice": "problems",
+   "source": "https://interviewing.io/stripe-interview-questions"
+  },
+  {
+   "name": "Integration",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Write working code against an API from its documentation, with error handling.",
+   "practice": "problems",
+   "source": "https://interviewing.io/stripe-interview-questions"
+  },
+  {
+   "name": "System design",
+   "minutes": 60,
+   "kind": "design",
+   "what": "Design a scalable, reliable service and justify technology choices; usually mid level and above.",
+   "practice": "sd-practice",
+   "source": "https://interviewing.io/stripe-interview-questions"
+  },
+  {
+   "name": "Behavioural",
+   "minutes": 60,
+   "kind": "behavioural",
+   "what": "Hiring manager round on past work, mapped to Stripe's operating principles.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/stripe-interview-questions"
+  }
+ ],
+ "tips": [
+  "Expect multi-part problems where each part builds on the last; get the early parts working and tested first.",
+  "Write readable code and small tests as you go rather than optimising early.",
+  "For the bug bash, form a hypothesis, test it, and narrate what you rule out.",
+  "Practise reading API docs and wiring calls together with error handling, in your own IDE.",
+  "Grinding hard LeetCode helps less here than practising parsing, data modelling and clean code."
+ ],
+ "reported": [
+  {
+   "title": "Parse an Accept-Language header and match supported languages",
+   "tag": "reported",
+   "note": "Phone screen, several reports 2021 onward",
+   "source": "https://www.glassdoor.ie/Interview/Coding-Test-Web-browser-presents-an-accept-language-header-string-with-space-separated-language-plus-locale-codes-Serv-QTN_5483910.htm"
+  },
+  {
+   "title": "Convert currency through a parsed list of exchange rates",
+   "tag": "reported",
+   "note": "Phone screen, parse rate string then convert",
+   "source": "https://www.glassdoor.com/Interview/Parse-a-string-in-the-format-USD-CAD-DHL-5-USD-GBP-FEDX-10-representing-currency-conversion-rates-from-a-source-to-a-tar-QTN_7989241.htm"
+  },
+  {
+   "title": "Shipping cost calculator with region and quantity tiers",
+   "tag": "reported",
+   "note": "New grad phone screen, 2025",
+   "source": "https://www.1point3acres.com/interview/thread/1131552"
+  },
+  {
+   "title": "Shipping fee: fixed per-unit then tiered pricing",
+   "tag": "reported",
+   "note": "Intern phone screen, Nov 2025",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Stripe"
+  },
+  {
+   "title": "Order price with flat, incremental and mixed shipping modes",
+   "tag": "reported",
+   "note": "Intern virtual onsite, Nov 2025, three levels",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Stripe"
+  },
+  {
+   "title": "Transaction fraud report: integrity checks, risk rules, behaviour matching",
+   "tag": "reported",
+   "note": "Four-part phone screen, Nov 2025",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Stripe"
+  },
+  {
+   "title": "Invoice reconciliation against payments",
+   "tag": "reported",
+   "note": "Round 1 coding, Nov 2025",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Stripe"
+  },
+  {
+   "title": "Validate CSV rows and detect cycles in a dependency column",
+   "tag": "reported",
+   "note": "Technical screen, multi-part",
+   "source": "https://www.aced.io/guides/stripe-software-engineer-interview"
+  },
+  {
+   "lc": "minimum-penalty-for-a-shop",
+   "tag": "listed",
+   "note": "Server or store shutdown penalty, phone screen",
+   "source": "https://www.fastprep.io/stripe-interview/phone-screen"
+  },
+  {
+   "title": "Sliding-window rate limiter",
+   "tag": "listed",
+   "note": "Phone screen and onsite",
+   "source": "https://www.fastprep.io/stripe-interview/phone-screen"
+  },
+  {
+   "title": "Transaction fee calculator with conditional rules and tiers",
+   "tag": "listed",
+   "note": "Phone screen, 2026",
+   "source": "https://www.fastprep.io/stripe-interview/phone-screen"
+  },
+  {
+   "title": "Merchant payout scheduler with per-merchant schedules and holds",
+   "tag": "listed",
+   "note": "Phone screen, 2026",
+   "source": "https://www.fastprep.io/stripe-interview/phone-screen"
+  },
+  {
+   "title": "Record linkage: group merchant records that share fields",
+   "tag": "listed",
+   "note": "Phone screen, 2026",
+   "source": "https://www.fastprep.io/stripe-interview/phone-screen"
+  },
+  {
+   "title": "URL path segment compression",
+   "tag": "listed",
+   "note": "Phone screen and onsite",
+   "source": "https://www.fastprep.io/stripe-interview/phone-screen"
+  },
+  {
+   "title": "Role resolver with inherited account roles",
+   "tag": "listed",
+   "note": "Phone screen, 2025",
+   "source": "https://www.fastprep.io/stripe-interview/phone-screen"
+  },
+  {
+   "title": "Parse and evaluate boolean rule expressions",
+   "tag": "listed",
+   "note": "Phone screen and onsite",
+   "source": "https://www.fastprep.io/stripe-interview/phone-screen"
+  },
+  {
+   "title": "Bug bash: fix a race condition causing lost updates",
+   "tag": "listed",
+   "note": "Bug bash example",
+   "source": "https://www.aced.io/guides/stripe-software-engineer-interview"
+  },
+  {
+   "title": "Bug bash: handle a path that points to a directory",
+   "tag": "listed",
+   "note": "Bug bash example",
+   "source": "https://www.aced.io/guides/stripe-software-engineer-interview"
+  },
+  {
+   "title": "Integration: read JSON files, call an API, merge the response",
+   "tag": "listed",
+   "note": "Integration example",
+   "source": "https://www.aced.io/guides/stripe-software-engineer-interview"
+  },
+  {
+   "title": "Mask credit card numbers in logs",
+   "tag": "listed",
+   "note": "Example question",
+   "source": "https://interviewing.io/stripe-interview-questions"
+  },
+  {
+   "title": "Design a rate limiter",
+   "tag": "listed",
+   "note": "System design",
+   "source": "https://www.aced.io/guides/stripe-software-engineer-interview"
+  },
+  {
+   "title": "Design a metrics service",
+   "tag": "listed",
+   "note": "System design",
+   "source": "https://www.aced.io/guides/stripe-software-engineer-interview"
+  },
+  {
+   "title": "Design a simple identity and access management system",
+   "tag": "listed",
+   "note": "System design example",
+   "source": "https://interviewing.io/stripe-interview-questions"
+  }
+ ],
+ "sources": [
+  {
+   "label": "interviewing.io: Stripe interview process and questions",
+   "url": "https://interviewing.io/stripe-interview-questions"
+  },
+  {
+   "label": "Aced (formerly Exponent): Stripe software engineer guide",
+   "url": "https://www.aced.io/guides/stripe-software-engineer-interview"
+  },
+  {
+   "label": "CodingKaro: Stripe LeetCode Discuss experiences",
+   "url": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Stripe"
+  },
+  {
+   "label": "FastPrep: Stripe phone screen questions",
+   "url": "https://www.fastprep.io/stripe-interview/phone-screen"
+  },
+  {
+   "label": "Glassdoor: Stripe Accept-Language question",
+   "url": "https://www.glassdoor.ie/Interview/Coding-Test-Web-browser-presents-an-accept-language-header-string-with-space-separated-language-plus-locale-codes-Serv-QTN_5483910.htm"
+  },
+  {
+   "label": "Glassdoor: Stripe currency conversion question",
+   "url": "https://www.glassdoor.com/Interview/Parse-a-string-in-the-format-USD-CAD-DHL-5-USD-GBP-FEDX-10-representing-currency-conversion-rates-from-a-source-to-a-tar-QTN_7989241.htm"
+  },
+  {
+   "label": "1point3acres: Stripe shipping cost phone screen",
+   "url": "https://www.1point3acres.com/interview/thread/1131552"
+  },
+  {
+   "label": "1point3acres: Stripe onsite rounds overview",
+   "url": "https://www.1point3acres.com/interview/post/7298079"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time."
+}

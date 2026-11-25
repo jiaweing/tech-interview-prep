@@ -1,0 +1,214 @@
+{
+ "id": "microsoft",
+ "name": "Microsoft",
+ "role": "Software engineer",
+ "summary": "Candidates report an online assessment or technical screen, then about four 45 to 60 minute rounds mixing coding, design and project questions, often ending with an 'as appropriate' round with a senior manager. The format varies by org.",
+ "rounds": [
+  {
+   "name": "Online assessment",
+   "minutes": 90,
+   "kind": "coding",
+   "what": "Some candidates get a Codility test with two problems.",
+   "practice": "problems",
+   "source": "https://roundz.substack.com/p/interview-experience-68-microsoft-l61"
+  },
+  {
+   "name": "Technical screen",
+   "kind": "coding",
+   "what": "A live coding interview or an asynchronous Codility quiz.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/guides/hiring-process/microsoft"
+  },
+  {
+   "name": "Coding rounds",
+   "minutes": 45,
+   "kind": "coding",
+   "what": "Problem solving, coding and testing; medium LeetCode-style problems.",
+   "practice": "leetcode",
+   "source": "https://careers.microsoft.com/v2/global/en/hiring-tips/technical-interviewing.html"
+  },
+  {
+   "name": "Design round",
+   "kind": "design",
+   "what": "System or low-level design; reports include Google Docs, Spotify and parking lot designs.",
+   "practice": "sd-practice",
+   "source": "https://interviewing.io/guides/hiring-process/microsoft"
+  },
+  {
+   "name": "As appropriate (AA)",
+   "minutes": 45,
+   "kind": "behavioural",
+   "what": "Final round with a senior manager: project deep dive, sometimes a design question.",
+   "practice": "dd-mock",
+   "source": "https://roundz.substack.com/p/interview-experience-68-microsoft-l61"
+  }
+ ],
+ "tips": [
+  "Test your code before saying you are done and point out corner cases.",
+  "Code in a language you know well; pseudocode is not accepted.",
+  "Prepare two or three past projects in depth, including scaling and trade-offs.",
+  "Ask the recruiter what each round covers; formats differ by org.",
+  "Some interviewers repeat questions, so review Microsoft-tagged problems."
+ ],
+ "reported": [
+  {
+   "lc": "walking-robot-simulation",
+   "tag": "reported",
+   "note": "Online assessment, SDE II L61, 2025, similar problem",
+   "source": "https://roundz.substack.com/p/interview-experience-68-microsoft-l61"
+  },
+  {
+   "lc": "rotting-oranges",
+   "tag": "reported",
+   "note": "Online assessment, SDE II L61, 2025, similar problem",
+   "source": "https://roundz.substack.com/p/interview-experience-68-microsoft-l61"
+  },
+  {
+   "lc": "simplify-path",
+   "tag": "reported",
+   "note": "DSA round, SDE II L61, 2025, similar problem",
+   "source": "https://roundz.substack.com/p/interview-experience-68-microsoft-l61"
+  },
+  {
+   "lc": "longest-substring-with-at-least-k-repeating-characters",
+   "tag": "reported",
+   "note": "DSA round, SDE II L61, 2025, variation",
+   "source": "https://roundz.substack.com/p/interview-experience-68-microsoft-l61"
+  },
+  {
+   "lc": "binary-tree-zigzag-level-order-traversal",
+   "tag": "reported",
+   "note": "DSA round follow-up to level order, L61, 2025",
+   "source": "https://roundz.substack.com/p/interview-experience-68-microsoft-l61"
+  },
+  {
+   "title": "Design Google Docs",
+   "tag": "reported",
+   "note": "AA round, SDE II L61, 2025",
+   "source": "https://roundz.substack.com/p/interview-experience-68-microsoft-l61"
+  },
+  {
+   "lc": "remove-all-adjacent-duplicates-in-string",
+   "tag": "reported",
+   "note": "Round 1, SDE II L61, 2025, on integers",
+   "source": "https://roundz.substack.com/p/interview-experience-129-microsoft-sde-l61"
+  },
+  {
+   "lc": "first-unique-number",
+   "tag": "reported",
+   "note": "Round 3, SDE II L61, 2025",
+   "source": "https://roundz.substack.com/p/interview-experience-129-microsoft-sde-l61"
+  },
+  {
+   "title": "Convert a hex string to a byte array",
+   "tag": "reported",
+   "note": "Round 2, SDE II L61, 2025",
+   "source": "https://roundz.substack.com/p/interview-experience-129-microsoft-sde-l61"
+  },
+  {
+   "lc": "max-consecutive-ones-iii",
+   "tag": "reported",
+   "note": "Coding, 3+ years, Oct 2026",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Microsoft"
+  },
+  {
+   "lc": "amount-of-time-for-binary-tree-to-be-infected",
+   "tag": "reported",
+   "note": "Coding, 3+ years, Oct 2026",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Microsoft"
+  },
+  {
+   "lc": "alien-dictionary",
+   "tag": "reported",
+   "note": "Live coding, L61, Aug 2026",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Microsoft"
+  },
+  {
+   "lc": "longest-repeating-character-replacement",
+   "tag": "reported",
+   "note": "DSA round 1, SDE II Windows, Aug 2026, variation",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Microsoft"
+  },
+  {
+   "lc": "coin-change",
+   "tag": "reported",
+   "note": "Coding, IC3, Oct 2026, minimum-count variant",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Microsoft"
+  },
+  {
+   "lc": "asteroid-collision",
+   "tag": "reported",
+   "note": "Internship interviews, Sep 2026",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Microsoft"
+  },
+  {
+   "lc": "word-search",
+   "tag": "reported",
+   "note": "Internship interviews, Sep 2026",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Microsoft"
+  },
+  {
+   "title": "Design a Spotify-like music player",
+   "tag": "reported",
+   "note": "SDE II, Oct 2026",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Microsoft"
+  },
+  {
+   "title": "Design a notification system for Windows",
+   "tag": "reported",
+   "note": "SDE II Windows, Aug 2026",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Microsoft"
+  },
+  {
+   "title": "Library management system design",
+   "tag": "reported",
+   "note": "L62, Aug 2026",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Microsoft"
+  },
+  {
+   "lc": "lru-cache",
+   "tag": "listed",
+   "note": "interviewing.io list of Microsoft questions",
+   "source": "https://interviewing.io/guides/hiring-process/microsoft"
+  },
+  {
+   "lc": "subarray-sum-equals-k",
+   "tag": "listed",
+   "note": "interviewing.io list of Microsoft questions",
+   "source": "https://interviewing.io/guides/hiring-process/microsoft"
+  },
+  {
+   "lc": "reverse-nodes-in-k-group",
+   "tag": "listed",
+   "note": "interviewing.io list of Microsoft questions",
+   "source": "https://interviewing.io/guides/hiring-process/microsoft"
+  }
+ ],
+ "sources": [
+  {
+   "label": "Microsoft Careers: technical interviewing tips",
+   "url": "https://careers.microsoft.com/v2/global/en/hiring-tips/technical-interviewing.html"
+  },
+  {
+   "label": "interviewing.io: Microsoft hiring process guide",
+   "url": "https://interviewing.io/guides/hiring-process/microsoft"
+  },
+  {
+   "label": "levels.fyi: How to ace Microsoft's hiring process (2021)",
+   "url": "https://www.levels.fyi/blog/ace-microsoft-hiring.html"
+  },
+  {
+   "label": "Roundz: Microsoft SDE 2 L61, May 2025",
+   "url": "https://roundz.substack.com/p/interview-experience-68-microsoft-l61"
+  },
+  {
+   "label": "Roundz: Microsoft SDE II L61, Jul 2025",
+   "url": "https://roundz.substack.com/p/interview-experience-129-microsoft-sde-l61"
+  },
+  {
+   "label": "CodingKaro: Microsoft LeetCode Discuss interview experiences",
+   "url": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Microsoft"
+  }
+ ],
+ "caveat": "Built from public candidate reports and prep sites. Processes differ by team and change over time. \"Listed\" items come from prep sites and are unverified."
+}

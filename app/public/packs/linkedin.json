@@ -1,0 +1,307 @@
+{
+ "id": "linkedin",
+ "name": "LinkedIn",
+ "role": "Software engineer",
+ "summary": "Candidates report a recruiter call, a one-hour technical phone screen with two coding problems, then a five-round loop: coding, an AI-assisted coding round, system design, a technical communication deep dive on a past project, and a host manager round. Team matching follows the loop.",
+ "rounds": [
+  {
+   "name": "Recruiter call",
+   "minutes": 30,
+   "kind": "behavioural",
+   "what": "Background, past projects and goals; also used to place you in the right role.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/linkedIn-interview-questions"
+  },
+  {
+   "name": "Technical phone screen",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Two interviewers (one shadowing); usually two easy to medium data structure problems in a shared editor, sometimes after a short project chat.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/linkedIn-interview-questions"
+  },
+  {
+   "name": "Onsite coding",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "One or two medium problems, often from LinkedIn's long-running question pool, with follow-ups.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/linkedIn-interview-questions"
+  },
+  {
+   "name": "AI-assisted coding",
+   "kind": "coding",
+   "what": "Candidates since 2025 report a multi-part HackerRank task (LRU cache variants, a maze, a friend graph) where a built-in AI assistant is allowed.",
+   "practice": "problems",
+   "source": "https://prachub.com/interview-experiences/linkedin-software-engineer-interview-experience-two-of-four-ai-coding-tasks-completed"
+  },
+  {
+   "name": "System design",
+   "minutes": 60,
+   "kind": "design",
+   "what": "Design a large-scale system and justify technology choices; juniors are pushed less on depth than seniors.",
+   "practice": "sd-practice",
+   "source": "https://interviewing.io/linkedIn-interview-questions"
+  },
+  {
+   "name": "Technical communication",
+   "minutes": 60,
+   "kind": "behavioural",
+   "what": "Deep dive into one past project: design decisions, trade-offs, impact and your own contribution.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/linkedIn-interview-questions"
+  },
+  {
+   "name": "Host manager",
+   "minutes": 60,
+   "kind": "behavioural",
+   "what": "Behavioural questions tied to LinkedIn values, sometimes with a light product or system design prompt.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/linkedIn-interview-questions"
+  }
+ ],
+ "tips": [
+  "Reports say the coding question pool is small and repeats, so practise the LinkedIn-tagged classics such as Nested List Weight Sum and Shortest Word Distance II.",
+  "Expect two interviewers per round, one leading and one shadowing.",
+  "Pick one past project and prepare it in depth: design, trade-offs and what you personally built.",
+  "In the AI coding round, decide the algorithm yourself and use the assistant for implementation; tasks have several parts and time runs short.",
+  "Each onsite round is reportedly scored on a 4-point scale with 3 as the pass mark; borderline results can add an extra round."
+ ],
+ "reported": [
+  {
+   "lc": "shortest-word-distance-ii",
+   "tag": "reported",
+   "note": "Phone screen, Aug 2026, with Largest Number",
+   "source": "https://prachub.com/interview-experiences/linkedin-software-engineer-interview-experience-two-optimal-solutions-in-a-60-minute-screen"
+  },
+  {
+   "lc": "largest-number",
+   "tag": "reported",
+   "note": "Phone screen, Aug 2026",
+   "source": "https://prachub.com/interview-experiences/linkedin-software-engineer-interview-experience-two-optimal-solutions-in-a-60-minute-screen"
+  },
+  {
+   "lc": "shortest-word-distance",
+   "tag": "reported",
+   "note": "Phone screen, Oct 2026",
+   "source": "https://prachub.com/interview-experiences/linkedin-software-engineer-interview-experience-phone-screen-with-two-easy-questions-onsite-invite-a-week-later"
+  },
+  {
+   "title": "Find known words that match a phone keypad digit sequence",
+   "tag": "reported",
+   "note": "Phone screen, Oct 2026",
+   "source": "https://prachub.com/interview-experiences/linkedin-software-engineer-interview-experience-phone-screen-with-two-easy-questions-onsite-invite-a-week-later"
+  },
+  {
+   "lc": "nested-list-weight-sum-ii",
+   "tag": "reported",
+   "note": "Phone screen, Sep 2026, inverse-depth weighting",
+   "source": "https://prachub.com/interview-experiences/linkedin-software-engineer-interview-experience-interviewer-couldnt-follow-my-one-pass-dfs-trick"
+  },
+  {
+   "title": "Merge two n-ary trees by matching keys",
+   "tag": "reported",
+   "note": "Phone screen, Sep 2026",
+   "source": "https://prachub.com/interview-experiences/linkedin-software-engineer-interview-experience-interviewer-couldnt-follow-my-one-pass-dfs-trick"
+  },
+  {
+   "lc": "insert-delete-getrandom-o1",
+   "tag": "reported",
+   "note": "Infra phone screen, Nov 2026, follow-up allows duplicates",
+   "source": "https://prachub.com/interview-experiences/linkedin-software-engineer-systems-and-infrastructure-role-phone-screen-1-round"
+  },
+  {
+   "title": "Ad hierarchy tracker: worst-K ads by clicks, impressions or CTR",
+   "tag": "reported",
+   "note": "Phone screen, Oct 2026",
+   "source": "https://prachub.com/interview-experiences/linkedin-software-engineer-interview-experience-design-deep-dive-and-an-ad-click-impression-coding-round-did-not-go-well"
+  },
+  {
+   "lc": "max-points-on-a-line",
+   "tag": "reported",
+   "note": "IC2 onsite DSA round, Sep 2026",
+   "source": "https://prachub.com/interview-experiences/linkedin-software-engineer-interview-experience-a-five-round-ic2-loop-with-an-ai-coding-round"
+  },
+  {
+   "lc": "maximum-depth-of-binary-tree",
+   "tag": "reported",
+   "note": "IC2 elimination round, Sep 2026",
+   "source": "https://prachub.com/interview-experiences/linkedin-software-engineer-interview-experience-a-five-round-ic2-loop-with-an-ai-coding-round"
+  },
+  {
+   "lc": "binary-tree-zigzag-level-order-traversal",
+   "tag": "reported",
+   "note": "IC2 elimination round, Sep 2026",
+   "source": "https://prachub.com/interview-experiences/linkedin-software-engineer-interview-experience-a-five-round-ic2-loop-with-an-ai-coding-round"
+  },
+  {
+   "lc": "lru-cache",
+   "tag": "reported",
+   "note": "AI coding round, Aug 2026, then TTL and thread-safe variants",
+   "source": "https://prachub.com/interview-experiences/linkedin-software-engineer-interview-experience-two-of-four-ai-coding-tasks-completed"
+  },
+  {
+   "lc": "find-leaves-of-binary-tree",
+   "tag": "reported",
+   "note": "Onsite coding, Aug 2026, follow-up on graphs",
+   "source": "https://prachub.com/interview-experiences/linkedin-software-engineer-interview-experience-two-of-four-ai-coding-tasks-completed"
+  },
+  {
+   "lc": "max-consecutive-ones-iii",
+   "tag": "reported",
+   "note": "Senior onsite coding, Sep 2026",
+   "source": "https://prachub.com/interview-experiences/linkedin-software-engineer-interview-rate-limiter-a-coding-with-ai-round-and-a-top-n-most-shared-articles-design"
+  },
+  {
+   "lc": "valid-parentheses",
+   "tag": "reported",
+   "note": "Senior phone screen, Sep 2026, with a rate limiter",
+   "source": "https://prachub.com/interview-experiences/linkedin-software-engineer-interview-rate-limiter-a-coding-with-ai-round-and-a-top-n-most-shared-articles-design"
+  },
+  {
+   "title": "Friend graph: shortest path between users, then mutual friend recommendations",
+   "tag": "reported",
+   "note": "AI coding round, Sep 2026",
+   "source": "https://prachub.com/interview-experiences/linkedin-software-engineer-interview-rate-limiter-a-coding-with-ai-round-and-a-top-n-most-shared-articles-design"
+  },
+  {
+   "title": "Nearest fire station distance in a grid with lakes (multi-source BFS)",
+   "tag": "reported",
+   "note": "Senior AI coding round, Nov 2026",
+   "source": "https://prachub.com/interview-experiences/linkedin-seniorplus-software-engineer-interview-experience-ai-assisted-coding-a-failed-design-round-and-still-an-offer"
+  },
+  {
+   "title": "Debug and extend a maze implementation with an AI assistant",
+   "tag": "reported",
+   "note": "Senior AI coding round",
+   "source": "https://www.aced.io/experiences/linkedin-senior-software-engineer-interview-dc48e8"
+  },
+  {
+   "lc": "bulb-switcher",
+   "tag": "reported",
+   "note": "IC2 phone screen, 2026, then Nested List Weight Sum",
+   "source": "https://leetcode.com/discuss/post/7645779/linkedin-interview-experience-software-e-4ueh/"
+  },
+  {
+   "lc": "nested-list-weight-sum",
+   "tag": "reported",
+   "note": "IC2 phone screen, 2026",
+   "source": "https://leetcode.com/discuss/post/7645779/linkedin-interview-experience-software-e-4ueh/"
+  },
+  {
+   "lc": "find-the-celebrity",
+   "tag": "reported",
+   "note": "IC2 onsite round 1, with a Number of Islands variant",
+   "source": "https://leetcode.com/discuss/post/7645779/linkedin-interview-experience-software-e-4ueh/"
+  },
+  {
+   "lc": "valid-number",
+   "tag": "reported",
+   "note": "Senior phone screen, Mar 2026",
+   "source": "https://leetcode.com/discuss/post/7689684/sswe-phone-screen-by-sunshine-iq7i/"
+  },
+  {
+   "lc": "word-ladder",
+   "tag": "reported",
+   "note": "Staff loop, Jun 2025",
+   "source": "https://leetcode.com/discuss/post/6858262/linkedin-staff-software-engineer-intervi-mg5c/"
+  },
+  {
+   "lc": "subarray-sum-equals-k",
+   "tag": "listed",
+   "note": "Listed as a common LinkedIn coding question",
+   "source": "https://interviewing.io/linkedIn-interview-questions"
+  },
+  {
+   "title": "Design a top-N most shared articles leaderboard over rolling windows",
+   "tag": "reported",
+   "note": "Senior system design, Sep 2026",
+   "source": "https://prachub.com/interview-experiences/linkedin-software-engineer-interview-rate-limiter-a-coding-with-ai-round-and-a-top-n-most-shared-articles-design"
+  },
+  {
+   "title": "Design a calendar application",
+   "tag": "reported",
+   "note": "System design, Oct 2026",
+   "source": "https://prachub.com/interview-experiences/linkedin-software-engineer-interview-experience-five-back-to-back-rounds-after-a-layoff-offer-within-weeks"
+  },
+  {
+   "title": "Design a personalised job suggestions page",
+   "tag": "reported",
+   "note": "Host manager round, Oct 2026",
+   "source": "https://prachub.com/interview-experiences/linkedin-software-engineer-interview-experience-five-back-to-back-rounds-after-a-layoff-offer-within-weeks"
+  },
+  {
+   "title": "Design an autosuggest backend",
+   "tag": "reported",
+   "note": "Senior system design",
+   "source": "https://www.aced.io/experiences/linkedin-senior-software-engineer-interview-dc48e8"
+  }
+ ],
+ "sources": [
+  {
+   "label": "interviewing.io: LinkedIn interview process and questions",
+   "url": "https://interviewing.io/linkedIn-interview-questions"
+  },
+  {
+   "label": "Prepfully: LinkedIn software engineer interview guide",
+   "url": "https://prepfully.com/interview-guides/linkedin-software-engineer-interview"
+  },
+  {
+   "label": "Exponent (aced.io): LinkedIn senior SWE experience",
+   "url": "https://www.aced.io/experiences/linkedin-senior-software-engineer-interview-dc48e8"
+  },
+  {
+   "label": "PracHub: 60-minute screen, Aug 2026",
+   "url": "https://prachub.com/interview-experiences/linkedin-software-engineer-interview-experience-two-optimal-solutions-in-a-60-minute-screen"
+  },
+  {
+   "label": "PracHub: phone screen with two easy questions, Oct 2026",
+   "url": "https://prachub.com/interview-experiences/linkedin-software-engineer-interview-experience-phone-screen-with-two-easy-questions-onsite-invite-a-week-later"
+  },
+  {
+   "label": "PracHub: one-pass DFS screen, Sep 2026",
+   "url": "https://prachub.com/interview-experiences/linkedin-software-engineer-interview-experience-interviewer-couldnt-follow-my-one-pass-dfs-trick"
+  },
+  {
+   "label": "PracHub: systems and infrastructure phone screen, Nov 2026",
+   "url": "https://prachub.com/interview-experiences/linkedin-software-engineer-systems-and-infrastructure-role-phone-screen-1-round"
+  },
+  {
+   "label": "PracHub: ad click and impression screen, Oct 2026",
+   "url": "https://prachub.com/interview-experiences/linkedin-software-engineer-interview-experience-design-deep-dive-and-an-ad-click-impression-coding-round-did-not-go-well"
+  },
+  {
+   "label": "PracHub: five-round IC2 loop, Sep 2026",
+   "url": "https://prachub.com/interview-experiences/linkedin-software-engineer-interview-experience-a-five-round-ic2-loop-with-an-ai-coding-round"
+  },
+  {
+   "label": "PracHub: rate limiter and top-N articles loop, Sep 2026",
+   "url": "https://prachub.com/interview-experiences/linkedin-software-engineer-interview-rate-limiter-a-coding-with-ai-round-and-a-top-n-most-shared-articles-design"
+  },
+  {
+   "label": "PracHub: AI coding tasks loop, Aug 2026",
+   "url": "https://prachub.com/interview-experiences/linkedin-software-engineer-interview-experience-two-of-four-ai-coding-tasks-completed"
+  },
+  {
+   "label": "PracHub: five back-to-back rounds, Oct 2026",
+   "url": "https://prachub.com/interview-experiences/linkedin-software-engineer-interview-experience-five-back-to-back-rounds-after-a-layoff-offer-within-weeks"
+  },
+  {
+   "label": "PracHub: senior loop with AI-assisted coding, Nov 2026",
+   "url": "https://prachub.com/interview-experiences/linkedin-seniorplus-software-engineer-interview-experience-ai-assisted-coding-a-failed-design-round-and-still-an-offer"
+  },
+  {
+   "label": "LeetCode Discuss: SWE IC2 interview experience",
+   "url": "https://leetcode.com/discuss/post/7645779/linkedin-interview-experience-software-e-4ueh/"
+  },
+  {
+   "label": "LeetCode Discuss: senior SWE phone screen, Mar 2026",
+   "url": "https://leetcode.com/discuss/post/7689684/sswe-phone-screen-by-sunshine-iq7i/"
+  },
+  {
+   "label": "LeetCode Discuss: staff SWE interview experience, Jun 2025",
+   "url": "https://leetcode.com/discuss/post/6858262/linkedin-staff-software-engineer-intervi-mg5c/"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time."
+}

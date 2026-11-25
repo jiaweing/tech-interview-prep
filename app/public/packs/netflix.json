@@ -1,0 +1,234 @@
+{
+ "id": "netflix",
+ "name": "Netflix",
+ "role": "Software engineer",
+ "summary": "Candidates report a hiring manager call, one or two technical screens, then a long onsite weighted toward system design and culture-fit conversations, with practical coding. Loops are set by each team, and many reports are for senior roles.",
+ "rounds": [
+  {
+   "name": "Hiring manager screen",
+   "minutes": 30,
+   "kind": "behavioural",
+   "what": "Two-way conversation about your background and the team.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/guides/hiring-process/netflix"
+  },
+  {
+   "name": "Technical screen",
+   "minutes": 45,
+   "kind": "coding",
+   "what": "Practical coding such as a TTL cache, with follow-ups on memory and eviction.",
+   "practice": "problems",
+   "source": "https://www.aced.io/experiences/netflix-senior-software-engineer-interview-00080c"
+  },
+  {
+   "name": "Onsite coding",
+   "kind": "coding",
+   "what": "Medium problems with a practical twist; weighted less than design.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/guides/hiring-process/netflix"
+  },
+  {
+   "name": "System design",
+   "kind": "design",
+   "what": "The most weighted round; scale, availability and security.",
+   "practice": "sd-practice",
+   "source": "https://interviewing.io/guides/hiring-process/netflix"
+  },
+  {
+   "name": "Data modeling",
+   "kind": "design",
+   "what": "Some teams, such as Ads, run a separate data model round.",
+   "practice": "sd-practice",
+   "source": "https://www.aced.io/experiences/netflix-senior-software-engineer-interview-00080c"
+  },
+  {
+   "name": "Behavioural and culture",
+   "kind": "behavioural",
+   "what": "Culture fit based on the culture memo, often with managers or directors.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/guides/hiring-process/netflix"
+  }
+ ],
+ "tips": [
+  "Read the Netflix culture memo before behavioural rounds.",
+  "Study the team's service and how it scales; design carries the most weight.",
+  "Expect practical coding (caches, rate limiters, parsing) and be ready to write your own tests.",
+  "Bring metrics and impact for your main projects.",
+  "Loops differ by team, so ask the recruiter what each round covers."
+ ],
+ "reported": [
+  {
+   "lc": "longest-substring-without-repeating-characters",
+   "tag": "reported",
+   "note": "Coding screen variant, Aug 2025",
+   "source": "https://prachub.com/interview-experiences/netflix-software-engineer-interview-experience-two-phone-screens-then-a-week-of-silence-before-rejection"
+  },
+  {
+   "title": "Homepage viewport with no repeated show",
+   "tag": "reported",
+   "note": "Problem-solving screen, Aug 2025",
+   "source": "https://prachub.com/interview-experiences/netflix-software-engineer-interview-experience-two-phone-screens-then-a-week-of-silence-before-rejection"
+  },
+  {
+   "lc": "consecutive-characters",
+   "tag": "reported",
+   "note": "Technical screen, Jul 2026",
+   "source": "https://prachub.com/interview-experiences/netflix-software-engineer-interview-experience-an-open-book-coding-screen-that-still-ended-in-rejection"
+  },
+  {
+   "title": "Count pairs of strings with no common characters",
+   "tag": "reported",
+   "note": "Technical screen, Jul 2026, bitmask follow-up",
+   "source": "https://prachub.com/interview-experiences/netflix-software-engineer-interview-experience-an-open-book-coding-screen-that-still-ended-in-rejection"
+  },
+  {
+   "title": "Deduplicate titles across homepage rows",
+   "tag": "reported",
+   "note": "Technical screen, Jul 2026",
+   "source": "https://prachub.com/interview-experiences/netflix-software-engineer-interview-experience-an-open-book-coding-screen-that-still-ended-in-rejection"
+  },
+  {
+   "title": "Key-value cache with per-entry expiry",
+   "tag": "reported",
+   "note": "Second coding round, Aug 2026",
+   "source": "https://prachub.com/interview-experiences/netflix-software-engineer-interview-experience-two-back-to-back-coding-rounds-and-a-no-feedback-rejection"
+  },
+  {
+   "title": "Fastest broadcast paths between cities",
+   "tag": "reported",
+   "note": "Phone round, Aug 2026, changing weights follow-up",
+   "source": "https://prachub.com/interview-experiences/netflix-software-engineer-interview-experience-two-back-to-back-coding-rounds-and-a-no-feedback-rejection"
+  },
+  {
+   "title": "Build a TTL cache",
+   "tag": "reported",
+   "note": "Phone screen, L5 Ads",
+   "source": "https://www.aced.io/experiences/netflix-senior-software-engineer-interview-00080c"
+  },
+  {
+   "title": "Org chart levels and balanced employees",
+   "tag": "reported",
+   "note": "Onsite coding, L5 Ads",
+   "source": "https://www.aced.io/experiences/netflix-senior-software-engineer-interview-00080c"
+  },
+  {
+   "title": "Data model for an ads campaign platform",
+   "tag": "reported",
+   "note": "Data modeling round, L5 Ads",
+   "source": "https://www.aced.io/experiences/netflix-senior-software-engineer-interview-00080c"
+  },
+  {
+   "title": "Tell me about a risk you took",
+   "tag": "reported",
+   "note": "Manager behavioural round, L5 Ads",
+   "source": "https://www.aced.io/experiences/netflix-senior-software-engineer-interview-00080c"
+  },
+  {
+   "title": "Topological sort of tasks from prerequisites",
+   "tag": "reported",
+   "note": "Phone screen and onsite, senior Ads, Jan 2026",
+   "source": "https://prachub.com/interview-experiences/netflix-senior-software-engineer-interview-experience-onsite-loop-in-the-ads-org-topo-sort-system-design-and-two-bqs"
+  },
+  {
+   "title": "Design an ads frequency capping system",
+   "tag": "reported",
+   "note": "System design, L4 Ads, Jul 2026",
+   "source": "https://prachub.com/interview-experiences/software-engineer-ads-l4"
+  },
+  {
+   "lc": "lru-cache",
+   "tag": "reported",
+   "note": "Senior, New York, Jul 2025",
+   "source": "https://www.glassdoor.com/Interview/Netflix-SENIOR-SOFTWARE-ENGINEER-Interview-Questions-EI_IE11891.0,7_KO8,32.htm"
+  },
+  {
+   "title": "Rate limiter (requests per second)",
+   "tag": "reported",
+   "note": "Coding, L4, Nov 2025",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/netflix"
+  },
+  {
+   "title": "JSON path query extraction",
+   "tag": "reported",
+   "note": "Phone screen, L4, Jun 2025",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/netflix"
+  },
+  {
+   "title": "Design a service discovery system",
+   "tag": "reported",
+   "note": "System design, L4, Nov 2025",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/netflix"
+  },
+  {
+   "lc": "merge-intervals",
+   "tag": "listed",
+   "note": "LeakCode list from 1point3acres, Mar 2026",
+   "source": "https://leakcode.dev/company/netflix"
+  },
+  {
+   "lc": "string-to-integer-atoi",
+   "tag": "listed",
+   "note": "LeakCode list from 1point3acres, Mar 2026",
+   "source": "https://leakcode.dev/company/netflix"
+  },
+  {
+   "lc": "recover-binary-search-tree",
+   "tag": "listed",
+   "note": "interviewing.io Netflix example question",
+   "source": "https://interviewing.io/guides/hiring-process/netflix"
+  },
+  {
+   "lc": "three-equal-parts",
+   "tag": "listed",
+   "note": "interviewing.io Netflix example question",
+   "source": "https://interviewing.io/guides/hiring-process/netflix"
+  }
+ ],
+ "sources": [
+  {
+   "label": "Netflix: culture memo",
+   "url": "https://jobs.netflix.com/culture"
+  },
+  {
+   "label": "interviewing.io: Netflix hiring process guide",
+   "url": "https://interviewing.io/guides/hiring-process/netflix"
+  },
+  {
+   "label": "Aced (Exponent): Netflix L5 Ads interview experience",
+   "url": "https://www.aced.io/experiences/netflix-senior-software-engineer-interview-00080c"
+  },
+  {
+   "label": "PracHub: Netflix senior Ads onsite, 2026",
+   "url": "https://prachub.com/interview-experiences/netflix-senior-software-engineer-interview-experience-onsite-loop-in-the-ads-org-topo-sort-system-design-and-two-bqs"
+  },
+  {
+   "label": "PracHub: Netflix Ads L4, 2026",
+   "url": "https://prachub.com/interview-experiences/software-engineer-ads-l4"
+  },
+  {
+   "label": "PracHub: Netflix two phone screens, 2025",
+   "url": "https://prachub.com/interview-experiences/netflix-software-engineer-interview-experience-two-phone-screens-then-a-week-of-silence-before-rejection"
+  },
+  {
+   "label": "PracHub: Netflix two back-to-back coding rounds, 2026",
+   "url": "https://prachub.com/interview-experiences/netflix-software-engineer-interview-experience-two-back-to-back-coding-rounds-and-a-no-feedback-rejection"
+  },
+  {
+   "label": "PracHub: Netflix open-book coding screen, 2026",
+   "url": "https://prachub.com/interview-experiences/netflix-software-engineer-interview-experience-an-open-book-coding-screen-that-still-ended-in-rejection"
+  },
+  {
+   "label": "CodingKaro: Netflix LeetCode Discuss interview experiences",
+   "url": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/netflix"
+  },
+  {
+   "label": "LeakCode: Netflix question list",
+   "url": "https://leakcode.dev/company/netflix"
+  },
+  {
+   "label": "Glassdoor: Netflix senior software engineer interviews",
+   "url": "https://www.glassdoor.com/Interview/Netflix-SENIOR-SOFTWARE-ENGINEER-Interview-Questions-EI_IE11891.0,7_KO8,32.htm"
+  }
+ ],
+ "caveat": "Built from public candidate reports and prep sites. Processes differ by team and change over time. \"Listed\" items come from prep sites and are unverified."
+}

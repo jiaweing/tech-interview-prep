@@ -1,0 +1,251 @@
+{
+ "id": "meta",
+ "name": "Meta",
+ "role": "Software engineer",
+ "summary": "Candidates report a 45-minute coding screen with two problems, then an onsite of two coding rounds (one may be AI-enabled), a system or product design round and a behavioural round. Team matching usually comes before the offer.",
+ "rounds": [
+  {
+   "name": "Online assessment",
+   "minutes": 90,
+   "kind": "coding",
+   "what": "Some candidates get a CodeSignal test with one multi-stage problem.",
+   "practice": "problems",
+   "source": "https://www.hellointerview.com/guides/meta/e4"
+  },
+  {
+   "name": "Technical screen",
+   "minutes": 45,
+   "kind": "coding",
+   "what": "Usually two easy-to-medium problems in CoderPad with code execution off.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/guides/hiring-process/meta-facebook"
+  },
+  {
+   "name": "Onsite coding",
+   "minutes": 45,
+   "kind": "coding",
+   "what": "Two problems per round; a working optimal solution is expected.",
+   "practice": "leetcode",
+   "source": "https://www.hellointerview.com/guides/meta/e4"
+  },
+  {
+   "name": "AI-enabled coding",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "One multi-part problem in a multi-file codebase with an AI assistant; replaces one coding round.",
+   "practice": "problems",
+   "source": "https://interviewing.io/guides/hiring-process/meta-facebook"
+  },
+  {
+   "name": "System design or product architecture",
+   "minutes": 45,
+   "kind": "design",
+   "what": "Large-scale design or API and data model design; it drives the level decision.",
+   "practice": "sd-practice",
+   "source": "https://www.hellointerview.com/guides/meta/e4"
+  },
+  {
+   "name": "Behavioural",
+   "minutes": 45,
+   "kind": "behavioural",
+   "what": "Conflict, mistakes, disagreements and project impact.",
+   "practice": "dd-mock",
+   "source": "https://www.hellointerview.com/guides/meta/e4"
+  }
+ ],
+ "tips": [
+  "Practise finishing two medium problems in about 35 minutes without running code.",
+  "Expect variants of known Meta-tagged problems with an added constraint.",
+  "For the AI-enabled round, practise extending a small codebase and check every AI suggestion.",
+  "Listen for interviewer hints; sources say they matter.",
+  "Prepare stories about conflict, mistakes and disagreeing with a coworker.",
+  "In design rounds, ask whether estimates are wanted before spending time on them."
+ ],
+ "reported": [
+  {
+   "lc": "valid-number",
+   "tag": "reported",
+   "note": "Phone screen variant, E4, 2025",
+   "source": "https://leetcode.com/discuss/interview-experience/6487894/"
+  },
+  {
+   "lc": "max-area-of-island",
+   "tag": "reported",
+   "note": "Phone screen variant without mutating input, E4, 2025",
+   "source": "https://leetcode.com/discuss/interview-experience/6487894/"
+  },
+  {
+   "lc": "max-consecutive-ones-iii",
+   "tag": "reported",
+   "note": "Onsite coding variant, E4, 2025",
+   "source": "https://leetcode.com/discuss/interview-experience/6487894/"
+  },
+  {
+   "lc": "minimum-remove-to-make-valid-parentheses",
+   "tag": "reported",
+   "note": "Onsite coding, E4, 2025",
+   "source": "https://leetcode.com/discuss/interview-experience/6487894/"
+  },
+  {
+   "lc": "valid-palindrome-ii",
+   "tag": "reported",
+   "note": "Phone screen, E4 infra",
+   "source": "https://leetcode.com/discuss/post/6545889/meta-interview-experience-e4-pass-by-ano-cwe3/"
+  },
+  {
+   "lc": "diameter-of-binary-tree",
+   "tag": "reported",
+   "note": "Onsite coding, E4, 2025, N-ary follow-up",
+   "source": "https://leetcode.com/discuss/interview-experience/6487894/"
+  },
+  {
+   "title": "Design trending hashtags (top K over 12 hours)",
+   "tag": "reported",
+   "note": "System design, E4, 2025",
+   "source": "https://leetcode.com/discuss/interview-experience/6487894/"
+  },
+  {
+   "lc": "simplify-path",
+   "tag": "reported",
+   "note": "Phone screen with follow-ups, E4 infra",
+   "source": "https://leetcode.com/discuss/post/5568727/meta-e4-infra-passed-by-anonymous_user-qapy/"
+  },
+  {
+   "lc": "lowest-common-ancestor-of-deepest-leaves",
+   "tag": "reported",
+   "note": "Phone screen, E4 infra",
+   "source": "https://leetcode.com/discuss/post/5568727/meta-e4-infra-passed-by-anonymous_user-qapy/"
+  },
+  {
+   "lc": "closest-binary-search-tree-value",
+   "tag": "reported",
+   "note": "Onsite coding, E4 infra",
+   "source": "https://leetcode.com/discuss/post/5568727/meta-e4-infra-passed-by-anonymous_user-qapy/"
+  },
+  {
+   "lc": "k-closest-points-to-origin",
+   "tag": "reported",
+   "note": "Onsite coding, E4 infra",
+   "source": "https://leetcode.com/discuss/post/5568727/meta-e4-infra-passed-by-anonymous_user-qapy/"
+  },
+  {
+   "lc": "shortest-path-in-binary-matrix",
+   "tag": "reported",
+   "note": "Onsite coding, E4 infra",
+   "source": "https://leetcode.com/discuss/post/5568727/meta-e4-infra-passed-by-anonymous_user-qapy/"
+  },
+  {
+   "lc": "sum-root-to-leaf-numbers",
+   "tag": "reported",
+   "note": "Onsite coding, E4 infra",
+   "source": "https://leetcode.com/discuss/post/5568727/meta-e4-infra-passed-by-anonymous_user-qapy/"
+  },
+  {
+   "lc": "best-time-to-buy-and-sell-stock-ii",
+   "tag": "reported",
+   "note": "Onsite coding, experienced, early 2026, then one trade",
+   "source": "https://www.fastprep.io/experience/meta-software-engineer-onsite-questions-3-experiences-43fayxndgv"
+  },
+  {
+   "lc": "insert-into-a-sorted-circular-linked-list",
+   "tag": "reported",
+   "note": "Onsite coding, new grad, late 2025",
+   "source": "https://www.fastprep.io/experience/meta-software-engineer-onsite-questions-3-experiences-43fayxndgv"
+  },
+  {
+   "lc": "valid-palindrome-iii",
+   "tag": "reported",
+   "note": "Onsite coding follow-up, new grad, late 2025",
+   "source": "https://www.fastprep.io/experience/meta-software-engineer-onsite-questions-3-experiences-43fayxndgv"
+  },
+  {
+   "lc": "word-break",
+   "tag": "reported",
+   "note": "Onsite coding, new grad, late 2025",
+   "source": "https://www.fastprep.io/experience/meta-software-engineer-onsite-questions-3-experiences-43fayxndgv"
+  },
+  {
+   "lc": "range-sum-of-bst",
+   "tag": "reported",
+   "note": "Onsite coding, new grad, late 2025, many-query follow-up",
+   "source": "https://www.fastprep.io/experience/meta-software-engineer-onsite-questions-3-experiences-43fayxndgv"
+  },
+  {
+   "lc": "dot-product-of-two-sparse-vectors",
+   "tag": "reported",
+   "note": "Onsite coding, new grad, late 2025",
+   "source": "https://www.fastprep.io/experience/meta-software-engineer-onsite-questions-3-experiences-43fayxndgv"
+  },
+  {
+   "lc": "subarray-sum-equals-k",
+   "tag": "reported",
+   "note": "Phone screen, reported 2026",
+   "source": "https://www.fastprep.io/experience/meta-software-engineer-onsite-questions-3-experiences-43fayxndgv"
+  },
+  {
+   "title": "Mouse and cheese reachability with a move API",
+   "tag": "reported",
+   "note": "Onsite coding, experienced, early 2026",
+   "source": "https://www.fastprep.io/experience/meta-software-engineer-onsite-questions-3-experiences-43fayxndgv"
+  },
+  {
+   "title": "Friend recommendations with stress tests",
+   "tag": "reported",
+   "note": "AI-enabled coding, 2026",
+   "source": "https://www.fastprep.io/experience/meta-ai-native-coding-interview-3-experiences-1av6vvamu0"
+  },
+  {
+   "title": "Design an ad click aggregator",
+   "tag": "reported",
+   "note": "System design, E6, 2026",
+   "source": "https://www.fastprep.io/experience/meta-ai-native-coding-interview-3-experiences-1av6vvamu0"
+  },
+  {
+   "lc": "basic-calculator-ii",
+   "tag": "listed",
+   "note": "Hello Interview list of frequent mid-level questions",
+   "source": "https://www.hellointerview.com/guides/meta/e4"
+  },
+  {
+   "lc": "binary-tree-vertical-order-traversal",
+   "tag": "listed",
+   "note": "Hello Interview list of frequent mid-level questions",
+   "source": "https://www.hellointerview.com/guides/meta/e4"
+  }
+ ],
+ "sources": [
+  {
+   "label": "Meta Careers: technical screen prep",
+   "url": "https://www.metacareers.com/swe-prep-techscreen"
+  },
+  {
+   "label": "interviewing.io: Meta hiring process guide",
+   "url": "https://interviewing.io/guides/hiring-process/meta-facebook"
+  },
+  {
+   "label": "Hello Interview: Meta E4 guide",
+   "url": "https://www.hellointerview.com/guides/meta/e4"
+  },
+  {
+   "label": "FastPrep: Meta SWE onsite questions, 3 experiences",
+   "url": "https://www.fastprep.io/experience/meta-software-engineer-onsite-questions-3-experiences-43fayxndgv"
+  },
+  {
+   "label": "FastPrep: Meta AI-native coding interview",
+   "url": "https://www.fastprep.io/experience/meta-ai-native-coding-interview-3-experiences-1av6vvamu0"
+  },
+  {
+   "label": "LeetCode Discuss: Meta E4 phone screen and onsite, 2025",
+   "url": "https://leetcode.com/discuss/interview-experience/6487894/"
+  },
+  {
+   "label": "LeetCode Discuss: Meta E4 infra, passed",
+   "url": "https://leetcode.com/discuss/post/5568727/meta-e4-infra-passed-by-anonymous_user-qapy/"
+  },
+  {
+   "label": "LeetCode Discuss: Meta E4 infra pass, USA",
+   "url": "https://leetcode.com/discuss/post/6545889/meta-interview-experience-e4-pass-by-ano-cwe3/"
+  }
+ ],
+ "caveat": "Built from public candidate reports and prep sites. Processes differ by team and change over time. \"Listed\" items come from prep sites and are unverified."
+}

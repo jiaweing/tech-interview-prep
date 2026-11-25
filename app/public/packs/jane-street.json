@@ -1,0 +1,180 @@
+{
+ "id": "jane-street",
+ "name": "Jane Street",
+ "role": "Software engineer",
+ "summary": "Jane Street describes a video technical interview followed by in-person final rounds of collaborative coding. Candidates report open-ended, multi-part implementation problems (games, data structures, small interpreters) that grow as the interviewer adds requirements, rather than puzzle or math questions.",
+ "rounds": [
+  {
+   "name": "Recruiter call",
+   "minutes": 30,
+   "kind": "behavioural",
+   "what": "Background, interest in Jane Street and what you want next.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/jane-street-interview-questions"
+  },
+  {
+   "name": "Technical screen",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "One multi-part coding problem over video in a real language; reasoning and communication count more than reaching the optimum.",
+   "practice": "problems",
+   "source": "https://interviewing.io/jane-street-interview-questions"
+  },
+  {
+   "name": "Onsite coding rounds",
+   "minutes": 75,
+   "kind": "coding",
+   "what": "Several collaborative rounds in CoderPad on underspecified problems you build out from scratch and extend.",
+   "practice": "problems",
+   "source": "https://interviewing.io/jane-street-interview-questions"
+  },
+  {
+   "name": "Project deep dive",
+   "minutes": 75,
+   "kind": "behavioural",
+   "what": "Present a technically complex past project and field detailed follow-ups; reported for mid to senior candidates.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/jane-street-interview-questions"
+  }
+ ],
+ "tips": [
+  "Use the language you know best; Jane Street says OCaml earns no extra credit.",
+  "Write real code, not pseudocode, and know your language's basic data structure APIs.",
+  "Say what you do not know instead of guessing, and agree on a plan before changing course.",
+  "SWE interviews do not include mental math or logic puzzles, so practise building things instead.",
+  "If you recognise a question, tell the interviewer so they can switch it."
+ ],
+ "reported": [
+  {
+   "lc": "lru-cache",
+   "tag": "listed",
+   "note": "Jane Street's own published example: memoize a function, then add FIFO and LRU eviction",
+   "source": "https://blog.janestreet.com/what-a-jane-street-dev-interview-is-like/"
+  },
+  {
+   "title": "Implement Connect Four, then generalise to Connect K",
+   "tag": "listed",
+   "note": "Technical screen; guide says reported by a recent candidate",
+   "source": "https://www.aced.io/guides/jane-street-software-engineer-interview"
+  },
+  {
+   "title": "Implement a Merkle tree and extend it",
+   "tag": "listed",
+   "note": "Onsite coding round, prep guide",
+   "source": "https://www.aced.io/guides/jane-street-software-engineer-interview"
+  },
+  {
+   "title": "Implement Tetris game state and rotation",
+   "tag": "listed",
+   "note": "Onsite coding round, prep guide",
+   "source": "https://www.aced.io/guides/jane-street-software-engineer-interview"
+  },
+  {
+   "title": "Implement one class interface using another",
+   "tag": "listed",
+   "note": "Onsite coding round, prep guide",
+   "source": "https://www.aced.io/guides/jane-street-software-engineer-interview"
+  },
+  {
+   "title": "Design a video player API",
+   "tag": "listed",
+   "note": "Coding and design hybrid round, prep guide",
+   "source": "https://interviewing.io/jane-street-interview-questions"
+  },
+  {
+   "lc": "binary-tree-pruning",
+   "tag": "listed",
+   "note": "Candidate-sourced question bank, 2026",
+   "source": "https://prachub.com/companies/jane-street/positions/software-engineer"
+  },
+  {
+   "title": "Connect Four variant where discs push up from the bottom",
+   "tag": "listed",
+   "note": "Candidate-sourced question bank, 2025",
+   "source": "https://prachub.com/companies/jane-street/positions/software-engineer"
+  },
+  {
+   "title": "Tic-tac-toe with gravity: find the winner",
+   "tag": "listed",
+   "note": "Candidate-sourced question bank, 2026",
+   "source": "https://prachub.com/companies/jane-street/positions/software-engineer"
+  },
+  {
+   "title": "Interpreter for a small language with arithmetic and variables",
+   "tag": "listed",
+   "note": "Candidate-sourced question bank, 2026",
+   "source": "https://prachub.com/companies/jane-street/positions/software-engineer"
+  },
+  {
+   "title": "Compress zero runs in a sparse token stream",
+   "tag": "listed",
+   "note": "Candidate-sourced question bank, 2026",
+   "source": "https://prachub.com/companies/jane-street/positions/software-engineer"
+  },
+  {
+   "title": "Implement a circular buffer",
+   "tag": "listed",
+   "note": "Candidate-sourced question bank, 2026",
+   "source": "https://prachub.com/companies/jane-street/positions/software-engineer"
+  },
+  {
+   "title": "Sort trade executions into a canonical order",
+   "tag": "listed",
+   "note": "Candidate-sourced question bank, 2025",
+   "source": "https://prachub.com/companies/jane-street/positions/software-engineer"
+  },
+  {
+   "title": "Validate order book data across several databases",
+   "tag": "listed",
+   "note": "System design, candidate-sourced question bank, 2025",
+   "source": "https://prachub.com/companies/jane-street/positions/software-engineer"
+  },
+  {
+   "title": "Board game state on an unbounded board",
+   "tag": "reported",
+   "note": "Phone interview: implement a board game on a board infinite in width",
+   "source": "https://www.glassdoor.sg/Interview/Jane-Street-Interview-E255549-RVW53143962.htm"
+  },
+  {
+   "title": "Implement a spreadsheet library",
+   "tag": "reported",
+   "note": "Software engineer interview, 2016",
+   "source": "https://www.glassdoor.co.uk/Interview/Jane-Street-Interview-E255549-RVW10033371.htm"
+  }
+ ],
+ "sources": [
+  {
+   "label": "Jane Street: preparing for a software engineering interview",
+   "url": "https://www.janestreet.com/preparing-for-a-software-engineering-interview"
+  },
+  {
+   "label": "Jane Street blog: software engineering interviews at Jane Street",
+   "url": "https://blog.janestreet.com/interviewing-at-jane-street/"
+  },
+  {
+   "label": "Jane Street blog: what a Jane Street dev interview is like",
+   "url": "https://blog.janestreet.com/what-a-jane-street-dev-interview-is-like/"
+  },
+  {
+   "label": "interviewing.io: Jane Street interview process and questions",
+   "url": "https://interviewing.io/jane-street-interview-questions"
+  },
+  {
+   "label": "Aced: Jane Street software engineer interview guide",
+   "url": "https://www.aced.io/guides/jane-street-software-engineer-interview"
+  },
+  {
+   "label": "PracHub: Jane Street software engineer questions",
+   "url": "https://prachub.com/companies/jane-street/positions/software-engineer"
+  },
+  {
+   "label": "Glassdoor: Jane Street interview review (spreadsheet library)",
+   "url": "https://www.glassdoor.co.uk/Interview/Jane-Street-Interview-E255549-RVW10033371.htm"
+  },
+  {
+   "label": "Glassdoor: Jane Street interview review (unbounded board game)",
+   "url": "https://www.glassdoor.sg/Interview/Jane-Street-Interview-E255549-RVW53143962.htm"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time."
+}

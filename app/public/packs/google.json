@@ -1,0 +1,252 @@
+{
+ "id": "google",
+ "name": "Google",
+ "role": "Software engineer",
+ "summary": "Candidates report a recruiter call, one or two 45-minute coding screens, then about four or five 45-minute interviews that are mostly algorithms plus a Googleyness and Leadership round. A hiring committee decides, then team matching follows.",
+ "rounds": [
+  {
+   "name": "Online assessment",
+   "minutes": 90,
+   "kind": "coding",
+   "what": "Some early-career applicants report a HackerRank test with two problems in 90 minutes.",
+   "practice": "problems",
+   "source": "https://www.fastprep.io/experience/2026-google-ai-coding-interview-and-hackerrank-ai-oa-experienced-hires-2-experie-2eenhktw1m"
+  },
+  {
+   "name": "Phone screen",
+   "minutes": 45,
+   "kind": "coding",
+   "what": "One algorithms problem in a shared doc, about 40 minutes of coding plus questions.",
+   "practice": "leetcode",
+   "source": "https://www.levels.fyi/blog/google-software-engineer-interview-process.html"
+  },
+  {
+   "name": "Onsite coding",
+   "minutes": 45,
+   "kind": "coding",
+   "what": "Data structures and algorithms rounds; L3 and L4 candidates report four of them.",
+   "practice": "leetcode",
+   "source": "https://www.levels.fyi/blog/google-software-engineer-interview-process.html"
+  },
+  {
+   "name": "System design",
+   "minutes": 45,
+   "kind": "design",
+   "what": "Replaces one coding round for L5 and above.",
+   "practice": "sd-practice",
+   "source": "https://www.levels.fyi/blog/google-software-engineer-interview-process.html"
+  },
+  {
+   "name": "Googleyness and Leadership",
+   "minutes": 45,
+   "kind": "behavioural",
+   "what": "Teamwork, ambiguity, communication and working on your own.",
+   "practice": "dd-mock",
+   "source": "https://www.levels.fyi/blog/google-software-engineer-interview-process.html"
+  },
+  {
+   "name": "Team match",
+   "kind": "behavioural",
+   "what": "Calls with hiring managers after the hiring committee; levels.fyi reports 30 to 45 minutes.",
+   "practice": "dd-mock",
+   "source": "https://www.levels.fyi/blog/google-software-engineer-interview-process.html"
+  }
+ ],
+ "tips": [
+  "Practise coding in a plain doc with no autocomplete or run button.",
+  "Talk through your reasoning; sources say Google weighs thought process over speed.",
+  "Ask clarifying questions; prompts often hide a key constraint.",
+  "Expect follow-ups that change the problem after your first solution works.",
+  "Some 2026 loops added a coding round on a multi-file project where AI use is optional; ask your recruiter.",
+  "Prepare stories on teamwork, ambiguity and credit for shared work for the Googleyness round."
+ ],
+ "reported": [
+  {
+   "lc": "lowest-common-ancestor-of-a-binary-tree",
+   "tag": "reported",
+   "note": "Coding, new grad, Nov 2025, N-ary follow-up",
+   "source": "https://www.fastprep.io/experience/2025-2026-google-new-grad-l3-interviews-13-experiences-part-1-dfbast17cw"
+  },
+  {
+   "lc": "meeting-rooms-ii",
+   "tag": "reported",
+   "note": "Coding round 2, new grad, Feb 2026",
+   "source": "https://www.fastprep.io/experience/2025-2026-google-new-grad-l3-interviews-13-experiences-part-1-dfbast17cw"
+  },
+  {
+   "lc": "decode-string",
+   "tag": "reported",
+   "note": "Technical round 2, new grad, Feb 2026, nested repeat groups",
+   "source": "https://www.fastprep.io/experience/2025-2026-google-new-grad-l3-interviews-13-experiences-part-1-dfbast17cw"
+  },
+  {
+   "lc": "binary-tree-right-side-view",
+   "tag": "reported",
+   "note": "Coding round 1, new grad, Nov 2025",
+   "source": "https://www.fastprep.io/experience/2025-2026-google-new-grad-l3-interviews-13-experiences-part-1-dfbast17cw"
+  },
+  {
+   "title": "Restaurant waitlist data structure",
+   "tag": "reported",
+   "note": "Coding, new grad, Nov 2025",
+   "source": "https://www.fastprep.io/experience/2025-2026-google-new-grad-l3-interviews-13-experiences-part-1-dfbast17cw"
+  },
+  {
+   "title": "Periods when exactly one person is online",
+   "tag": "reported",
+   "note": "Coding round 3, new grad, Nov 2025",
+   "source": "https://www.fastprep.io/experience/2025-2026-google-new-grad-l3-interviews-13-experiences-part-1-dfbast17cw"
+  },
+  {
+   "lc": "course-schedule",
+   "tag": "reported",
+   "note": "Phone screen variant, experienced, 2026",
+   "source": "https://www.fastprep.io/experience/2026-google-experienced-swe-first-round-and-mountain-view-onsite-1-experience-42so124age"
+  },
+  {
+   "lc": "longest-continuous-subarray-with-absolute-diff-less-than-or-equal-to-limit",
+   "tag": "reported",
+   "note": "Onsite coding, experienced, 2026",
+   "source": "https://www.fastprep.io/experience/2026-google-experienced-swe-first-round-and-mountain-view-onsite-1-experience-42so124age"
+  },
+  {
+   "title": "Swipe-keyboard word finder",
+   "tag": "reported",
+   "note": "Onsite coding, experienced, 2026, trie and DFS",
+   "source": "https://www.fastprep.io/experience/2026-google-experienced-swe-first-round-and-mountain-view-onsite-1-experience-42so124age"
+  },
+  {
+   "lc": "non-decreasing-array",
+   "tag": "reported",
+   "note": "Intern interview, Oct 2026",
+   "source": "https://www.fastprep.io/experience/google-software-engineer-onsite-questions-10-experiences-sgewjjogg8"
+  },
+  {
+   "lc": "longest-substring-without-repeating-characters",
+   "tag": "reported",
+   "note": "Intern round 1, Oct 2026, return the substring",
+   "source": "https://www.fastprep.io/experience/google-software-engineer-onsite-questions-10-experiences-sgewjjogg8"
+  },
+  {
+   "lc": "design-hit-counter",
+   "tag": "reported",
+   "note": "Intern round 1, Oct 2026, window and scale follow-ups",
+   "source": "https://www.fastprep.io/experience/google-software-engineer-onsite-questions-10-experiences-sgewjjogg8"
+  },
+  {
+   "lc": "find-the-town-judge",
+   "tag": "reported",
+   "note": "Intern round 2, Oct 2026",
+   "source": "https://www.fastprep.io/experience/google-software-engineer-onsite-questions-10-experiences-sgewjjogg8"
+  },
+  {
+   "title": "Earliest arrival through scheduled train legs",
+   "tag": "reported",
+   "note": "Coding, new grad, Oct 2026",
+   "source": "https://www.fastprep.io/experience/google-software-engineer-onsite-questions-10-experiences-sgewjjogg8"
+  },
+  {
+   "title": "Multiple software timers on one hardware timer",
+   "tag": "reported",
+   "note": "Coding, L3, 2026",
+   "source": "https://www.fastprep.io/experience/google-software-engineer-onsite-questions-10-experiences-sgewjjogg8"
+  },
+  {
+   "title": "Design a review summarization pipeline",
+   "tag": "reported",
+   "note": "System design, new grad, Oct 2026",
+   "source": "https://www.fastprep.io/experience/google-software-engineer-onsite-questions-10-experiences-sgewjjogg8"
+  },
+  {
+   "title": "Design a pull-based server metrics monitor",
+   "tag": "reported",
+   "note": "System design round, 2026",
+   "source": "https://www.fastprep.io/experience/google-software-engineer-onsite-questions-10-experiences-sgewjjogg8"
+  },
+  {
+   "title": "Tell me about someone taking credit for your work",
+   "tag": "reported",
+   "note": "Googleyness and Leadership, L3, 2026",
+   "source": "https://www.fastprep.io/experience/google-software-engineer-onsite-questions-10-experiences-sgewjjogg8"
+  },
+  {
+   "lc": "closest-nodes-queries-in-a-binary-search-tree",
+   "tag": "reported",
+   "note": "Phone screen, L4, similar problem",
+   "source": "https://leetcode.com/discuss/post/6011543/google-phone-screen-l4-by-anonymous_user-xxki/"
+  },
+  {
+   "lc": "move-pieces-to-obtain-a-string",
+   "tag": "reported",
+   "note": "Phone screen, L3, reframed version",
+   "source": "https://leetcode.com/discuss/post/6649648/google-l3-phone-screen-round-by-anonymou-7935/"
+  },
+  {
+   "lc": "alien-dictionary",
+   "tag": "listed",
+   "note": "interviewing.io list of Google questions",
+   "source": "https://interviewing.io/google-interview-questions"
+  },
+  {
+   "lc": "split-array-largest-sum",
+   "tag": "listed",
+   "note": "interviewing.io list of Google questions",
+   "source": "https://interviewing.io/google-interview-questions"
+  },
+  {
+   "lc": "walls-and-gates",
+   "tag": "listed",
+   "note": "interviewing.io list of Google questions",
+   "source": "https://interviewing.io/google-interview-questions"
+  },
+  {
+   "lc": "k-closest-points-to-origin",
+   "tag": "listed",
+   "note": "interviewing.io list of Google questions",
+   "source": "https://interviewing.io/google-interview-questions"
+  }
+ ],
+ "sources": [
+  {
+   "label": "levels.fyi: Google SWE interview process",
+   "url": "https://www.levels.fyi/blog/google-software-engineer-interview-process.html"
+  },
+  {
+   "label": "interviewing.io: Google hiring process guide",
+   "url": "https://interviewing.io/guides/hiring-process/google"
+  },
+  {
+   "label": "Aced (Exponent): Google interview process",
+   "url": "https://www.aced.io/blog/google-interview-process"
+  },
+  {
+   "label": "interviewing.io: Google interview questions",
+   "url": "https://interviewing.io/google-interview-questions"
+  },
+  {
+   "label": "FastPrep: Google new grad L3 interviews, 2025-2026",
+   "url": "https://www.fastprep.io/experience/2025-2026-google-new-grad-l3-interviews-13-experiences-part-1-dfbast17cw"
+  },
+  {
+   "label": "FastPrep: Google SWE onsite questions, 10 experiences",
+   "url": "https://www.fastprep.io/experience/google-software-engineer-onsite-questions-10-experiences-sgewjjogg8"
+  },
+  {
+   "label": "FastPrep: Google experienced SWE onsite, 2026",
+   "url": "https://www.fastprep.io/experience/2026-google-experienced-swe-first-round-and-mountain-view-onsite-1-experience-42so124age"
+  },
+  {
+   "label": "FastPrep: Google AI coding round and HackerRank OA, 2026",
+   "url": "https://www.fastprep.io/experience/2026-google-ai-coding-interview-and-hackerrank-ai-oa-experienced-hires-2-experie-2eenhktw1m"
+  },
+  {
+   "label": "LeetCode Discuss: Google L4 phone screen",
+   "url": "https://leetcode.com/discuss/post/6011543/google-phone-screen-l4-by-anonymous_user-xxki/"
+  },
+  {
+   "label": "LeetCode Discuss: Google L3 phone screen",
+   "url": "https://leetcode.com/discuss/post/6649648/google-l3-phone-screen-round-by-anonymou-7935/"
+  }
+ ],
+ "caveat": "Built from public candidate reports and prep sites. Processes differ by team and change over time. \"Listed\" items come from prep sites and are unverified."
+}

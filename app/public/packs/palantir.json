@@ -1,0 +1,258 @@
+{
+ "id": "palantir",
+ "name": "Palantir",
+ "role": "Software engineer",
+ "summary": "Candidates report a recruiter call, an online assessment or live technical screen, then an onsite of three or so rounds drawn from decomposition, learning, re-engineering (debugging), coding and system design, followed by a hiring manager call. Most rounds reserve time for behavioural and motivation questions.",
+ "rounds": [
+  {
+   "name": "Recruiter call",
+   "minutes": 30,
+   "kind": "behavioural",
+   "what": "Why Palantir, SWE versus forward deployed fit, and past projects you liked and disliked.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/palantir-interview-questions"
+  },
+  {
+   "name": "Online assessment (some candidates)",
+   "minutes": 90,
+   "kind": "coding",
+   "what": "HackerRank with a coding problem, a SQL query and a REST API task.",
+   "practice": "leetcode",
+   "source": "https://prepfully.com/interview-guides/palantir-software-engineer"
+  },
+  {
+   "name": "Technical screen",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Data structures and algorithms framed as a product feature, plus behavioural questions.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/palantir-interview-questions"
+  },
+  {
+   "name": "Decomposition",
+   "minutes": 60,
+   "kind": "design",
+   "what": "Break a vague real-world problem into parts, agree on an approach, then sketch data and components.",
+   "practice": "sd-practice",
+   "source": "https://interviewing.io/palantir-interview-questions"
+  },
+  {
+   "name": "Learning",
+   "minutes": 45,
+   "kind": "coding",
+   "what": "Learn an unfamiliar API or concept in the interview and use it on tasks of rising difficulty.",
+   "practice": "problems",
+   "source": "https://prachub.com/interview-experiences/palantir-software-engineer-interview-experience-rejected-after-the-learning-round"
+  },
+  {
+   "name": "Re-engineering",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Debug and review an unfamiliar codebase whose output is wrong; watch for red herrings.",
+   "practice": "problems",
+   "source": "https://interviewing.io/palantir-interview-questions"
+  },
+  {
+   "name": "Onsite coding",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "An intentionally vague problem; clarify, then discuss caching, trade-offs and misuse.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/palantir-interview-questions"
+  },
+  {
+   "name": "System design",
+   "minutes": 60,
+   "kind": "design",
+   "what": "Standard system design with behavioural questions; permissions and audit come up.",
+   "practice": "sd-practice",
+   "source": "https://interviewing.io/palantir-interview-questions"
+  },
+  {
+   "name": "Hiring manager",
+   "minutes": 60,
+   "kind": "behavioural",
+   "what": "Revisits weak spots from the loop, motivation and team matching.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/palantir-interview-questions"
+  }
+ ],
+ "tips": [
+  "Have a specific, sincere answer to why Palantir; it is asked in nearly every round.",
+  "Tie technical choices back to the end user and say how the solution could improve.",
+  "In decomposition, clarify data sources, users and constraints before designing.",
+  "In re-engineering, form hypotheses and test them instead of reading every line or rewriting.",
+  "In the learning round, ask questions and narrate how you are learning."
+ ],
+ "reported": [
+  {
+   "title": "City roads graph: fix a bug, then shortest path with BFS, then Dijkstra",
+   "tag": "reported",
+   "note": "Onsite code review round, Mar 2026",
+   "source": "https://prachub.com/interview-experiences/palantir-software-engineer-interview-experience-graph-code-review-dijkstra-and-a-multithreaded-system-monitor"
+  },
+  {
+   "title": "Worker that collects metrics from 1,000 servers every 10 minutes (multithreaded)",
+   "tag": "reported",
+   "note": "Onsite system design, Mar 2026",
+   "source": "https://prachub.com/interview-experiences/palantir-software-engineer-interview-experience-graph-code-review-dijkstra-and-a-multithreaded-system-monitor"
+  },
+  {
+   "title": "Learn a SQL-like query class, then solve tasks with its map and fold actions",
+   "tag": "reported",
+   "note": "Learning round, Oct 2026",
+   "source": "https://prachub.com/interview-experiences/palantir-software-engineer-interview-experience-rejected-after-the-learning-round"
+  },
+  {
+   "title": "Session manager with balanced server allocation",
+   "tag": "reported",
+   "note": "New grad 2027 coding, Oct 2026",
+   "source": "https://1point3acres.com/interview/company/palantir"
+  },
+  {
+   "title": "Card game simulation",
+   "tag": "reported",
+   "note": "New grad phone screen, Jul 2026",
+   "source": "https://1point3acres.com/interview/company/palantir"
+  },
+  {
+   "title": "Multi-part discount system",
+   "tag": "reported",
+   "note": "Intern online assessment, Sep 2026",
+   "source": "https://1point3acres.com/interview/company/palantir"
+  },
+  {
+   "lc": "jump-game-ix",
+   "tag": "reported",
+   "note": "Coding, Apr 2026",
+   "source": "https://1point3acres.com/interview/company/palantir"
+  },
+  {
+   "title": "Convert a single-threaded package manager to multithreaded",
+   "tag": "reported",
+   "note": "Reported Apr 2026",
+   "source": "https://1point3acres.com/interview/company/palantir"
+  },
+  {
+   "title": "Design a multi-tenant data analysis platform with permissions, audit logs and lineage",
+   "tag": "reported",
+   "note": "Onsite system design, 2026",
+   "source": "https://1point3acres.com/interview/company/palantir"
+  },
+  {
+   "lc": "top-k-frequent-elements",
+   "tag": "listed",
+   "note": "Coding",
+   "source": "https://prepfully.com/interview-guides/palantir-software-engineer"
+  },
+  {
+   "title": "Technology to help people with poor vision cook for themselves",
+   "tag": "listed",
+   "note": "Decomposition",
+   "source": "https://interviewing.io/palantir-interview-questions"
+  },
+  {
+   "title": "Track disease spread from patient zero",
+   "tag": "listed",
+   "note": "Decomposition",
+   "source": "https://prepfully.com/interview-guides/palantir-software-engineer"
+  },
+  {
+   "title": "Permissions for a data platform with sensitive data slices",
+   "tag": "listed",
+   "note": "System design",
+   "source": "https://prepfully.com/interview-guides/palantir-software-engineer"
+  },
+  {
+   "lc": "meeting-rooms-ii",
+   "tag": "listed",
+   "note": "Senior question bank, 2026",
+   "source": "https://prachub.com/companies/palantir/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "merge-intervals",
+   "tag": "listed",
+   "note": "Decimal endpoints, also list the gaps",
+   "source": "https://prachub.com/companies/palantir/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "accounts-merge",
+   "tag": "listed",
+   "note": "Merge accounts sharing addresses",
+   "source": "https://prachub.com/companies/palantir/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "string-compression",
+   "tag": "listed",
+   "note": "Question bank",
+   "source": "https://prachub.com/companies/palantir/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "integer-to-english-words",
+   "tag": "listed",
+   "note": "Question bank",
+   "source": "https://prachub.com/companies/palantir/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "smallest-string-with-swaps",
+   "tag": "listed",
+   "note": "Question bank",
+   "source": "https://prachub.com/companies/palantir/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "construct-quad-tree",
+   "tag": "listed",
+   "note": "Question bank",
+   "source": "https://prachub.com/companies/palantir/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "design-snake-game",
+   "tag": "listed",
+   "note": "Senior question bank",
+   "source": "https://prachub.com/companies/palantir/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "title": "Daily totals of stock prices with missing days carried forward",
+   "tag": "listed",
+   "note": "Intern question bank, 2026",
+   "source": "https://prachub.com/companies/palantir/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "title": "Apply item and category coupons with rounding and a cap",
+   "tag": "listed",
+   "note": "Intern question bank, 2026",
+   "source": "https://prachub.com/companies/palantir/positions/software-engineer/categories/coding-and-algorithms"
+  }
+ ],
+ "sources": [
+  {
+   "label": "interviewing.io: Palantir interview process and questions",
+   "url": "https://interviewing.io/palantir-interview-questions"
+  },
+  {
+   "label": "Prepfully: Palantir software engineer interview guide",
+   "url": "https://prepfully.com/interview-guides/palantir-software-engineer"
+  },
+  {
+   "label": "1point3acres: Palantir interview threads list",
+   "url": "https://1point3acres.com/interview/company/palantir"
+  },
+  {
+   "label": "PracHub: Palantir SWE coding question bank",
+   "url": "https://prachub.com/companies/palantir/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "label": "PracHub: Palantir onsite, code review, Dijkstra, system monitor (Mar 2026)",
+   "url": "https://prachub.com/interview-experiences/palantir-software-engineer-interview-experience-graph-code-review-dijkstra-and-a-multithreaded-system-monitor"
+  },
+  {
+   "label": "PracHub: Palantir learning round (Oct 2026)",
+   "url": "https://prachub.com/interview-experiences/palantir-software-engineer-interview-experience-rejected-after-the-learning-round"
+  },
+  {
+   "label": "PracHub: Palantir algorithms, REST API and learning loop (Jul 2026)",
+   "url": "https://prachub.com/interview-experiences/palantir-software-engineer-interview-algorithms-rest-api-and-learning-loop-bfd1af83d6"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time."
+}

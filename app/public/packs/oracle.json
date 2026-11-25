@@ -1,0 +1,248 @@
+{
+ "id": "oracle",
+ "name": "Oracle",
+ "role": "Software engineer (OCI)",
+ "summary": "Candidates, mostly for Oracle Cloud Infrastructure teams, report a recruiter chat, a technical phone screen, and a virtual onsite of four to six rounds covering coding, low-level or object design, system design, a hiring manager round and sometimes a bar raiser. Rounds often open with behavioural questions and round types are not always announced in advance.",
+ "rounds": [
+  {
+   "name": "Technical phone screen",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "A project discussion and one or two coding problems in a shared editor such as CoderPad or HackerRank.",
+   "practice": "leetcode",
+   "source": "https://leetcode.com/discuss/post/861674/"
+  },
+  {
+   "name": "Onsite coding",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "One-hour rounds of medium problems; recent reports add naive-to-optimal follow-ups after a few behavioural questions.",
+   "practice": "leetcode",
+   "source": "https://leetcode.com/discuss/interview-experience/858619/oracle-oci-sde-2-sept-2020-offer/"
+  },
+  {
+   "name": "Low-level design",
+   "kind": "design",
+   "what": "Object-oriented design such as an LRU cache, a logger with handlers, a chess game or a traffic light controller.",
+   "practice": "problems",
+   "source": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-oci-phone-screen-and-a-four-round-two-day-vo"
+  },
+  {
+   "name": "System design",
+   "kind": "design",
+   "what": "High-level design, often tied to the team's cloud domain or a classic like a URL shortener.",
+   "practice": "sd-practice",
+   "source": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-phone-screen-plus-four-rounds-ending-in-a-bar-raiser"
+  },
+  {
+   "name": "Hiring manager",
+   "kind": "behavioural",
+   "what": "Deep dive into your current architecture, ownership and on-call experience, sometimes with team-specific design questions.",
+   "practice": "dd-mock",
+   "source": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-phone-screen-plus-four-rounds-ending-in-a-bar-raiser"
+  },
+  {
+   "name": "Bar raiser",
+   "kind": "behavioural",
+   "what": "Reported on some loops: behavioural questions plus a detailed walk-through of a complex project, sometimes with a design prompt.",
+   "practice": "dd-mock",
+   "source": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-six-stage-onsite-loop-from-brain-teasers-to-bar-raiser"
+  }
+ ],
+ "tips": [
+  "Have short behavioural stories ready; several reports say every round starts with about ten minutes of them.",
+  "Practise object-oriented design, since a low-level design round surprised several candidates.",
+  "Be ready to draw your current system end to end and explain on-call and production trade-offs.",
+  "Expect interview types not to be announced ahead of time, so prepare coding, design and behavioural together.",
+  "Know the OCI basics of your target team; design prompts often come from the interviewer's own work."
+ ],
+ "reported": [
+  {
+   "lc": "meeting-rooms-ii",
+   "tag": "reported",
+   "note": "Technical interview, Aug 2026",
+   "source": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-phone-screen-plus-four-rounds-ending-in-a-bar-raiser"
+  },
+  {
+   "lc": "lru-cache",
+   "tag": "reported",
+   "note": "Object design in a technical interview, Aug 2026",
+   "source": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-phone-screen-plus-four-rounds-ending-in-a-bar-raiser"
+  },
+  {
+   "lc": "time-based-key-value-store",
+   "tag": "reported",
+   "note": "DSA in the HLD round, Aug 2026",
+   "source": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-phone-screen-plus-four-rounds-ending-in-a-bar-raiser"
+  },
+  {
+   "title": "Detect a cycle in a directed graph",
+   "tag": "reported",
+   "note": "Phone screen, Aug 2026",
+   "source": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-phone-screen-plus-four-rounds-ending-in-a-bar-raiser"
+  },
+  {
+   "title": "Count requests dropped under per-1s, 10s and 60s limits",
+   "tag": "reported",
+   "note": "Onsite coding, Oct 2026 and Jul 2026",
+   "source": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-oci-phone-screen-and-a-four-round-two-day-vo"
+  },
+  {
+   "title": "Remove parentheses from a plus and minus expression",
+   "tag": "reported",
+   "note": "OCI phone screen, Oct 2026",
+   "source": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-oci-phone-screen-and-a-four-round-two-day-vo"
+  },
+  {
+   "title": "Design a logger that passes messages through a list of handlers",
+   "tag": "reported",
+   "note": "OCI low-level design, Oct 2026",
+   "source": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-oci-phone-screen-and-a-four-round-two-day-vo"
+  },
+  {
+   "lc": "course-schedule-ii",
+   "tag": "reported",
+   "note": "Technical round, 2026",
+   "source": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-lru-cache-and-course-ordering-3875f724b7"
+  },
+  {
+   "lc": "container-with-most-water",
+   "tag": "reported",
+   "note": "Final round, 2026",
+   "source": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-lru-cache-and-course-ordering-3875f724b7"
+  },
+  {
+   "title": "Shortest subarray meeting minimum counts for required values",
+   "tag": "reported",
+   "note": "Onsite coding, Oct 2026",
+   "source": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-four-onsite-rounds-a-low-level-design-round-that-caught-me-off-guard"
+  },
+  {
+   "title": "Task tracker that assigns jobs by worker capacity",
+   "tag": "reported",
+   "note": "Onsite data model round, Oct 2026",
+   "source": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-four-onsite-rounds-a-low-level-design-round-that-caught-me-off-guard"
+  },
+  {
+   "title": "Maximum sum of a subarray with length at most K",
+   "tag": "reported",
+   "note": "Onsite coding, Sep 2026",
+   "source": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-five-rounds-from-top-k-urls-to-log-collection"
+  },
+  {
+   "lc": "design-authentication-manager",
+   "tag": "reported",
+   "note": "Phone screen, May 2026, token service with expiry",
+   "source": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-ic4-rejection-ic3-downgrade-and-relocation"
+  },
+  {
+   "lc": "jump-game-ii",
+   "tag": "reported",
+   "note": "Onsite coding, May 2026",
+   "source": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-ic4-rejection-ic3-downgrade-and-relocation"
+  },
+  {
+   "lc": "best-time-to-buy-and-sell-stock",
+   "tag": "reported",
+   "note": "Onsite stage 1, Jul 2026",
+   "source": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-six-stage-onsite-loop-from-brain-teasers-to-bar-raiser"
+  },
+  {
+   "lc": "string-compression",
+   "tag": "reported",
+   "note": "Onsite, Jul 2026, run-length variant",
+   "source": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-six-stage-onsite-loop-from-brain-teasers-to-bar-raiser"
+  },
+  {
+   "lc": "remove-duplicates-from-sorted-array-ii",
+   "tag": "reported",
+   "note": "Onsite, Jul 2026, generalised to at most k",
+   "source": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-six-stage-onsite-loop-from-brain-teasers-to-bar-raiser"
+  },
+  {
+   "title": "Cache an expensive service call, then make it thread safe",
+   "tag": "reported",
+   "note": "Virtual onsite, Oct 2026",
+   "source": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-three-round-virtual-onsite-with-a-leetcode-style-caching-question"
+  },
+  {
+   "title": "Design a chess game",
+   "tag": "reported",
+   "note": "Virtual onsite, Oct 2026",
+   "source": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-three-round-virtual-onsite-with-a-leetcode-style-caching-question"
+  },
+  {
+   "title": "Design a traffic light controller with a pedestrian button",
+   "tag": "reported",
+   "note": "Low-level design, Oct 2026",
+   "source": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-four-onsite-rounds-a-low-level-design-round-that-caught-me-off-guard"
+  },
+  {
+   "title": "Design a URL shortener",
+   "tag": "reported",
+   "note": "System design or bar raiser, Aug and Oct 2026",
+   "source": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-phone-screen-plus-four-rounds-ending-in-a-bar-raiser"
+  },
+  {
+   "title": "Top K URLs from huge access logs with limited memory",
+   "tag": "reported",
+   "note": "Screening, Sep 2026",
+   "source": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-five-rounds-from-top-k-urls-to-log-collection"
+  },
+  {
+   "title": "Log collection system returning top K services by error count",
+   "tag": "reported",
+   "note": "Hiring manager round, Sep 2026",
+   "source": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-five-rounds-from-top-k-urls-to-log-collection"
+  },
+  {
+   "title": "Trigger repair workflows from GPU health across 100,000 hosts",
+   "tag": "reported",
+   "note": "Onsite system design, May 2026",
+   "source": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-ic4-rejection-ic3-downgrade-and-relocation"
+  }
+ ],
+ "sources": [
+  {
+   "label": "PracHub: phone screen plus four rounds ending in a bar raiser, Aug 2026",
+   "url": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-phone-screen-plus-four-rounds-ending-in-a-bar-raiser"
+  },
+  {
+   "label": "PracHub: five rounds from top-K URLs to log collection, Sep 2026",
+   "url": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-five-rounds-from-top-k-urls-to-log-collection"
+  },
+  {
+   "label": "PracHub: OCI phone screen and two-day virtual onsite, Oct 2026",
+   "url": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-oci-phone-screen-and-a-four-round-two-day-vo"
+  },
+  {
+   "label": "PracHub: LRU cache and course ordering, 2026",
+   "url": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-lru-cache-and-course-ordering-3875f724b7"
+  },
+  {
+   "label": "PracHub: four onsite rounds with a low-level design round, Oct 2026",
+   "url": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-four-onsite-rounds-a-low-level-design-round-that-caught-me-off-guard"
+  },
+  {
+   "label": "PracHub: six-stage onsite loop, Jul 2026",
+   "url": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-six-stage-onsite-loop-from-brain-teasers-to-bar-raiser"
+  },
+  {
+   "label": "PracHub: IC4 rejection and IC3 downgrade, May 2026",
+   "url": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-ic4-rejection-ic3-downgrade-and-relocation"
+  },
+  {
+   "label": "PracHub: three-round virtual onsite with a caching question, Oct 2026",
+   "url": "https://prachub.com/interview-experiences/oracle-software-engineer-interview-experience-three-round-virtual-onsite-with-a-leetcode-style-caching-question"
+  },
+  {
+   "label": "LeetCode Discuss: Oracle OCI SDE-2, Sep 2020",
+   "url": "https://leetcode.com/discuss/interview-experience/858619/oracle-oci-sde-2-sept-2020-offer/"
+  },
+  {
+   "label": "LeetCode Discuss: Oracle OCI IC-2 Seattle, Sep 2020",
+   "url": "https://leetcode.com/discuss/post/861674/"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time."
+}

@@ -1,0 +1,198 @@
+{
+ "id": "citadel",
+ "name": "Citadel",
+ "role": "Software engineer",
+ "summary": "Candidates report a HackerRank online assessment, a 45-minute first technical interview that often opens with resume questions, then several 45-minute coding and design rounds and a fit or leadership conversation. Most recent public reports are from intern and new-grad candidates.",
+ "rounds": [
+  {
+   "name": "Online assessment",
+   "minutes": 75,
+   "kind": "coding",
+   "what": "HackerRank test, reported as two coding problems in 75 minutes at LeetCode medium to hard.",
+   "practice": "leetcode",
+   "source": "https://prachub.com/companies/citadel/positions/software-engineer"
+  },
+  {
+   "name": "First technical interview",
+   "minutes": 45,
+   "kind": "coding",
+   "what": "Roughly 15 to 20 minutes on your resume, then one coding problem, sometimes with a follow-up.",
+   "practice": "leetcode",
+   "source": "https://www.fastprep.io/experience/2025-2026-citadel-and-citadel-securities-swe-intern-new-grad-first-round-intervi-5rlrvgcc6m"
+  },
+  {
+   "name": "Later rounds",
+   "minutes": 45,
+   "kind": "coding",
+   "what": "Back-to-back 45-minute rounds mixing algorithms, object design and trading-style simulations; some intern rounds probe C++ and data structure internals.",
+   "practice": "problems",
+   "source": "https://www.fastprep.io/experience/2025-2026-citadel-and-citadel-securities-swe-intern-later-rounds-and-unconfirmed-55ul0a291w"
+  },
+  {
+   "name": "Fit or leadership conversation",
+   "kind": "behavioural",
+   "what": "Resume, why Citadel and how you work; reported near the end of the loop.",
+   "practice": "dd-mock",
+   "source": "https://www.fastprep.io/experience/2025-2026-citadel-and-citadel-securities-swe-intern-later-rounds-and-unconfirmed-55ul0a291w"
+  }
+ ],
+ "tips": [
+  "Have a crisp walkthrough of your resume ready; several first rounds spend 15 to 20 minutes on it.",
+  "Expect trading-flavoured problems such as order books, price feeds and timestamped lookups.",
+  "Revise C++ basics and how common data structures are laid out in memory if you list C++.",
+  "Prepare a specific answer to why Citadel rather than a tech company."
+ ],
+ "reported": [
+  {
+   "lc": "trapping-rain-water",
+   "tag": "reported",
+   "note": "Phone interview, Q1 2025",
+   "source": "https://www.fastprep.io/experience/2025-2026-citadel-and-citadel-securities-swe-intern-new-grad-first-round-intervi-5rlrvgcc6m"
+  },
+  {
+   "lc": "lru-cache",
+   "tag": "reported",
+   "note": "Coding after resume discussion, Q1 2025",
+   "source": "https://www.fastprep.io/experience/2025-2026-citadel-and-citadel-securities-swe-intern-new-grad-first-round-intervi-5rlrvgcc6m"
+  },
+  {
+   "lc": "best-time-to-buy-and-sell-stock",
+   "tag": "reported",
+   "note": "First phone screen, Q4 2025, with a k-transaction follow-up",
+   "source": "https://www.fastprep.io/experience/2025-2026-citadel-and-citadel-securities-swe-intern-new-grad-first-round-intervi-5rlrvgcc6m"
+  },
+  {
+   "lc": "best-time-to-buy-and-sell-stock-iv",
+   "tag": "reported",
+   "note": "Same screen follow-up, Q4 2025",
+   "source": "https://www.fastprep.io/experience/2025-2026-citadel-and-citadel-securities-swe-intern-new-grad-first-round-intervi-5rlrvgcc6m"
+  },
+  {
+   "lc": "number-of-islands",
+   "tag": "reported",
+   "note": "First technical screen, SWE intern, Q4 2025",
+   "source": "https://www.fastprep.io/experience/2025-2026-citadel-and-citadel-securities-swe-intern-new-grad-first-round-intervi-5rlrvgcc6m"
+  },
+  {
+   "lc": "number-of-distinct-islands",
+   "tag": "reported",
+   "note": "Same screen follow-up, SWE intern, Q4 2025",
+   "source": "https://www.fastprep.io/experience/2025-2026-citadel-and-citadel-securities-swe-intern-new-grad-first-round-intervi-5rlrvgcc6m"
+  },
+  {
+   "lc": "merge-k-sorted-lists",
+   "tag": "reported",
+   "note": "Merge K sorted inputs, SWE intern, 2025",
+   "source": "https://www.fastprep.io/experience/2025-2026-citadel-and-citadel-securities-swe-intern-new-grad-first-round-intervi-5rlrvgcc6m"
+  },
+  {
+   "lc": "time-based-key-value-store",
+   "tag": "reported",
+   "note": "First round, 2026",
+   "source": "https://www.fastprep.io/experience/2025-2026-citadel-and-citadel-securities-swe-intern-new-grad-first-round-intervi-5rlrvgcc6m"
+  },
+  {
+   "lc": "minimum-cost-to-hire-k-workers",
+   "tag": "reported",
+   "note": "First-stage interview, reworded, 2026",
+   "source": "https://www.fastprep.io/experience/2025-2026-citadel-and-citadel-securities-swe-intern-new-grad-first-round-intervi-5rlrvgcc6m"
+  },
+  {
+   "lc": "search-suggestions-system",
+   "tag": "reported",
+   "note": "First-stage session, 2026",
+   "source": "https://www.fastprep.io/experience/2025-2026-citadel-and-citadel-securities-swe-intern-new-grad-first-round-intervi-5rlrvgcc6m"
+  },
+  {
+   "title": "Limit order book matching engine",
+   "tag": "reported",
+   "note": "Round 1, new grad, 2026",
+   "source": "https://www.fastprep.io/experience/2025-2026-citadel-and-citadel-securities-swe-intern-new-grad-first-round-intervi-5rlrvgcc6m"
+  },
+  {
+   "title": "Order tasks by their dependencies (topological sort)",
+   "tag": "reported",
+   "note": "First round, SWE intern, 2026",
+   "source": "https://www.fastprep.io/experience/2025-2026-citadel-and-citadel-securities-swe-intern-new-grad-first-round-intervi-5rlrvgcc6m"
+  },
+  {
+   "lc": "alien-dictionary",
+   "tag": "reported",
+   "note": "Technical phone screen after behavioural questions, SWE intern, Q4 2025",
+   "source": "https://www.fastprep.io/experience/2025-2026-citadel-and-citadel-securities-swe-intern-later-rounds-and-unconfirmed-55ul0a291w"
+  },
+  {
+   "lc": "find-servers-that-handled-most-number-of-requests",
+   "tag": "reported",
+   "note": "Virtual onsite round 1, SWE intern, Q2 2025",
+   "source": "https://www.fastprep.io/experience/2025-2026-citadel-and-citadel-securities-swe-intern-later-rounds-and-unconfirmed-55ul0a291w"
+  },
+  {
+   "title": "Implement a BST class in C++ with insert, search and delete",
+   "tag": "reported",
+   "note": "Second phone screen, SWE intern, Q4 2025",
+   "source": "https://www.fastprep.io/experience/2025-2026-citadel-and-citadel-securities-swe-intern-later-rounds-and-unconfirmed-55ul0a291w"
+  },
+  {
+   "title": "Order book with per-exchange BBO and global NBBO queries",
+   "tag": "reported",
+   "note": "Round 2, SWE intern, 2026",
+   "source": "https://www.fastprep.io/experience/2025-2026-citadel-and-citadel-securities-swe-intern-later-rounds-and-unconfirmed-55ul0a291w"
+  },
+  {
+   "lc": "implement-trie-prefix-tree",
+   "tag": "reported",
+   "note": "Phone screen, 2025, with node-space and longest-prefix follow-ups",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Citadel"
+  },
+  {
+   "lc": "find-median-from-data-stream",
+   "tag": "reported",
+   "note": "First interview, NXT program, 2025",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Citadel"
+  },
+  {
+   "lc": "subarray-sum-equals-k",
+   "tag": "listed",
+   "note": "Candidate-sourced question bank, 2026",
+   "source": "https://prachub.com/companies/citadel/positions/software-engineer"
+  },
+  {
+   "lc": "number-of-orders-in-the-backlog",
+   "tag": "listed",
+   "note": "Candidate-sourced question bank (buy and sell backlog)",
+   "source": "https://prachub.com/companies/citadel/positions/software-engineer"
+  },
+  {
+   "lc": "length-of-longest-subarray-with-at-most-k-frequency",
+   "tag": "listed",
+   "note": "Candidate-sourced question bank, 2026",
+   "source": "https://prachub.com/companies/citadel/positions/software-engineer"
+  },
+  {
+   "title": "Battleship game engine with placement, shots and sinking",
+   "tag": "listed",
+   "note": "Candidate-sourced question bank, 2026",
+   "source": "https://prachub.com/companies/citadel/positions/software-engineer"
+  }
+ ],
+ "sources": [
+  {
+   "label": "FastPrep: Citadel SWE first-round interview reports 2025-2026",
+   "url": "https://www.fastprep.io/experience/2025-2026-citadel-and-citadel-securities-swe-intern-new-grad-first-round-intervi-5rlrvgcc6m"
+  },
+  {
+   "label": "FastPrep: Citadel SWE later-round interview reports 2025-2026",
+   "url": "https://www.fastprep.io/experience/2025-2026-citadel-and-citadel-securities-swe-intern-later-rounds-and-unconfirmed-55ul0a291w"
+  },
+  {
+   "label": "CodingKaro: Citadel LeetCode Discuss interview experiences",
+   "url": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Citadel"
+  },
+  {
+   "label": "PracHub: Citadel software engineer questions",
+   "url": "https://prachub.com/companies/citadel/positions/software-engineer"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time. Citadel and Citadel Securities run separate processes; this pack covers Citadel."
+}

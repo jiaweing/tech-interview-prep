@@ -1,0 +1,216 @@
+{
+ "id": "apple",
+ "name": "Apple",
+ "role": "Software engineer",
+ "summary": "Candidates report that each team runs its own loop: one or two coding screens, a hiring manager conversation, then several onsite rounds mixing coding, team-specific design and behavioural questions. Some teams add take-homes, domain deep dives or, from 2026, AI-assisted coding.",
+ "rounds": [
+  {
+   "name": "Technical screen",
+   "kind": "coding",
+   "what": "Coding screens of 30 minutes to an hour, LeetCode style or specific to the team.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/guides/hiring-process/apple"
+  },
+  {
+   "name": "Hiring manager screen",
+   "minutes": 45,
+   "kind": "behavioural",
+   "what": "Background, motivation and fit, sometimes with an easy coding task.",
+   "practice": "dd-mock",
+   "source": "https://www.fastprep.io/experience/apple-ai-coding-and-related-interviews-17-experiences-2hegeoa82n"
+  },
+  {
+   "name": "Take-home",
+   "kind": "coding",
+   "what": "Some teams set a take-home assignment; the hiring manager usually decides.",
+   "practice": "problems",
+   "source": "https://interviewing.io/guides/hiring-process/apple"
+  },
+  {
+   "name": "Onsite coding",
+   "kind": "coding",
+   "what": "Several coding rounds with future teammates, often with follow-ups on space or edge cases.",
+   "practice": "leetcode",
+   "source": "https://prachub.com/interview-experiences/apple-software-engineer-interview-experience-six-onsite-rounds-that-felt-like-six-different-companies"
+  },
+  {
+   "name": "AI-assisted coding",
+   "kind": "coding",
+   "what": "Some teams added a coding round with an AI tool allowed in 2026.",
+   "practice": "problems",
+   "source": "https://www.fastprep.io/experience/apple-ai-coding-and-related-interviews-17-experiences-2hegeoa82n"
+  },
+  {
+   "name": "System design",
+   "kind": "design",
+   "what": "Design focused on the team's own systems; reliability comes up often.",
+   "practice": "sd-practice",
+   "source": "https://interviewing.io/guides/hiring-process/apple"
+  },
+  {
+   "name": "Behavioural",
+   "kind": "behavioural",
+   "what": "Motivation, leadership and fit; 'Why Apple?' is almost always asked.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/guides/hiring-process/apple"
+  }
+ ],
+ "tips": [
+  "Ask the recruiter whether coding rounds are LeetCode style or a domain deep dive; each team sets its own loop.",
+  "Prepare a specific, personal answer to 'Why Apple?'.",
+  "Read up on the team's product and be ready to discuss reliability in design rounds.",
+  "Expect domain questions for the team, such as concurrency or platform internals.",
+  "Practise quick runtime analysis; it comes up in phone screens."
+ ],
+ "reported": [
+  {
+   "lc": "copy-list-with-random-pointer",
+   "tag": "reported",
+   "note": "Onsite round 1, Jun 2026, O(1) space follow-up",
+   "source": "https://prachub.com/interview-experiences/apple-software-engineer-interview-experience-six-onsite-rounds-that-felt-like-six-different-companies"
+  },
+  {
+   "lc": "convert-binary-search-tree-to-sorted-doubly-linked-list",
+   "tag": "reported",
+   "note": "Onsite round 2, Jun 2026",
+   "source": "https://prachub.com/interview-experiences/apple-software-engineer-interview-experience-six-onsite-rounds-that-felt-like-six-different-companies"
+  },
+  {
+   "lc": "all-nodes-distance-k-in-binary-tree",
+   "tag": "reported",
+   "note": "Onsite round 3, Jun 2026",
+   "source": "https://prachub.com/interview-experiences/apple-software-engineer-interview-experience-six-onsite-rounds-that-felt-like-six-different-companies"
+  },
+  {
+   "title": "Are two dates one calendar month apart",
+   "tag": "reported",
+   "note": "Onsite round 4, Jun 2026, clarify requirements first",
+   "source": "https://prachub.com/interview-experiences/apple-software-engineer-interview-experience-six-onsite-rounds-that-felt-like-six-different-companies"
+  },
+  {
+   "title": "Design wallpaper sync across a user's devices",
+   "tag": "reported",
+   "note": "System design, Jun 2026",
+   "source": "https://prachub.com/interview-experiences/apple-software-engineer-interview-experience-six-onsite-rounds-that-felt-like-six-different-companies"
+  },
+  {
+   "title": "Poker deck with shuffle and sort",
+   "tag": "reported",
+   "note": "Coding round 1, Sep 2025",
+   "source": "https://prachub.com/interview-experiences/apple-software-engineer-interview-experience-poker-system-design-ood-rock-paper-scissors-and-two-hiring-manager-rounds"
+  },
+  {
+   "title": "Extend a rock-paper-scissors bot game (OOD)",
+   "tag": "reported",
+   "note": "Coding round 2, Sep 2025",
+   "source": "https://prachub.com/interview-experiences/apple-software-engineer-interview-experience-poker-system-design-ood-rock-paper-scissors-and-two-hiring-manager-rounds"
+  },
+  {
+   "title": "Design a Yelp-like review service",
+   "tag": "reported",
+   "note": "System design, Sep 2025, URL shortener also discussed",
+   "source": "https://prachub.com/interview-experiences/apple-software-engineer-interview-experience-poker-system-design-ood-rock-paper-scissors-and-two-hiring-manager-rounds"
+  },
+  {
+   "lc": "time-based-key-value-store",
+   "tag": "reported",
+   "note": "Coding, ICT4, 2026, thread safety follow-up",
+   "source": "https://www.fastprep.io/experience/apple-ai-coding-and-related-interviews-17-experiences-2hegeoa82n"
+  },
+  {
+   "lc": "valid-sudoku",
+   "tag": "reported",
+   "note": "Hiring manager round, full stack, Jun 2026",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/apple"
+  },
+  {
+   "lc": "merge-intervals",
+   "tag": "reported",
+   "note": "Hiring manager round, full stack, Jun 2026",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/apple"
+  },
+  {
+   "title": "Design a logs monitoring system",
+   "tag": "reported",
+   "note": "Hiring manager round, full stack, Jun 2026",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/apple"
+  },
+  {
+   "lc": "valid-parentheses",
+   "tag": "reported",
+   "note": "Onsite, Java backend, Apr 2026",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/apple"
+  },
+  {
+   "title": "Design a rate limiter",
+   "tag": "reported",
+   "note": "Onsite, Java backend, Apr 2026",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/apple"
+  },
+  {
+   "title": "Design a video upload system",
+   "tag": "reported",
+   "note": "Onsite, Java backend, Apr 2026",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/apple"
+  },
+  {
+   "lc": "is-graph-bipartite",
+   "tag": "reported",
+   "note": "Coding round, full stack, Jul 2026",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/apple"
+  },
+  {
+   "title": "Weighted random country selector",
+   "tag": "reported",
+   "note": "Round 1, Jul 2026",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/apple"
+  },
+  {
+   "lc": "number-of-islands",
+   "tag": "listed",
+   "note": "interviewing.io Apple mock question data",
+   "source": "https://interviewing.io/guides/hiring-process/apple"
+  },
+  {
+   "lc": "longest-increasing-path-in-a-matrix",
+   "tag": "listed",
+   "note": "interviewing.io Apple mock question data",
+   "source": "https://interviewing.io/guides/hiring-process/apple"
+  },
+  {
+   "lc": "generate-parentheses",
+   "tag": "listed",
+   "note": "interviewing.io Apple mock question data",
+   "source": "https://interviewing.io/guides/hiring-process/apple"
+  },
+  {
+   "lc": "number-of-subarrays-with-bounded-maximum",
+   "tag": "listed",
+   "note": "interviewing.io Apple mock question data",
+   "source": "https://interviewing.io/guides/hiring-process/apple"
+  }
+ ],
+ "sources": [
+  {
+   "label": "interviewing.io: Apple hiring process guide",
+   "url": "https://interviewing.io/guides/hiring-process/apple"
+  },
+  {
+   "label": "FastPrep: Apple AI coding and related interviews, 17 experiences",
+   "url": "https://www.fastprep.io/experience/apple-ai-coding-and-related-interviews-17-experiences-2hegeoa82n"
+  },
+  {
+   "label": "CodingKaro: Apple LeetCode Discuss interview experiences",
+   "url": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/apple"
+  },
+  {
+   "label": "PracHub: Apple SWE six onsite rounds, 2026",
+   "url": "https://prachub.com/interview-experiences/apple-software-engineer-interview-experience-six-onsite-rounds-that-felt-like-six-different-companies"
+  },
+  {
+   "label": "PracHub: Apple SWE onsite with OOD and two HM rounds, 2025",
+   "url": "https://prachub.com/interview-experiences/apple-software-engineer-interview-experience-poker-system-design-ood-rock-paper-scissors-and-two-hiring-manager-rounds"
+  }
+ ],
+ "caveat": "Built from public candidate reports and prep sites. Processes differ by team and change over time. \"Listed\" items come from prep sites and are unverified."
+}

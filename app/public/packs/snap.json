@@ -1,0 +1,266 @@
+{
+ "id": "snap",
+ "name": "Snap",
+ "role": "Software engineer",
+ "summary": "Candidates report a recruiter call, a one-hour technical screen with a short behavioural part, then an onsite of several coding rounds plus system design. Reports stress speed and runnable code, with many grid and graph problems.",
+ "rounds": [
+  {
+   "name": "Recruiter call",
+   "kind": "behavioural",
+   "what": "Background, interest in Snap and its products.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/snap-interview-questions"
+  },
+  {
+   "name": "Technical phone screen",
+   "minutes": 55,
+   "kind": "coding",
+   "what": "About 15 minutes of behavioural questions, then a 40-minute coding problem.",
+   "practice": "leetcode",
+   "source": "https://www.1point3acres.com/interview/thread/1110655"
+  },
+  {
+   "name": "Onsite coding",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Several algorithm rounds; interviewers look for a working solution and speed.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/snap-interview-questions"
+  },
+  {
+   "name": "System design",
+   "minutes": 60,
+   "kind": "design",
+   "what": "High-level design, often tied to a Snap product such as media, messaging or stories.",
+   "practice": "sd-practice",
+   "source": "https://interviewing.io/snap-interview-questions"
+  },
+  {
+   "name": "Values questions",
+   "kind": "behavioural",
+   "what": "Short behavioural segments inside technical rounds rather than a separate round.",
+   "practice": "dd-mock",
+   "source": "https://prachub.com/interview-guide/snapchat-software-engineer-interview-guide"
+  },
+  {
+   "name": "Hiring manager chat",
+   "kind": "behavioural",
+   "what": "Q&A with a hiring manager; one guide says it is not scored.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/snap-interview-questions"
+  },
+  {
+   "name": "AI coding task",
+   "kind": "coding",
+   "what": "Some 2026 L4 onsites included an AI-assisted backend coding task.",
+   "practice": "problems",
+   "source": "https://www.1point3acres.com/interview/thread/1186053"
+  }
+ ],
+ "tips": [
+  "Practise grid BFS and DFS and other graph problems; they dominate reports.",
+  "Work fast: reach a working solution early, then refine it.",
+  "Code must run; guides say pseudocode is not enough.",
+  "Use the app and know Snap's values (Kind, Smart, Creative).",
+  "Expect a few behavioural questions at the start of technical rounds."
+ ],
+ "reported": [
+  {
+   "lc": "valid-arrangement-of-pairs",
+   "tag": "reported",
+   "note": "Phone screen, 2024",
+   "source": "https://www.1point3acres.com/interview/thread/1062856"
+  },
+  {
+   "lc": "island-perimeter",
+   "tag": "reported",
+   "note": "Phone screen, 2026, variant: largest perimeter over all islands",
+   "source": "https://www.1point3acres.com/interview/thread/1173400"
+  },
+  {
+   "title": "Nearest restaurants in a grid, top k (BFS)",
+   "tag": "reported",
+   "note": "Live coding on HackerRank, 2026",
+   "source": "https://interviewexperiences.in/experience/snap/snap-inc-coding-interview"
+  },
+  {
+   "title": "Place k people in rooms to maximise the minimum distance",
+   "tag": "reported",
+   "note": "Phone screen, 2025",
+   "source": "https://interviewexperiences.in/experience/snap/snap-phone-screen"
+  },
+  {
+   "title": "Implement sin(x) with a Taylor series",
+   "tag": "reported",
+   "note": "Phone screen, staff, 2025",
+   "source": "https://interviewexperiences.in/experience/snap/snapusstaff-swe-phone-screen-interview"
+  },
+  {
+   "title": "Key-value store with nested transactions",
+   "tag": "reported",
+   "note": "Phone screen, 2025",
+   "source": "https://www.1point3acres.com/interview/thread/1144774"
+  },
+  {
+   "title": "Timestamped increment counter with range queries",
+   "tag": "reported",
+   "note": "Technical assessment, SDE2, 2026",
+   "source": "https://www.1point3acres.com/interview/thread/1172826"
+  },
+  {
+   "title": "XML parser",
+   "tag": "reported",
+   "note": "Onsite coding, L4, 2026",
+   "source": "https://www.1point3acres.com/interview/thread/1186053"
+  },
+  {
+   "title": "Metric counter",
+   "tag": "reported",
+   "note": "Onsite coding, L4, 2026",
+   "source": "https://www.1point3acres.com/interview/thread/1186053"
+  },
+  {
+   "lc": "word-ladder",
+   "tag": "listed",
+   "note": "Question bank, 2026",
+   "source": "https://prachub.com/companies/snapchat/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "open-the-lock",
+   "tag": "listed",
+   "note": "Question bank, 2025",
+   "source": "https://prachub.com/companies/snapchat/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "number-of-closed-islands",
+   "tag": "listed",
+   "note": "Question bank, 2026",
+   "source": "https://prachub.com/companies/snapchat/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "most-stones-removed-with-same-row-or-column",
+   "tag": "listed",
+   "note": "Question bank, 2026",
+   "source": "https://prachub.com/companies/snapchat/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "decode-ways",
+   "tag": "listed",
+   "note": "Question bank, 2025",
+   "source": "https://prachub.com/companies/snapchat/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "check-completeness-of-a-binary-tree",
+   "tag": "listed",
+   "note": "Question bank, 2026",
+   "source": "https://prachub.com/companies/snapchat/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "title": "Thread-safe rate limiter",
+   "tag": "listed",
+   "note": "Question bank, 2026",
+   "source": "https://prachub.com/companies/snapchat/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "basic-calculator-ii",
+   "tag": "listed",
+   "note": "Company question list",
+   "source": "https://www.1point3acres.com/interview/problems/company/snapchat"
+  },
+  {
+   "lc": "course-schedule-ii",
+   "tag": "listed",
+   "note": "Company question list",
+   "source": "https://www.1point3acres.com/interview/problems/company/snapchat"
+  },
+  {
+   "lc": "smallest-range-covering-elements-from-k-lists",
+   "tag": "listed",
+   "note": "Company question list",
+   "source": "https://www.1point3acres.com/interview/problems/company/snapchat"
+  },
+  {
+   "lc": "map-sum-pairs",
+   "tag": "listed",
+   "note": "Company question list",
+   "source": "https://www.1point3acres.com/interview/problems/company/snapchat"
+  },
+  {
+   "lc": "copy-list-with-random-pointer",
+   "tag": "listed",
+   "note": "Prep site question bank",
+   "source": "https://interviewing.io/snap-interview-questions"
+  },
+  {
+   "title": "Design a Story feature with offline support",
+   "tag": "listed",
+   "note": "System design, onsite, prep guide",
+   "source": "https://prachub.com/interview-guide/snapchat-software-engineer-interview-guide"
+  },
+  {
+   "title": "Design a photo sharing service",
+   "tag": "listed",
+   "note": "System design, prep guide",
+   "source": "https://www.aced.io/guides/snap-software-engineer-interview"
+  }
+ ],
+ "sources": [
+  {
+   "label": "interviewing.io: Snap interview process",
+   "url": "https://interviewing.io/snap-interview-questions"
+  },
+  {
+   "label": "Exponent (aced.io): Snap software engineer guide",
+   "url": "https://www.aced.io/guides/snap-software-engineer-interview"
+  },
+  {
+   "label": "PracHub: Snapchat software engineer guide",
+   "url": "https://prachub.com/interview-guide/snapchat-software-engineer-interview-guide"
+  },
+  {
+   "label": "PracHub: Snapchat coding questions",
+   "url": "https://prachub.com/companies/snapchat/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "label": "1point3acres: Snapchat problem list",
+   "url": "https://www.1point3acres.com/interview/problems/company/snapchat"
+  },
+  {
+   "label": "Interview Experiences: Snap coding interview (2026)",
+   "url": "https://interviewexperiences.in/experience/snap/snap-inc-coding-interview"
+  },
+  {
+   "label": "Interview Experiences: Snap phone screen (2025)",
+   "url": "https://interviewexperiences.in/experience/snap/snap-phone-screen"
+  },
+  {
+   "label": "Interview Experiences: Snap staff phone screen (2025)",
+   "url": "https://interviewexperiences.in/experience/snap/snapusstaff-swe-phone-screen-interview"
+  },
+  {
+   "label": "1point3acres: Snapchat phone screen, LC 2097 (2024)",
+   "url": "https://www.1point3acres.com/interview/thread/1062856"
+  },
+  {
+   "label": "1point3acres: Snapchat phone screen, nested transactions (2025)",
+   "url": "https://www.1point3acres.com/interview/thread/1144774"
+  },
+  {
+   "label": "1point3acres: Snapchat phone screen, island perimeter (2026)",
+   "url": "https://www.1point3acres.com/interview/thread/1173400"
+  },
+  {
+   "label": "1point3acres: Snapchat SDE2 technical assessment (2026)",
+   "url": "https://www.1point3acres.com/interview/thread/1172826"
+  },
+  {
+   "label": "1point3acres: Snapchat L4 onsite (2026)",
+   "url": "https://www.1point3acres.com/interview/thread/1186053"
+  },
+  {
+   "label": "1point3acres: Snapchat phone screen format (2025)",
+   "url": "https://www.1point3acres.com/interview/thread/1110655"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time."
+}

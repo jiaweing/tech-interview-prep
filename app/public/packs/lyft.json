@@ -1,0 +1,207 @@
+{
+ "id": "lyft",
+ "name": "Lyft",
+ "role": "Software engineer",
+ "summary": "Candidates report a recruiter screen, a 60-minute coding screen, then an onsite with a 90-minute laptop round, a CS fundamentals coding round, system design and a hiring manager conversation. Laptop rounds often involve building an in-memory store or API that has to run.",
+ "rounds": [
+  {
+   "name": "Recruiter screen",
+   "kind": "behavioural",
+   "what": "Resume, interests and why Lyft.",
+   "practice": "dd-mock",
+   "source": "https://www.aced.io/guides/lyft-software-engineer-interview"
+  },
+  {
+   "name": "Technical phone screen",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "One medium coding problem on a shared pad.",
+   "practice": "leetcode",
+   "source": "https://roundz.substack.com/p/interview-experience-lyft-software-engineer-l4"
+  },
+  {
+   "name": "Laptop round",
+   "minutes": 90,
+   "kind": "coding",
+   "what": "Build a working solution on your own machine, demo it and hand in the project.",
+   "practice": "problems",
+   "source": "https://roundz.substack.com/p/interview-experience-lyft-software-engineer-l4"
+  },
+  {
+   "name": "CS fundamentals",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "One medium algorithm problem on a shared pad.",
+   "practice": "leetcode",
+   "source": "https://roundz.substack.com/p/interview-experience-lyft-software-engineer-l4"
+  },
+  {
+   "name": "System design",
+   "minutes": 60,
+   "kind": "design",
+   "what": "Design a large system with APIs, tables and rough capacity estimates.",
+   "practice": "sd-practice",
+   "source": "https://roundz.substack.com/p/interview-experience-lyft-software-engineer-l4"
+  },
+  {
+   "name": "Experience discussion",
+   "minutes": 45,
+   "kind": "behavioural",
+   "what": "Hiring manager round on past projects, teamwork and conflict.",
+   "practice": "dd-mock",
+   "source": "https://roundz.substack.com/p/interview-experience-lyft-software-engineer-l4"
+  }
+ ],
+ "tips": [
+  "In the laptop round, get a small version running first, then extend it.",
+  "Set up your editor and input/output handling before the laptop round.",
+  "Practise in-memory key-value stores with nested transactions and time-versioned reads; several reports describe this family.",
+  "In system design, cover the API, database tables and rough estimates.",
+  "Prepare examples tied to Lyft's values for the hiring manager round."
+ ],
+ "reported": [
+  {
+   "lc": "minimum-window-substring",
+   "tag": "reported",
+   "note": "CS fundamentals live coding, with minor changes",
+   "source": "https://www.glassdoor.sg/Interview/Live-coding-%E2%80%93-task-was-about-batch-reading-from-the-file-CS-fundamentals-Leetcode-76-Minimum-Window-Substring-with-mi-QTN_5687273.htm"
+  },
+  {
+   "title": "Batch reading from a file",
+   "tag": "reported",
+   "note": "Live coding round",
+   "source": "https://www.glassdoor.sg/Interview/Live-coding-%E2%80%93-task-was-about-batch-reading-from-the-file-CS-fundamentals-Leetcode-76-Minimum-Window-Substring-with-mi-QTN_5687273.htm"
+  },
+  {
+   "lc": "rotting-oranges",
+   "tag": "reported",
+   "note": "Technical screen, entry level (similar grid BFS problem)",
+   "source": "https://www.aced.io/experiences/lyft-software-engineer-interview-ddacc7"
+  },
+  {
+   "lc": "time-based-key-value-store",
+   "tag": "reported",
+   "note": "Laptop round, entry level, with delete at a timestamp",
+   "source": "https://www.aced.io/experiences/lyft-software-engineer-interview-ddacc7"
+  },
+  {
+   "title": "In-memory key-value store with nested transactions",
+   "tag": "reported",
+   "note": "90-minute coding round, senior",
+   "source": "https://www.teamblind.com/post/lyft-gave-me-90-minutes-to-build-nested-transactions-from-scratch-y3u1wxdq"
+  },
+  {
+   "title": "Key-value in-memory database",
+   "tag": "reported",
+   "note": "Onsite coding, new grad T4, 2026",
+   "source": "https://www.1point3acres.com/interview/thread/1176471"
+  },
+  {
+   "title": "Autocomplete system",
+   "tag": "reported",
+   "note": "Laptop coding, new grad onsite, 2026",
+   "source": "https://www.1point3acres.com/interview/thread/1196087"
+  },
+  {
+   "title": "Pagination API",
+   "tag": "reported",
+   "note": "Coding round, 2026",
+   "source": "https://www.1point3acres.com/interview/thread/1194222"
+  },
+  {
+   "title": "Parse command strings and handle test cases",
+   "tag": "reported",
+   "note": "Onsite coding, 2025",
+   "source": "https://www.1point3acres.com/interview/thread/1179810"
+  },
+  {
+   "title": "MultiStream class",
+   "tag": "reported",
+   "note": "Phone screen, 2024",
+   "source": "https://www.1point3acres.com/interview/thread/1044872"
+  },
+  {
+   "title": "Design a charity donation system",
+   "tag": "reported",
+   "note": "System design, new grad onsite, 2026",
+   "source": "https://www.1point3acres.com/interview/thread/1176471"
+  },
+  {
+   "lc": "read-n-characters-given-read4-ii-call-multiple-times",
+   "tag": "listed",
+   "note": "Question bank (character stream across repeated requests)",
+   "source": "https://prachub.com/companies/lyft/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "decode-ways",
+   "tag": "listed",
+   "note": "Question bank",
+   "source": "https://prachub.com/companies/lyft/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "validate-binary-search-tree",
+   "tag": "listed",
+   "note": "Question bank, 2026",
+   "source": "https://prachub.com/companies/lyft/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "construct-binary-search-tree-from-preorder-traversal",
+   "tag": "listed",
+   "note": "Question bank, 2026",
+   "source": "https://prachub.com/companies/lyft/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "title": "Assign tasks to the minimum number of workers",
+   "tag": "listed",
+   "note": "Question bank, 2026",
+   "source": "https://prachub.com/companies/lyft/positions/software-engineer/categories/coding-and-algorithms"
+  }
+ ],
+ "sources": [
+  {
+   "label": "Exponent (aced.io): Lyft software engineer guide",
+   "url": "https://www.aced.io/guides/lyft-software-engineer-interview"
+  },
+  {
+   "label": "Roundz: Lyft software engineer L4",
+   "url": "https://roundz.substack.com/p/interview-experience-lyft-software-engineer-l4"
+  },
+  {
+   "label": "Exponent (aced.io): Lyft entry-level experience",
+   "url": "https://www.aced.io/experiences/lyft-software-engineer-interview-ddacc7"
+  },
+  {
+   "label": "Glassdoor: Lyft question, minimum window substring",
+   "url": "https://www.glassdoor.sg/Interview/Live-coding-%E2%80%93-task-was-about-batch-reading-from-the-file-CS-fundamentals-Leetcode-76-Minimum-Window-Substring-with-mi-QTN_5687273.htm"
+  },
+  {
+   "label": "Blind: Lyft 90-minute nested transactions round",
+   "url": "https://www.teamblind.com/post/lyft-gave-me-90-minutes-to-build-nested-transactions-from-scratch-y3u1wxdq"
+  },
+  {
+   "label": "1point3acres: Lyft onsite, autocomplete (2026)",
+   "url": "https://www.1point3acres.com/interview/thread/1196087"
+  },
+  {
+   "label": "1point3acres: Lyft pagination API round (2026)",
+   "url": "https://www.1point3acres.com/interview/thread/1194222"
+  },
+  {
+   "label": "1point3acres: Lyft onsite, command parsing (2025)",
+   "url": "https://www.1point3acres.com/interview/thread/1179810"
+  },
+  {
+   "label": "1point3acres: Lyft T4 onsite (2026)",
+   "url": "https://www.1point3acres.com/interview/thread/1176471"
+  },
+  {
+   "label": "1point3acres: Lyft phone screen, MultiStream (2024)",
+   "url": "https://www.1point3acres.com/interview/thread/1044872"
+  },
+  {
+   "label": "PracHub: Lyft coding questions",
+   "url": "https://prachub.com/companies/lyft/positions/software-engineer/categories/coding-and-algorithms"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time."
+}

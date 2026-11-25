@@ -1,0 +1,212 @@
+{
+ "id": "robinhood",
+ "name": "Robinhood",
+ "role": "Software engineer",
+ "summary": "Candidates report a recruiter call, a technical screen (often run through Karat, sometimes CodeSignal), then an onsite of coding, system design, a past project review and a hiring manager round. Coding reports mix medium LeetCode-style problems with practical ones such as dependency graphs and share trading.",
+ "rounds": [
+  {
+   "name": "Recruiter call",
+   "minutes": 30,
+   "kind": "behavioural",
+   "what": "Work history, interest in Robinhood and role fit.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/robinhood-interview-questions"
+  },
+  {
+   "name": "Technical phone screen",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "About 30 minutes of coding, usually one or two medium problems, plus short system design questions; often run by Karat.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/robinhood-interview-questions"
+  },
+  {
+   "name": "Onsite coding",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Data structures and algorithms in CoderPad, with correctness weighted over scalability.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/robinhood-interview-questions"
+  },
+  {
+   "name": "System design",
+   "minutes": 60,
+   "kind": "design",
+   "what": "Usually two design rounds, one broad and one focused, often tied to trading or fintech products.",
+   "practice": "sd-practice",
+   "source": "https://interviewing.io/robinhood-interview-questions"
+  },
+  {
+   "name": "Past project review",
+   "minutes": 60,
+   "kind": "behavioural",
+   "what": "Walk through a prepared diagram of a past project and go deep on decisions.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/robinhood-interview-questions"
+  },
+  {
+   "name": "Hiring manager",
+   "minutes": 60,
+   "kind": "behavioural",
+   "what": "Behavioural and culture fit through role-related scenarios.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/robinhood-interview-questions"
+  }
+ ],
+ "tips": [
+  "Aim for correct, bug-free code first; reports say correctness matters more than scale in coding rounds.",
+  "Prepare your past project diagram early and be ready to defend each decision.",
+  "Practise graph problems such as dependency counting and topological sort.",
+  "Know Robinhood's products and core values, and why you want to work in fintech.",
+  "Karat interviewers are contractors, so save team questions for later rounds."
+ ],
+ "reported": [
+  {
+   "title": "Compute service load factors in a dependency graph",
+   "tag": "reported",
+   "note": "Tech phone screen, 2026, several reports",
+   "source": "https://www.1point3acres.com/interview/company/Robinhood"
+  },
+  {
+   "lc": "top-k-frequent-words",
+   "tag": "reported",
+   "note": "Tech phone screen with design follow-up, 2026",
+   "source": "https://www.1point3acres.com/interview/company/Robinhood"
+  },
+  {
+   "lc": "rotate-image",
+   "tag": "reported",
+   "note": "Rotate a matrix in place, 2026",
+   "source": "https://www.1point3acres.com/interview/company/Robinhood"
+  },
+  {
+   "title": "Design a market data API",
+   "tag": "reported",
+   "note": "Onsite system design, 2026",
+   "source": "https://www.1point3acres.com/interview/company/Robinhood"
+  },
+  {
+   "title": "Fractional share inventory management",
+   "tag": "reported",
+   "note": "Phone screen 2024 (L4) and coding round Oct 2025",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Robinhood"
+  },
+  {
+   "title": "Referral leaderboard from a referral tree",
+   "tag": "reported",
+   "note": "Round 1 coding, Aug 2025",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Robinhood"
+  },
+  {
+   "title": "Design a limit order entry system",
+   "tag": "reported",
+   "note": "Virtual onsite system design, Oct 2025",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Robinhood"
+  },
+  {
+   "title": "Design a job scheduling and execution service",
+   "tag": "reported",
+   "note": "Phone screen system design, Oct 2025",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Robinhood"
+  },
+  {
+   "lc": "course-schedule-ii",
+   "tag": "listed",
+   "note": "Course prerequisites topological sort",
+   "source": "https://www.1point3acres.com/interview/problems/company/robinhood"
+  },
+  {
+   "lc": "clone-graph",
+   "tag": "listed",
+   "note": "Coding",
+   "source": "https://www.1point3acres.com/interview/problems/company/robinhood"
+  },
+  {
+   "lc": "my-calendar-i",
+   "tag": "listed",
+   "note": "Calendar booking system",
+   "source": "https://www.1point3acres.com/interview/problems/company/robinhood"
+  },
+  {
+   "title": "Parse and validate user requests, output final balances",
+   "tag": "listed",
+   "note": "Coding",
+   "source": "https://www.1point3acres.com/interview/problems/company/robinhood"
+  },
+  {
+   "title": "Thread-safe order placement method",
+   "tag": "listed",
+   "note": "Coding",
+   "source": "https://www.1point3acres.com/interview/problems/company/robinhood"
+  },
+  {
+   "lc": "lru-cache",
+   "tag": "listed",
+   "note": "Coding",
+   "source": "https://cdo.som.yale.edu/blog/2025/09/12/get-a-job-at-robinhood-interview-process-and-top-questions/"
+  },
+  {
+   "lc": "best-time-to-buy-and-sell-stock-iii",
+   "tag": "listed",
+   "note": "Trade execution with at most two transactions",
+   "source": "https://cdo.som.yale.edu/blog/2025/09/12/get-a-job-at-robinhood-interview-process-and-top-questions/"
+  },
+  {
+   "title": "Pair buy and sell trades and compute profit",
+   "tag": "listed",
+   "note": "Coding",
+   "source": "https://cdo.som.yale.edu/blog/2025/09/12/get-a-job-at-robinhood-interview-process-and-top-questions/"
+  },
+  {
+   "title": "Return all unique substrings of a string",
+   "tag": "listed",
+   "note": "Coding",
+   "source": "https://cdo.som.yale.edu/blog/2025/09/12/get-a-job-at-robinhood-interview-process-and-top-questions/"
+  },
+  {
+   "title": "Design a live and historical stock quote API",
+   "tag": "listed",
+   "note": "System design, 2026",
+   "source": "https://prachub.com/companies/robinhood"
+  },
+  {
+   "title": "Design payment processing with idempotency and reconciliation",
+   "tag": "listed",
+   "note": "System design, 2026",
+   "source": "https://prachub.com/companies/robinhood"
+  },
+  {
+   "title": "Design a stock exchange or trading platform",
+   "tag": "listed",
+   "note": "System design",
+   "source": "https://interviewing.io/robinhood-interview-questions"
+  }
+ ],
+ "sources": [
+  {
+   "label": "interviewing.io: Robinhood interview process",
+   "url": "https://interviewing.io/robinhood-interview-questions"
+  },
+  {
+   "label": "Yale SOM CDO (Exponent): Robinhood interview guide, 2025",
+   "url": "https://cdo.som.yale.edu/blog/2025/09/12/get-a-job-at-robinhood-interview-process-and-top-questions/"
+  },
+  {
+   "label": "1point3acres: Robinhood interview reports",
+   "url": "https://www.1point3acres.com/interview/company/Robinhood"
+  },
+  {
+   "label": "1point3acres: Robinhood coding problems",
+   "url": "https://www.1point3acres.com/interview/problems/company/robinhood"
+  },
+  {
+   "label": "PracHub: Robinhood question list",
+   "url": "https://prachub.com/companies/robinhood"
+  },
+  {
+   "label": "CodingKaro: Robinhood LeetCode Discuss experiences",
+   "url": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Robinhood"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time."
+}

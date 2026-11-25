@@ -1,0 +1,194 @@
+{
+ "id": "shopify",
+ "name": "Shopify",
+ "role": "Software engineer",
+ "summary": "Shopify's own guide describes a Life Story conversation, a coding exercise, a pair-programming session and a technical deep dive. Recent candidates report pair-programming rounds where AI tools are allowed and problems such as a robot or rover command simulator grow in steps.",
+ "rounds": [
+  {
+   "name": "Recruiter call",
+   "minutes": 30,
+   "kind": "behavioural",
+   "what": "Interest in Shopify and an overview of the process.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/shopify-interview-questions"
+  },
+  {
+   "name": "Life Story",
+   "minutes": 60,
+   "kind": "behavioural",
+   "what": "Conversation with a recruiter about your personal and professional path, motivations and recurring themes.",
+   "practice": "dd-mock",
+   "source": "https://shopify.engineering/nail-your-technical-shopify-interview"
+  },
+  {
+   "name": "Coding exercise",
+   "minutes": 40,
+   "kind": "coding",
+   "what": "Paired problem in CoderPad aimed at a working solution, with edge cases discussed aloud.",
+   "practice": "leetcode",
+   "source": "https://shopify.engineering/nail-your-technical-shopify-interview"
+  },
+  {
+   "name": "Pair programming",
+   "minutes": 75,
+   "kind": "coding",
+   "what": "You drive while a Shopify developer observes; recent reports say AI tools are allowed and requirements are added over time.",
+   "practice": "problems",
+   "source": "https://interviewing.io/shopify-interview-questions"
+  },
+  {
+   "name": "Technical deep dive",
+   "minutes": 60,
+   "kind": "behavioural",
+   "what": "Discuss one or two past projects: impact, architecture, decisions, trade-offs and lessons.",
+   "practice": "dd-mock",
+   "source": "https://shopify.engineering/nail-your-technical-shopify-interview"
+  },
+  {
+   "name": "System design",
+   "minutes": 60,
+   "kind": "design",
+   "what": "Senior and staff only, and not always held: practical design tied to Shopify's business.",
+   "practice": "sd-practice",
+   "source": "https://interviewing.io/shopify-interview-questions"
+  }
+ ],
+ "tips": [
+  "Ask clarifying questions before coding and narrate your reasoning.",
+  "Run your code often; a working, thoughtful solution beats a polished but fragile one.",
+  "Structure code so new requirements can be added without a rewrite.",
+  "If AI tools are allowed, gather requirements first and review its output for bugs.",
+  "For the deep dive, pick team projects you remember well, not side projects."
+ ],
+ "reported": [
+  {
+   "title": "Robot or Mars rover command simulator, CLI, with obstacles and multiple robots",
+   "tag": "reported",
+   "note": "Tech phone screen, 2026, several reports",
+   "source": "https://www.1point3acres.com/interview/company/Shopify"
+  },
+  {
+   "lc": "bulls-and-cows",
+   "tag": "reported",
+   "note": "Pair programming, command-line game, Jan 2026",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Shopify"
+  },
+  {
+   "title": "Shopping cart total with discount strategies",
+   "tag": "reported",
+   "note": "Phone screen coding, 2021",
+   "source": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Shopify"
+  },
+  {
+   "title": "Ad frequency capping with eligibility checks",
+   "tag": "reported",
+   "note": "ML AI pair programming, 2026",
+   "source": "https://www.1point3acres.com/interview/company/Shopify"
+  },
+  {
+   "title": "Secret Santa matching with recipient exclusions",
+   "tag": "listed",
+   "note": "Coding, 2026",
+   "source": "https://prachub.com/companies/shopify"
+  },
+  {
+   "title": "Cart total with buy-X-get-Y and threshold discounts",
+   "tag": "listed",
+   "note": "Coding, 2026",
+   "source": "https://prachub.com/companies/shopify"
+  },
+  {
+   "title": "User with the most time on the platform in one day",
+   "tag": "listed",
+   "note": "Coding, 2026",
+   "source": "https://prachub.com/companies/shopify"
+  },
+  {
+   "title": "Rank products by tags shared with a user's interests",
+   "tag": "listed",
+   "note": "Coding, 2026",
+   "source": "https://prachub.com/companies/shopify"
+  },
+  {
+   "title": "Bank account class with self-written tests",
+   "tag": "listed",
+   "note": "Pair programming, 2026",
+   "source": "https://prachub.com/companies/shopify"
+  },
+  {
+   "lc": "lru-cache",
+   "tag": "listed",
+   "note": "Pair programming",
+   "source": "https://www.1point3acres.com/interview/problems/company/shopify"
+  },
+  {
+   "lc": "design-in-memory-file-system",
+   "tag": "listed",
+   "note": "With follow-up on locking",
+   "source": "https://interviewing.io/shopify-interview-questions"
+  },
+  {
+   "title": "Implement a URL shortener in an existing repository",
+   "tag": "listed",
+   "note": "Pair programming",
+   "source": "https://www.1point3acres.com/interview/problems/company/shopify"
+  },
+  {
+   "title": "Word guessing game with positional hints",
+   "tag": "listed",
+   "note": "Pair programming",
+   "source": "https://www.1point3acres.com/interview/problems/company/shopify"
+  },
+  {
+   "title": "Extensible text editor with multiple renderers",
+   "tag": "listed",
+   "note": "Pair programming",
+   "source": "https://www.1point3acres.com/interview/problems/company/shopify"
+  },
+  {
+   "title": "Order products by price with popularity as tiebreaker",
+   "tag": "listed",
+   "note": "Coding",
+   "source": "https://interviewing.io/shopify-interview-questions"
+  },
+  {
+   "title": "Retail discounting feature",
+   "tag": "listed",
+   "note": "Coding",
+   "source": "https://interviewing.io/shopify-interview-questions"
+  },
+  {
+   "title": "Design task distribution for warehouse workers",
+   "tag": "listed",
+   "note": "System design, senior",
+   "source": "https://interviewing.io/shopify-interview-questions"
+  }
+ ],
+ "sources": [
+  {
+   "label": "Shopify Engineering: Nail your technical interview (2022)",
+   "url": "https://shopify.engineering/nail-your-technical-shopify-interview"
+  },
+  {
+   "label": "interviewing.io: Shopify interview process",
+   "url": "https://interviewing.io/shopify-interview-questions"
+  },
+  {
+   "label": "1point3acres: Shopify interview reports",
+   "url": "https://www.1point3acres.com/interview/company/Shopify"
+  },
+  {
+   "label": "1point3acres: Shopify coding problems",
+   "url": "https://www.1point3acres.com/interview/problems/company/shopify"
+  },
+  {
+   "label": "PracHub: Shopify question list",
+   "url": "https://prachub.com/companies/shopify"
+  },
+  {
+   "label": "CodingKaro: Shopify LeetCode Discuss experiences",
+   "url": "https://www.codingkaro.in/jobs-internships/leetcode-interview-experience/Shopify"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time."
+}

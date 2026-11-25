@@ -1,0 +1,287 @@
+{
+ "id": "bytedance",
+ "name": "ByteDance / TikTok",
+ "role": "Software engineer",
+ "summary": "Candidates report an optional online assessment, one or two HackerRank coding screens that open with a resume or project discussion, then further coding rounds, a system design round and a behavioural or hiring manager round, often scheduled one at a time. Coding is mostly LeetCode medium, with some hard, under tight time.",
+ "rounds": [
+  {
+   "name": "Recruiter call",
+   "minutes": 30,
+   "kind": "behavioural",
+   "what": "Mostly informational: the process, your background and interest in the company.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/tiktok-interview-questions"
+  },
+  {
+   "name": "Online assessment (new grads, interns)",
+   "kind": "coding",
+   "what": "CodeSignal online assessment for some new grad and intern roles.",
+   "practice": "leetcode",
+   "source": "https://1point3acres.com/interview/company/tiktok"
+  },
+  {
+   "name": "Technical phone screen",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Resume and project questions, then one or two LeetCode-style problems on HackerRank.",
+   "practice": "leetcode",
+   "source": "https://www.1point3acres.com/interview/thread/1196857"
+  },
+  {
+   "name": "Further coding rounds",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Harder LeetCode-style coding with someone from the team, described as much harder than the first screen.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/tiktok-interview-questions"
+  },
+  {
+   "name": "System design",
+   "minutes": 60,
+   "kind": "design",
+   "what": "Large-system design with a hiring manager: scale, reliability and usability.",
+   "practice": "sd-practice",
+   "source": "https://interviewing.io/tiktok-interview-questions"
+  },
+  {
+   "name": "Behavioural / hiring manager",
+   "minutes": 60,
+   "kind": "behavioural",
+   "what": "Background, impactful projects and initiative; sometimes includes a coding problem.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/tiktok-interview-questions"
+  }
+ ],
+ "tips": [
+  "Be ready to solve two problems in a short window; one report had about 25 minutes for two.",
+  "Prepare a crisp project walkthrough; most screens open with resume and project questions.",
+  "Practise graph problems with topological sort and BFS; they recur in recent reports.",
+  "Some interviews run in China business hours and may be in Mandarin if you list it.",
+  "Rounds are often scheduled one per week; mention deadlines to the recruiter."
+ ],
+ "reported": [
+  {
+   "lc": "word-ladder",
+   "tag": "reported",
+   "note": "New grad phone screen, late 2026",
+   "source": "https://www.1point3acres.com/interview/thread/1194453"
+  },
+  {
+   "lc": "alien-dictionary",
+   "tag": "reported",
+   "note": "USDS intern phone screen, late 2026; a variant also reported Aug 2026",
+   "source": "https://www.1point3acres.com/interview/thread/1196857"
+  },
+  {
+   "lc": "sliding-window-maximum",
+   "tag": "reported",
+   "note": "Video interview, late 2026",
+   "source": "https://www.1point3acres.com/interview/thread/1194556"
+  },
+  {
+   "lc": "design-tic-tac-toe",
+   "tag": "reported",
+   "note": "E-commerce new grad phone screen, 2026, with complexity follow-ups",
+   "source": "https://www.1point3acres.com/interview/thread/1190694"
+  },
+  {
+   "lc": "sparse-matrix-multiplication",
+   "tag": "reported",
+   "note": "Phone screen, late 2026",
+   "source": "https://www.1point3acres.com/interview/thread/1194680"
+  },
+  {
+   "title": "Topological sort problem on HackerRank",
+   "tag": "reported",
+   "note": "USDS phone screen, late 2026",
+   "source": "https://www.1point3acres.com/interview/thread/1196697"
+  },
+  {
+   "lc": "find-median-from-data-stream",
+   "tag": "reported",
+   "note": "Onsite, 2026",
+   "source": "https://www.1point3acres.com/interview/thread/1193703"
+  },
+  {
+   "title": "Key-value store serialization",
+   "tag": "reported",
+   "note": "Onsite, 2026",
+   "source": "https://www.1point3acres.com/interview/thread/1193703"
+  },
+  {
+   "title": "Currency conversion system design",
+   "tag": "reported",
+   "note": "Onsite, 2026",
+   "source": "https://www.1point3acres.com/interview/thread/1193703"
+  },
+  {
+   "title": "Seller task scheduler with tier-weighted round robin",
+   "tag": "reported",
+   "note": "USDS coding round, Aug 2026",
+   "source": "https://prachub.com/interview-experiences/tiktok-software-engineer-interview-experience-three-weekly-usds-rounds-ending-in-rejection"
+  },
+  {
+   "lc": "non-overlapping-intervals",
+   "tag": "reported",
+   "note": "Hiring manager round, Aug 2026",
+   "source": "https://prachub.com/interview-experiences/tiktok-software-engineer-interview-experience-three-weekly-usds-rounds-ending-in-rejection"
+  },
+  {
+   "lc": "longest-substring-with-at-most-two-distinct-characters",
+   "tag": "reported",
+   "note": "Senior technical screen, Aug 2026",
+   "source": "https://prachub.com/interview-experiences/tiktok-senior-software-engineer-interview-experience-two-completed-problems-and-unexpected-ide-timeouts"
+  },
+  {
+   "lc": "restore-ip-addresses",
+   "tag": "reported",
+   "note": "Senior technical screen, Aug 2026",
+   "source": "https://prachub.com/interview-experiences/tiktok-senior-software-engineer-interview-experience-two-completed-problems-and-unexpected-ide-timeouts"
+  },
+  {
+   "title": "Design a ticket booking system with high concurrency and inventory control",
+   "tag": "reported",
+   "note": "New grad loop, 2026",
+   "source": "https://www.1point3acres.com/interview/thread/1192024"
+  },
+  {
+   "title": "Design a payment system",
+   "tag": "reported",
+   "note": "USDS onsite, 2026",
+   "source": "https://www.1point3acres.com/interview/thread/1192940"
+  },
+  {
+   "title": "Design LeetCode",
+   "tag": "listed",
+   "note": "System design, with logging of every user action",
+   "source": "https://interviewing.io/tiktok-interview-questions"
+  },
+  {
+   "title": "Logging system for 100k users across 5 services",
+   "tag": "listed",
+   "note": "System design",
+   "source": "https://interviewing.io/tiktok-interview-questions"
+  },
+  {
+   "lc": "making-a-large-island",
+   "tag": "listed",
+   "note": "Question bank",
+   "source": "https://prachub.com/companies/tiktok/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "all-oone-data-structure",
+   "tag": "listed",
+   "note": "String counts with min and max queries",
+   "source": "https://prachub.com/companies/tiktok/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "longest-mountain-in-array",
+   "tag": "listed",
+   "note": "Question bank",
+   "source": "https://prachub.com/companies/tiktok/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "maximum-width-of-binary-tree",
+   "tag": "listed",
+   "note": "Question bank, 2025",
+   "source": "https://prachub.com/companies/tiktok/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "longest-substring-with-at-least-k-repeating-characters",
+   "tag": "listed",
+   "note": "Question bank",
+   "source": "https://prachub.com/companies/tiktok/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "reverse-nodes-in-even-length-groups",
+   "tag": "listed",
+   "note": "Question bank, 2025",
+   "source": "https://prachub.com/companies/tiktok/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "lru-cache",
+   "tag": "listed",
+   "note": "Question bank, 2025",
+   "source": "https://prachub.com/companies/tiktok/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "lc": "find-first-and-last-position-of-element-in-sorted-array",
+   "tag": "listed",
+   "note": "Question bank, 2025",
+   "source": "https://prachub.com/companies/tiktok/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "title": "Match-3 board resolver",
+   "tag": "listed",
+   "note": "Question bank, 2025",
+   "source": "https://prachub.com/companies/tiktok/positions/software-engineer/categories/coding-and-algorithms"
+  }
+ ],
+ "sources": [
+  {
+   "label": "interviewing.io: TikTok interview process and questions",
+   "url": "https://interviewing.io/tiktok-interview-questions"
+  },
+  {
+   "label": "1point3acres: TikTok interview threads list",
+   "url": "https://1point3acres.com/interview/company/tiktok"
+  },
+  {
+   "label": "PracHub: TikTok SWE coding question bank",
+   "url": "https://prachub.com/companies/tiktok/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "label": "PracHub: TikTok USDS rounds, one per week (Aug 2026)",
+   "url": "https://prachub.com/interview-experiences/tiktok-software-engineer-interview-experience-three-weekly-usds-rounds-ending-in-rejection"
+  },
+  {
+   "label": "PracHub: TikTok senior technical screen (Aug 2026)",
+   "url": "https://prachub.com/interview-experiences/tiktok-senior-software-engineer-interview-experience-two-completed-problems-and-unexpected-ide-timeouts"
+  },
+  {
+   "label": "PracHub: TikTok screen with a 25 minute coding sprint (Jul 2026)",
+   "url": "https://prachub.com/interview-experiences/tiktok-software-engineer-interview-experience-late-reschedule-and-25-minute-coding-sprint-845ddc54c7"
+  },
+  {
+   "label": "1point3acres: ByteDance new grad phone screen, Word Ladder (2026)",
+   "url": "https://www.1point3acres.com/interview/thread/1194453"
+  },
+  {
+   "label": "1point3acres: TikTok USDS intern phone screen, Alien Dictionary (2026)",
+   "url": "https://www.1point3acres.com/interview/thread/1196857"
+  },
+  {
+   "label": "1point3acres: ByteDance video interview, LC 239 (2026)",
+   "url": "https://www.1point3acres.com/interview/thread/1194556"
+  },
+  {
+   "label": "1point3acres: ByteDance e-commerce phone screen, LC 348 (2026)",
+   "url": "https://www.1point3acres.com/interview/thread/1190694"
+  },
+  {
+   "label": "1point3acres: ByteDance phone screen, sparse matrix multiplication (2026)",
+   "url": "https://www.1point3acres.com/interview/thread/1194680"
+  },
+  {
+   "label": "1point3acres: ByteDance USDS phone screen, topological sort (2026)",
+   "url": "https://www.1point3acres.com/interview/thread/1196697"
+  },
+  {
+   "label": "1point3acres: ByteDance (TikTok) onsite (2026)",
+   "url": "https://www.1point3acres.com/interview/thread/1193703"
+  },
+  {
+   "label": "1point3acres: TikTok SWE coding and ticket booking design (2026)",
+   "url": "https://www.1point3acres.com/interview/thread/1192024"
+  },
+  {
+   "label": "1point3acres: ByteDance USDS onsite, payment system design (2026)",
+   "url": "https://www.1point3acres.com/interview/thread/1192940"
+  },
+  {
+   "label": "1point3acres: TikTok new grad onsite with three coding rounds (2026)",
+   "url": "https://www.1point3acres.com/interview/thread/1197084"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time."
+}

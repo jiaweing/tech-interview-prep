@@ -1,0 +1,256 @@
+{
+ "id": "adobe",
+ "name": "Adobe",
+ "role": "Software engineer",
+ "summary": "Candidates report a recruiter call, a hiring manager screen, an online coding assessment for some roles, and a final loop of four or five 45 to 60 minute rounds mixing data structures, design and a manager behavioural round. India MTS loops lean more on DSA, CS fundamentals and puzzles.",
+ "rounds": [
+  {
+   "name": "Recruiter call",
+   "minutes": 30,
+   "kind": "behavioural",
+   "what": "Background, resume and fit with the role.",
+   "practice": "dd-mock",
+   "source": "https://www.aced.io/companies/adobe"
+  },
+  {
+   "name": "Hiring manager screen",
+   "minutes": 45,
+   "kind": "behavioural",
+   "what": "Projects, a technical deep dive and team fit, occasionally with a light coding question.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/adobe-interview-questions"
+  },
+  {
+   "name": "Online assessment",
+   "minutes": 90,
+   "kind": "coding",
+   "what": "Two or three easy to medium DSA problems when required; some 2026 versions add a debugging or code review task.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/adobe-interview-questions"
+  },
+  {
+   "name": "Coding rounds",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Two or three DSA rounds on CoderPad, often opening with a resume project and ending with follow-ups on the same problem.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/adobe-interview-questions"
+  },
+  {
+   "name": "System or low-level design",
+   "minutes": 60,
+   "kind": "design",
+   "what": "A system or API design round plus, for many levels, a low-level design round.",
+   "practice": "sd-practice",
+   "source": "https://interviewing.io/adobe-interview-questions"
+  },
+  {
+   "name": "Manager behavioural",
+   "minutes": 60,
+   "kind": "behavioural",
+   "what": "No coding; accomplishments, pushback, working with product managers and career goals.",
+   "practice": "dd-mock",
+   "source": "https://prachub.com/interview-experiences/adobe-software-engineer-interview-experience-five-relaxed-rounds-built-around-oop-and-api-design"
+  }
+ ],
+ "tips": [
+  "Write clean, well-structured code and explain it; reports say clarity can outweigh a missed edge case.",
+  "Expect a follow-up on the same problem, such as a harder variant or a lower-space version.",
+  "Tie your projects to Adobe domains such as documents, creative tools and cloud scale.",
+  "For India MTS roles, also review OS basics, language specifics (C++ or JavaScript) and classic puzzles.",
+  "AI use during interviews is reported as not permitted."
+ ],
+ "reported": [
+  {
+   "lc": "lowest-common-ancestor-of-a-binary-tree",
+   "tag": "reported",
+   "note": "Onsite coding, Apr 2026, follow-up when a node is missing",
+   "source": "https://prachub.com/interview-experiences/adobe-software-engineer-interview-experience-five-relaxed-rounds-built-around-oop-and-api-design"
+  },
+  {
+   "lc": "next-permutation",
+   "tag": "reported",
+   "note": "Onsite coding, Apr 2026, then previous permutation",
+   "source": "https://prachub.com/interview-experiences/adobe-software-engineer-interview-experience-five-relaxed-rounds-built-around-oop-and-api-design"
+  },
+  {
+   "lc": "binary-tree-level-order-traversal",
+   "tag": "reported",
+   "note": "Warm-up in a design round, Apr 2026",
+   "source": "https://prachub.com/interview-experiences/adobe-software-engineer-interview-experience-five-relaxed-rounds-built-around-oop-and-api-design"
+  },
+  {
+   "title": "Design a generic tree traversal utility with lazy iteration",
+   "tag": "reported",
+   "note": "Coding and design round, Apr 2026",
+   "source": "https://prachub.com/interview-experiences/adobe-software-engineer-interview-experience-five-relaxed-rounds-built-around-oop-and-api-design"
+  },
+  {
+   "lc": "course-schedule",
+   "tag": "reported",
+   "note": "Onsite coding, AEP team, Jul 2025",
+   "source": "https://prachub.com/interview-experiences/adobe-software-engineer-interview-experience-four-rounds-team-shutdown-and-a-month-long-wait-for-rejection"
+  },
+  {
+   "title": "Word count over a large file, then at distributed scale",
+   "tag": "reported",
+   "note": "Onsite coding discussion, Jul 2025",
+   "source": "https://prachub.com/interview-experiences/adobe-software-engineer-interview-experience-four-rounds-team-shutdown-and-a-month-long-wait-for-rejection"
+  },
+  {
+   "lc": "evaluate-division",
+   "tag": "reported",
+   "note": "Online assessment, Jul 2026, unit conversion variant",
+   "source": "https://prachub.com/interview-experiences/adobe-software-engineer-interview-experience-unit-conversion-and-ticket-confirmation-debugging"
+  },
+  {
+   "title": "Fix the confirm-purchase flow in a Django and Redis ticketing app",
+   "tag": "reported",
+   "note": "Online assessment debugging part, Jul 2026",
+   "source": "https://prachub.com/interview-experiences/adobe-software-engineer-interview-experience-unit-conversion-and-ticket-confirmation-debugging"
+  },
+  {
+   "lc": "flatten-nested-list-iterator",
+   "tag": "reported",
+   "note": "Technical screen, Sep 2025, asked for better space",
+   "source": "https://prachub.com/interview-experiences/adobe-software-engineer-interview-experience-scala-trivia-then-a-surprise-leetcode-classic"
+  },
+  {
+   "lc": "basic-calculator",
+   "tag": "reported",
+   "note": "MTS C++ first round, India, Sep 2026",
+   "source": "https://leetcode.com/discuss/post/8569781/adobe-mts-c-software-engineer-india-sept-h6bk/"
+  },
+  {
+   "lc": "reverse-nodes-in-k-group",
+   "tag": "reported",
+   "note": "MTS-2 frontend loop, 2025, iterative O(1) space follow-up",
+   "source": "https://leetcode.com/discuss/post/6938276/"
+  },
+  {
+   "title": "Search a sorted 2D matrix, then restore order after an update",
+   "tag": "reported",
+   "note": "MTS-2 frontend loop, 2025",
+   "source": "https://leetcode.com/discuss/post/6938276/"
+  },
+  {
+   "lc": "count-number-of-pairs-with-absolute-difference-k",
+   "tag": "reported",
+   "note": "MTS-II coding round, 2026",
+   "source": "https://leetcode.com/discuss/post/8430934/"
+  },
+  {
+   "lc": "maximum-subarray",
+   "tag": "reported",
+   "note": "MTS-1 DSA round, Noida, Mar 2025",
+   "source": "https://static.glassdoor.at/Interview/Adobe-MTS-1-Interview-Questions-EI_IE1090.0,5_KO6,11.htm"
+  },
+  {
+   "lc": "find-the-index-of-the-first-occurrence-in-a-string",
+   "tag": "reported",
+   "note": "MTS-1 DSA round, Noida, Mar 2025, implement KMP",
+   "source": "https://static.glassdoor.at/Interview/Adobe-MTS-1-Interview-Questions-EI_IE1090.0,5_KO6,11.htm"
+  },
+  {
+   "title": "Design an internationalisation system for product text",
+   "tag": "reported",
+   "note": "System and API design, Apr 2026",
+   "source": "https://prachub.com/interview-experiences/adobe-software-engineer-interview-experience-five-relaxed-rounds-built-around-oop-and-api-design"
+  },
+  {
+   "title": "Design a service to upload and embed documents, images and video",
+   "tag": "reported",
+   "note": "System design, Jul 2025",
+   "source": "https://prachub.com/interview-experiences/adobe-software-engineer-interview-experience-four-rounds-team-shutdown-and-a-month-long-wait-for-rejection"
+  },
+  {
+   "lc": "edit-distance",
+   "tag": "listed",
+   "note": "Listed in a prep guide",
+   "source": "https://interviewing.io/adobe-interview-questions"
+  },
+  {
+   "lc": "design-file-system",
+   "tag": "listed",
+   "note": "Prep guide: insertPath and pathExists over file paths",
+   "source": "https://interviewing.io/adobe-interview-questions"
+  },
+  {
+   "lc": "lru-cache",
+   "tag": "listed",
+   "note": "Listed in a prep guide",
+   "source": "https://www.aced.io/companies/adobe"
+  },
+  {
+   "lc": "continuous-subarray-sum",
+   "tag": "listed",
+   "note": "Listed in a prep guide",
+   "source": "https://www.aced.io/companies/adobe"
+  },
+  {
+   "lc": "binary-tree-maximum-path-sum",
+   "tag": "listed",
+   "note": "Adobe problem list",
+   "source": "https://www.1point3acres.com/interview/problems/company/adobe"
+  },
+  {
+   "lc": "subarrays-with-k-different-integers",
+   "tag": "listed",
+   "note": "Adobe problem list",
+   "source": "https://www.1point3acres.com/interview/problems/company/adobe"
+  },
+  {
+   "lc": "group-anagrams",
+   "tag": "listed",
+   "note": "Adobe problem list and prep guide",
+   "source": "https://www.1point3acres.com/interview/problems/company/adobe"
+  }
+ ],
+ "sources": [
+  {
+   "label": "interviewing.io: Adobe interview process and questions",
+   "url": "https://interviewing.io/adobe-interview-questions"
+  },
+  {
+   "label": "Exponent (aced.io): Adobe interview process",
+   "url": "https://www.aced.io/companies/adobe"
+  },
+  {
+   "label": "PracHub: five rounds around OOP and API design, Apr 2026",
+   "url": "https://prachub.com/interview-experiences/adobe-software-engineer-interview-experience-five-relaxed-rounds-built-around-oop-and-api-design"
+  },
+  {
+   "label": "PracHub: four rounds on the AEP team, Jul 2025",
+   "url": "https://prachub.com/interview-experiences/adobe-software-engineer-interview-experience-four-rounds-team-shutdown-and-a-month-long-wait-for-rejection"
+  },
+  {
+   "label": "PracHub: unit conversion and debugging assessment, Jul 2026",
+   "url": "https://prachub.com/interview-experiences/adobe-software-engineer-interview-experience-unit-conversion-and-ticket-confirmation-debugging"
+  },
+  {
+   "label": "PracHub: Scala trivia and nested list screen, Sep 2025",
+   "url": "https://prachub.com/interview-experiences/adobe-software-engineer-interview-experience-scala-trivia-then-a-surprise-leetcode-classic"
+  },
+  {
+   "label": "LeetCode Discuss: Adobe MTS C++, India, Sep 2026",
+   "url": "https://leetcode.com/discuss/post/8569781/adobe-mts-c-software-engineer-india-sept-h6bk/"
+  },
+  {
+   "label": "LeetCode Discuss: Adobe MTS 2 frontend experience",
+   "url": "https://leetcode.com/discuss/post/6938276/"
+  },
+  {
+   "label": "LeetCode Discuss: Adobe MTS-II experience",
+   "url": "https://leetcode.com/discuss/post/8430934/"
+  },
+  {
+   "label": "Glassdoor: Adobe MTS-1 interview questions",
+   "url": "https://static.glassdoor.at/Interview/Adobe-MTS-1-Interview-Questions-EI_IE1090.0,5_KO6,11.htm"
+  },
+  {
+   "label": "1point3acres: Adobe interview problems",
+   "url": "https://www.1point3acres.com/interview/problems/company/adobe"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time."
+}

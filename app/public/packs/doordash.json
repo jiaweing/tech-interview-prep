@@ -1,0 +1,286 @@
+{
+ "id": "doordash",
+ "name": "DoorDash",
+ "role": "Software engineer",
+ "summary": "Candidates report a coding phone screen, then an onsite that mixes algorithm coding with practical rounds: Code Craft (build a small feature such as Dasher pay), debugging an unfamiliar codebase, system design with a domain discussion, and a hiring manager round.",
+ "rounds": [
+  {
+   "name": "Recruiter call",
+   "minutes": 30,
+   "kind": "behavioural",
+   "what": "Experience, interest in DoorDash and role fit.",
+   "practice": "dd-mock",
+   "source": "https://interviewing.io/doordash-interview-questions"
+  },
+  {
+   "name": "Technical phone screen",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Usually one LeetCode-medium style problem, often with a delivery twist, in HackerRank CodePair.",
+   "practice": "leetcode",
+   "source": "https://interviewing.io/doordash-interview-questions"
+  },
+  {
+   "name": "Onsite coding",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Algorithm problems with follow-up variants, such as tree path sums or string problems.",
+   "practice": "leetcode",
+   "source": "https://roundz.substack.com/p/interview-experience-89-doordash-sde"
+  },
+  {
+   "name": "Code Craft",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Build a small working feature, such as a pay calculator, with clean structure and tests.",
+   "practice": "problems",
+   "source": "https://www.techinterview.org/post/3233476844/doordash-software-engineer-interview/"
+  },
+  {
+   "name": "Debugging",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Find and fix logic bugs in a small existing service, then discuss tests and optimisation.",
+   "practice": "problems",
+   "source": "https://interviewexperiences.in/experience/doordash/usa-doordash-debugging-onsite"
+  },
+  {
+   "name": "System design and domain knowledge",
+   "minutes": 60,
+   "kind": "design",
+   "what": "A past-project discussion plus a design prompt; payments, scheduling and reviews come up.",
+   "practice": "sd-practice",
+   "source": "https://roundz.substack.com/p/interview-experience-89-doordash-sde"
+  },
+  {
+   "name": "Hiring manager",
+   "minutes": 45,
+   "kind": "behavioural",
+   "what": "Behavioural and team fit questions built around DoorDash values.",
+   "practice": "dd-mock",
+   "source": "https://roundz.substack.com/p/interview-experience-89-doordash-sde"
+  },
+  {
+   "name": "AI Code Craft (pilot)",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Seen in a late 2026 E4 loop: build a feature with an AI coding agent, graded on judgment and validation.",
+   "practice": "problems",
+   "source": "https://interviewexperiences.in/experience/doordash/doordash-e4-full-stack-oct-2026"
+  }
+ ],
+ "tips": [
+  "Practise grid BFS, interval scheduling and tree problems with a delivery twist.",
+  "In Code Craft, structure the code, run it, and call out edge cases such as overlapping deliveries.",
+  "For debugging rounds, practise reading unfamiliar code quickly and explaining each fix.",
+  "In system design, cover idempotency, retries and failure handling for payment-style flows.",
+  "Do not use AI tools unless the round explicitly allows it."
+ ],
+ "reported": [
+  {
+   "lc": "maximum-profit-in-job-scheduling",
+   "tag": "reported",
+   "note": "Phone screen, 2025, with Dasher start and end times added",
+   "source": "https://roundz.substack.com/p/interview-experience-89-doordash-sde"
+  },
+  {
+   "lc": "buddy-strings",
+   "tag": "reported",
+   "note": "Onsite coding, 2025",
+   "source": "https://roundz.substack.com/p/interview-experience-89-doordash-sde"
+  },
+  {
+   "lc": "minimum-number-of-steps-to-make-two-strings-anagram",
+   "tag": "reported",
+   "note": "Onsite coding, 2025 (k-anagrams variant)",
+   "source": "https://roundz.substack.com/p/interview-experience-89-doordash-sde"
+  },
+  {
+   "lc": "binary-tree-maximum-path-sum",
+   "tag": "reported",
+   "note": "Phone screen, 2025, variant with live leaf nodes",
+   "source": "https://interviewexperiences.in/experience/doordash/doordash-swe-phone-screen-rejected"
+  },
+  {
+   "lc": "lru-cache",
+   "tag": "reported",
+   "note": "Phone screen, E4, 2025, modified for Dasher lookups",
+   "source": "https://interviewexperiences.in/experience/doordash/doordash-phone-screen-usa-e4-rejected"
+  },
+  {
+   "title": "Closest DashMart for every grid cell (BFS)",
+   "tag": "reported",
+   "note": "Phone screen, 2025",
+   "source": "https://interviewexperiences.in/experience/doordash/doordash-phone-interview"
+  },
+  {
+   "title": "Nearest Dasher to a location (BFS)",
+   "tag": "reported",
+   "note": "Onsite coding, senior, 2026",
+   "source": "https://interviewexperiences.in/experience/doordash/doordash-senior-engineer-details-about-code-craft-and-system-design-1"
+  },
+  {
+   "title": "Maximise calories within a budget (knapsack)",
+   "tag": "reported",
+   "note": "Phone screen, E4, 2025",
+   "source": "https://interviewexperiences.in/experience/doordash/doordash-phone-screen-usa-e4-rejected-1"
+  },
+  {
+   "title": "Time to flood a whole tree",
+   "tag": "reported",
+   "note": "Phone screen, 2025",
+   "source": "https://interviewexperiences.in/experience/doordash/doordash-phone-screen-and-virtual-onsite-interview-2025"
+  },
+  {
+   "title": "Nearest coordinate lookup (hash map and binary search)",
+   "tag": "reported",
+   "note": "Technical screen, SDE2 equivalent, 2026",
+   "source": "https://interviewexperiences.in/experience/doordash/doordash-interview-experience-rejected"
+  },
+  {
+   "title": "Menu tree diff: count changed nodes",
+   "tag": "reported",
+   "note": "Phone screen, staff, 2022",
+   "source": "https://leetcode.com/discuss/interview-experience/2778755/"
+  },
+  {
+   "title": "Dasher payout endpoint",
+   "tag": "reported",
+   "note": "Code Craft, mid level, 2025",
+   "source": "https://interviewexperiences.in/experience/doordash/usa-doordash-code-craft-round"
+  },
+  {
+   "title": "Backend API aggregation with partial failure",
+   "tag": "reported",
+   "note": "Code Craft, E4, 2026",
+   "source": "https://interviewexperiences.in/experience/doordash/doordash-e4-full-stack-oct-2026"
+  },
+  {
+   "title": "Fetch and render a responsive card grid",
+   "tag": "reported",
+   "note": "Frontend screen, E4 full stack, 2026",
+   "source": "https://interviewexperiences.in/experience/doordash/doordash-e4-full-stack-oct-2026"
+  },
+  {
+   "title": "Debug a round-robin network router",
+   "tag": "reported",
+   "note": "Debugging round, 2025",
+   "source": "https://interviewexperiences.in/experience/doordash/doordash-phone-screen-and-virtual-onsite-interview-2025"
+  },
+  {
+   "title": "Debug a mock Dasher assignment service",
+   "tag": "reported",
+   "note": "Debugging round, 2025",
+   "source": "https://interviewexperiences.in/experience/doordash/usa-doordash-debugging-onsite"
+  },
+  {
+   "title": "Design a donation platform for a 3-day event",
+   "tag": "reported",
+   "note": "System design, 2025",
+   "source": "https://roundz.substack.com/p/interview-experience-89-doordash-sde"
+  },
+  {
+   "title": "Design a food review app",
+   "tag": "reported",
+   "note": "System design, 2025",
+   "source": "https://interviewexperiences.in/experience/doordash/doordash-phone-screen-and-virtual-onsite-interview-2025"
+  },
+  {
+   "title": "Design a job scheduler",
+   "tag": "reported",
+   "note": "System design, SDE2 equivalent, 2026",
+   "source": "https://interviewexperiences.in/experience/doordash/doordash-interview-experience-rejected"
+  },
+  {
+   "title": "Design an ads click aggregator",
+   "tag": "reported",
+   "note": "System design, backend, 2025",
+   "source": "https://interviewexperiences.in/experience/doordash/doordash-backend-interview-experience-reject"
+  },
+  {
+   "lc": "count-all-valid-pickup-and-delivery-options",
+   "tag": "listed",
+   "note": "Prep article, candidate-reported question",
+   "source": "https://www.techinterview.org/post/3233476844/doordash-software-engineer-interview/"
+  },
+  {
+   "lc": "design-hashmap",
+   "tag": "listed",
+   "note": "Prep article, candidate-reported question",
+   "source": "https://www.techinterview.org/post/3233476844/doordash-software-engineer-interview/"
+  },
+  {
+   "title": "Round-robin load balancer",
+   "tag": "listed",
+   "note": "Question bank, senior, 2025",
+   "source": "https://prachub.com/companies/doordash/positions/software-engineer/categories/coding-and-algorithms"
+  }
+ ],
+ "sources": [
+  {
+   "label": "interviewing.io: DoorDash interview process",
+   "url": "https://interviewing.io/doordash-interview-questions"
+  },
+  {
+   "label": "techinterview.org: DoorDash engineering interview",
+   "url": "https://www.techinterview.org/post/3233476844/doordash-software-engineer-interview/"
+  },
+  {
+   "label": "PracHub: DoorDash coding questions",
+   "url": "https://prachub.com/companies/doordash/positions/software-engineer/categories/coding-and-algorithms"
+  },
+  {
+   "label": "Roundz: DoorDash SDE (2025)",
+   "url": "https://roundz.substack.com/p/interview-experience-89-doordash-sde"
+  },
+  {
+   "label": "Interview Experiences: DoorDash E4 full stack, Oct 2026",
+   "url": "https://interviewexperiences.in/experience/doordash/doordash-e4-full-stack-oct-2026"
+  },
+  {
+   "label": "Interview Experiences: DoorDash phone screen and onsite 2025",
+   "url": "https://interviewexperiences.in/experience/doordash/doordash-phone-screen-and-virtual-onsite-interview-2025"
+  },
+  {
+   "label": "Interview Experiences: DoorDash backend SDE2, rejected (2026)",
+   "url": "https://interviewexperiences.in/experience/doordash/doordash-interview-experience-rejected"
+  },
+  {
+   "label": "Interview Experiences: DoorDash backend, rejected (2025)",
+   "url": "https://interviewexperiences.in/experience/doordash/doordash-backend-interview-experience-reject"
+  },
+  {
+   "label": "Interview Experiences: DoorDash phone interview, Closest DashMart",
+   "url": "https://interviewexperiences.in/experience/doordash/doordash-phone-interview"
+  },
+  {
+   "label": "Interview Experiences: DoorDash SWE phone screen, path sum",
+   "url": "https://interviewexperiences.in/experience/doordash/doordash-swe-phone-screen-rejected"
+  },
+  {
+   "label": "Interview Experiences: DoorDash E4 phone screen, calories",
+   "url": "https://interviewexperiences.in/experience/doordash/doordash-phone-screen-usa-e4-rejected-1"
+  },
+  {
+   "label": "Interview Experiences: DoorDash E4 phone screen, LRU",
+   "url": "https://interviewexperiences.in/experience/doordash/doordash-phone-screen-usa-e4-rejected"
+  },
+  {
+   "label": "Interview Experiences: DoorDash Code Craft round",
+   "url": "https://interviewexperiences.in/experience/doordash/usa-doordash-code-craft-round"
+  },
+  {
+   "label": "Interview Experiences: DoorDash debugging onsite",
+   "url": "https://interviewexperiences.in/experience/doordash/usa-doordash-debugging-onsite"
+  },
+  {
+   "label": "Interview Experiences: DoorDash senior engineer",
+   "url": "https://interviewexperiences.in/experience/doordash/doordash-senior-engineer-details-about-code-craft-and-system-design-1"
+  },
+  {
+   "label": "LeetCode Discuss: DoorDash staff onsite, Oct 2022",
+   "url": "https://leetcode.com/discuss/interview-experience/2778755/"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time."
+}

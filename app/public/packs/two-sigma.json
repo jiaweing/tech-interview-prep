@@ -1,0 +1,184 @@
+{
+ "id": "two-sigma",
+ "name": "Two Sigma",
+ "role": "Software engineer",
+ "summary": "Two Sigma describes up to three rounds of 60-minute code-pair technical interviews, followed by interviews about your experience and interests. Candidates also report a recruiter screen and a HackerRank online assessment before the technical rounds.",
+ "rounds": [
+  {
+   "name": "Recruiter screen",
+   "kind": "behavioural",
+   "what": "Motivation, interest in finance and technology, past projects and other processes.",
+   "practice": "dd-mock",
+   "source": "https://www.aced.io/experiences/two-sigma-senior-software-engineer-interview-46a3f5"
+  },
+  {
+   "name": "Online assessment",
+   "kind": "coding",
+   "what": "HackerRank test with LeetCode-style problems; one report also had short multiple-choice questions.",
+   "practice": "leetcode",
+   "source": "https://www.aced.io/experiences/two-sigma-senior-software-engineer-interview-46a3f5"
+  },
+  {
+   "name": "Technical interviews",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Code-pair sessions in C, C++, Java or Python on data structures, algorithms, OO design and concurrency, sometimes with a design exercise.",
+   "practice": "leetcode",
+   "source": "https://www.twosigma.com/careers/interviewing-at-two-sigma/interviewing-for-software-engineering/"
+  },
+  {
+   "name": "Experience interviews",
+   "minutes": 60,
+   "kind": "behavioural",
+   "what": "Discussion of past projects and contributions; you may decline to discuss confidential work.",
+   "practice": "dd-mock",
+   "source": "https://www.twosigma.com/careers/interviewing-at-two-sigma/interviewing-for-software-engineering/"
+  }
+ ],
+ "tips": [
+  "Analyse the problem before coding and ask for clarification when needed.",
+  "Consider memory and performance; Two Sigma notes brute force is not always enough.",
+  "Interviewers give hints if you are stuck, so keep talking.",
+  "Two Sigma says AI tools are strictly prohibited during interviews.",
+  "Prepare to discuss your past projects in depth."
+ ],
+ "reported": [
+  {
+   "title": "Parse and merge log streams",
+   "tag": "reported",
+   "note": "Final round coding, senior",
+   "source": "https://www.aced.io/experiences/two-sigma-senior-software-engineer-interview-46a3f5"
+  },
+  {
+   "title": "Merge inputs from several sources into a company feed",
+   "tag": "reported",
+   "note": "Final round system design, senior",
+   "source": "https://www.aced.io/experiences/two-sigma-senior-software-engineer-interview-46a3f5"
+  },
+  {
+   "title": "Order matching engine",
+   "tag": "reported",
+   "note": "Technical screen on HackerRank, quantitative software engineer",
+   "source": "https://prachub.com/companies/two-sigma"
+  },
+  {
+   "title": "Huffman-style encoding problem",
+   "tag": "reported",
+   "note": "Technical screen, software engineer, rejected after one round",
+   "source": "https://prachub.com/companies/two-sigma"
+  },
+  {
+   "title": "Match limit orders with price-time priority",
+   "tag": "listed",
+   "note": "Candidate-sourced question bank, 2026",
+   "source": "https://prachub.com/companies/two-sigma/positions/software-engineer"
+  },
+  {
+   "title": "Implement an in-memory database",
+   "tag": "listed",
+   "note": "Candidate-sourced question bank, 2026",
+   "source": "https://prachub.com/companies/two-sigma/positions/software-engineer"
+  },
+  {
+   "title": "Binary encode and decode with a frequency tree",
+   "tag": "listed",
+   "note": "Candidate-sourced question bank, 2025",
+   "source": "https://prachub.com/companies/two-sigma/positions/software-engineer"
+  },
+  {
+   "title": "Encode root-to-leaf paths as left/right bit strings",
+   "tag": "listed",
+   "note": "Candidate-sourced question bank, 2026",
+   "source": "https://prachub.com/companies/two-sigma/positions/software-engineer"
+  },
+  {
+   "title": "Shortest exit from a grid maze with timed walls and teleporters",
+   "tag": "listed",
+   "note": "Candidate-sourced question bank, 2026",
+   "source": "https://prachub.com/companies/two-sigma/positions/software-engineer"
+  },
+  {
+   "lc": "ipo",
+   "tag": "listed",
+   "note": "Candidate-sourced question bank, 2025",
+   "source": "https://prachub.com/companies/two-sigma/positions/software-engineer"
+  },
+  {
+   "lc": "design-hashmap",
+   "tag": "listed",
+   "note": "Hash map with separate chaining and resizing, 2025",
+   "source": "https://prachub.com/companies/two-sigma/positions/software-engineer"
+  },
+  {
+   "lc": "house-robber-iii",
+   "tag": "listed",
+   "note": "Candidate-sourced question bank",
+   "source": "https://prachub.com/companies/two-sigma/positions/software-engineer"
+  },
+  {
+   "title": "Best currency exchange rate across a rate graph",
+   "tag": "listed",
+   "note": "Candidate-sourced question bank, 2025",
+   "source": "https://prachub.com/companies/two-sigma/positions/software-engineer"
+  },
+  {
+   "title": "All subsequences after deleting one character",
+   "tag": "listed",
+   "note": "Candidate-sourced question bank, 2025",
+   "source": "https://prachub.com/companies/two-sigma/positions/software-engineer"
+  },
+  {
+   "title": "Autoscale a server fleet from throughput readings",
+   "tag": "listed",
+   "note": "Candidate-sourced question bank, 2025",
+   "source": "https://prachub.com/companies/two-sigma/positions/software-engineer"
+  },
+  {
+   "lc": "word-search-ii",
+   "tag": "listed",
+   "note": "Candidate-sourced question bank",
+   "source": "https://prachub.com/companies/two-sigma/positions/software-engineer?page=2"
+  },
+  {
+   "lc": "multiply-strings",
+   "tag": "listed",
+   "note": "Candidate-sourced question bank",
+   "source": "https://prachub.com/companies/two-sigma/positions/software-engineer?page=2"
+  },
+  {
+   "lc": "random-pick-with-weight",
+   "tag": "listed",
+   "note": "Candidate-sourced question bank",
+   "source": "https://prachub.com/companies/two-sigma/positions/software-engineer?page=2"
+  },
+  {
+   "lc": "make-array-zero-by-subtracting-equal-amounts",
+   "tag": "listed",
+   "note": "Candidate-sourced question bank, 2026",
+   "source": "https://prachub.com/companies/two-sigma/positions/software-engineer?page=2"
+  }
+ ],
+ "sources": [
+  {
+   "label": "Two Sigma: interviewing for software engineering",
+   "url": "https://www.twosigma.com/careers/interviewing-at-two-sigma/interviewing-for-software-engineering/"
+  },
+  {
+   "label": "Aced: Two Sigma senior software engineer interview experience",
+   "url": "https://www.aced.io/experiences/two-sigma-senior-software-engineer-interview-46a3f5"
+  },
+  {
+   "label": "PracHub: Two Sigma interview reports",
+   "url": "https://prachub.com/companies/two-sigma"
+  },
+  {
+   "label": "PracHub: Two Sigma software engineer questions",
+   "url": "https://prachub.com/companies/two-sigma/positions/software-engineer"
+  },
+  {
+   "label": "PracHub: Two Sigma software engineer questions, page 2",
+   "url": "https://prachub.com/companies/two-sigma/positions/software-engineer?page=2"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time."
+}
