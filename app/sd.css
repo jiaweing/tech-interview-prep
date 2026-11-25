@@ -953,3 +953,5 @@ body.iv-full-on { overflow: hidden; }
 .me-sync { margin: 10px 0 0; font-size: 13px; }
 .m-back { position: absolute; top: 16px; left: 10px; z-index: 30; }
 .m-back .btn { margin: 0 !important; }
+/* phones: the label is hidden, so centre the icon */
+@media (max-width: 600px) { .yt-btn { padding: 0 7px; gap: 0; } }
