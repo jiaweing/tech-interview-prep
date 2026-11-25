@@ -1,0 +1,527 @@
+{
+ "id": "insert-interval",
+ "title": "Insert Interval",
+ "pattern": "intervals",
+ "fine": "Intervals",
+ "level": "medium",
+ "statement": "<p>A calendar service stores a person's busy time as a list of blocks <code>[start, end]</code> (minutes since midnight). The list is sorted by <code>start</code>, and no two blocks overlap or touch. A new booking <code>new_interval</code> arrives.</p><p>Write <code>def solution(intervals, new_interval)</code> that adds the booking and returns the updated list, still sorted and with no overlapping or touching blocks. Merge the booking with every block it overlaps. Blocks are closed: <code>[1, 3]</code> and <code>[3, 5]</code> share minute 3, so they become <code>[1, 5]</code>. Return a new list; each block is a two-element list.</p>",
+ "examples": [
+  {
+   "input": "intervals = [[1, 3], [6, 9]], new_interval = [2, 5]",
+   "output": "[[1, 5], [6, 9]]",
+   "why": "The LeetCode 57 example 1. [2, 5] overlaps [1, 3], giving [1, 5]."
+  },
+  {
+   "input": "intervals = [[1, 2], [3, 5], [6, 7], [8, 10], [12, 16]], new_interval = [4, 8]",
+   "output": "[[1, 2], [3, 10], [12, 16]]",
+   "why": "The LeetCode 57 example 2. The booking overlaps [3, 5], [6, 7] and [8, 10]."
+  },
+  {
+   "input": "intervals = [], new_interval = [5, 7]",
+   "output": "[[5, 7]]",
+   "why": "No busy blocks yet."
+  }
+ ],
+ "constraints": [
+  "0 &le; len(intervals) &le; 50,000",
+  "0 &le; start &le; end &le; 10^6 for every block and for <code>new_interval</code>",
+  "<code>intervals</code> is sorted by start; for consecutive blocks, the first one's end &lt; the next one's start"
+ ],
+ "starter": "def solution(intervals, new_interval):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "Which blocks change when the booking arrives?",
+   "a": "Only the blocks that overlap the booking. Blocks that end before it starts stay as they are, and so do blocks that start after it ends. The overlapping ones form one run in the sorted list, and they all collapse into a single block together with the booking."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Insert <code>[4, 8]</code> into <code>[[1, 2], [3, 5], [6, 7], [8, 10], [12, 16]]</code>.",
+   "a": "<code>[1, 2]</code> ends at 2 &lt; 4: keep it. <code>[3, 5]</code> overlaps: the merged block becomes <code>[3, 8]</code>. <code>[6, 7]</code> overlaps: still <code>[3, 8]</code>. <code>[8, 10]</code> starts at 8 &le; 8: overlaps, becomes <code>[3, 10]</code>. <code>[12, 16]</code> starts after 10: emit <code>[3, 10]</code>, then keep <code>[12, 16]</code>. Answer <code>[[1, 2], [3, 10], [12, 16]]</code>."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first idea that works?",
+   "a": "Add the booking to the list, then repeatedly look for any two blocks that overlap and merge them, starting over after each merge, until no pair overlaps. Then sort. Each search is O(n^2) pairs and there can be n merges, so it is very slow. Appending and re-running the full 'sort and merge' algorithm is better at O(n log n), but it ignores that the list is already sorted."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Which pattern?",
+   "a": "<b>Intervals: one linear sweep in three phases.</b> Because the list is sorted and disjoint, walk it once: copy blocks that end before the booking starts, absorb every block that starts no later than the booking's current end, then copy the rest. Two blocks <code>[a, b]</code> and <code>[c, d]</code> overlap exactly when <code>a &le; d</code> and <code>c &le; b</code>."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li><code>i = 0</code>, <code>out = []</code>, <code>lo, hi = new_interval</code>.</li><li>While <code>intervals[i]</code> ends before <code>lo</code>: copy it, <code>i += 1</code>.</li><li>While <code>intervals[i]</code> starts at or before <code>hi</code>: set <code>lo = min(lo, start)</code>, <code>hi = max(hi, end)</code>, <code>i += 1</code>.</li><li>Append <code>[lo, hi]</code>, then copy every remaining block.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "An empty list. A booking before every block, or after every block. A booking that touches a block at one point (it merges). A booking inside one block (no change). A booking that swallows every block. A booking that falls in a gap without touching anything. A zero-length booking such as <code>[5, 5]</code>."
+  }
+ ],
+ "hints": [
+  "The list is sorted and its blocks do not overlap. Which blocks can the new booking possibly touch?",
+  "Split the list into three runs: blocks fully before the booking, blocks that overlap it, and blocks fully after it. Only the middle run changes.",
+  "A block is fully before when its end &lt; the booking's start. While a block's start &le; the booking's (growing) end, widen the booking with <code>min</code> and <code>max</code>."
+ ],
+ "solution": "def solution(intervals, new_interval):\n    lo, hi = new_interval\n    out = []\n    i, n = 0, len(intervals)\n    # 1. Blocks that end before the booking starts are unaffected.\n    while i < n and intervals[i][1] < lo:\n        out.append(list(intervals[i]))\n        i += 1\n    # 2. Blocks that start no later than the booking ends overlap it: absorb them.\n    while i < n and intervals[i][0] <= hi:\n        lo = min(lo, intervals[i][0])\n        hi = max(hi, intervals[i][1])\n        i += 1\n    out.append([lo, hi])\n    # 3. Everything after is unaffected.\n    while i < n:\n        out.append(list(intervals[i]))\n        i += 1\n    return out\n",
+ "brute": "def solution(intervals, new_interval):\n    # Add the booking, then merge any overlapping pair and start the search over,\n    # until no pair overlaps. Up to n merges, each after an O(n^2) pair search.\n    items = [list(x) for x in intervals] + [list(new_interval)]\n    merged = True\n    while merged:\n        merged = False\n        for i in range(len(items)):\n            for j in range(i + 1, len(items)):\n                a, b = items[i], items[j]\n                if a[0] <= b[1] and b[0] <= a[1]:\n                    items[i] = [min(a[0], b[0]), max(a[1], b[1])]\n                    del items[j]\n                    merged = True\n                    break\n            if merged:\n                break\n    return sorted(items)\n",
+ "explain": "<p>Example 2, <code>intervals = [[1, 2], [3, 5], [6, 7], [8, 10], [12, 16]]</code>, <code>new_interval = [4, 8]</code>:</p><ul><li>Phase 1: <code>[1, 2]</code> ends at 2 &lt; 4, copy it. <code>[3, 5]</code> ends at 5, not before 4: stop.</li><li>Phase 2: <code>[3, 5]</code> starts at 3 &le; 8: the booking becomes <code>[3, 8]</code>. <code>[6, 7]</code>: still <code>[3, 8]</code>. <code>[8, 10]</code> starts at 8 &le; 8: <code>[3, 10]</code>. <code>[12, 16]</code> starts at 12 &gt; 10: stop. Append <code>[3, 10]</code>.</li><li>Phase 3: copy <code>[12, 16]</code>.</li></ul><p>Result <b>[[1, 2], [3, 10], [12, 16]]</b>. Each block is looked at once, so the sweep is O(n). The test in phase 2 uses the booking's <b>current</b> end, which grows as blocks are absorbed; that is how <code>[8, 10]</code> gets pulled in. Using <code>&le;</code> instead of <code>&lt;</code> is what merges blocks that only touch.</p>",
+ "complexity": "O(n) time, O(n) space for the returned list",
+ "tests": [
+  {
+   "args": [
+    [
+     [
+      1,
+      3
+     ],
+     [
+      6,
+      9
+     ]
+    ],
+    [
+     2,
+     5
+    ]
+   ],
+   "expected": [
+    [
+     1,
+     5
+    ],
+    [
+     6,
+     9
+    ]
+   ],
+   "label": "example 1 (LeetCode 57)",
+   "cat": "example",
+   "why": "the booking merges with the first block"
+  },
+  {
+   "args": [
+    [
+     [
+      1,
+      2
+     ],
+     [
+      3,
+      5
+     ],
+     [
+      6,
+      7
+     ],
+     [
+      8,
+      10
+     ],
+     [
+      12,
+      16
+     ]
+    ],
+    [
+     4,
+     8
+    ]
+   ],
+   "expected": [
+    [
+     1,
+     2
+    ],
+    [
+     3,
+     10
+    ],
+    [
+     12,
+     16
+    ]
+   ],
+   "label": "example 2 (LeetCode 57)",
+   "cat": "example",
+   "why": "three blocks collapse into one"
+  },
+  {
+   "args": [
+    [],
+    [
+     5,
+     7
+    ]
+   ],
+   "expected": [
+    [
+     5,
+     7
+    ]
+   ],
+   "label": "example 3 (empty calendar)",
+   "cat": "example",
+   "why": "the booking is the only block"
+  },
+  {
+   "args": [
+    [
+     [
+      1,
+      5
+     ]
+    ],
+    [
+     2,
+     3
+    ]
+   ],
+   "expected": [
+    [
+     1,
+     5
+    ]
+   ],
+   "label": "inside one block",
+   "cat": "single",
+   "why": "nothing changes"
+  },
+  {
+   "args": [
+    [
+     [
+      3,
+      5
+     ],
+     [
+      8,
+      9
+     ]
+    ],
+    [
+     0,
+     1
+    ]
+   ],
+   "expected": [
+    [
+     0,
+     1
+    ],
+    [
+     3,
+     5
+    ],
+    [
+     8,
+     9
+    ]
+   ],
+   "label": "before everything",
+   "cat": "edge",
+   "why": "goes first, no merge"
+  },
+  {
+   "args": [
+    [
+     [
+      3,
+      5
+     ],
+     [
+      8,
+      9
+     ]
+    ],
+    [
+     10,
+     12
+    ]
+   ],
+   "expected": [
+    [
+     3,
+     5
+    ],
+    [
+     8,
+     9
+    ],
+    [
+     10,
+     12
+    ]
+   ],
+   "label": "after everything",
+   "cat": "edge",
+   "why": "goes last, no merge"
+  },
+  {
+   "args": [
+    [
+     [
+      1,
+      2
+     ],
+     [
+      6,
+      7
+     ]
+    ],
+    [
+     3,
+     5
+    ]
+   ],
+   "expected": [
+    [
+     1,
+     2
+    ],
+    [
+     3,
+     5
+    ],
+    [
+     6,
+     7
+    ]
+   ],
+   "label": "in a gap",
+   "cat": "small",
+   "why": "touches neither neighbour"
+  },
+  {
+   "args": [
+    [
+     [
+      1,
+      3
+     ],
+     [
+      5,
+      7
+     ]
+    ],
+    [
+     3,
+     5
+    ]
+   ],
+   "expected": [
+    [
+     1,
+     7
+    ]
+   ],
+   "label": "touches both sides",
+   "cat": "boundary",
+   "why": "shared minutes 3 and 5 merge all three"
+  },
+  {
+   "args": [
+    [
+     [
+      2,
+      3
+     ],
+     [
+      5,
+      6
+     ],
+     [
+      8,
+      9
+     ]
+    ],
+    [
+     0,
+     100
+    ]
+   ],
+   "expected": [
+    [
+     0,
+     100
+    ]
+   ],
+   "label": "swallows all",
+   "cat": "medium",
+   "why": "one block remains"
+  },
+  {
+   "args": [
+    [
+     [
+      0,
+      0
+     ],
+     [
+      2,
+      4
+     ]
+    ],
+    [
+     0,
+     0
+    ]
+   ],
+   "expected": [
+    [
+     0,
+     0
+    ],
+    [
+     2,
+     4
+    ]
+   ],
+   "label": "zero-length blocks",
+   "cat": "zero",
+   "why": "the same single minute again"
+  },
+  {
+   "args": [
+    [
+     [
+      1,
+      2
+     ],
+     [
+      4,
+      6
+     ],
+     [
+      8,
+      10
+     ],
+     [
+      12,
+      14
+     ]
+    ],
+    [
+     5,
+     9
+    ]
+   ],
+   "expected": [
+    [
+     1,
+     2
+    ],
+    [
+     4,
+     10
+    ],
+    [
+     12,
+     14
+    ]
+   ],
+   "label": "merge in the middle",
+   "cat": "medium",
+   "why": "only the two middle blocks merge"
+  },
+  {
+   "args": [
+    [
+     [
+      0,
+      10
+     ],
+     [
+      20,
+      30
+     ],
+     [
+      40,
+      50
+     ]
+    ],
+    [
+     1000000,
+     1000000
+    ]
+   ],
+   "expected": [
+    [
+     0,
+     10
+    ],
+    [
+     20,
+     30
+    ],
+    [
+     40,
+     50
+    ],
+    [
+     1000000,
+     1000000
+    ]
+   ],
+   "label": "far end",
+   "cat": "boundary",
+   "why": "the largest allowed minute, after every block"
+  }
+ ],
+ "perf": {
+  "label": "performance: 40,000 blocks, a booking that swallows almost all of them",
+  "gen": "[[[3 * i, 3 * i + 1] for i in range(40000)], [5, 119970]]",
+  "expected": [
+   [
+    0,
+    1
+   ],
+   [
+    3,
+    4
+   ],
+   [
+    5,
+    119971
+   ],
+   [
+    119973,
+    119974
+   ],
+   [
+    119976,
+    119977
+   ],
+   [
+    119979,
+    119980
+   ],
+   [
+    119982,
+    119983
+   ],
+   [
+    119985,
+    119986
+   ],
+   [
+    119988,
+    119989
+   ],
+   [
+    119991,
+    119992
+   ],
+   [
+    119994,
+    119995
+   ],
+   [
+    119997,
+    119998
+   ]
+  ]
+ }
+}

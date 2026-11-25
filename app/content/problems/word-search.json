@@ -1,0 +1,240 @@
+{
+ "id": "word-search",
+ "title": "Word Search",
+ "pattern": "backtracking",
+ "fine": "Backtracking",
+ "level": "medium",
+ "statement": "<p>A word-puzzle app shows a grid of letters. A player traces a word by starting on any cell and moving one cell <b>up, down, left or right</b> for each next letter. Diagonal moves are not allowed, and a single trace may not use the same cell twice.</p><p>The grid <code>board</code> is a list of strings of equal length; <code>board[r][c]</code> is row <code>r</code>, column <code>c</code>. Write <code>def solution(board, word)</code> that returns <code>True</code> if <code>word</code> can be traced on the grid and <code>False</code> if not.</p>",
+ "examples": [
+  {
+   "input": "board = [\"ABCE\", \"SFCS\", \"ADEE\"], word = \"ABCCED\"",
+   "output": "True",
+   "why": "The LeetCode 79 example 1. A, B, C along the top row, then C, E, D."
+  },
+  {
+   "input": "board = [\"ABCE\", \"SFCS\", \"ADEE\"], word = \"SEE\"",
+   "output": "True",
+   "why": "The LeetCode 79 example 2. Start at the S on the right edge, go down to E, then left to E."
+  },
+  {
+   "input": "board = [\"ABCE\", \"SFCS\", \"ADEE\"], word = \"ABCB\"",
+   "output": "False",
+   "why": "The LeetCode 79 example 3. A, B, C can be traced, but the B next to that C is already used."
+  }
+ ],
+ "constraints": [
+  "1 &le; rows, columns &le; 6",
+  "1 &le; len(word) &le; 15",
+  "the board and the word use uppercase and lowercase English letters; case matters"
+ ],
+ "starter": "def solution(board, word):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "What is a valid trace?",
+   "a": "A sequence of <code>len(word)</code> cells where cell <code>i</code> holds <code>word[i]</code>, each cell shares a side with the one before, and no cell appears twice. You only need to say whether one exists, so you can stop at the first success."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Trace <code>\"SEE\"</code> on <code>[\"ABCE\", \"SFCS\", \"ADEE\"]</code>.",
+   "a": "S appears at (1, 0) and (1, 3). From (1, 0) the neighbours are A, F, A: no E, dead end. From (1, 3): up is E at (0, 3). From (0, 3) the only other neighbour is C at (0, 2): dead end, so back up. Down from (1, 3) is E at (2, 3), and its left neighbour (2, 2) is E. Found: (1, 3), (2, 3), (2, 2). The 'back up and try the next direction' step is the backtracking."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first idea that works?",
+   "a": "From every cell, list every path of <code>len(word)</code> distinct, side-touching cells, and compare the letters on it to the word. It is correct, but it keeps extending paths whose first letter is already wrong: up to cells x 4 x 3^(L - 1) paths for a word of length L."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Which pattern?",
+   "a": "<b>Backtracking (DFS with undo).</b> Extend a path one letter at a time and stop the moment a cell does not match the next letter. Mark a cell as used before you go deeper and unmark it when you come back, so other paths can use it. The worst case is still exponential, but mismatches cut most branches at once. A cheap extra check: if the board has fewer copies of some letter than the word needs, return <code>False</code> before searching."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li>If some letter appears in <code>word</code> more often than on the board, return <code>False</code>.</li><li>Copy the board into a list of lists so you can mark cells.</li><li><code>dfs(r, c, i)</code>: if the cell is not <code>word[i]</code>, return <code>False</code>. If <code>i</code> is the last index, return <code>True</code>. Mark the cell <code>'#'</code>, try the 4 neighbours with <code>i + 1</code>, restore the letter, and return whether any neighbour succeeded.</li><li>Try <code>dfs(r, c, 0)</code> from every cell; return <code>True</code> on the first success.</li></ol>The recursion is at most <code>len(word)</code> deep, at most 15."
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "A word that needs a cell twice (<code>\"ABCB\"</code> in example 3). A one-letter word. A word longer than the number of cells. A 1 x 1 board. A path that must turn back up or left. Upper and lower case. Forgetting to unmark a cell on the way back, which wrongly blocks later paths."
+  }
+ ],
+ "hints": [
+  "Try every cell as the start. From a matching cell, the next letter must be in one of its 4 neighbours.",
+  "Walk the path one letter at a time and give up on a branch as soon as a letter does not match. A cell on the current path may not be used again.",
+  "Mark the cell (for example with <code>'#'</code>) before exploring its neighbours and put its letter back afterwards. Return as soon as the last index matches."
+ ],
+ "solution": "from collections import Counter\n\ndef solution(board, word):\n    rows, cols = len(board), len(board[0])\n    have = Counter(''.join(board))\n    for ch, need in Counter(word).items():\n        if have[ch] < need:\n            return False                  # not enough copies of a letter: no search needed\n    grid = [list(row) for row in board]   # strings are immutable; this copy can be marked\n\n    def dfs(r, c, i):\n        if grid[r][c] != word[i]:\n            return False                  # prune: this branch can never match\n        if i == len(word) - 1:\n            return True\n        grid[r][c] = '#'                  # used on the current path\n        found = False\n        for nr, nc in ((r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)):\n            if 0 <= nr < rows and 0 <= nc < cols and dfs(nr, nc, i + 1):\n                found = True\n                break\n        grid[r][c] = word[i]              # undo, so other paths may use this cell\n        return found\n\n    for r in range(rows):\n        for c in range(cols):\n            if dfs(r, c, 0):              # depth at most len(word)\n                return True\n    return False\n",
+ "brute": "def solution(board, word):\n    # List every path of len(word) distinct, side-touching cells from every start,\n    # and compare its letters only when the path is complete. No early pruning.\n    rows, cols = len(board), len(board[0])\n    size = len(word)\n    for r0 in range(rows):\n        for c0 in range(cols):\n            stack = [[(r0, c0)]]\n            while stack:\n                path = stack.pop()\n                if len(path) == size:\n                    if ''.join(board[r][c] for r, c in path) == word:\n                        return True\n                    continue\n                r, c = path[-1]\n                for nr, nc in ((r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)):\n                    if 0 <= nr < rows and 0 <= nc < cols and (nr, nc) not in path:\n                        stack.append(path + [(nr, nc)])\n    return False\n",
+ "explain": "<p>Example 1, <code>word = \"ABCCED\"</code> on <code>[\"ABCE\", \"SFCS\", \"ADEE\"]</code>:</p><ul><li>Start at (0, 0), which is A. Mark it. Up and left are outside; down is S, not B; right is B at (0, 1).</li><li>From B: right is C at (0, 2). From that C: right is E, not C; down is C at (1, 2).</li><li>From (1, 2): down is E at (2, 2). From there, left is D at (2, 1): the last letter. Return <b>True</b>.</li></ul><p>Example 3, <code>\"ABCB\"</code>, reaches A, B, C the same way, but the only B next to that C is (0, 1), which is marked as used. Every other branch fails on its first letter, so the answer is <b>False</b>. Marking before going deeper and restoring after is what lets a cell be skipped on this path yet used by the next one.</p>",
+ "complexity": "O(rows x cols x 3^L) time in the worst case for a word of length L (4 directions at the first step, 3 after); O(L) recursion depth",
+ "tests": [
+  {
+   "args": [
+    [
+     "ABCE",
+     "SFCS",
+     "ADEE"
+    ],
+    "ABCCED"
+   ],
+   "expected": true,
+   "label": "example 1 (LeetCode 79)",
+   "cat": "example",
+   "why": "the path turns down and then left"
+  },
+  {
+   "args": [
+    [
+     "ABCE",
+     "SFCS",
+     "ADEE"
+    ],
+    "SEE"
+   ],
+   "expected": true,
+   "label": "example 2 (LeetCode 79)",
+   "cat": "example",
+   "why": "the first E tried is a dead end"
+  },
+  {
+   "args": [
+    [
+     "ABCE",
+     "SFCS",
+     "ADEE"
+    ],
+    "ABCB"
+   ],
+   "expected": false,
+   "label": "example 3 (LeetCode 79)",
+   "cat": "example",
+   "why": "it would need the B cell twice"
+  },
+  {
+   "args": [
+    [
+     "A"
+    ],
+    "A"
+   ],
+   "expected": true,
+   "label": "1 x 1 match",
+   "cat": "single",
+   "why": "one cell, one letter"
+  },
+  {
+   "args": [
+    [
+     "A"
+    ],
+    "AA"
+   ],
+   "expected": false,
+   "label": "1 x 1, word too long",
+   "cat": "single",
+   "why": "only one cell to use"
+  },
+  {
+   "args": [
+    [
+     "ab",
+     "cd"
+    ],
+    "abdc"
+   ],
+   "expected": true,
+   "label": "around a square",
+   "cat": "small",
+   "why": "right, down, left"
+  },
+  {
+   "args": [
+    [
+     "ab",
+     "cd"
+    ],
+    "abcd"
+   ],
+   "expected": false,
+   "label": "needs a diagonal",
+   "cat": "edge",
+   "why": "b and c touch only at a corner"
+  },
+  {
+   "args": [
+    [
+     "aA",
+     "Aa"
+    ],
+    "aAa"
+   ],
+   "expected": true,
+   "label": "case matters",
+   "cat": "edge",
+   "why": "a, A, a around the square"
+  },
+  {
+   "args": [
+    [
+     "AAAA",
+     "AAAA",
+     "AAAA"
+    ],
+    "AAAAAAAAAAAAA"
+   ],
+   "expected": false,
+   "label": "longer than the board",
+   "cat": "boundary",
+   "why": "13 letters, 12 cells"
+  },
+  {
+   "args": [
+    [
+     "CAA",
+     "AAA",
+     "BCD"
+    ],
+    "AAB"
+   ],
+   "expected": true,
+   "label": "one way into B",
+   "cat": "medium",
+   "why": "the only A next to B is at (1, 0), so the trace must end there"
+  },
+  {
+   "args": [
+    [
+     "ABCD",
+     "LMNE",
+     "KPOF",
+     "JIHG"
+    ],
+    "ABCDEFGHIJKLMN"
+   ],
+   "expected": true,
+   "label": "spiral",
+   "cat": "medium",
+   "why": "14 cells in a spiral from the top-left"
+  },
+  {
+   "args": [
+    [
+     "ABA",
+     "BAB"
+    ],
+    "ABABAB"
+   ],
+   "expected": true,
+   "label": "repeated letters",
+   "cat": "dupes",
+   "why": "letters alternate, so the trace must snake through all six cells"
+  }
+ ],
+ "perf": {
+  "label": "performance: a 6 x 6 board of A with C and B in opposite corners, word AAAAAAAACB (no trace exists)",
+  "gen": "[['C' + 'A' * 5] + ['A' * 6] * 4 + ['A' * 5 + 'B'], 'A' * 8 + 'CB']",
+  "expected": false
+ }
+}

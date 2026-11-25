@@ -1,0 +1,168 @@
+{
+ "id": "reverse-bits",
+ "title": "Reverse Bits",
+ "pattern": "bits",
+ "fine": "Bit tricks",
+ "level": "easy",
+ "statement": "<p>A network driver reads 32-bit status words from a device that sends its bits in the opposite order: the device's bit 0 is your bit 31, its bit 1 is your bit 30, and so on.</p><p>Write <code>def solution(n)</code>. <code>n</code> is an unsigned 32-bit integer (0 to 2^32 - 1). Treat it as exactly 32 bits, with leading zeros. Return the unsigned integer you get by reversing the order of those 32 bits. For example <code>1</code> is <code>000...001</code>, which reversed is <code>100...000</code> = 2,147,483,648.</p>",
+ "examples": [
+  {
+   "input": "n = 43261596",
+   "output": "964176192",
+   "why": "The LeetCode 190 example 1. <code>00000010100101000001111010011100</code> reversed is <code>00111001011110000010100101000000</code>."
+  },
+  {
+   "input": "n = 4294967293",
+   "output": "3221225471",
+   "why": "The LeetCode 190 example 2. <code>11111111111111111111111111111101</code> reversed is <code>10111111111111111111111111111111</code>."
+  },
+  {
+   "input": "n = 1",
+   "output": "2147483648",
+   "why": "31 zeros and a 1, reversed: a 1 and 31 zeros, which is 2^31."
+  }
+ ],
+ "constraints": [
+  "0 &le; n &le; 4,294,967,295 (2^32 - 1)",
+  "the result is also in that range"
+ ],
+ "starter": "def solution(n):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "Why do the leading zeros matter?",
+   "a": "The reversal is over exactly 32 positions. <code>bin(1)</code> is just <code>'0b1'</code>, but as a 32-bit word it is 31 zeros and a 1. Reversed, that 1 moves to bit 31, giving 2^31. If you reversed only the visible digits, 1 would stay 1. Python ints have no fixed width, so you must count 32 positions yourself."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Shrink it to 4 bits: reverse <code>1011</code> (11).",
+   "a": "Take bits from the right of the input and push them onto the right of the output. Input <code>1011</code>: take 1, output <code>1</code>. Take 1, output <code>11</code>. Take 0, output <code>110</code>. Take 1, output <code>1101</code> = 13. Each step: <code>out = (out &lt;&lt; 1) | (n &amp; 1)</code>, then <code>n &gt;&gt;= 1</code>."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first idea that works?",
+   "a": "Format as a 32-character binary string with <code>format(n, '032b')</code>, reverse it with <code>[::-1]</code>, and parse it back with <code>int(s, 2)</code>. It is short and correct. Interviewers usually then ask for the bit-operation version, which is what C, Java or hardware code would use."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Which pattern?",
+   "a": "<b>Bit tricks: shift and mask.</b> <code>n &amp; 1</code> reads the lowest bit, <code>n &gt;&gt; 1</code> drops it, <code>out &lt;&lt; 1</code> makes room, and <code>| bit</code> writes it. Do it exactly 32 times. If the function runs millions of times, a follow-up is to precompute a 256-entry table of reversed bytes and combine 4 lookups."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li><code>out = 0</code>.</li><li>Repeat 32 times: <code>out = (out &lt;&lt; 1) | (n &amp; 1)</code>; <code>n &gt;&gt;= 1</code>.</li><li>Return <code>out</code>.</li></ol>Looping a fixed 32 times, not 'while n', is what keeps the trailing zeros of the result."
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "0 (stays 0). 1 (becomes 2^31). 2^31 (becomes 1). All ones, 2^32 - 1 (stays the same). Palindromes like <code>0x80000001</code>. Stopping the loop when <code>n</code> becomes 0, which drops the shifts for leading zeros and gives a too-small answer."
+  }
+ ],
+ "hints": [
+  "Reverse a 4-bit number by hand first: read bits from the right end of the input and write them onto the right end of the output.",
+  "<code>n &amp; 1</code> is the lowest bit; <code>n &gt;&gt; 1</code> removes it; <code>(out &lt;&lt; 1) | bit</code> appends a bit to <code>out</code>.",
+  "Loop exactly 32 times, even after <code>n</code> becomes 0. Each extra shift places a zero, which is how the leading zeros of the input become trailing zeros of the output."
+ ],
+ "solution": "def solution(n):\n    out = 0\n    for _ in range(32):              # exactly 32 positions, leading zeros included\n        out = (out << 1) | (n & 1)    # append n's lowest bit to out\n        n >>= 1                       # move to n's next bit\n    return out\n",
+ "brute": "def solution(n):\n    # String version: pad to 32 binary digits, reverse, parse back.\n    return int(format(n, '032b')[::-1], 2)\n",
+ "explain": "<p>Example 1, <code>n = 43261596</code>, which is <code>00000010100101000001111010011100</code> in 32 bits:</p><ul><li>The loop reads bits from the right: 0, 0, 1, 1, 1, 0, 0, 1, ... and appends each to <code>out</code>.</li><li>After 32 steps <code>out</code> holds the same bits in the opposite order: <code>00111001011110000010100101000000</code>.</li></ul><p>That is <b>964176192</b>. The loop always runs 32 times: the input's 6 leading zeros turn into the output's 6 trailing zeros only because the last 6 shifts still happen after <code>n</code> has become 0. The work is constant: 32 steps for any input.</p>",
+ "complexity": "O(1) time (always 32 steps), O(1) space",
+ "tests": [
+  {
+   "args": [
+    43261596
+   ],
+   "expected": 964176192,
+   "label": "example 1 (LeetCode 190)",
+   "cat": "example",
+   "why": "the classic example"
+  },
+  {
+   "args": [
+    4294967293
+   ],
+   "expected": 3221225471,
+   "label": "example 2 (LeetCode 190)",
+   "cat": "example",
+   "why": "all ones except bit 1"
+  },
+  {
+   "args": [
+    1
+   ],
+   "expected": 2147483648,
+   "label": "example 3 (one low bit)",
+   "cat": "example",
+   "why": "bit 0 moves to bit 31"
+  },
+  {
+   "args": [
+    0
+   ],
+   "expected": 0,
+   "label": "zero",
+   "cat": "zero",
+   "why": "nothing to move"
+  },
+  {
+   "args": [
+    2147483648
+   ],
+   "expected": 1,
+   "label": "top bit",
+   "cat": "boundary",
+   "why": "bit 31 moves to bit 0"
+  },
+  {
+   "args": [
+    4294967295
+   ],
+   "expected": 4294967295,
+   "label": "all ones",
+   "cat": "boundary",
+   "why": "unchanged by reversal"
+  },
+  {
+   "args": [
+    2147483649
+   ],
+   "expected": 2147483649,
+   "label": "palindrome",
+   "cat": "edge",
+   "why": "bits 0 and 31 set: unchanged"
+  },
+  {
+   "args": [
+    6
+   ],
+   "expected": 1610612736,
+   "label": "small value",
+   "cat": "small",
+   "why": "110 becomes 011 followed by 29 zeros"
+  },
+  {
+   "args": [
+    65535
+   ],
+   "expected": 4294901760,
+   "label": "low half",
+   "cat": "medium",
+   "why": "the low 16 ones move to the high half"
+  },
+  {
+   "args": [
+    305419896
+   ],
+   "expected": 510274632,
+   "label": "0x12345678",
+   "cat": "medium",
+   "why": "a mixed pattern, every nibble different"
+  }
+ ],
+ "perf": {
+  "label": "performance: all 32 bits set",
+  "gen": "[4294967295]",
+  "expected": 4294967295
+ }
+}
