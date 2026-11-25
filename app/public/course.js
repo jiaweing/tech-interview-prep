@@ -5,23 +5,24 @@
    (uses esc, store, prog, PROBLEMS). */
 const COURSE = (() => {
   const UNITS = [
+    // [title, why, Explained lessons, problem labels, LeetCode core groups, extra links, pattern lessons]
     ['Python for interviews', 'Only the Python you need, and how to tell if code is fast enough', ['py-basics', 'py-lists', 'py-strings', 'py-dicts-sets', 'py-tuples', 'py-loops', 'py-comprehensions', 'py-functions', 'py-sorting', 'py-collections', 'py-math', 'py-gotchas', 'big-o'], [], []],
-    ['Arrays, strings and hashing', 'Count, look up and group in one pass', ['array', 'string', 'hash-map', 'hash-set'], ['Hash map and counting'], ['Arrays and hashing']],
-    ['Two pointers', 'Walk inward from both ends, or read and write in place', ['two-pointers'], ['Two pointers'], ['Two pointers']],
-    ['Sliding window', 'The best stretch of a list or string, without rescanning', ['sliding-window'], ['Sliding window'], ['Sliding window']],
-    ['Prefix sums and Kadane', 'Range sums in O(1); the best subarray in one pass', ['prefix-sums', 'kadane'], ['Prefix sums'], []],
-    ['Simulation and parsing', 'Practical tasks: follow the rules exactly, keep them as data', ['grid'], ['Simulation and parsing', 'Matrix traversal'], ['Math and geometry']],
-    ['Sorting and intervals', 'Sort first, then one scan; merge overlapping ranges', ['sorting-overview', 'insertion-sort', 'merge-sort', 'quick-sort', 'counting-sort', 'merge-intervals'], ['Intervals'], ['Intervals']],
-    ['Stacks and queues', 'Matching brackets, next greater element, first in first out', ['stack', 'queue', 'deque', 'monotonic-stack'], ['Stack'], ['Stack']],
-    ['Binary search', 'Halve a sorted range, or binary search the answer', ['binary-search'], ['Binary search', 'Binary search on the answer'], ['Binary search']],
-    ['Linked lists', 'Dummy heads, reversing, fast and slow pointers', ['linked-list', 'fast-slow-pointers', 'lru-cache'], ['Linked list: dummy, reverse, fast/slow', 'Design: combine structures'], ['Linked list']],
-    ['Trees', 'Recursion on the left and right child; level by level', ['recursion', 'binary-tree', 'bst', 'dfs', 'bfs'], ['Tree DFS', 'Tree BFS (level order)', 'BST'], ['Trees']],
-    ['Heaps', 'The top k, the next smallest, merging sorted lists', ['heap', 'top-k-heap', 'py-heapq'], ['Heap: top k and k-way merge'], ['Heap / priority queue']],
-    ['Tries', 'Prefix search over many words', ['trie'], [], ['Tries']],
-    ['Graphs', 'Islands, shortest paths, dependencies, connected groups', ['graph', 'union-find', 'topological-sort', 'dijkstra'], ['Graph BFS/DFS'], ['Graphs', 'Advanced graphs']],
-    ['Backtracking', 'Try a choice, recurse, undo: subsets, permutations, boards', ['backtracking'], [], ['Backtracking']],
-    ['Dynamic programming', 'Reuse answers to smaller problems, in 1D and 2D tables', ['dynamic-programming', 'dp-1d', 'dp-2d'], ['DP 1D'], ['1-D dynamic programming', '2-D dynamic programming']],
-    ['Greedy, math and bits', 'Take the locally best choice when it is provably safe; number tricks', ['greedy', 'bit-manipulation', 'py-math'], ['Sorting and greedy', 'Math', 'Bit tricks'], ['Greedy', 'Bit manipulation']],
+    ['Arrays, strings and hashing', 'Count, look up and group in one pass', ['array', 'string', 'hash-map', 'hash-set'], ['Hash map and counting'], ['Arrays and hashing'], null, ['hashing', 'strings']],
+    ['Two pointers', 'Walk inward from both ends, or read and write in place', ['two-pointers'], ['Two pointers'], ['Two pointers'], null, ['two-pointers']],
+    ['Sliding window', 'The best stretch of a list or string, without rescanning', ['sliding-window'], ['Sliding window'], ['Sliding window'], null, ['two-pointers']],
+    ['Prefix sums and Kadane', 'Range sums in O(1); the best subarray in one pass', ['prefix-sums', 'kadane'], ['Prefix sums'], [], null, ['prefix-sums', 'kadane']],
+    ['Simulation and parsing', 'Practical tasks: follow the rules exactly, keep them as data', ['grid'], ['Simulation and parsing', 'Matrix traversal'], ['Math and geometry'], null, ['greedy-sim']],
+    ['Sorting and intervals', 'Sort first, then one scan; merge overlapping ranges', ['sorting-overview', 'insertion-sort', 'merge-sort', 'quick-sort', 'counting-sort', 'merge-intervals'], ['Intervals'], ['Intervals'], null, ['sorting', 'intervals']],
+    ['Stacks and queues', 'Matching brackets, next greater element, first in first out', ['stack', 'queue', 'deque', 'monotonic-stack'], ['Stack'], ['Stack'], null, ['stack']],
+    ['Binary search', 'Halve a sorted range, or binary search the answer', ['binary-search'], ['Binary search', 'Binary search on the answer'], ['Binary search'], null, ['binary-search']],
+    ['Linked lists', 'Dummy heads, reversing, fast and slow pointers', ['linked-list', 'fast-slow-pointers', 'lru-cache'], ['Linked list: dummy, reverse, fast/slow', 'Design: combine structures'], ['Linked list'], null, ['linked-list']],
+    ['Trees', 'Recursion on the left and right child; level by level', ['recursion', 'binary-tree', 'bst', 'dfs', 'bfs'], ['Tree DFS', 'Tree BFS (level order)', 'BST'], ['Trees'], null, ['trees']],
+    ['Heaps', 'The top k, the next smallest, merging sorted lists', ['heap', 'top-k-heap', 'py-heapq'], ['Heap: top k and k-way merge'], ['Heap / priority queue'], null, ['heap']],
+    ['Tries', 'Prefix search over many words', ['trie'], ['Trie'], ['Tries'], null, ['trie']],
+    ['Graphs', 'Islands, shortest paths, dependencies, connected groups', ['graph', 'union-find', 'topological-sort', 'dijkstra'], ['Graph BFS/DFS', 'Topological sort', 'Union-find', 'Shortest path'], ['Graphs', 'Advanced graphs'], null, ['graphs']],
+    ['Backtracking', 'Try a choice, recurse, undo: subsets, permutations, boards', ['backtracking'], ['Backtracking'], ['Backtracking'], null, ['backtracking']],
+    ['Dynamic programming', 'Reuse answers to smaller problems, in 1D and 2D tables', ['dynamic-programming', 'dp-1d', 'dp-2d'], ['DP 1D'], ['1-D dynamic programming', '2-D dynamic programming'], null, ['dp']],
+    ['Greedy, math and bits', 'Take the locally best choice when it is provably safe; number tricks', ['greedy', 'bit-manipulation', 'py-math'], ['Sorting and greedy', 'Math', 'Bit tricks'], ['Greedy', 'Bit manipulation'], null, ['greedy', 'math', 'bits']],
     ['Interview ready', 'Timed mocks, system design, the behavioural round and the day itself', [], [], [], [['mock', 'Timed mock test'], ['testday', 'Interview day checklist'], ['sd', 'System design track'], ['dd', 'Behavioural round'], ['co', 'Your company\'s rounds']]],
   ];
   const LC = window.LC_DATA || { rows: [], core: [] };
@@ -35,19 +36,22 @@ const COURSE = (() => {
   window.addEventListener('hashchange', () => {
     const h = location.hash.slice(1);
     if (h.startsWith('x-')) { const s = seen(); if (!s[h.slice(2)]) { s[h.slice(2)] = Date.now(); store.set('exSeen', s); } }
-    if (['testday', 'sd', 'dd', 'co'].includes(h)) { const v = visited(); if (!v[h]) { v[h] = Date.now(); store.set('crsVisit', v); } }
+    if (['testday', 'sd', 'dd', 'co'].includes(h) || h.startsWith('pattern-')) { const v = visited(); if (!v[h]) { v[h] = Date.now(); store.set('crsVisit', v); } }
   });
 
   function units() {
     const S = seen(), solved = prog.solved(), L = store.get('lcDone', {}), V = visited();
-    return UNITS.map(([title, why, ex, labels, groups, extra], i) => {
+    const done = prog.done();
+    return UNITS.map(([title, why, ex, labels, groups, extra, pats], i) => {
+      const lessons = (pats || []).filter(id => patById[id]);
       const probs = PROBLEMS.filter(p => labels.includes(fine(p.id))).sort((a, b) => (a.level === 'easy' ? 0 : a.level === 'medium' ? 1 : 2) - (b.level === 'easy' ? 0 : b.level === 'medium' ? 1 : 2));
       const slugs = [].concat(...groups.map(g => coreBy[g] || [])).filter(s => lcRow[s]);
-      const items = ex.map(id => ({ k: 'x-' + id, done: !!S[id] }))
+      const items = lessons.map(id => ({ k: 'pattern-' + id, done: !!done['pattern-' + id] || !!V['pattern-' + id] }))
+        .concat(ex.map(id => ({ k: 'x-' + id, done: !!S[id] })))
         .concat(probs.map(p => ({ k: 'p-' + p.id, done: !!solved[p.id] })))
         .concat(slugs.map(s => ({ k: 'lc:' + s, done: !!L[s] })))
         .concat((extra || []).map(([h]) => ({ k: h, done: h === 'mock' ? !!store.get('mockDone', 0) : !!V[h] })));
-      return { i, title, why, ex, probs, slugs, extra: extra || [], items, done: items.filter(x => x.done).length };
+      return { i, title, why, ex, lessons, probs, slugs, extra: extra || [], items, done: items.filter(x => x.done).length };
     });
   }
   function nextItem(U) {
@@ -55,6 +59,7 @@ const COURSE = (() => {
     return null;
   }
   function label(k) {
+    if (k.startsWith('pattern-')) return 'Lesson: ' + pname(k.slice(8));
     if (k.startsWith('x-')) return 'Learn: ' + exTitle(k.slice(2));
     if (k.startsWith('p-')) return 'Solve: ' + ((probById[k.slice(2)] || {}).title || k);
     if (k.startsWith('lc:')) { const r = lcRow[k.slice(3)]; return 'LeetCode ' + r[0] + ': ' + r[1]; }
@@ -67,7 +72,8 @@ const COURSE = (() => {
   function unitHTML(u, open) {
     const S = seen(), solved = prog.solved(), L = store.get('lcDone', {}), V = visited();
     return '<details class="crs-u' + (u.done === u.items.length ? ' all' : '') + '"' + (open ? ' open' : '') + '><summary><span class="crs-n">' + (u.i + 1) + '</span><span class="crs-t"><b>' + esc(u.title) + '</b><span class="muted">' + esc(u.why) + '</span></span><span class="crs-c">' + u.done + '/' + u.items.length + '</span></summary><div class="crs-b">' +
-      (u.ex.length ? '<h4>Learn</h4><div class="crs-chips">' + u.ex.map(id => '<a class="chip' + (S[id] ? ' crs-ok' : '') + '" href="#x-' + esc(id) + '">' + (S[id] ? '✓ ' : '') + esc(exTitle(id)) + '</a>').join('') + '</div>' : '') +
+      (u.lessons.length ? '<h4>Lesson <span class="muted">the pattern, a worked example, a quiz</span></h4><div class="crs-chips">' + u.lessons.map(id => { const ok = !!prog.done()['pattern-' + id] || !!V['pattern-' + id]; return '<a class="chip' + (ok ? ' crs-ok' : '') + '" href="#pattern-' + esc(id) + '">' + (ok ? '✓ ' : '') + badge(id) + ' ' + esc(pname(id)) + '</a>'; }).join('') + '</div>' : '') +
+      (u.ex.length ? '<h4>Explained <span class="muted">from zero, step by step</span></h4><div class="crs-chips">' + u.ex.map(id => '<a class="chip' + (S[id] ? ' crs-ok' : '') + '" href="#x-' + esc(id) + '">' + (S[id] ? '✓ ' : '') + esc(exTitle(id)) + '</a>').join('') + '</div>' : '') +
       (u.probs.length ? '<h4>Practise here <span class="muted">hidden tests, in the editor</span></h4><div class="plist">' + u.probs.map(p => '<a class="prow" href="#p-' + esc(p.id) + '">' + tick(!!solved[p.id]) + '<span class="ttl">' + esc(p.title) + '</span><span class="lvl ' + esc(p.level) + '">' + esc(p.level) + '</span></a>').join('') + '</div>' : '') +
       (u.slugs.length ? '<h4>LeetCode classics <span class="muted">tick them when you solve them</span></h4><div class="plist">' + u.slugs.map(s => { const r = lcRow[s]; return '<div class="prow crs-lc"><button type="button" class="sdot lc-tick' + (L[s] ? ' solved' : '') + '" data-slug="' + esc(s) + '" aria-pressed="' + !!L[s] + '" aria-label="Mark ' + esc(r[1]) + ' done">' + (L[s] ? '✓' : '') + '</button><a class="ttl" href="https://leetcode.com/problems/' + esc(s) + '/" target="_blank" rel="noopener noreferrer">' + esc(r[0]) + '. ' + esc(r[1]) + '</a><span class="lvl ' + DIFF[r[3]].toLowerCase() + '">' + DIFF[r[3]] + '</span></div>'; }).join('') + '</div>' : '') +
       (u.extra.length ? '<div class="plist">' + u.extra.map(([h, t]) => '<a class="prow" href="#' + esc(h) + '">' + tick(h === 'mock' ? !!store.get('mockDone', 0) : !!V[h]) + '<span class="ttl">' + esc(t) + '</span><span></span></a>').join('') + '</div>' : '') +

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Verify a live-coding problem JSON for the $10k app.
+"""Verify a live-coding problem JSON (app/content/problems/<id>.json).
 Usage: python3 verify_problem.py FILE [FILE...]
 Checks schema, runs the reference solution on every test (and the perf test, timed),
 cross-checks the brute solution on non-perf tests, checks example tests match the examples list."""
 import json, sys, time, copy, signal
-PATTERNS = ['hashing','prefix-sums','sorting','two-pointers','stack','kadane','binary-search','math','greedy-sim','dp','strings']
+PATTERNS = ['hashing','prefix-sums','sorting','two-pointers','stack','kadane','binary-search','math','greedy-sim','dp','strings',
+            'linked-list','trees','heap','trie','graphs','backtracking','intervals','bits','greedy']
 CATS = ['example','empty','single','small','zero','boundary','dupes','medium','edge','negative','large']
 def norm(x):
     if isinstance(x, tuple): x = list(x)

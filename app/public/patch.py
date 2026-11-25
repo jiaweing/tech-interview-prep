@@ -64,5 +64,13 @@ html = once(html, "const AI_ERR = { ", "const AI_ERR = { needs_key: 'Add your An
 # ---------- Profile: the API key when self-hosted ----------
 html = once(html, "function viewProfile(page, h) {", "function viewProfile(page, h) {\n  viewProfile0(page, h);\n  if (window.SELFHOST && h === 'me') { const s = document.createElement('section'); s.className = 'sd-sec sh-sec'; s.innerHTML = '<div class=\"day-h\"><h2>Claude</h2></div><p class=\"muted\">' + (SELFHOST.hasKey() ? 'Using your Anthropic API key, kept in this browser.' : 'Add an Anthropic API key to turn on the mock interviewer, grading and chat.') + '</p><button type=\"button\" class=\"btn small\">' + (SELFHOST.hasKey() ? 'Change key' : 'Add key') + '</button>'; s.querySelector('button').onclick = () => SELFHOST.keyDialog(''); page.appendChild(s); }\n}\nfunction viewProfile0(page, h) {")
 
+# ---------- the new patterns: badges, colours, and Explained step-throughs as their animation ----------
+NEWPAT = [('linked-list', 'LL', '#0090FF', '#52A9FF'), ('trees', 'T', '#46A758', '#71D083'), ('heap', 'Hp', '#E54666', '#FF7A93'), ('trie', 'Tr', '#AB4ABA', '#D07CE0'),
+          ('graphs', 'Gr', '#0D74CE', '#5EB1EF'), ('backtracking', 'Bt', '#CA244D', '#F27896'), ('intervals', 'I', '#AD7F58', '#D8B593'), ('bits', 'Bi', '#5B5BD6', '#9B9EF0'), ('greedy', 'Gd', '#3D9A50', '#76C68A')]
+html = once(html, "const CODE = { hashing: 'H',", "const CODE = { " + ''.join("'%s': '%s', " % (k, c) for k, c, _, _ in NEWPAT) + "hashing: 'H',")
+html = html.replace("--l-strings: #6E56CF; --l-none: #A1A1AA;", "--l-strings: #6E56CF; --l-none: #A1A1AA; " + ' '.join('--l-%s: %s;' % (k, l) for k, _, l, _ in NEWPAT), 1)
+html = html.replace("--l-strings: #9E8CFC; --l-none: #71717A;", "--l-strings: #9E8CFC; --l-none: #71717A; " + ' '.join('--l-%s: %s;' % (k, d) for k, _, _, d in NEWPAT))
+html = once(html, "function mountViz(id, host) {\n", "function mountViz(id, host) {\n  if (id.startsWith('ex:') && window.EXPLAIN) { host.className = 'pat-ex'; host.innerHTML = EXPLAIN.miniHTML(id.slice(3)) + '<a class=\"chip ex-from-sheet\" href=\"#x-' + id.slice(3) + '\">Open the full lesson</a>'; requestAnimationFrame(() => EXPLAIN.fitMinis(host)); return; }\n")
+
 # ---------- home: the full course instead of the original two-day plan ----------
 html = once(html, "function viewHome(page) {\n  viewHome0(page);\n", "function viewHome(page) {\n  page.classList.add('narrow'); page.innerHTML = questsHTML(); COURSE.render(page);\n")

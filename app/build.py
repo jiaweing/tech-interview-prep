@@ -42,6 +42,12 @@ for p in probs:
     assert p['id'] not in existing, 'duplicate problem id ' + p['id']
     p.pop('brute_differs', None)
 DATA['problems'].extend(probs)
+# more pattern lessons (linked lists, trees, heaps, tries, graphs, backtracking, intervals, bits, greedy)
+for _f in sorted(glob.glob(P('content/patterns/*.json'))):
+    _pt = json.load(open(_f, encoding='utf-8'))
+    if _pt['id'] not in {p['id'] for p in DATA['patterns']}: DATA['patterns'].append(_pt)
+_pids = {p['id'] for p in DATA['problems']}
+for _pt in DATA['patterns']: _pt['problems'] = [i for i in _pt.get('problems', []) if i in _pids or i in {q['id'] for q in probs}]
 pats = {p['id']: p for p in DATA['patterns']}
 for p in probs:
     if p['pattern'] in pats and p['id'] not in pats[p['pattern']].setdefault('problems', []): pats[p['pattern']]['problems'].append(p['id'])
@@ -113,7 +119,7 @@ GT = json.load(open(P('gt-data.json'), encoding='utf-8'))
 if PUBLIC: GT = PUB.gt_data(GT)
 def js_json(o): return json.dumps(o, ensure_ascii=False).replace('</', '<\\/')
 inject = ['<script>', 'window.SD_DATA = ' + js_json(SD) + ';', 'window.GT_DATA = ' + js_json(GT) + ';', '</script>',
-          '<script>', open(P('sd.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('gt.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('sheet.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('al.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('cheats.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('patterns.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('flow.js'), encoding='utf-8').read(), '</script>', '<script>window.EXPLAIN_TOPICS = ', EX_TOPICS, '; window.EXPLAIN_REL = ', open(P('../ex/relations.json'), encoding='utf-8').read(), ';</script>', '<script>', open(P('../ex/explain.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('../ex/which.js'), encoding='utf-8').read(), '</script>', '<script>window.PAT_FINE = ', open(P('content/extra/pattern_fine.json'), encoding='utf-8').read(), ';</script>', '<script>window.VIDEO_DATA = ', open(P('content/extra/videos.json'), encoding='utf-8').read(), ';</script>', '<script>', open(P('videos.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('icons.js'), encoding='utf-8').read(), '</script>', '<script>', 'window.DD_DATA = ' + js_json(dict(PUB.deepdive(json.load(open(P('content/extra/deepdive.json'), encoding='utf-8'))), mine={'projects': [], 'stories': {}})) + ';', open(P('dd.js'), encoding='utf-8').read(), '</script>']
+          '<script>', open(P('sd.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('gt.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('sheet.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('al.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('cheats.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('patterns.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('flow.js'), encoding='utf-8').read(), '</script>', '<script>window.EXPLAIN_TOPICS = ', EX_TOPICS, '; window.EXPLAIN_REL = ', open(P('../ex/relations.json'), encoding='utf-8').read(), ';</script>', '<script>', open(P('../ex/explain.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('../ex/which.js'), encoding='utf-8').read(), '</script>', '<script>window.PAT_FINE = ', js_json(dict(json.load(open(P('content/extra/pattern_fine.json'), encoding='utf-8')), **{p['id']: p['fine'] for p in DATA['problems'] if p.get('fine')})), ';</script>', '<script>window.VIDEO_DATA = ', open(P('content/extra/videos.json'), encoding='utf-8').read(), ';</script>', '<script>', open(P('videos.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('icons.js'), encoding='utf-8').read(), '</script>', '<script>', 'window.DD_DATA = ' + js_json(dict(PUB.deepdive(json.load(open(P('content/extra/deepdive.json'), encoding='utf-8'))), mine={'projects': [], 'stories': {}})) + ';', open(P('dd.js'), encoding='utf-8').read(), '</script>']
 if PUBLIC: inject += ['<script>', 'window.LC_DATA = ' + open(P('public/leetcode.json'), encoding='utf-8').read().replace('</', '<\\/') + ';', 'window.PACKS = ' + js_json(PUB.packs(DATA['problems'])) + ';', '</script>']
 lines[2271:2272] = ['</script>', '<!--SDINJECT-->']
 
