@@ -943,3 +943,13 @@ body.iv-full-on { overflow: hidden; }
   .iv.iv-full .iv-b:not(.iv-close) { width: 48px; height: 48px; }
   .iv.iv-full .iv-mic { width: 60px !important; height: 60px !important; }
 }
+
+/* problem header: back and buttons, then the title, then difficulty and category */
+.ph-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: -6px 0 14px; }
+.page.ide .ph { flex: none; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.page.ide .ph .prob-head { gap: 8px 14px; }
+.page.ide .ph .ide-title { font: 600 24px/1.2 var(--f-display) !important; margin: 2px 0 0 !important; white-space: nowrap; }
+.page.ide .ph-meta { margin: 0 0 4px; }
+.me-sync { margin: 10px 0 0; font-size: 13px; }
+.m-back { position: absolute; top: 16px; left: 10px; z-index: 30; }
+.m-back .btn { margin: 0 !important; }

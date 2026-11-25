@@ -31,6 +31,7 @@ function viewProfile(page, h) {
       '<div class="me-swatches" role="radiogroup" aria-label="Avatar colour">' + AV_COLORS.map(c => '<button type="button" class="me-sw' + (c === meColor() ? ' on' : '') + '" role="radio" aria-checked="' + (c === meColor()) + '" aria-label="Colour" data-c="' + c + '" style="background:' + c + '"></button>').join('') + '</div></div></div>' +
     playerTop(xp, L, cur, nxt, t, pct, C).replace('<a class="player" href="#me"', '<div class="player"').replace(/<\/a>$/, '</div>');
   if (quests) page.appendChild(quests);
+  if (window.SYNC) { const sy = document.createElement('p'); sy.className = 'me-sync muted'; const paintS = () => { sy.textContent = SYNC.label(); }; paintS(); const off = SYNC.onChange(() => { if (!sy.isConnected) { off(); return; } paintS(); }); page.querySelector('.me-head').after(sy); }
   const inp = page.querySelector('#meName');
   inp.addEventListener('input', () => { store.set('meName', inp.value.slice(0, 40)); page.querySelector('.me-av.big').textContent = meInitials(); refreshMe(); });
   page.querySelector('.me-swatches').addEventListener('click', e => {

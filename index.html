@@ -2635,6 +2635,16 @@ body.iv-full-on { overflow: hidden; }
   .iv.iv-full .iv-mic { width: 60px !important; height: 60px !important; }
 }
 
+/* problem header: back and buttons, then the title, then difficulty and category */
+.ph-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: -6px 0 14px; }
+.page.ide .ph { flex: none; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.page.ide .ph .prob-head { gap: 8px 14px; }
+.page.ide .ph .ide-title { font: 600 24px/1.2 var(--f-display) !important; margin: 2px 0 0 !important; white-space: nowrap; }
+.page.ide .ph-meta { margin: 0 0 4px; }
+.me-sync { margin: 10px 0 0; font-size: 13px; }
+.m-back { position: absolute; top: 16px; left: 10px; z-index: 30; }
+.m-back .btn { margin: 0 !important; }
+
 /* Explained: shared styles. Uses the host's tokens: --bg --subtle --sunk --fg --fg2 --muted --accent --ok --ok-soft --bad --bad-soft --hi --hi-soft --hair2 --f-display --f-body --f-code */
 .ex-index, .ex-topic { max-width: 1080px; margin: 0 auto; }
 .ex-hero { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin: 4px 0 18px; }
@@ -10775,6 +10785,114 @@ window.__instrument = instrument;
   window.addEventListener('hashchange', () => { document.body.classList.remove('tb-hide'); lastY = window.scrollY; });
   document.addEventListener('focusin', e => { if (e.target.closest && e.target.closest('.topbar')) document.body.classList.remove('tb-hide'); });
 })();
+/* Account sync, in the claude.ai artifact only. Progress lives in localStorage under "pg:"; when the page runs
+   as an artifact with the db and user capabilities, it is mirrored to the viewer's private subtree
+   data/users/<id>/ so it follows them to other browsers and devices. Elsewhere (a saved file, your own host)
+   nothing changes: progress stays in this browser.
+   Layout: 16 shard documents data/users/<id>/s0..s15, each {v: 1, items: {key: [updatedAt, value | null]}}.
+   The newest write of each key wins; a null value is a deletion. Runs inside the main IIFE. */
+const SYNC = (() => {
+  const PRE = 'pg:', META = 'tip:sync-meta', N = 16, MAX = 240 * 1024;
+  const SKIP = k => k === 'pg:realm' || k.startsWith('pg:last:') || k === 'pg:mock';
+  const st = { state: 'local', at: 0, db: null, uid: null, remote: {}, dirty: new Set(), chain: {}, timer: 0, pulledAt: 0 };
+  const subs = new Set(); const emit = () => subs.forEach(f => { try { f(st.state); } catch (e) { /* listener */ } });
+  const LS = (() => { try { return window.localStorage; } catch (e) { return null; } })();
+  if (!LS) return { state: () => 'local', onChange: f => subs.add(f) };
+  const rawSet = Storage.prototype.setItem, rawDel = Storage.prototype.removeItem;
+  let meta = {}; try { meta = JSON.parse(LS.getItem(META) || '{}') || {}; } catch (e) { meta = {}; }
+  let metaTimer = 0;
+  const saveMeta = () => { clearTimeout(metaTimer); metaTimer = setTimeout(() => { try { rawSet.call(LS, META, JSON.stringify(meta)); } catch (e) { /* full */ } }, 400); };
+  const shard = k => { let h = 0; for (let i = 0; i < k.length; i++) h = (h * 31 + k.charCodeAt(i)) | 0; return Math.abs(h) % N; };
+  const mine = k => typeof k === 'string' && k.startsWith(PRE) && !SKIP(k);
+
+  // every local write of a synced key is stamped, and its shard queued for upload
+  const touch = k => { meta[k] = Date.now(); saveMeta(); if (st.db) { st.dirty.add(shard(k)); schedule(); } };
+  Storage.prototype.setItem = function (k, v) { rawSet.call(this, k, v); if (this === LS && mine(k)) touch(k); };
+  Storage.prototype.removeItem = function (k) { rawDel.call(this, k); if (this === LS && mine(k)) touch(k); };
+
+  function localItems(s) {
+    const out = {};
+    for (let i = 0; i < LS.length; i++) { const k = LS.key(i); if (mine(k) && shard(k) === s) out[k] = [meta[k] || 1, LS.getItem(k)]; }
+    for (const k of Object.keys(meta)) if (mine(k) && shard(k) === s && !(k in out) && LS.getItem(k) == null) out[k] = [meta[k], null];
+    return out;
+  }
+  const doc = s => st.db.doc('data/users/' + st.uid + '/s' + s);
+
+  async function pull() {
+    const snaps = await Promise.all(Array.from({ length: N }, (_, s) => doc(s).get()));
+    let changed = false;
+    snaps.forEach((snap, s) => {
+      const items = (snap.exists && snap.data() && snap.data().items) || {};
+      st.remote[s] = items;
+      for (const [k, pair] of Object.entries(items)) {
+        if (!mine(k) || !Array.isArray(pair)) continue;
+        const [ts, val] = pair, cur = LS.getItem(k);
+        if (ts > (meta[k] || 0)) {
+          if (val == null) { if (cur != null) { rawDel.call(LS, k); changed = true; } }
+          else if (cur !== val) { rawSet.call(LS, k, val); changed = true; }
+          meta[k] = ts;
+        } else if ((meta[k] || 0) > ts) st.dirty.add(s);
+      }
+      const L = localItems(s);
+      if (Object.keys(L).some(k => !(k in items))) st.dirty.add(s);
+    });
+    saveMeta(); st.pulledAt = Date.now();
+    return changed;
+  }
+  async function pushShard(s) {
+    let items = localItems(s);
+    // stay under the document size limit: keep the most recently changed keys
+    let body = JSON.stringify(items);
+    if (body.length > MAX) {
+      const keep = {}; let size = 2;
+      for (const [k, p] of Object.entries(items).sort((a, b) => b[1][0] - a[1][0])) { const n = k.length + JSON.stringify(p).length + 4; if (size + n > MAX) continue; keep[k] = p; size += n; }
+      items = keep;
+    }
+    if (JSON.stringify(items) === JSON.stringify(st.remote[s] || {})) return;
+    await doc(s).set({ v: 1, items });
+    st.remote[s] = items;
+  }
+  // one write at a time per document
+  function push() {
+    const todo = [...st.dirty]; st.dirty.clear();
+    if (!todo.length) return Promise.resolve();
+    st.state = 'syncing'; emit();
+    return Promise.all(todo.map(s => (st.chain[s] = (st.chain[s] || Promise.resolve()).then(() => pushShard(s)))))
+      .then(() => { st.state = 'synced'; st.at = Date.now(); emit(); })
+      .catch(e => { todo.forEach(s => st.dirty.add(s)); fail(e); });
+  }
+  function schedule() { clearTimeout(st.timer); st.timer = setTimeout(push, 2500); }
+  function fail(e) {
+    const c = e && e.code;
+    st.state = c === 'quota_exceeded' ? 'full' : c === 'invalid_argument' || c === 'revoked' || c === 'not_granted' ? 'local' : 'error';
+    if (st.state === 'local') st.db = null;   // this viewer may not write: stay on this device for the visit
+    emit();
+  }
+  async function start() {
+    if (!(window.claude && window.claude.use)) return;
+    const [db, user] = await Promise.all([window.claude.use('db').catch(() => null), window.claude.use('user').catch(() => null)]);
+    if (!db || !user) return;
+    const uid = await user.id().catch(() => null);
+    if (!uid) return;
+    st.db = db; st.uid = uid; st.state = 'syncing'; emit();
+    try {
+      const changed = await pull();
+      await push();
+      if (st.state === 'syncing') { st.state = 'synced'; st.at = Date.now(); emit(); }
+      if (changed && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('.CodeMirror, textarea, input'))) window.dispatchEvent(new HashChangeEvent('hashchange'));
+    } catch (e) { fail(e); }
+    document.addEventListener('visibilitychange', () => {
+      if (!st.db) return;
+      if (document.visibilityState === 'hidden') { clearTimeout(st.timer); push(); }
+      else if (Date.now() - st.pulledAt > 60000) pull().then(ch => { if (ch) window.dispatchEvent(new HashChangeEvent('hashchange')); return push(); }).catch(fail);
+    });
+  }
+  start();
+  const LABEL = { local: 'Saved in this browser', syncing: 'Syncing to your Claude account…', synced: 'Synced to your Claude account', error: 'Could not sync just now; saved in this browser', full: 'Your synced storage is full; saved in this browser' };
+  return { state: () => st.state, label: () => LABEL[st.state], onChange: f => { subs.add(f); return () => subs.delete(f); } };
+})();
+window.SYNC = SYNC;
+
 /* Player card + stat tiles on every Practice page (SG Theory Prep pattern). Runs inside the main IIFE. */
 const DAILY_GOAL = 120;
 function xpToday() { return (store.get('xpDay', {})[todayKey()] || 0); }
@@ -10853,6 +10971,7 @@ function viewProfile0(page, h) {
       '<div class="me-swatches" role="radiogroup" aria-label="Avatar colour">' + AV_COLORS.map(c => '<button type="button" class="me-sw' + (c === meColor() ? ' on' : '') + '" role="radio" aria-checked="' + (c === meColor()) + '" aria-label="Colour" data-c="' + c + '" style="background:' + c + '"></button>').join('') + '</div></div></div>' +
     playerTop(xp, L, cur, nxt, t, pct, C).replace('<a class="player" href="#me"', '<div class="player"').replace(/<\/a>$/, '</div>');
   if (quests) page.appendChild(quests);
+  if (window.SYNC) { const sy = document.createElement('p'); sy.className = 'me-sync muted'; const paintS = () => { sy.textContent = SYNC.label(); }; paintS(); const off = SYNC.onChange(() => { if (!sy.isConnected) { off(); return; } paintS(); }); page.querySelector('.me-head').after(sy); }
   const inp = page.querySelector('#meName');
   inp.addEventListener('input', () => { store.set('meName', inp.value.slice(0, 40)); page.querySelector('.me-av.big').textContent = meInitials(); refreshMe(); });
   page.querySelector('.me-swatches').addEventListener('click', e => {
@@ -10970,6 +11089,7 @@ const BACK = (() => {
   }
   // called after a page renders: fixes the page's own back button, or adds one
   function mount(page, realm, h) {
+    document.querySelectorAll('body > .m-back').forEach(x => x.remove());
     if (ROOTS.has(h) || page.classList.contains('exam')) return;
     const to = stack.length > 1 ? stack[stack.length - 2] : parent(realm, h);
     const label = '← ' + name(to);
@@ -10980,6 +11100,12 @@ const BACK = (() => {
       row.appendChild(a); page.prepend(row);
     }
     a.setAttribute('href', '#' + to); a.textContent = label;
+    // phones: the back button sits in the empty top row, level with the avatar
+    if (window.matchMedia && window.matchMedia('(max-width: 700px)').matches) {
+      const row = a.parentElement, slot = document.createElement('div'); slot.className = 'm-back';
+      slot.appendChild(a); document.body.appendChild(slot);
+      if (row && row.classList.contains('back-row') && !row.children.length) row.remove();
+    }
   }
   return { visit, mount, name, parent };
 })();
@@ -11122,11 +11248,15 @@ const IDE = (() => {
   function mount(page, h) {
     document.body.classList.remove('ide-on');
     if (!h.startsWith('p-') || page.classList.contains('exam')) return;
+    // header in three rows: back (and the page's buttons), the title, then difficulty and category
+    { const hd = $('.prob-head', page), t = $('h1', page);
+      if (hd && t && !$('.ph-meta', page)) { const meta = document.createElement('div'); meta.className = 'ph-meta';
+        Array.from(hd.children).forEach(c => { if (c !== t && !c.matches('a.btn.ghost')) meta.appendChild(c); }); t.after(meta); } }
     const split = $('.split', page), left = $('.left', page), right = $('.right', page), bench = $('.bench', page), ed = bench && $('.ed', bench);
     if (!split || !left || !right || !bench || !ed || !wideEnough()) return;
     document.body.classList.add('ide-on'); page.classList.add('ide');
     const head = $('.prob-head', page), h1 = $('h1', page);
-    if (head && h1) { h1.classList.add('ide-title'); head.appendChild(h1); }
+    if (head && h1) { h1.classList.add('ide-title'); const meta = $('.ph-meta', page), ph = document.createElement('div'); ph.className = 'ph'; head.before(ph); ph.appendChild(head); ph.appendChild(h1); if (meta) ph.appendChild(meta); }
     // console panel collects the run output, the trace and the hidden-test check
     const out = document.createElement('div'); out.className = 'ide-out';
     out.innerHTML = '<div class="ide-out-h"><b>Console</b><span class="muted">Run shows the examples; Submit runs the hidden tests</span></div>';

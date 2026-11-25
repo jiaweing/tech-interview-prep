@@ -34,6 +34,7 @@ const BACK = (() => {
   }
   // called after a page renders: fixes the page's own back button, or adds one
   function mount(page, realm, h) {
+    document.querySelectorAll('body > .m-back').forEach(x => x.remove());
     if (ROOTS.has(h) || page.classList.contains('exam')) return;
     const to = stack.length > 1 ? stack[stack.length - 2] : parent(realm, h);
     const label = '← ' + name(to);
@@ -44,6 +45,12 @@ const BACK = (() => {
       row.appendChild(a); page.prepend(row);
     }
     a.setAttribute('href', '#' + to); a.textContent = label;
+    // phones: the back button sits in the empty top row, level with the avatar
+    if (window.matchMedia && window.matchMedia('(max-width: 700px)').matches) {
+      const row = a.parentElement, slot = document.createElement('div'); slot.className = 'm-back';
+      slot.appendChild(a); document.body.appendChild(slot);
+      if (row && row.classList.contains('back-row') && !row.children.length) row.remove();
+    }
   }
   return { visit, mount, name, parent };
 })();

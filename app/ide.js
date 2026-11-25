@@ -19,11 +19,15 @@ const IDE = (() => {
   function mount(page, h) {
     document.body.classList.remove('ide-on');
     if (!h.startsWith('p-') || page.classList.contains('exam')) return;
+    // header in three rows: back (and the page's buttons), the title, then difficulty and category
+    { const hd = $('.prob-head', page), t = $('h1', page);
+      if (hd && t && !$('.ph-meta', page)) { const meta = document.createElement('div'); meta.className = 'ph-meta';
+        Array.from(hd.children).forEach(c => { if (c !== t && !c.matches('a.btn.ghost')) meta.appendChild(c); }); t.after(meta); } }
     const split = $('.split', page), left = $('.left', page), right = $('.right', page), bench = $('.bench', page), ed = bench && $('.ed', bench);
     if (!split || !left || !right || !bench || !ed || !wideEnough()) return;
     document.body.classList.add('ide-on'); page.classList.add('ide');
     const head = $('.prob-head', page), h1 = $('h1', page);
-    if (head && h1) { h1.classList.add('ide-title'); head.appendChild(h1); }
+    if (head && h1) { h1.classList.add('ide-title'); const meta = $('.ph-meta', page), ph = document.createElement('div'); ph.className = 'ph'; head.before(ph); ph.appendChild(head); ph.appendChild(h1); if (meta) ph.appendChild(meta); }
     // console panel collects the run output, the trace and the hidden-test check
     const out = document.createElement('div'); out.className = 'ide-out';
     out.innerHTML = '<div class="ide-out-h"><b>Console</b><span class="muted">Run shows the examples; Submit runs the hidden tests</span></div>';
