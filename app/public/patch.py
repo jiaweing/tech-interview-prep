@@ -74,3 +74,6 @@ html = once(html, "function mountViz(id, host) {\n", "function mountViz(id, host
 
 # ---------- home: the full course instead of the original two-day plan ----------
 html = once(html, "function viewHome(page) {\n  viewHome0(page);\n", "function viewHome(page) {\n  page.classList.add('narrow'); page.innerHTML = questsHTML(); COURSE.render(page);\n")
+
+# a pattern lesson also lists the problems it names (problems filed under another pattern included)
+html = once(html, "  const probs = PROBLEMS.filter(p => p.pattern === P.id);", "  const probs = PROBLEMS.filter(p => p.pattern === P.id || (P.problems || []).includes(p.id));")

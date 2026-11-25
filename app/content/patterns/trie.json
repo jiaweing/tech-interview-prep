@@ -1,0 +1,82 @@
+{
+ "id": "trie",
+ "name": "Tries",
+ "tagline": "Words that start the same share a path.",
+ "signals": [
+  "words with a given prefix",
+  "autocomplete / suggestions",
+  "starts with",
+  "dictionary of words",
+  "many prefix queries"
+ ],
+ "template": "def build(words):\n    root = {}\n    for w in words:\n        node = root\n        for ch in w:\n            node = node.setdefault(ch, {})   # make the child if missing\n        node['$'] = True                     # end-of-word mark\n    return root\n\ndef has_prefix(root, p):\n    node = root\n    for ch in p:\n        if ch not in node:\n            return False\n        node = node[ch]\n    return True\n\ntrie = build([\"car\", \"cat\", \"dog\"])\nprint(has_prefix(trie, \"ca\"), has_prefix(trie, \"cow\"))  # -> True False\n",
+ "complexity": "O(L) per insert or lookup (L = word length), O(total letters) space",
+ "blocks": [
+  {
+   "t": "p",
+   "html": "<p>A phone keyboard: type <code>ca</code> and it already offers <code>car</code> and <code>cat</code>. A trie is a tree of letters where words that start the same way share the same first nodes.</p>"
+  },
+  {
+   "t": "viz",
+   "id": "ex:trie"
+  },
+  {
+   "t": "h",
+   "text": "Example: count words with a prefix"
+  },
+  {
+   "t": "code",
+   "code": "def slow(words, queries):          # brute force: scan every word per query, O(Q * N * L)\n    return [sum(w.startswith(q) for w in words) for q in queries]\n\ndef fast(words, queries):          # trie with a count per node, O(total letters)\n    root = {}\n    for w in words:\n        node = root\n        for ch in w:\n            node = node.setdefault(ch, {'#': 0})\n            node['#'] += 1         # one more word passes through here\n    out = []\n    for q in queries:\n        node = root\n        for ch in q:\n            node = node.get(ch)\n            if node is None:       # no word has this prefix\n                break\n        out.append(node['#'] if node else 0)\n    return out\n\nwords = [\"apple\", \"app\", \"apt\", \"bat\"]\nfor queries in [[\"ap\", \"app\", \"b\"], [\"c\", \"apples\"]]:\n    print(slow(words, queries), fast(words, queries))  # -> [3, 2, 1] [3, 2, 1], then [0, 0] [0, 0]\n",
+   "note": "Scan every word for every query, then walk a trie once per query"
+  },
+  {
+   "t": "table",
+   "head": [
+    "query <code>app</code>",
+    "node count",
+    "words through here"
+   ],
+   "rows": [
+    [
+     "<code>a</code>",
+     "3",
+     "apple, app, apt"
+    ],
+    [
+     "<code>p</code>",
+     "3",
+     "apple, app, apt"
+    ],
+    [
+     "<code>p</code>",
+     "<b>2</b>",
+     "apple, app"
+    ]
+   ]
+  },
+  {
+   "t": "key",
+   "html": "<p>Store a count on each node as you insert. Then a prefix query costs only its own length, however many words you stored.</p>"
+  },
+  {
+   "t": "quiz",
+   "q": "<p>Cost of one prefix query of length L on a trie of N words?</p>",
+   "options": [
+    "O(N)",
+    "O(L)",
+    "O(N &middot; L)"
+   ],
+   "answer": 1,
+   "why": "<p>You follow one child per letter. The number of words never enters.</p>"
+  }
+ ],
+ "pitfalls": [
+  "Mark word ends separately: <code>app</code> is a prefix of <code>apple</code> and also a word.",
+  "Stop as soon as a letter is missing; return 0 or False instead of reading from <code>None</code>.",
+  "Nested <code>dict</code>s are enough in Python. You rarely need a Node class."
+ ],
+ "problems": [
+  "prefix-count",
+  "search-suggestions"
+ ]
+}

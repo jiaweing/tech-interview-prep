@@ -1,0 +1,95 @@
+{
+ "id": "linked-list",
+ "name": "Linked lists",
+ "tagline": "Rewire the arrows in place. Save next before you cut.",
+ "signals": [
+  "reverse the list in place",
+  "k-th node from the end",
+  "detect a cycle",
+  "merge two sorted lists",
+  "middle of the list",
+  "O(1) extra space"
+ ],
+ "template": "class Node:\n    def __init__(self, val, next=None):\n        self.val, self.next = val, next\n\ndef reverse(head):\n    prev, cur = None, head\n    while cur:\n        nxt = cur.next            # save the rest before you cut\n        cur.next = prev           # flip the arrow\n        prev, cur = cur, nxt\n    return prev                   # old tail is the new head\n\ndef to_list(head):\n    out = []\n    while head:\n        out.append(head.val)\n        head = head.next\n    return out\n\nprint(to_list(reverse(Node(1, Node(2, Node(3))))))  # -> [3, 2, 1]\n",
+ "complexity": "O(N) time, O(1) extra space",
+ "blocks": [
+  {
+   "t": "p",
+   "html": "<p>A treasure hunt: each clue only tells you where the next one is. You cannot jump to clue 5; you follow the chain.</p><p>So linked list tricks use two pointers, or rewire <code>next</code> in place, instead of copying into an array.</p>"
+  },
+  {
+   "t": "viz",
+   "id": "ex:linked-list"
+  },
+  {
+   "t": "h",
+   "text": "Example: does the list loop?"
+  },
+  {
+   "t": "code",
+   "code": "class Node:\n    def __init__(self, val):\n        self.val, self.next = val, None\n\ndef build(vals, loop_to):          # tail points back to index loop_to, or -1 for none\n    nodes = [Node(v) for v in vals]\n    for a, b in zip(nodes, nodes[1:]):\n        a.next = b\n    if loop_to >= 0:\n        nodes[-1].next = nodes[loop_to]\n    return nodes[0]\n\ndef slow(head):                    # brute force: remember every node in a list, O(N^2)\n    seen = []\n    while head:\n        if head in seen:           # list scan, O(N) each time\n            return True\n        seen.append(head)\n        head = head.next\n    return False\n\ndef fast(head):                    # Floyd: two speeds, O(N) time, O(1) space\n    walker = runner = head\n    while runner and runner.next:\n        walker = walker.next\n        runner = runner.next.next\n        if walker is runner:       # runner lapped walker\n            return True\n    return False\n\nfor vals, loop_to in [([1, 2, 3, 4], 1), ([1, 2, 3], -1), ([7], 0)]:\n    head = build(vals, loop_to)\n    print(slow(head), fast(head))  # -> True True, then False False, then True True\n",
+   "note": "Remember every node, then two pointers at two speeds"
+  },
+  {
+   "t": "table",
+   "head": [
+    "step",
+    "walker",
+    "runner",
+    "same node?"
+   ],
+   "rows": [
+    [
+     "start",
+     "1",
+     "1",
+     "not checked"
+    ],
+    [
+     "1",
+     "2",
+     "3",
+     "no"
+    ],
+    [
+     "2",
+     "3",
+     "2 (wrapped)",
+     "no"
+    ],
+    [
+     "3",
+     "4",
+     "4",
+     "<b>yes &rarr; True</b>"
+    ]
+   ]
+  },
+  {
+   "t": "key",
+   "html": "<p>Two pointers, one twice as fast. In a loop the fast one must catch the slow one; without a loop it hits <code>None</code> first. No extra memory needed.</p>"
+  },
+  {
+   "t": "quiz",
+   "q": "<p>Why test <code>runner and runner.next</code> before moving?</p>",
+   "options": [
+    "So <code>runner.next.next</code> never reads <code>.next</code> of <code>None</code>",
+    "It makes the loop faster",
+    "It finds where the cycle starts"
+   ],
+   "answer": 0,
+   "why": "<p>Without a cycle, <code>runner</code> reaches the end. <code>None.next</code> raises <code>AttributeError</code>.</p>"
+  }
+ ],
+ "pitfalls": [
+  "Save <code>cur.next</code> before you overwrite it, or you lose the rest of the list.",
+  "Use a dummy head node when the first node can change (merge, delete). It removes the special case.",
+  "Compare nodes with <code>is</code>, not by value: two nodes can hold the same value."
+ ],
+ "problems": [
+  "reverse-list",
+  "merge-two-sorted",
+  "remove-nth-from-end",
+  "cycle-start"
+ ]
+}

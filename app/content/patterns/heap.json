@@ -1,0 +1,90 @@
+{
+ "id": "heap",
+ "name": "Heaps",
+ "tagline": "Need the smallest again and again? Keep a heap.",
+ "signals": [
+  "k largest / k smallest",
+  "k closest points",
+  "top k most frequent",
+  "always take the two smallest",
+  "merge k sorted lists"
+ ],
+ "template": "import heapq\n\ndef k_largest(A, k):\n    heap = []                     # min-heap of the best k so far\n    for x in A:\n        heapq.heappush(heap, x)\n        if len(heap) > k:\n            heapq.heappop(heap)   # drop the smallest of the k + 1\n    return sorted(heap, reverse=True)\n\nprint(k_largest([5, 1, 9, 3, 7], 2))  # -> [9, 7]\n",
+ "complexity": "O(log N) per push or pop, O(N log K) for top K",
+ "blocks": [
+  {
+   "t": "p",
+   "html": "<p>An emergency room: the most urgent patient goes next, whenever they arrived. A heap hands you the smallest item in O(1) and stays cheap to update.</p><p>Python's <code>heapq</code> keeps it in a plain list.</p>"
+  },
+  {
+   "t": "viz",
+   "id": "ex:top-k-heap"
+  },
+  {
+   "t": "h",
+   "text": "Example: cheapest way to join ropes"
+  },
+  {
+   "t": "code",
+   "code": "import heapq\n\ndef slow(ropes):                   # brute force: re-sort before every join, O(N^2 log N)\n    ropes = list(ropes)\n    cost = 0\n    while len(ropes) > 1:\n        ropes.sort()\n        joined = ropes[0] + ropes[1]\n        cost += joined\n        ropes = ropes[2:] + [joined]\n    return cost\n\ndef fast(ropes):                   # min-heap: pop two, push one, O(N log N)\n    heap = list(ropes)\n    heapq.heapify(heap)\n    cost = 0\n    while len(heap) > 1:\n        joined = heapq.heappop(heap) + heapq.heappop(heap)\n        cost += joined\n        heapq.heappush(heap, joined)\n    return cost\n\nfor ropes in [[4, 3, 2, 6], [1, 2, 3, 4, 5], [7]]:\n    print(slow(ropes), fast(ropes))  # -> 29 29, then 33 33, then 0 0\n",
+   "note": "Sort the whole pile every round, then keep a heap"
+  },
+  {
+   "t": "table",
+   "head": [
+    "heap",
+    "pop two",
+    "join",
+    "total cost"
+   ],
+   "rows": [
+    [
+     "<code>[2, 3, 4, 6]</code>",
+     "2, 3",
+     "5",
+     "5"
+    ],
+    [
+     "<code>[4, 5, 6]</code>",
+     "4, 5",
+     "9",
+     "14"
+    ],
+    [
+     "<code>[6, 9]</code>",
+     "6, 9",
+     "15",
+     "<b>29</b>"
+    ]
+   ]
+  },
+  {
+   "t": "key",
+   "html": "<p>When you keep needing the smallest item from a pile that changes, use a heap. <code>heap[0]</code> is the minimum, and <code>heappush</code> / <code>heappop</code> cost O(log N).</p>"
+  },
+  {
+   "t": "quiz",
+   "q": "<p>To keep the K <b>largest</b> of N numbers, which heap do you keep?</p>",
+   "options": [
+    "A max-heap of all N",
+    "A min-heap of size K",
+    "A sorted list of size K"
+   ],
+   "answer": 1,
+   "why": "<p>The smallest of your K sits on top, so you can drop it in O(log K) when a bigger one arrives. Total O(N log K).</p>"
+  }
+ ],
+ "pitfalls": [
+  "<code>heapq</code> is a min-heap only. For a max-heap, push <code>-x</code> and negate on the way out.",
+  "A heap is not sorted. Only <code>heap[0]</code> is in place; sort the result if order matters.",
+  "Tuples with equal first items compare the second. Add a counter as a tiebreak when the second item cannot be compared."
+ ],
+ "problems": [
+  "kth-largest",
+  "k-closest-points",
+  "top-k-frequent",
+  "retrieve-topk",
+  "connect-ropes",
+  "merge-feeds"
+ ]
+}

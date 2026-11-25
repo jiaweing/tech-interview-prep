@@ -1,0 +1,93 @@
+{
+ "id": "trees",
+ "name": "Trees",
+ "tagline": "Ask each child, then combine. Handle None first.",
+ "signals": [
+  "root, left and right child",
+  "depth or height",
+  "level by level",
+  "path from root to leaf",
+  "lowest common ancestor",
+  "valid binary search tree"
+ ],
+ "template": "class Node:\n    def __init__(self, val, left=None, right=None):\n        self.val, self.left, self.right = val, left, right\n\ndef depth(node):\n    if node is None:              # empty tree has depth 0\n        return 0\n    return 1 + max(depth(node.left), depth(node.right))\n\nroot = Node(1, Node(2, Node(4)), Node(3))\nprint(depth(root))  # -> 3\n",
+ "complexity": "O(N) time, O(H) space for the call stack (H = height)",
+ "blocks": [
+  {
+   "t": "p",
+   "html": "<p>A folder on your disk: it holds files and smaller folders, and each smaller folder works the same way.</p><p>So you solve a tree by solving it for each child and combining the two answers.</p>"
+  },
+  {
+   "t": "viz",
+   "id": "ex:binary-tree"
+  },
+  {
+   "t": "h",
+   "text": "Example: is it a valid BST?"
+  },
+  {
+   "t": "code",
+   "code": "class Node:\n    def __init__(self, val, left=None, right=None):\n        self.val, self.left, self.right = val, left, right\n\ndef values(node):\n    if node is None:\n        return []\n    return values(node.left) + [node.val] + values(node.right)\n\ndef slow(node):                    # brute force: compare each node with whole subtrees, O(N^2)\n    if node is None:\n        return True\n    if any(v >= node.val for v in values(node.left)):\n        return False\n    if any(v <= node.val for v in values(node.right)):\n        return False\n    return slow(node.left) and slow(node.right)\n\ndef fast(node, lo=float('-inf'), hi=float('inf')):   # pass the allowed range down, O(N)\n    if node is None:\n        return True\n    if not lo < node.val < hi:\n        return False\n    return fast(node.left, lo, node.val) and fast(node.right, node.val, hi)\n\ngood = Node(5, Node(3, Node(1), Node(4)), Node(8))\nbad = Node(5, Node(3, Node(1), Node(6)), Node(8))      # 6 sits left of 5\nfor root in [good, bad, Node(2, Node(2))]:\n    print(slow(root), fast(root))  # -> True True, then False False, then False False\n",
+   "note": "Check every subtree again and again, then pass a range down once"
+  },
+  {
+   "t": "table",
+   "head": [
+    "node",
+    "allowed range",
+    "ok?"
+   ],
+   "rows": [
+    [
+     "5",
+     "(-inf, inf)",
+     "yes"
+    ],
+    [
+     "3",
+     "(-inf, 5)",
+     "yes"
+    ],
+    [
+     "1",
+     "(-inf, 3)",
+     "yes"
+    ],
+    [
+     "6",
+     "(3, 5)",
+     "<b>no &rarr; False</b>"
+    ]
+   ]
+  },
+  {
+   "t": "key",
+   "html": "<p>Each call answers for its own subtree. Pass <b>down</b> what a node needs from its ancestors (the range), return <b>up</b> what the parent needs (True or False).</p>"
+  },
+  {
+   "t": "quiz",
+   "q": "<p>In <code>bad</code>, why is 6 wrong when it is bigger than its parent 3?</p>",
+   "options": [
+    "It is in the left subtree of 5, so it must be less than 5",
+    "6 is a leaf",
+    "Duplicates are not allowed"
+   ],
+   "answer": 0,
+   "why": "<p>The BST rule holds against every ancestor, not just the parent. The range <code>(3, 5)</code> carries both rules.</p>"
+  }
+ ],
+ "pitfalls": [
+  "Check <code>node is None</code> first in every recursive function.",
+  "In a BST, checking a node only against its parent misses rules from higher up.",
+  "A deep, skewed tree can pass Python's recursion limit (about 1000). Use an explicit stack, or a <code>deque</code> for level order."
+ ],
+ "problems": [
+  "path-sum",
+  "tree-lca",
+  "tree-right-view",
+  "tree-max-depth-diameter",
+  "tree-level-order",
+  "valid-bst",
+  "count-invalid-bst-nodes"
+ ]
+}

@@ -1,0 +1,93 @@
+{
+ "id": "backtracking",
+ "name": "Backtracking",
+ "tagline": "Choose, explore, un-choose. Cut dead branches early.",
+ "signals": [
+  "all subsets / all combinations",
+  "all permutations",
+  "list every way to",
+  "pick numbers that sum to a target",
+  "find a word in a grid"
+ ],
+ "template": "def subsets(A):\n    out, path = [], []\n    def go(i):\n        if i == len(A):\n            out.append(path[:])  # copy: path keeps changing\n            return\n        path.append(A[i])        # choose\n        go(i + 1)                # explore\n        path.pop()               # un-choose\n        go(i + 1)                # explore without A[i]\n    go(0)\n    return out\n\nprint(subsets([1, 2]))  # -> [[1, 2], [1], [2], []]\n",
+ "complexity": "O(2^N) or O(N!) worst case; pruning cuts the real work",
+ "blocks": [
+  {
+   "t": "p",
+   "html": "<p>Walking a maze: follow a corridor, and when it dead-ends, step back to the last fork and try the next way. Backtracking lists every option like this, and drops a whole branch as soon as it cannot lead to an answer.</p>"
+  },
+  {
+   "t": "viz",
+   "id": "ex:backtracking"
+  },
+  {
+   "t": "h",
+   "text": "Example: numbers that sum to a target"
+  },
+  {
+   "t": "code",
+   "code": "from itertools import combinations\n\ndef slow(A, T):                    # brute force: build all 2^N subsets, then filter\n    out = []\n    for size in range(len(A) + 1):\n        for combo in combinations(sorted(A), size):\n            if sum(combo) == T:\n                out.append(list(combo))\n    return sorted(out)\n\ndef fast(A, T):                    # backtracking: stop a branch once it is too big\n    A = sorted(A)\n    out, path = [], []\n    def go(start, left):\n        if left == 0:\n            out.append(path[:])\n            return\n        for i in range(start, len(A)):\n            if A[i] > left:        # sorted, so every later number is too big too\n                break\n            path.append(A[i])\n            go(i + 1, left - A[i])\n            path.pop()\n    go(0, T)\n    return sorted(out)\n\nfor A, T in [([2, 3, 5, 6, 8], 8), ([1, 2, 3], 7)]:\n    print(slow(A, T), fast(A, T))  # -> [[2, 6], [3, 5], [8]] [[2, 6], [3, 5], [8]], then [] []\n",
+   "note": "Build every subset, then grow one path and prune"
+  },
+  {
+   "t": "table",
+   "head": [
+    "path",
+    "left",
+    "action"
+   ],
+   "rows": [
+    [
+     "<code>[2, 3]</code>",
+     "3",
+     "5 &gt; 3: break, pop 3"
+    ],
+    [
+     "<code>[2, 5]</code>",
+     "1",
+     "6 &gt; 1: break, pop 5"
+    ],
+    [
+     "<code>[2, 6]</code>",
+     "0",
+     "<b>record</b>"
+    ],
+    [
+     "<code>[3, 5]</code>",
+     "0",
+     "<b>record</b>"
+    ],
+    [
+     "<code>[8]</code>",
+     "0",
+     "<b>record</b>"
+    ]
+   ]
+  },
+  {
+   "t": "key",
+   "html": "<p>Build the answer one choice at a time, and undo each choice after exploring it so the next branch starts clean. The speed comes from pruning: stop a branch the moment it cannot work.</p>"
+  },
+  {
+   "t": "quiz",
+   "q": "<p>Why <code>out.append(path[:])</code> and not <code>out.append(path)</code>?</p>",
+   "options": [
+    "<code>path[:]</code> is faster",
+    "<code>path</code> keeps changing; without a copy every saved answer ends up as the same list",
+    "It sorts the answer"
+   ],
+   "answer": 1,
+   "why": "<p><code>path</code> is one list you reuse. Appending it stores a reference, and the later pops empty it.</p>"
+  }
+ ],
+ "pitfalls": [
+  "Save a copy (<code>path[:]</code>), not the list you keep changing.",
+  "Every <code>append</code> needs a matching <code>pop</code> on the way back.",
+  "Sort first, so you can <code>break</code> early and skip duplicates with <code>if i &gt; start and A[i] == A[i - 1]: continue</code>."
+ ],
+ "problems": [
+  "all-subsets",
+  "combination-sum",
+  "word-search"
+ ]
+}

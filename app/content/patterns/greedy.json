@@ -1,0 +1,99 @@
+{
+ "id": "greedy",
+ "name": "Greedy",
+ "tagline": "Take the best move now, once you know it never hurts later.",
+ "signals": [
+  "can you reach the end",
+  "fewest jumps / steps",
+  "circular route with fuel",
+  "split into as many parts as possible",
+  "most non-overlapping"
+ ],
+ "template": "def can_reach_end(A):\n    reach = 0                      # farthest index reachable so far\n    for i, step in enumerate(A):\n        if i > reach:              # stuck before i\n            return False\n        reach = max(reach, i + step)\n    return True\n\nprint(can_reach_end([2, 3, 1, 1, 4]), can_reach_end([3, 2, 1, 0, 4]))  # -> True False\n",
+ "complexity": "Usually O(N), or O(N log N) with a sort",
+ "blocks": [
+  {
+   "t": "p",
+   "html": "<p>Paying with the fewest coins: take the biggest coin that fits, then repeat. Greedy makes the best-looking move at each step and never goes back.</p><p>It is fast, but only correct when you can say why the local choice is safe.</p>"
+  },
+  {
+   "t": "viz",
+   "id": "ex:greedy"
+  },
+  {
+   "t": "h",
+   "text": "Example: where to start a road trip"
+  },
+  {
+   "t": "code",
+   "code": "def slow(gas, cost):               # brute force: try every start, O(N^2)\n    n = len(gas)\n    for start in range(n):\n        tank = 0\n        for k in range(n):\n            i = (start + k) % n\n            tank += gas[i] - cost[i]\n            if tank < 0:\n                break\n        if tank >= 0:              # made the full loop\n            return start\n    return -1\n\ndef fast(gas, cost):               # greedy: one pass, O(N)\n    if sum(gas) < sum(cost):\n        return -1                  # not enough fuel in total\n    start = tank = 0\n    for i in range(len(gas)):\n        tank += gas[i] - cost[i]\n        if tank < 0:               # every start up to i fails, so try i + 1\n            start = i + 1\n            tank = 0\n    return start\n\ntests = [([1, 2, 3, 4, 5], [3, 4, 5, 1, 2]), ([2, 3, 4], [3, 4, 3]), ([5, 1, 2, 3, 4], [4, 4, 1, 5, 1])]\nfor gas, cost in tests:\n    print(slow(gas, cost), fast(gas, cost))  # -> 3 3, then -1 -1, then 4 4\n",
+   "note": "Try every start, then one pass that skips starts that cannot work"
+  },
+  {
+   "t": "table",
+   "head": [
+    "i",
+    "gas - cost",
+    "tank",
+    "start"
+   ],
+   "rows": [
+    [
+     "0",
+     "-2",
+     "-2 &rarr; reset to 0",
+     "1"
+    ],
+    [
+     "1",
+     "-2",
+     "-2 &rarr; reset to 0",
+     "2"
+    ],
+    [
+     "2",
+     "-2",
+     "-2 &rarr; reset to 0",
+     "3"
+    ],
+    [
+     "3",
+     "+3",
+     "3",
+     "3"
+    ],
+    [
+     "4",
+     "+3",
+     "6",
+     "<b>3</b>"
+    ]
+   ]
+  },
+  {
+   "t": "key",
+   "html": "<p>Greedy is safe only with a reason. Here: if you run dry at <code>i</code>, every start between <code>start</code> and <code>i</code> runs dry there too, so you skip them all in one step.</p>"
+  },
+  {
+   "t": "quiz",
+   "q": "<p>Coins 1, 3 and 4, amount 6. Does taking the biggest coin first give the fewest coins?</p>",
+   "options": [
+    "Yes, always",
+    "No: 4 + 1 + 1 is three coins, 3 + 3 is two",
+    "Only if the coins are sorted"
+   ],
+   "answer": 1,
+   "why": "<p>A greedy rule needs a reason it never hurts. Without one, test a small counterexample; if it fails, reach for dynamic programming.</p>"
+  }
+ ],
+ "pitfalls": [
+  "Greedy without a reason is a guess. Try a small counterexample before you commit.",
+  "Sort by the right key: to fit the most non-overlapping intervals, sort by <b>end</b>, not start.",
+  "Check the global condition first (total gas against total cost), so the single pass can trust its answer."
+ ],
+ "problems": [
+  "jump-game",
+  "gas-station",
+  "partition-labels"
+ ]
+}

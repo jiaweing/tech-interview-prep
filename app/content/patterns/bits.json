@@ -1,0 +1,93 @@
+{
+ "id": "bits",
+ "name": "Bit tricks",
+ "tagline": "x ^ x is 0, and x & (x - 1) drops the lowest 1.",
+ "signals": [
+  "every value appears twice except one",
+  "count the 1 bits",
+  "power of two",
+  "binary representation",
+  "XOR",
+  "no extra memory"
+ ],
+ "template": "def count_ones(n):\n    count = 0\n    while n:\n        n &= n - 1        # clears the lowest set bit\n        count += 1\n    return count\n\nprint(count_ones(13), bin(13))  # -> 3 0b1101\n",
+ "complexity": "O(1) per operation, O(number of bits) per loop",
+ "blocks": [
+  {
+   "t": "p",
+   "html": "<p>A row of light switches: each bit is on or off. Bit tricks flip, test and count those switches with single CPU operations, and need no extra memory.</p>"
+  },
+  {
+   "t": "viz",
+   "id": "ex:bit-manipulation"
+  },
+  {
+   "t": "h",
+   "text": "Example: the one value without a pair"
+  },
+  {
+   "t": "code",
+   "code": "def slow(A):                       # brute force: count each value, O(N^2)\n    for x in A:\n        if A.count(x) % 2 == 1:\n            return x\n\ndef fast(A):                       # XOR: pairs cancel, O(N) time, O(1) space\n    acc = 0\n    for x in A:\n        acc ^= x\n    return acc\n\nfor A in [[9, 3, 9, 3, 9, 7, 9], [4, 1, 2, 1, 2], [42]]:\n    print(slow(A), fast(A))        # -> 7 7, then 4 4, then 42 42\n",
+   "note": "Count every value, then XOR everything together"
+  },
+  {
+   "t": "table",
+   "head": [
+    "x",
+    "acc (binary)"
+   ],
+   "rows": [
+    [
+     "start",
+     "<code>000</code>"
+    ],
+    [
+     "4",
+     "<code>100</code>"
+    ],
+    [
+     "1",
+     "<code>101</code>"
+    ],
+    [
+     "2",
+     "<code>111</code>"
+    ],
+    [
+     "1",
+     "<code>110</code>"
+    ],
+    [
+     "2",
+     "<code>100</code> = <b>4</b>"
+    ]
+   ]
+  },
+  {
+   "t": "key",
+   "html": "<p>XOR is its own undo: <code>x ^ x == 0</code> and <code>x ^ 0 == x</code>, in any order. XOR everything, every pair cancels, and the odd one is left.</p>"
+  },
+  {
+   "t": "quiz",
+   "q": "<p>What is <code>12 &amp; 11</code>?</p>",
+   "options": [
+    "8",
+    "11",
+    "0"
+   ],
+   "answer": 0,
+   "why": "<p>12 is <code>1100</code> and 11 is <code>1011</code>. <code>n &amp; (n - 1)</code> clears the lowest 1 of 12, leaving <code>1000</code> = 8.</p>"
+  }
+ ],
+ "pitfalls": [
+  "Python ints never overflow. Mask with <code>&amp; 0xFFFFFFFF</code> when the problem means 32-bit numbers.",
+  "<code>n &gt;&gt; 1</code> on a negative number never reaches 0. Loop a fixed 32 times instead of <code>while n</code>.",
+  "<code>bin(n)</code> returns a string with a <code>0b</code> prefix (and <code>-0b</code> for negatives). Slice it off before you count or pad."
+ ],
+ "problems": [
+  "count-bits",
+  "reverse-bits",
+  "odd-one-out",
+  "binary-gap"
+ ]
+}

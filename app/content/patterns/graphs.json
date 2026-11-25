@@ -1,0 +1,89 @@
+{
+ "id": "graphs",
+ "name": "Graphs",
+ "tagline": "Visit each node once. BFS finds the fewest steps.",
+ "signals": [
+  "grid of land and water",
+  "shortest path / fewest moves",
+  "prerequisites / task order",
+  "connected groups",
+  "cities, roads, network"
+ ],
+ "template": "from collections import deque\n\ndef bfs(graph, start):\n    dist = {start: 0}\n    queue = deque([start])\n    while queue:\n        node = queue.popleft()\n        for nxt in graph[node]:\n            if nxt not in dist:          # mark when you enqueue\n                dist[nxt] = dist[node] + 1\n                queue.append(nxt)\n    return dist\n\ng = {'A': ['B', 'C'], 'B': ['D'], 'C': ['D'], 'D': []}\nprint(bfs(g, 'A')['D'])  # -> 2\n",
+ "complexity": "O(V + E) time, O(V) space",
+ "blocks": [
+  {
+   "t": "p",
+   "html": "<p>A city map: places are nodes, roads are edges. A grid is a graph too: each cell links to its four neighbors.</p><p>Most graph questions are a walk that visits each node once and remembers what it has seen.</p>"
+  },
+  {
+   "t": "viz",
+   "id": "ex:bfs"
+  },
+  {
+   "t": "h",
+   "text": "Example: fewest steps across a grid"
+  },
+  {
+   "t": "code",
+   "code": "from collections import deque\n\ndef slow(grid):                    # brute force: try every path, exponential\n    R, C = len(grid), len(grid[0])\n    def walk(r, c, seen):          # fewest steps from (r, c) to the corner, or None\n        if (r, c) == (R - 1, C - 1):\n            return 0\n        best = None\n        for nr, nc in ((r + 1, c), (r - 1, c), (r, c + 1), (r, c - 1)):\n            if 0 <= nr < R and 0 <= nc < C and grid[nr][nc] == 0 and (nr, nc) not in seen:\n                rest = walk(nr, nc, seen | {(nr, nc)})\n                if rest is not None and (best is None or rest + 1 < best):\n                    best = rest + 1\n        return best\n    ans = walk(0, 0, {(0, 0)})\n    return -1 if ans is None else ans\n\ndef fast(grid):                    # BFS: first arrival is the shortest, O(R * C)\n    R, C = len(grid), len(grid[0])\n    dist = {(0, 0): 0}\n    queue = deque([(0, 0)])\n    while queue:\n        r, c = queue.popleft()\n        if (r, c) == (R - 1, C - 1):\n            return dist[(r, c)]\n        for nr, nc in ((r + 1, c), (r - 1, c), (r, c + 1), (r, c - 1)):\n            if 0 <= nr < R and 0 <= nc < C and grid[nr][nc] == 0 and (nr, nc) not in dist:\n                dist[(nr, nc)] = dist[(r, c)] + 1\n                queue.append((nr, nc))\n    return -1\n\ngrids = [[[0, 0, 0], [0, 1, 0], [0, 0, 0]], [[0, 1], [1, 0]], [[0]]]\nfor grid in grids:                 # 0 = open, 1 = wall\n    print(slow(grid), fast(grid))  # -> 4 4, then -1 -1, then 0 0\n",
+   "note": "Try every path, then BFS in rings from the start"
+  },
+  {
+   "t": "table",
+   "head": [
+    "steps",
+    "cells first reached"
+   ],
+   "rows": [
+    [
+     "0",
+     "(0,0)"
+    ],
+    [
+     "1",
+     "(1,0) (0,1)"
+    ],
+    [
+     "2",
+     "(2,0) (0,2)"
+    ],
+    [
+     "3",
+     "(2,1) (1,2)"
+    ],
+    [
+     "4",
+     "<b>(2,2) &rarr; return 4</b>"
+    ]
+   ]
+  },
+  {
+   "t": "key",
+   "html": "<p>BFS explores in rings: everything 1 step away, then 2, then 3. So the first time you reach a cell is along a shortest path, and you never need to visit it again.</p>"
+  },
+  {
+   "t": "quiz",
+   "q": "<p>Why mark a cell as seen when you <b>enqueue</b> it, not when you pop it?</p>",
+   "options": [
+    "It stops the same cell entering the queue many times",
+    "BFS would return the wrong distance",
+    "<code>deque</code> requires it"
+   ],
+   "answer": 0,
+   "why": "<p>If you mark late, several neighbors can each add the same cell before it is popped. The answer stays right, but the queue and the work grow.</p>"
+  }
+ ],
+ "pitfalls": [
+  "Mark visited when you enqueue, or the queue fills with duplicates.",
+  "Use <code>deque.popleft()</code>, not <code>list.pop(0)</code>, which is O(N).",
+  "Recursive DFS on a big grid can pass Python's recursion limit. Use BFS or an explicit stack."
+ ],
+ "problems": [
+  "number-of-islands",
+  "grid-shortest-path",
+  "course-order",
+  "network-delay",
+  "count-components"
+ ]
+}
