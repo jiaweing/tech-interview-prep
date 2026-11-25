@@ -10,8 +10,8 @@ Everything is in Python. It is one self-contained HTML file: open it in a browse
 
 | Part | What you get |
 |---|---|
-| Course | 18 units from Python basics to graphs and dynamic programming. Each unit has its lessons, problems here with hidden tests, and the LeetCode classics for it; "Up next" always points at the next thing to do |
-| Coding | 93 problems with a task, hints, a step-by-step "think it through", a model solution, and hidden tests that run your Python in the browser, including a speed test on a big input |
+| Course | 18 units from Python basics to graphs and dynamic programming. Each unit has its pattern lesson, its Explained lessons, problems here with hidden tests, and the LeetCode classics for it; "Up next" always points at the next thing to do |
+| Coding | 116 problems with a task, hints, a step-by-step "think it through", a model solution, and hidden tests that run your Python in the browser, including a speed test on a big input |
 | LeetCode list | All 4,124 LeetCode problems, searchable by name, number, difficulty, pattern and the company where candidates report them, plus a core list of 155 classics grouped into 18 patterns. Each opens on LeetCode, with a video search link |
 | System design | 22 designs drawn as diagrams with animated request flows, 18 building blocks with small simulations, 19 timed rounds with model answers and a rubric, a 109-question drill, a whiteboard and a cheatsheet |
 | Behavioural | A project worksheet, 60 deep-dive questions with what the interviewer is probing and what a strong answer covers, and a timed mock |
@@ -25,7 +25,7 @@ Everything is in Python. It is one self-contained HTML file: open it in a browse
 
 ### The course
 
-The home page is a course in 18 units: Python for interviews; arrays, strings and hashing; two pointers; sliding window; prefix sums and Kadane; simulation and parsing; sorting and intervals; stacks and queues; binary search; linked lists; trees; heaps; tries; graphs; backtracking; dynamic programming; greedy, math and bits; and interview ready. Each unit lists its Explained lessons, the problems here that use the pattern, and its LeetCode classics. Progress comes from what you do anyway: lessons you open, problems you solve, LeetCode problems you tick.
+The home page is a course in 18 units: Python for interviews; arrays, strings and hashing; two pointers; sliding window; prefix sums and Kadane; simulation and parsing; sorting and intervals; stacks and queues; binary search; linked lists; trees; heaps; tries; graphs; backtracking; dynamic programming; greedy, math and bits; and interview ready. Each unit opens with its pattern lesson (the signals, a template, a slow-versus-fast worked example, a quiz and the pitfalls; 20 in all), then its Explained lessons, the problems here that use the pattern, and its LeetCode classics. Progress comes from what you do anyway: lessons you open, problems you solve, LeetCode problems you tick.
 
 ### Companies
 
@@ -99,7 +99,7 @@ Self-hosted, your progress, ticks, notes and worksheet stay in your browser. Not
 ## How accurate is it?
 
 - **Every problem is checked.** `tools/verify_problem.py` runs each reference solution against its tests in Python, and `tools/brython_check.js` runs them again in the browser and times the speed test.
-- **Every page renders.** `tools/sweep.js` opens all 302 pages and fails on a script error, an empty page, or text such as `undefined` or `NaN`.
+- **Every page renders.** `tools/sweep.js` opens all 325 pages and fails on a script error, an empty page, or text such as `undefined` or `NaN`.
 - **LeetCode is linked, not copied.** The list holds titles, links, difficulty, topics and acceptance rates from LeetCode's public problem list. Problem statements stay on LeetCode. The problems in this app are written for it.
 - **Company packs come from public reports.** Every question cites the page it came from: a candidate's own account (Glassdoor, LeetCode Discuss, Blind, 1point3acres and pages that collect them) is marked "reported"; a prep site's list is marked "prep-site list" and is unverified. Round structure comes from the company's own careers pages where they publish one. Where a report only said a question was similar to a LeetCode problem, its note says so. Interview processes change and differ by team: treat a pack as a likely shape, not an official agenda. `tools/check_packs.py` checks every pack's format, links and LeetCode slugs.
 - **System design numbers are rough on purpose.** Latencies, sizes and costs are orders of magnitude for estimating in an interview, not benchmarks of any product.

@@ -1,0 +1,249 @@
+{
+ "id": "jump-game",
+ "title": "Jump Game",
+ "pattern": "greedy",
+ "fine": "Sorting and greedy",
+ "level": "medium",
+ "statement": "<p>A delivery drone flies along a straight row of charging pads, numbered <code>0</code> to <code>len(nums) - 1</code>. It starts on pad 0. On pad <code>i</code> it can recharge enough to fly forward <b>up to</b> <code>nums[i]</code> pads: to any pad from <code>i + 1</code> to <code>i + nums[i]</code>. A pad with <code>nums[i] = 0</code> is a dead end unless the drone can skip past it from an earlier pad.</p><p>Write <code>def solution(nums)</code> that returns <code>True</code> if the drone can reach the last pad, and <code>False</code> if not. With one pad, it is already there.</p>",
+ "examples": [
+  {
+   "input": "nums = [2, 3, 1, 1, 4]",
+   "output": "True",
+   "why": "The LeetCode 55 example 1. Pad 0 reaches pad 1, and pad 1 reaches pad 4."
+  },
+  {
+   "input": "nums = [3, 2, 1, 0, 4]",
+   "output": "False",
+   "why": "The LeetCode 55 example 2. Every pad tops out at pad 3, which has 0."
+  },
+  {
+   "input": "nums = [0]",
+   "output": "True",
+   "why": "One pad: the drone starts on the last pad."
+  }
+ ],
+ "constraints": [
+  "1 &le; len(nums) &le; 100,000",
+  "0 &le; nums[i] &le; 100,000"
+ ],
+ "starter": "def solution(nums):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "Do you need to find the actual jumps?",
+   "a": "No. You only need a yes or no: is the last pad reachable at all? A jump may be shorter than <code>nums[i]</code>, so from pad <code>i</code> every pad up to <code>i + nums[i]</code> is reachable. That means the set of reachable pads is always one solid block starting at pad 0."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Try <code>[3, 2, 1, 0, 4]</code>.",
+   "a": "From pad 0 you reach up to pad 3. Pad 1 reaches up to 1 + 2 = 3. Pad 2 reaches up to 2 + 1 = 3. Pad 3 reaches 3 + 0 = 3. Every road ends at pad 3, a dead end, so pad 4 is never reached: <b>False</b>. The useful number was the farthest pad reachable so far."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first idea that works?",
+   "a": "Keep a <code>reachable</code> list. Mark pad 0. For each marked pad <code>i</code>, mark every pad from <code>i + 1</code> to <code>i + nums[i]</code>. Return whether the last pad is marked. Correct, but long jumps make it O(n x max jump), up to 10^10 steps."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Which pattern?",
+   "a": "<b>Greedy: track the farthest reach.</b> Because the reachable pads form one block from 0 to <code>far</code>, one number describes the whole set. Scan left to right. If <code>i &gt; far</code>, pad <code>i</code> cannot be reached, and nor can anything after it: return <code>False</code>. Otherwise set <code>far = max(far, i + nums[i])</code>. Once <code>far</code> reaches the last index, return <code>True</code>."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li><code>far = 0</code>, <code>last = len(nums) - 1</code>.</li><li>For each <code>i</code>: if <code>i &gt; far</code>, return <code>False</code>.</li><li>Set <code>far = max(far, i + nums[i])</code>. If <code>far &ge; last</code>, return <code>True</code>.</li><li>The loop always returns: on the last index, either <code>i &gt; far</code> or <code>far &ge; last</code>. Keep a final <code>return True</code> only as a fallback.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "One pad (<code>[0]</code> is <code>True</code>). A zero on pad 0 with more pads (<code>False</code>). A zero you can jump over. A zero on the last pad, which does not matter. Exactly enough reach to land on the last pad. Huge jumps, which make the marking idea slow."
+  }
+ ],
+ "hints": [
+  "If you can reach pad 5, can you also reach pads 1 to 4? What does that say about the shape of the reachable set?",
+  "One number describes everything you can reach: the farthest pad so far. How does pad <code>i</code> extend it?",
+  "Scan left to right with <code>far</code>. If <code>i &gt; far</code> you are stuck: return <code>False</code>. Else <code>far = max(far, i + nums[i])</code>, and return <code>True</code> as soon as <code>far &ge; len(nums) - 1</code>."
+ ],
+ "solution": "def solution(nums):\n    last = len(nums) - 1\n    far = 0                        # farthest pad reachable so far\n    for i, jump in enumerate(nums):\n        if i > far:\n            return False           # pad i is past every reachable pad: stuck\n        far = max(far, i + jump)   # every pad up to i + jump is reachable too\n        if far >= last:\n            return True\n    return True\n",
+ "brute": "def solution(nums):\n    # Mark every pad reachable from each reachable pad. O(n * max jump).\n    n = len(nums)\n    reachable = [False] * n\n    reachable[0] = True\n    for i in range(n):\n        if reachable[i]:\n            for j in range(i + 1, min(n, i + nums[i] + 1)):\n                reachable[j] = True\n    return reachable[-1]\n",
+ "explain": "<p>Example 1, <code>nums = [2, 3, 1, 1, 4]</code> (last index 4):</p><ul><li>i = 0: 0 &le; far (0). far = max(0, 0 + 2) = 2.</li><li>i = 1: 1 &le; 2. far = max(2, 1 + 3) = 4 &ge; 4: return <b>True</b>.</li></ul><p>Example 2, <code>[3, 2, 1, 0, 4]</code>: far becomes 3 at i = 0 and stays 3 through i = 3, because every pad tops out at 3. At i = 4, 4 &gt; 3: return <b>False</b>.</p><p>Why one number is enough: if pad <code>j</code> is reachable, every pad before it is too (you can always fly a shorter hop), so the reachable pads are exactly <code>0..far</code>. The greedy never has to choose which jump to take. It just records the best reach, in one O(n) pass.</p>",
+ "complexity": "O(n) time, O(1) extra space",
+ "tests": [
+  {
+   "args": [
+    [
+     2,
+     3,
+     1,
+     1,
+     4
+    ]
+   ],
+   "expected": true,
+   "label": "example 1 (LeetCode 55)",
+   "cat": "example",
+   "why": "pad 1 reaches the end"
+  },
+  {
+   "args": [
+    [
+     3,
+     2,
+     1,
+     0,
+     4
+    ]
+   ],
+   "expected": false,
+   "label": "example 2 (LeetCode 55)",
+   "cat": "example",
+   "why": "every path stops at the zero on pad 3"
+  },
+  {
+   "args": [
+    [
+     0
+    ]
+   ],
+   "expected": true,
+   "label": "example 3 (one pad)",
+   "cat": "example",
+   "why": "already on the last pad"
+  },
+  {
+   "args": [
+    [
+     0,
+     1
+    ]
+   ],
+   "expected": false,
+   "label": "stuck at the start",
+   "cat": "zero",
+   "why": "pad 0 allows no flight"
+  },
+  {
+   "args": [
+    [
+     1,
+     0
+    ]
+   ],
+   "expected": true,
+   "label": "zero on the last pad",
+   "cat": "edge",
+   "why": "landing there is enough"
+  },
+  {
+   "args": [
+    [
+     2,
+     0,
+     0
+    ]
+   ],
+   "expected": true,
+   "label": "exact reach",
+   "cat": "boundary",
+   "why": "0 + 2 lands on the last pad"
+  },
+  {
+   "args": [
+    [
+     3,
+     0,
+     0,
+     0,
+     1
+    ]
+   ],
+   "expected": false,
+   "label": "zeros too wide",
+   "cat": "edge",
+   "why": "three zeros after a reach of 3"
+  },
+  {
+   "args": [
+    [
+     1,
+     1,
+     1,
+     1,
+     1
+    ]
+   ],
+   "expected": true,
+   "label": "all ones",
+   "cat": "small",
+   "why": "one hop at a time"
+  },
+  {
+   "args": [
+    [
+     5,
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   ],
+   "expected": true,
+   "label": "one long hop",
+   "cat": "small",
+   "why": "skip every zero"
+  },
+  {
+   "args": [
+    [
+     1,
+     2,
+     0,
+     1,
+     0,
+     2,
+     0
+    ]
+   ],
+   "expected": false,
+   "label": "hop over a zero, then stuck",
+   "cat": "medium",
+   "why": "reach tops out at 4"
+  },
+  {
+   "args": [
+    [
+     2,
+     0,
+     2,
+     0,
+     2,
+     0,
+     1
+    ]
+   ],
+   "expected": true,
+   "label": "hops over every zero",
+   "cat": "medium",
+   "why": "even pads carry the drone"
+  },
+  {
+   "args": [
+    [
+     100000,
+     0,
+     0
+    ]
+   ],
+   "expected": true,
+   "label": "huge jump",
+   "cat": "large",
+   "why": "reach far past the end"
+  }
+ ],
+ "perf": {
+  "label": "performance: 100,000 pads, jumps up to 80, a band of 120 zeros near the end",
+  "gen": "[[1 + (i * 7919) % 80 for i in range(99800)] + [0] * 120 + [5] * 80]",
+  "expected": false
+ }
+}

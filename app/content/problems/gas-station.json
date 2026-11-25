@@ -1,0 +1,284 @@
+{
+ "id": "gas-station",
+ "title": "Gas Station Loop",
+ "pattern": "greedy",
+ "fine": "Sorting and greedy",
+ "level": "medium",
+ "statement": "<p>An electric delivery van drives a circular route past <code>n</code> charging stops, numbered <code>0</code> to <code>n - 1</code>. At stop <code>i</code> it can take <code>gas[i]</code> units of charge. Driving from stop <code>i</code> to the next stop (<code>i + 1</code>, or 0 after the last one) uses <code>cost[i]</code> units. The battery has no upper limit and starts empty.</p><p>Write <code>def solution(gas, cost)</code> that returns the index of a stop where the van can start, charge, and drive one full loop back to that stop without the charge ever going below 0. Return <code>-1</code> if no start works. In the classic version the answer is guaranteed to be unique; here, if several stops work, return the <b>smallest</b> index.</p>",
+ "examples": [
+  {
+   "input": "gas = [1, 2, 3, 4, 5], cost = [3, 4, 5, 1, 2]",
+   "output": "3",
+   "why": "The LeetCode 134 example 1. Gains are -2, -2, -2, +3, +3; starting at 3 the charge goes 3, 6, 4, 2, 0."
+  },
+  {
+   "input": "gas = [2, 3, 4], cost = [3, 4, 3]",
+   "output": "-1",
+   "why": "The LeetCode 134 example 2. The route needs 10 units but only 9 are available."
+  },
+  {
+   "input": "gas = [5], cost = [4]",
+   "output": "0",
+   "why": "A single stop: take 5, use 4 to come back to it."
+  }
+ ],
+ "constraints": [
+  "1 &le; n = len(gas) = len(cost) &le; 50,000",
+  "0 &le; gas[i], cost[i] &le; 10,000"
+ ],
+ "starter": "def solution(gas, cost):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "What happens at each stop, in which order?",
+   "a": "At stop <code>i</code> you add <code>gas[i]</code>, then drive and subtract <code>cost[i]</code>. The charge after that drive must be &ge; 0. Only the difference <code>gas[i] - cost[i]</code> matters, so think of a list of gains and losses around a circle: you need a starting point where the running sum never dips below 0."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Try <code>gas = [1, 2, 3, 4, 5]</code>, <code>cost = [3, 4, 5, 1, 2]</code>.",
+   "a": "Gains: -2, -2, -2, +3, +3. Total 0, so a loop is possible in principle. Starting at 0 fails at once (-2). Starting at 3: 3, 6, then 4, 2, 0. Never negative, so <b>3</b>. Notice that starts 0, 1 and 2 all fail in their first step, and you could see that from one pass."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first idea that works?",
+   "a": "Try every start: simulate up to <code>n</code> steps and stop at the first negative charge. Return the first start that survives the whole loop. That is O(n^2) when many starts fail late."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Which pattern?",
+   "a": "<b>Greedy with two facts.</b> First, if the total of all gains is negative, no start works. Second, if you start at <code>s</code> and first run dry after stop <code>j</code>, then no start between <code>s</code> and <code>j</code> works either: starting at such a stop <code>k</code> means arriving there with 0 charge instead of the &ge; 0 you had, so you run dry by <code>j</code> as well. So jump the candidate to <code>j + 1</code> and reset the charge. One pass finds the candidate; if the total is &ge; 0 the candidate completes the loop. Every earlier stop was ruled out, so it is also the smallest valid start."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li><code>total = tank = start = 0</code>.</li><li>For each <code>i</code>: <code>diff = gas[i] - cost[i]</code>; add it to <code>total</code> and to <code>tank</code>.</li><li>If <code>tank &lt; 0</code>: set <code>start = i + 1</code> and <code>tank = 0</code>.</li><li>Return <code>start</code> if <code>total &ge; 0</code>, else -1.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "One stop (works if <code>gas &ge; cost</code>). A total that is short by 1. Every stop with gain 0, where every start works and the answer is 0. Two valid starts, where the smallest must win. A start at the last index, which needs the wrap-around. A start found after several failures."
+  }
+ ],
+ "hints": [
+  "Only <code>gas[i] - cost[i]</code> matters. When is a full loop impossible no matter where you start?",
+  "If you start at <code>s</code> and run dry right after stop <code>j</code>, can any start between <code>s</code> and <code>j</code> do better?",
+  "One pass: keep a running <code>tank</code>; when it goes negative at <code>i</code>, the next candidate is <code>i + 1</code> with an empty tank. Also keep the grand total; if it is negative, return -1."
+ ],
+ "solution": "def solution(gas, cost):\n    total = 0      # sum of all gains: negative means no start can work\n    tank = 0       # charge since the current candidate start\n    start = 0\n    for i in range(len(gas)):\n        diff = gas[i] - cost[i]\n        total += diff\n        tank += diff\n        if tank < 0:\n            # Every start from `start` to i runs dry by here: try the next stop.\n            start = i + 1\n            tank = 0\n    return start if total >= 0 else -1\n",
+ "brute": "def solution(gas, cost):\n    # Try every start and simulate the loop. O(n^2) in the worst case.\n    n = len(gas)\n    for s in range(n):\n        tank = 0\n        ok = True\n        for step in range(n):\n            i = (s + step) % n\n            tank += gas[i] - cost[i]\n            if tank < 0:\n                ok = False\n                break\n        if ok:\n            return s\n    return -1\n",
+ "explain": "<p>Example 1, <code>gas = [1, 2, 3, 4, 5]</code>, <code>cost = [3, 4, 5, 1, 2]</code>, gains <code>[-2, -2, -2, 3, 3]</code>:</p><ul><li>i = 0: tank -2 &lt; 0. Start 0 is out: start = 1, tank 0.</li><li>i = 1: tank -2: start = 2. i = 2: tank -2: start = 3.</li><li>i = 3: tank 3. i = 4: tank 6.</li><li>total = 0 &ge; 0: return <b>3</b>.</li></ul><p>Why the candidate is safe without simulating the wrap-around: the pass split the stops before 3 into failed segments (here [0], [1] and [2]). Each one stays &ge; 0 until its last stop and has a negative sum. From stop 3 the van reaches the end of the row with <code>T</code> = 6. Inside each failed segment the charge stays at least what it was on entry, and after its last stop it is <code>T</code> plus the sums of the segments so far. Each segment sum is negative, so that is smallest after the last segment, where it equals <code>total</code> &ge; 0. So the charge never goes below 0, and one O(n) pass is enough.</p>",
+ "complexity": "O(n) time, O(1) extra space",
+ "tests": [
+  {
+   "args": [
+    [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    [
+     3,
+     4,
+     5,
+     1,
+     2
+    ]
+   ],
+   "expected": 3,
+   "label": "example 1 (LeetCode 134)",
+   "cat": "example",
+   "why": "stop 3 is the only start"
+  },
+  {
+   "args": [
+    [
+     2,
+     3,
+     4
+    ],
+    [
+     3,
+     4,
+     3
+    ]
+   ],
+   "expected": -1,
+   "label": "example 2 (LeetCode 134)",
+   "cat": "example",
+   "why": "total gain is -1"
+  },
+  {
+   "args": [
+    [
+     5
+    ],
+    [
+     4
+    ]
+   ],
+   "expected": 0,
+   "label": "example 3 (one stop)",
+   "cat": "example",
+   "why": "charge 5, drive 4, back home"
+  },
+  {
+   "args": [
+    [
+     3
+    ],
+    [
+     4
+    ]
+   ],
+   "expected": -1,
+   "label": "one stop, short",
+   "cat": "single",
+   "why": "3 &lt; 4"
+  },
+  {
+   "args": [
+    [
+     0,
+     0,
+     0
+    ],
+    [
+     0,
+     0,
+     0
+    ]
+   ],
+   "expected": 0,
+   "label": "all zero",
+   "cat": "zero",
+   "why": "every start works: the smallest is 0"
+  },
+  {
+   "args": [
+    [
+     1,
+     0,
+     1,
+     0
+    ],
+    [
+     0,
+     1,
+     0,
+     1
+    ]
+   ],
+   "expected": 0,
+   "label": "two valid starts",
+   "cat": "dupes",
+   "why": "stops 0 and 2 both work; return 0"
+  },
+  {
+   "args": [
+    [
+     0,
+     0,
+     10
+    ],
+    [
+     3,
+     3,
+     4
+    ]
+   ],
+   "expected": 2,
+   "label": "start at the last stop",
+   "cat": "edge",
+   "why": "needs the wrap-around"
+  },
+  {
+   "args": [
+    [
+     4,
+     4,
+     4
+    ],
+    [
+     5,
+     5,
+     3
+    ]
+   ],
+   "expected": -1,
+   "label": "short by one",
+   "cat": "edge",
+   "why": "total gain -1"
+  },
+  {
+   "args": [
+    [
+     2,
+     0,
+     4,
+     0,
+     1
+    ],
+    [
+     1,
+     3,
+     1,
+     2,
+     0
+    ]
+   ],
+   "expected": 2,
+   "label": "fail, then recover",
+   "cat": "medium",
+   "why": "start 0 runs dry after stop 1; stop 2 works"
+  },
+  {
+   "args": [
+    [
+     10000,
+     0,
+     0,
+     0
+    ],
+    [
+     2500,
+     2500,
+     2500,
+     2500
+    ]
+   ],
+   "expected": 0,
+   "label": "all charge in one place",
+   "cat": "boundary",
+   "why": "only stop 0 can start"
+  },
+  {
+   "args": [
+    [
+     3,
+     1,
+     1,
+     5,
+     2
+    ],
+    [
+     1,
+     2,
+     2,
+     1,
+     5
+    ]
+   ],
+   "expected": 0,
+   "label": "touches zero",
+   "cat": "medium",
+   "why": "from stop 0 the charge goes 2, 1, 0, 4, 1: reaching exactly 0 is allowed"
+  }
+ ],
+ "perf": {
+  "label": "performance: 50,000 stops, the only start is the last one",
+  "gen": "[[10 + (i * 7919) % 20 for i in range(49998)] + [1, 40], [10 + (i * 7919) % 20 + (1 if i % 2 else -1) for i in range(49998)] + [31, 10]]",
+  "expected": 49999
+ }
+}

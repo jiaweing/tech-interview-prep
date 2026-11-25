@@ -1,0 +1,242 @@
+{
+ "id": "partition-labels",
+ "title": "Partition Labels",
+ "pattern": "greedy",
+ "fine": "Sorting and greedy",
+ "level": "medium",
+ "statement": "<p>A log shipper must split one long stream of events into consecutive batches so that all events from the same source land in the same batch. Each event is a lowercase letter naming its source, so the stream is a string <code>s</code>.</p><p>Write <code>def solution(s)</code>. Cut <code>s</code> into as <b>many</b> consecutive, non-empty parts as possible such that each letter appears in at most one part. Return the lengths of the parts, from left to right. The lengths always add up to <code>len(s)</code>.</p>",
+ "examples": [
+  {
+   "input": "s = \"ababcbacadefegdehijhklij\"",
+   "output": "[9, 7, 8]",
+   "why": "The LeetCode 763 example 1. \"ababcbaca\", \"defegde\" and \"hijhklij\"."
+  },
+  {
+   "input": "s = \"eccbbbbdec\"",
+   "output": "[10]",
+   "why": "The LeetCode 763 example 2. The first and last letters are both e, so nothing can be cut off."
+  },
+  {
+   "input": "s = \"abc\"",
+   "output": "[1, 1, 1]",
+   "why": "Every letter appears once, so every letter can be its own part."
+  }
+ ],
+ "constraints": [
+  "1 &le; len(s) &le; 100,000",
+  "<code>s</code> holds only lowercase English letters"
+ ],
+ "starter": "def solution(s):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "When is it safe to end a part at position <code>i</code>?",
+   "a": "Exactly when no letter inside the part appears again after <code>i</code>. If one did, that later copy would sit in another part. So a part that contains a letter must reach at least that letter's <b>last</b> occurrence. To get as many parts as possible, cut at the first position where that is safe, every time."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Split <code>\"abacdc\"</code>.",
+   "a": "Last positions: a 2, b 1, c 5, d 4. Start the first part at 0 with 'a': it must reach 2. Position 1 is 'b' (last 1): still 2. At position 2 you are at the end you need: cut, length 3. Next part starts with 'c': must reach 5. 'd' needs 4, inside. Cut at 5: length 3. Answer <code>[3, 3]</code>."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first idea that works?",
+   "a": "Grow the current part one character at a time. After each character, check whether the set of letters so far shares any letter with the rest of the string; if not, cut. Each check builds sets over the remaining string, so it is O(n^2) overall."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Which pattern?",
+   "a": "<b>Greedy with last occurrences.</b> One pass records <code>last[c]</code> for each letter. A second pass keeps <code>end</code>, the farthest last occurrence of any letter seen in the current part. When <code>i == end</code>, nothing in the part appears later, so cut. Cutting at the first safe spot never hurts: the remaining string can still be split exactly as well as before."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li><code>last = {c: i for i, c in enumerate(s)}</code> (later positions overwrite earlier ones).</li><li><code>start = end = 0</code>, <code>sizes = []</code>.</li><li>For each <code>i, c</code>: <code>end = max(end, last[c])</code>. If <code>i == end</code>: append <code>end - start + 1</code> and set <code>start = i + 1</code>.</li><li>Return <code>sizes</code>.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "One character. All letters distinct (every part has length 1). One letter repeated (a single part). The first and last characters equal, which forces a single part. A letter whose last copy is far right, pulling in many others. Since there are only 26 letters, there are at most 26 parts."
+  }
+ ],
+ "hints": [
+  "A part that contains a letter must also contain that letter's last occurrence. What is the earliest place the first part can end?",
+  "Precompute each letter's last index. While you walk the current part, keep the farthest last index of any letter in it.",
+  "When the index you are on equals that farthest last index, cut: record the length and start a new part at the next index."
+ ],
+ "solution": "def solution(s):\n    last = {c: i for i, c in enumerate(s)}   # each letter's last position\n    sizes = []\n    start = end = 0\n    for i, c in enumerate(s):\n        end = max(end, last[c])     # the part must reach every letter's last copy\n        if i == end:                # nothing in this part appears later: cut here\n            sizes.append(end - start + 1)\n            start = i + 1\n    return sizes\n",
+ "brute": "def solution(s):\n    # Cut as soon as the letters so far share nothing with the rest.\n    # Builds a set of the remaining string at every position: O(n^2).\n    sizes = []\n    start = 0\n    for i in range(len(s)):\n        if not set(s[start:i + 1]) & set(s[i + 1:]):\n            sizes.append(i + 1 - start)\n            start = i + 1\n    return sizes\n",
+ "explain": "<p>Example 1, <code>s = \"ababcbacadefegdehijhklij\"</code>. Last positions include a 8, b 5, c 7, d 14, e 15, h 19, j 23.</p><ul><li>Part 1 starts at 0. 'a' pushes <code>end</code> to 8; 'b' (5) and 'c' (7) stay inside. At i = 8, i == end: cut, length <b>9</b>.</li><li>Part 2 starts at 9 with 'd': end 14. 'e' pushes it to 15; 'f' and 'g' stay inside. At i = 15: cut, length <b>7</b>.</li><li>Part 3 starts at 16 with 'h': end 19. 'i' pushes to 22, 'j' to 23, and 'k', 'l' are inside. At i = 23: cut, length <b>8</b>.</li></ul><p>Answer <b>[9, 7, 8]</b>. The cut is greedy: it ends a part at the first index where every letter inside has no later copy. Ending later would only merge two valid parts into one, which gives fewer parts. Two passes over the string: O(n).</p>",
+ "complexity": "O(n) time, O(1) extra space for the 26-letter table (plus the output)",
+ "tests": [
+  {
+   "args": [
+    "ababcbacadefegdehijhklij"
+   ],
+   "expected": [
+    9,
+    7,
+    8
+   ],
+   "label": "example 1 (LeetCode 763)",
+   "cat": "example",
+   "why": "three parts"
+  },
+  {
+   "args": [
+    "eccbbbbdec"
+   ],
+   "expected": [
+    10
+   ],
+   "label": "example 2 (LeetCode 763)",
+   "cat": "example",
+   "why": "e at both ends forces one part"
+  },
+  {
+   "args": [
+    "abc"
+   ],
+   "expected": [
+    1,
+    1,
+    1
+   ],
+   "label": "example 3 (all distinct)",
+   "cat": "example",
+   "why": "each letter is its own part"
+  },
+  {
+   "args": [
+    "z"
+   ],
+   "expected": [
+    1
+   ],
+   "label": "one character",
+   "cat": "single",
+   "why": "one part of length 1"
+  },
+  {
+   "args": [
+    "aaaa"
+   ],
+   "expected": [
+    4
+   ],
+   "label": "one letter repeated",
+   "cat": "dupes",
+   "why": "all copies stay together"
+  },
+  {
+   "args": [
+    "abacdc"
+   ],
+   "expected": [
+    3,
+    3
+   ],
+   "label": "two parts",
+   "cat": "small",
+   "why": "\"aba\" and \"cdc\""
+  },
+  {
+   "args": [
+    "abcdefghijklmnopqrstuvwxyz"
+   ],
+   "expected": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+   ],
+   "label": "whole alphabet",
+   "cat": "boundary",
+   "why": "26 parts, the most possible"
+  },
+  {
+   "args": [
+    "abcdea"
+   ],
+   "expected": [
+    6
+   ],
+   "label": "first equals last",
+   "cat": "edge",
+   "why": "the a at both ends pulls in everything"
+  },
+  {
+   "args": [
+    "aabbccba"
+   ],
+   "expected": [
+    8
+   ],
+   "label": "late copy merges parts",
+   "cat": "edge",
+   "why": "the last b and a pull the middle in"
+  },
+  {
+   "args": [
+    "qiejxqfnqceocmy"
+   ],
+   "expected": [
+    13,
+    1,
+    1
+   ],
+   "label": "mixed",
+   "cat": "medium",
+   "why": "q, e, c chain into one long part, then m and y"
+  },
+  {
+   "args": [
+    "vhaagbqkaq"
+   ],
+   "expected": [
+    1,
+    1,
+    8
+   ],
+   "label": "one letter far right",
+   "cat": "medium",
+   "why": "v and h stand alone, then a and q tie the rest together"
+  }
+ ],
+ "perf": {
+  "label": "performance: 100,000 events, 10 blocks of letter pairs, two stray letters that merge three blocks",
+  "gen": "[''.join('u' if i in (35000, 52000) else chr(97 + 2 * (i // 10000) + i % 2) for i in range(100000))]",
+  "expected": [
+   10000,
+   10000,
+   10000,
+   30000,
+   10000,
+   10000,
+   10000,
+   10000
+  ]
+ }
+}
