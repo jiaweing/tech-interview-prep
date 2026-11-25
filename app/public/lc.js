@@ -8,7 +8,9 @@ const LCI = (() => {
   const LOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
   const EXT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>';
   const done = () => store.get('lcDone', {});
-  const st = { view: store.get('lcView', 'core'), q: '', diff: -1, pat: -1, hidePaid: store.get('lcHidePaid', false), hideDone: false, shown: 100 };
+  const st = { view: store.get('lcView', 'core'), q: '', diff: -1, pat: -1, hidePaid: store.get('lcHidePaid', false), hideDone: false, shown: 100, co: '' };
+  const cos = slug => (window.CO ? CO.companiesFor(slug) : []);
+  const coName = id => ((window.CO && CO.byId(id)) || {}).name || id;
 
   function row(r, d) {
     const [id, title, slug, diff, paid, tags, ac] = r;
@@ -18,7 +20,7 @@ const LCI = (() => {
       '<button type="button" class="sdot lc-tick' + (d[slug] ? ' solved' : '') + '" data-slug="' + esc(slug) + '" aria-pressed="' + !!d[slug] + '" aria-label="Mark ' + esc(title) + ' done">' + (d[slug] ? '✓' : '') + '</button>' +
       '<span class="lc-id">' + esc(id) + '</span>' +
       '<a class="lc-t" href="https://leetcode.com/problems/' + esc(slug) + '/" target="_blank" rel="noopener noreferrer">' + esc(title) + (paid ? '<span class="lc-lock" title="LeetCode Premium">' + LOCK + '</span>' : '') + '</a>' +
-      '<span class="lc-tags">' + esc(tagTxt) + '</span>' +
+      '<span class="lc-tags">' + (cos(slug).length ? '<b class="lc-cos" title="Reported at ' + esc(cos(slug).map(coName).join(', ')) + '">' + esc(cos(slug).slice(0, 2).map(coName).join(', ') + (cos(slug).length > 2 ? ' +' + (cos(slug).length - 2) : '')) + '</b> ' : '') + esc(tagTxt) + '</span>' +
       '<span class="lvl ' + DIFF[diff].toLowerCase() + '">' + DIFF[diff] + '</span>' +
       '<span class="lc-ac" title="Acceptance rate">' + ac + '%</span>' +
       '<a class="yt-btn" href="' + yt + '" target="_blank" rel="noopener noreferrer" title="Find a video walkthrough">' + YT_ICON + '</a>' +
@@ -26,6 +28,7 @@ const LCI = (() => {
   }
   function matches(r, d) {
     if (st.hidePaid && r[4]) return false;
+    if (st.co && !cos(r[2]).includes(st.co)) return false;
     if (st.hideDone && d[r[2]]) return false;
     if (st.diff >= 0 && r[3] !== st.diff) return false;
     if (st.pat >= 0 && !D.patterns[st.pat].tags.some(t => r[5].includes(t))) return false;
@@ -58,6 +61,7 @@ const LCI = (() => {
         '<div class="seg" role="tablist"><button type="button" role="tab" data-v="core">Core ' + coreN + '</button><button type="button" role="tab" data-v="all">All ' + D.rows.length.toLocaleString() + '</button></div>' +
         '<input type="search" class="lc-q" placeholder="Search by name or number" aria-label="Search problems">' +
         '<div class="lc-chips" aria-label="Difficulty">' + DIFF.map((x, i) => '<button type="button" class="chip" data-d="' + i + '">' + x + '</button>').join('') + '</div>' +
+        (window.CO && CO.packs.some(P => (P.reported || []).some(x => x.lc)) ? '<select class="lc-co" aria-label="Reported at company"><option value="">Any company</option>' + CO.packs.filter(P => (P.reported || []).some(x => x.lc)).map(P => '<option value="' + esc(P.id) + '">' + esc(P.name) + '</option>').join('') + '</select>' : '') +
         '<label class="lc-chk"><input type="checkbox" class="lc-paid"> Hide Premium</label><label class="lc-chk"><input type="checkbox" class="lc-hd"> Hide done</label>' +
       '</div>' +
       '<div class="lc-chips lc-pats" aria-label="Pattern">' + D.patterns.map((p, i) => '<button type="button" class="chip" data-p="' + i + '">' + esc(p.name) + '</button>').join('') + '</div>' +
@@ -75,10 +79,13 @@ const LCI = (() => {
       page.querySelector('.lc-prog span').textContent = coreDone + ' of ' + coreN + ' core done' + (all > coreDone ? ' · ' + all + ' in all' : '');
     };
     page.querySelector('.lc-paid').checked = st.hidePaid;
+    st.co = store.get('lcCo', ''); st.view = store.get('lcView', st.view);
+    const csel = page.querySelector('.lc-co'); if (csel) csel.value = st.co;
     page.querySelector('.lc-q').addEventListener('input', e => { st.q = e.target.value.trim(); st.shown = 100; paint(); });
     page.addEventListener('change', e => {
       if (e.target.classList.contains('lc-paid')) { st.hidePaid = e.target.checked; store.set('lcHidePaid', st.hidePaid); paint(); }
       if (e.target.classList.contains('lc-hd')) { st.hideDone = e.target.checked; paint(); }
+      if (e.target.classList.contains('lc-co')) { st.co = e.target.value; store.set('lcCo', st.co); if (st.co) { st.view = 'all'; store.set('lcView', 'all'); } st.shown = 100; paint(); }
     });
     page.addEventListener('click', e => {
       const t = e.target.closest('button'); if (!t) return;

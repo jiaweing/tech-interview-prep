@@ -63,3 +63,6 @@ html = once(html, "const AI_ERR = { ", "const AI_ERR = { needs_key: 'Add your An
 
 # ---------- Profile: the API key when self-hosted ----------
 html = once(html, "function viewProfile(page, h) {", "function viewProfile(page, h) {\n  viewProfile0(page, h);\n  if (window.SELFHOST && h === 'me') { const s = document.createElement('section'); s.className = 'sd-sec sh-sec'; s.innerHTML = '<div class=\"day-h\"><h2>Claude</h2></div><p class=\"muted\">' + (SELFHOST.hasKey() ? 'Using your Anthropic API key, kept in this browser.' : 'Add an Anthropic API key to turn on the mock interviewer, grading and chat.') + '</p><button type=\"button\" class=\"btn small\">' + (SELFHOST.hasKey() ? 'Change key' : 'Add key') + '</button>'; s.querySelector('button').onclick = () => SELFHOST.keyDialog(''); page.appendChild(s); }\n}\nfunction viewProfile0(page, h) {")
+
+# ---------- home: the full course instead of the original two-day plan ----------
+html = once(html, "function viewHome(page) {\n  viewHome0(page);\n", "function viewHome(page) {\n  page.classList.add('narrow'); page.innerHTML = questsHTML(); COURSE.render(page);\n")

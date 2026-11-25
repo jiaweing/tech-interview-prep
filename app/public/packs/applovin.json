@@ -117,5 +117,6 @@
    "url": "https://www.interviewquery.com/interview-guides/applovin-software-engineer"
   }
  ],
- "caveat": "Built from public candidate reports and prep sites. \"Listed\" items come from prep sites and are unverified."
+ "caveat": "Built from public candidate reports and prep sites. \"Listed\" items come from prep sites and are unverified.",
+ "legacy": true
 }

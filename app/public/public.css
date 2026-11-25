@@ -61,3 +61,37 @@ a.co-card:hover { background: var(--sunk); text-decoration: none; }
 .sh-row { display: flex; gap: 8px; align-items: center; }
 .sh-sp { flex: 1; }
 .sh-sec { margin-top: 22px; }
+
+.lc-co { height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--fg); font: 400 13.5px/1 var(--f-body); }
+.lc-cos { font-weight: 500; color: var(--fg2); text-transform: none; }
+.co-q { display: block; width: min(420px, 100%); margin-top: 4px; }
+.co-row .ttl a { color: var(--fg); }
+.co-row .ttl a:hover { text-decoration: underline; }
+.co-srcl { color: var(--muted); text-decoration: underline; text-decoration-color: var(--line2); }
+.co-tag.listed { opacity: .75; }
+
+/* the course */
+.crs { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+.crs-bar { flex: none; width: 100%; max-width: none; }
+.crs-list { display: flex; flex-direction: column; gap: 8px; }
+.crs-u { border-radius: 16px; background: var(--subtle); }
+.crs-u > summary { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; list-style: none; }
+.crs-u > summary::-webkit-details-marker { display: none; }
+.crs-n { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--bg); font: 600 13px/1 var(--f-body); color: var(--fg2); }
+.crs-u.all .crs-n { background: var(--ok); color: #fff; }
+.crs-t { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.crs-t b { font: 600 15.5px/1.25 var(--f-display); }
+.crs-t .muted { font-size: 13px; }
+.crs-c { font: 500 13px/1 var(--f-body); color: var(--muted); font-variant-numeric: tabular-nums; }
+.crs-b { padding: 0 16px 16px 58px; display: flex; flex-direction: column; gap: 8px; }
+.crs-b h4 { margin: 8px 0 0; font: 600 13px/1.3 var(--f-body); color: var(--fg2); }
+.crs-b h4 .muted { font-weight: 400; margin-left: 6px; }
+.crs-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.crs-chips .chip { text-decoration: none; }
+.crs-chips .crs-ok { color: var(--ok); }
+.crs-b .plist { box-shadow: none; }
+.crs-lc .ttl { color: var(--fg); text-decoration: none; }
+.crs-lc .ttl:hover { text-decoration: underline; }
+@media (max-width: 700px) { .crs-b { padding: 0 12px 14px; } }
+.crs > * { order: 0 !important; }
+.crs > .nextup { margin: 4px 0 6px; }

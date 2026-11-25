@@ -58,5 +58,6 @@
    "url": "https://open.gov.sg/careers/what-we-do/software-engineer/"
   }
  ],
- "caveat": "Built from public candidate reports. Processes differ by team and change over time; treat this as a likely shape, not an official agenda."
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time; treat this as a likely shape, not an official agenda.",
+ "legacy": true
 }
