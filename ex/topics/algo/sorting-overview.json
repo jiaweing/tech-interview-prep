@@ -1,0 +1,573 @@
+{
+ "id": "sorting-overview",
+ "track": "algo",
+ "order": 7,
+ "title": "Sorting overview",
+ "short": "Know the main sorts, and when sorted() is the answer.",
+ "what": "Sorting puts items in order. Simple sorts compare neighbours and cost O(n²); smart ones split the work and cost O(n log n); counting sort skips comparisons when values are small whole numbers. In Python you almost always call sorted(), and you learn the others to explain trade-offs.",
+ "analogy": "Tidying a bookshelf. Slide each new book into place (insertion), split the pile with a friend and combine (merge), pick a middle book and throw others left or right (quick), or use labelled bins by first letter (counting).",
+ "viz": {
+  "kind": "table",
+  "frames": [
+   {
+    "rows": [
+     "insertion",
+     "merge",
+     "quick",
+     "counting",
+     "sorted()"
+    ],
+    "cols": [
+     "best",
+     "usual",
+     "worst",
+     "memory",
+     "stable"
+    ],
+    "cells": [
+     [
+      "1k",
+      "250k",
+      "500k",
+      "none",
+      "yes"
+     ],
+     [
+      "10k",
+      "10k",
+      "10k",
+      "1k",
+      "yes"
+     ],
+     [
+      "10k",
+      "10k",
+      "500k",
+      "10",
+      "no"
+     ],
+     [
+      "1.1k",
+      "1.1k",
+      "1.1k",
+      "101",
+      "yes"
+     ],
+     [
+      "1k",
+      "10k",
+      "10k",
+      "500",
+      "yes"
+     ]
+    ],
+    "label": "sort 1,000 scores (0 to 100): steps",
+    "say": "Task: sort 1,000 exam scores from 0 to 100. Each row is a way to do it, with roughly how many steps it takes."
+   },
+   {
+    "rows": [
+     "insertion",
+     "merge",
+     "quick",
+     "counting",
+     "sorted()"
+    ],
+    "cols": [
+     "best",
+     "usual",
+     "worst",
+     "memory",
+     "stable"
+    ],
+    "cells": [
+     [
+      "1k",
+      "250k",
+      "500k",
+      "none",
+      "yes"
+     ],
+     [
+      "10k",
+      "10k",
+      "10k",
+      "1k",
+      "yes"
+     ],
+     [
+      "10k",
+      "10k",
+      "500k",
+      "10",
+      "no"
+     ],
+     [
+      "1.1k",
+      "1.1k",
+      "1.1k",
+      "101",
+      "yes"
+     ],
+     [
+      "1k",
+      "10k",
+      "10k",
+      "500",
+      "yes"
+     ]
+    ],
+    "label": "sort 1,000 scores (0 to 100): steps",
+    "hi": [
+     [
+      0,
+      0
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      0,
+      3
+     ],
+     [
+      0,
+      4
+     ]
+    ],
+    "say": "Insertion sort: 1k steps if the scores are almost sorted, 250k on a random order. Good for tiny or nearly sorted lists."
+   },
+   {
+    "rows": [
+     "insertion",
+     "merge",
+     "quick",
+     "counting",
+     "sorted()"
+    ],
+    "cols": [
+     "best",
+     "usual",
+     "worst",
+     "memory",
+     "stable"
+    ],
+    "cells": [
+     [
+      "1k",
+      "250k",
+      "500k",
+      "none",
+      "yes"
+     ],
+     [
+      "10k",
+      "10k",
+      "10k",
+      "1k",
+      "yes"
+     ],
+     [
+      "10k",
+      "10k",
+      "500k",
+      "10",
+      "no"
+     ],
+     [
+      "1.1k",
+      "1.1k",
+      "1.1k",
+      "101",
+      "yes"
+     ],
+     [
+      "1k",
+      "10k",
+      "10k",
+      "500",
+      "yes"
+     ]
+    ],
+    "label": "sort 1,000 scores (0 to 100): steps",
+    "hi": [
+     [
+      1,
+      0
+     ],
+     [
+      1,
+      1
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      1,
+      3
+     ],
+     [
+      1,
+      4
+     ]
+    ],
+    "say": "Merge sort: about 10k steps every time, never worse. The price is an extra list of 1,000 for merging."
+   },
+   {
+    "rows": [
+     "insertion",
+     "merge",
+     "quick",
+     "counting",
+     "sorted()"
+    ],
+    "cols": [
+     "best",
+     "usual",
+     "worst",
+     "memory",
+     "stable"
+    ],
+    "cells": [
+     [
+      "1k",
+      "250k",
+      "500k",
+      "none",
+      "yes"
+     ],
+     [
+      "10k",
+      "10k",
+      "10k",
+      "1k",
+      "yes"
+     ],
+     [
+      "10k",
+      "10k",
+      "500k",
+      "10",
+      "no"
+     ],
+     [
+      "1.1k",
+      "1.1k",
+      "1.1k",
+      "101",
+      "yes"
+     ],
+     [
+      "1k",
+      "10k",
+      "10k",
+      "500",
+      "yes"
+     ]
+    ],
+    "label": "sort 1,000 scores (0 to 100): steps",
+    "hi": [
+     [
+      2,
+      0
+     ],
+     [
+      2,
+      1
+     ],
+     [
+      2,
+      2
+     ],
+     [
+      2,
+      3
+     ],
+     [
+      2,
+      4
+     ]
+    ],
+    "say": "Quick sort: 10k on average with almost no extra memory, but unlucky pivots can make it 500k."
+   },
+   {
+    "rows": [
+     "insertion",
+     "merge",
+     "quick",
+     "counting",
+     "sorted()"
+    ],
+    "cols": [
+     "best",
+     "usual",
+     "worst",
+     "memory",
+     "stable"
+    ],
+    "cells": [
+     [
+      "1k",
+      "250k",
+      "500k",
+      "none",
+      "yes"
+     ],
+     [
+      "10k",
+      "10k",
+      "10k",
+      "1k",
+      "yes"
+     ],
+     [
+      "10k",
+      "10k",
+      "500k",
+      "10",
+      "no"
+     ],
+     [
+      "1.1k",
+      "1.1k",
+      "1.1k",
+      "101",
+      "yes"
+     ],
+     [
+      "1k",
+      "10k",
+      "10k",
+      "500",
+      "yes"
+     ]
+    ],
+    "label": "sort 1,000 scores (0 to 100): steps",
+    "ok": [
+     [
+      3,
+      0
+     ],
+     [
+      3,
+      1
+     ],
+     [
+      3,
+      2
+     ],
+     [
+      3,
+      3
+     ],
+     [
+      3,
+      4
+     ]
+    ],
+    "say": "Counting sort: scores are small whole numbers, so count them in 101 boxes. About 1.1k steps, zero comparisons."
+   },
+   {
+    "rows": [
+     "insertion",
+     "merge",
+     "quick",
+     "counting",
+     "sorted()"
+    ],
+    "cols": [
+     "best",
+     "usual",
+     "worst",
+     "memory",
+     "stable"
+    ],
+    "cells": [
+     [
+      "1k",
+      "250k",
+      "500k",
+      "none",
+      "yes"
+     ],
+     [
+      "10k",
+      "10k",
+      "10k",
+      "1k",
+      "yes"
+     ],
+     [
+      "10k",
+      "10k",
+      "500k",
+      "10",
+      "no"
+     ],
+     [
+      "1.1k",
+      "1.1k",
+      "1.1k",
+      "101",
+      "yes"
+     ],
+     [
+      "1k",
+      "10k",
+      "10k",
+      "500",
+      "yes"
+     ]
+    ],
+    "label": "sort 1,000 scores (0 to 100): steps",
+    "ok": [
+     [
+      4,
+      0
+     ],
+     [
+      4,
+      1
+     ],
+     [
+      4,
+      2
+     ],
+     [
+      4,
+      3
+     ],
+     [
+      4,
+      4
+     ]
+    ],
+    "say": "In real Python code, call sorted() or .sort(). It is fast on random data and very fast on nearly sorted data."
+   },
+   {
+    "rows": [
+     "insertion",
+     "merge",
+     "quick",
+     "counting",
+     "sorted()"
+    ],
+    "cols": [
+     "best",
+     "usual",
+     "worst",
+     "memory",
+     "stable"
+    ],
+    "cells": [
+     [
+      "1k",
+      "250k",
+      "500k",
+      "none",
+      "yes"
+     ],
+     [
+      "10k",
+      "10k",
+      "10k",
+      "1k",
+      "yes"
+     ],
+     [
+      "10k",
+      "10k",
+      "500k",
+      "10",
+      "no"
+     ],
+     [
+      "1.1k",
+      "1.1k",
+      "1.1k",
+      "101",
+      "yes"
+     ],
+     [
+      "1k",
+      "10k",
+      "10k",
+      "500",
+      "yes"
+     ]
+    ],
+    "label": "sort 1,000 scores (0 to 100): steps",
+    "hi": [
+     [
+      0,
+      4
+     ],
+     [
+      1,
+      4
+     ],
+     [
+      2,
+      4
+     ],
+     [
+      3,
+      4
+     ],
+     [
+      4,
+      4
+     ]
+    ],
+    "say": "Stable means equal items keep their order. Sort people by age, and two people aged 31 stay in the order you gave."
+   }
+  ]
+ },
+ "when": [
+  "Sorting first makes the rest easy (pairs, intervals, duplicates)",
+  "You need the k smallest or biggest",
+  "Group equal things next to each other",
+  "Explain the trade-off between two sorts"
+ ],
+ "python": "print(sorted([5, 2, 8, 1]))\nprint(sorted([5, 2, 8, 1], reverse=True))\n\npeople = [(\"ann\", 31), (\"bo\", 25), (\"cy\", 31), (\"dee\", 25)]\nprint(sorted(people, key=lambda p: p[1]))   # stable: ann stays before cy\n\nwords = [\"pear\", \"fig\", \"apple\"]\nwords.sort(key=len)          # sorts in place, returns None\nprint(words)",
+ "output": "[1, 2, 5, 8]\n[8, 5, 2, 1]\n[('bo', 25), ('dee', 25), ('ann', 31), ('cy', 31)]\n['fig', 'pear', 'apple']",
+ "cost": [
+  [
+   "sorted() or .sort()",
+   "O(n log n)"
+  ],
+  [
+   "Simple sorts like insertion",
+   "O(n²)"
+  ],
+  [
+   "Small whole numbers, counting",
+   "O(n + k)"
+  ],
+  [
+   "Best any comparison sort can do",
+   "O(n log n)"
+  ]
+ ],
+ "watch": [
+  "nums.sort() returns None. Write nums.sort(), then use nums; or use sorted(nums).",
+  "Sort by more than one thing with a tuple key: key=lambda p: (p[1], p[0]).",
+  "Sorting is O(n log n). If a dict or one pass solves it in O(n), say so."
+ ],
+ "interview": [
+  "LC 56 Merge Intervals",
+  "LC 242 Valid Anagram",
+  "LC 179 Largest Number"
+ ],
+ "related": [
+  "insertion-sort",
+  "merge-sort",
+  "quick-sort",
+  "counting-sort"
+ ]
+}

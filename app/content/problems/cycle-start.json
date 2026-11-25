@@ -1,0 +1,291 @@
+{
+ "id": "cycle-start",
+ "title": "Start of a Redirect Loop",
+ "pattern": "two-pointers",
+ "level": "medium",
+ "statement": "<p>When a user clicks an ad, the click goes through a chain of tracking redirects: each URL sends the browser to the next one until it reaches the landing page. A misconfigured campaign can create a <b>redirect loop</b>, where the chain comes back to a URL it already visited and never ends. You must find the URL where the loop starts, so it can be fixed.</p><p>The chain is a linked list stored as <code>nxt</code>: URL <code>i</code> redirects to URL <code>nxt[i]</code>, and <code>nxt[i] == -1</code> means URL <code>i</code> is the landing page (the end). The click always starts at URL <code>0</code>. An empty list <code>[]</code> means there is no chain. URLs that the walk from <code>0</code> never reaches are ignored.</p><p>Write <code>def solution(nxt)</code> that returns the index of the first URL on the walk from <code>0</code> that is part of the loop (the URL the loop jumps back to), or <code>-1</code> if the walk reaches an end. Use O(1) extra memory: no set or dict of visited URLs.</p>",
+ "examples": [
+  {
+   "input": "nxt = [1, 2, 3, 1]",
+   "output": "1",
+   "why": "The LeetCode 142 example 1 (<code>pos = 1</code>): 0 → 1 → 2 → 3 → 1 → ... The loop is 1, 2, 3 and the walk enters it at 1."
+  },
+  {
+   "input": "nxt = [1, 0]",
+   "output": "0",
+   "why": "The LeetCode 142 example 2 (<code>pos = 0</code>): 0 → 1 → 0. The whole chain is the loop."
+  },
+  {
+   "input": "nxt = [-1]",
+   "output": "-1",
+   "why": "The LeetCode 142 example 3: one URL that is the landing page. No loop."
+  }
+ ],
+ "constraints": [
+  "0 &le; <code>len(nxt)</code> &le; 100,000",
+  "-1 &le; <code>nxt[i]</code> &lt; <code>len(nxt)</code>",
+  "extra memory must be O(1)"
+ ],
+ "starter": "def solution(nxt):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "What shapes can the walk from URL 0 take?",
+   "a": "Each URL has exactly one next URL, so the walk is a straight line. Either it hits <code>-1</code> (no loop), or it repeats a URL, and from then on it goes round the same loop forever. That makes a 'rho' shape: a tail of <code>a</code> URLs, then a loop of <code>L</code> URLs. You want the first URL of the loop."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Run two walkers on <code>[1, 2, 3, 1]</code>: slow moves 1 hop, fast moves 2. Where do they meet?",
+   "a": "Start both at 0. Step 1: slow 1, fast 2. Step 2: slow 2, fast 1 (2 → 3 → 1). Step 3: slow 3, fast 3. They meet at 3, which is <b>not</b> the loop start (1). So meeting tells you a loop exists, but you need one more phase to find where it starts."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first idea that works?",
+   "a": "Walk from 0 and put every URL in a set. The first URL you see twice is the loop start. That is O(n) time but O(n) memory, and the task forbids it."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Which pattern?",
+   "a": "<b>Two pointers at different speeds</b> (Floyd's tortoise and hare). Phase 1: slow moves 1, fast moves 2; they meet inside the loop if there is one, and fast hits <code>-1</code> if not. Phase 2: put slow back at 0, leave fast at the meeting point, move both 1 hop at a time. They meet exactly at the loop start."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li>If <code>nxt</code> is empty, return -1.</li><li><code>slow = fast = 0</code>. Loop: if <code>nxt[fast]</code> or <code>nxt[nxt[fast]]</code> is -1, return -1. Else move slow 1 and fast 2; stop when they are equal.</li><li>Set <code>slow = 0</code>.</li><li>While <code>slow != fast</code>: move each 1 hop.</li><li>Return <code>slow</code>.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "Empty list. One URL that points to itself (<code>[0]</code>, answer 0). A chain with no loop, of odd and even length (fast must check both of its hops). A loop that is the whole list (answer 0). A self-loop at the very end. A long tail with a short loop, and a short tail with a long loop. URLs in a shuffled order. A loop among URLs that 0 never reaches (answer -1)."
+  }
+ ],
+ "hints": [
+  "With a set it is easy. To use O(1) memory, think of two walkers at different speeds: if there is a loop, the fast one must eventually lap the slow one.",
+  "Before moving fast, check <code>nxt[fast] != -1</code> and <code>nxt[nxt[fast]] != -1</code>. If either fails there is no loop. Otherwise move slow 1 hop, fast 2 hops, until they are equal.",
+  "After they meet, move slow back to URL 0 and step both one hop at a time. Write the distances: the tail length <code>a</code> equals a whole number of loops minus the meeting point's offset. Where do they meet?"
+ ],
+ "solution": "def solution(nxt):\n    if not nxt:\n        return -1\n    # Phase 1: slow moves 1 hop, fast moves 2. They meet only if there is a loop.\n    slow = fast = 0\n    while True:\n        if nxt[fast] == -1 or nxt[nxt[fast]] == -1:\n            return -1                        # fast fell off the end: no loop\n        slow = nxt[slow]\n        fast = nxt[nxt[fast]]\n        if slow == fast:\n            break\n    # Phase 2: the head and the meeting point are the same distance from the loop start.\n    slow = 0\n    while slow != fast:\n        slow = nxt[slow]\n        fast = nxt[fast]\n    return slow\n",
+ "brute": "def solution(nxt):\n    # Walk from node 0 and remember every node. The first repeat is the loop start.\n    # O(n) time but O(n) extra memory, which is what Floyd avoids.\n    seen = set()\n    node = 0 if nxt else -1\n    while node != -1:\n        if node in seen:\n            return node\n        seen.add(node)\n        node = nxt[node]\n    return -1\n",
+ "explain": "<p>Example 1, <code>[1, 2, 3, 1]</code>: tail <code>a = 1</code> (URL 0), loop <code>L = 3</code> (URLs 1, 2, 3).</p><ul><li>Phase 1: (slow, fast) goes (0, 0) → (1, 2) → (2, 1) → (3, 3). They meet at 3, which is <code>b = 2</code> hops into the loop.</li><li>Phase 2: slow = 0, fast = 3. One hop each: slow 1, fast 1. Equal: return <b>1</b>.</li></ul><p>Why it works: when they meet, slow has walked <code>a + b</code> hops and fast has walked twice that, <code>2(a + b)</code>. Fast's extra <code>a + b</code> hops were whole laps of the loop, so <code>a + b = kL</code> for some whole number <code>k</code>. That means <code>a = kL - b</code>. Walking <code>a</code> hops from the meeting point (which is <code>b</code> into the loop) lands at <code>b + kL - b = kL</code> hops into the loop, which is the loop start. Walking <code>a</code> hops from URL 0 also lands at the loop start. So two walkers at the same speed, one from 0 and one from the meeting point, meet exactly there. Here <code>a = 1, b = 2, L = 3, k = 1</code>.</p><p>Phase 1 ends within about <code>a + L</code> steps, because once slow is in the loop, fast closes the gap by 1 each step. Total O(n) time and only two integers of memory.</p>",
+ "complexity": "O(n) time, O(1) extra space",
+ "tests": [
+  {
+   "args": [
+    [
+     1,
+     2,
+     3,
+     1
+    ]
+   ],
+   "expected": 1,
+   "label": "example 1 (LeetCode 142)",
+   "cat": "example",
+   "why": "the meeting point (3) is not the loop start (1)"
+  },
+  {
+   "args": [
+    [
+     1,
+     0
+    ]
+   ],
+   "expected": 0,
+   "label": "example 2 (LeetCode 142)",
+   "cat": "example",
+   "why": "the loop is the whole chain"
+  },
+  {
+   "args": [
+    [
+     -1
+    ]
+   ],
+   "expected": -1,
+   "label": "example 3 (LeetCode 142)",
+   "cat": "example",
+   "why": "a single landing page"
+  },
+  {
+   "args": [
+    []
+   ],
+   "expected": -1,
+   "label": "empty chain",
+   "cat": "empty",
+   "why": "no URLs, no loop"
+  },
+  {
+   "args": [
+    [
+     0
+    ]
+   ],
+   "expected": 0,
+   "label": "single self-redirect",
+   "cat": "single",
+   "why": "URL 0 redirects to itself"
+  },
+  {
+   "args": [
+    [
+     1,
+     2,
+     3,
+     -1
+    ]
+   ],
+   "expected": -1,
+   "label": "chain without a loop, even length",
+   "cat": "small",
+   "why": "fast must check its second hop"
+  },
+  {
+   "args": [
+    [
+     1,
+     2,
+     -1
+    ]
+   ],
+   "expected": -1,
+   "label": "chain without a loop, odd length",
+   "cat": "small",
+   "why": "fast must check its first hop"
+  },
+  {
+   "args": [
+    [
+     1,
+     2,
+     3,
+     3
+    ]
+   ],
+   "expected": 3,
+   "label": "self-loop at the end",
+   "cat": "edge",
+   "why": "the last URL redirects to itself"
+  },
+  {
+   "args": [
+    [
+     1,
+     2,
+     3,
+     4,
+     0
+    ]
+   ],
+   "expected": 0,
+   "label": "whole chain is a loop",
+   "cat": "boundary",
+   "why": "phase 2 takes zero steps"
+  },
+  {
+   "args": [
+    [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     7
+    ]
+   ],
+   "expected": 7,
+   "label": "long tail, short loop",
+   "cat": "medium",
+   "why": "fast laps the 3-URL loop several times"
+  },
+  {
+   "args": [
+    [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     1
+    ]
+   ],
+   "expected": 1,
+   "label": "short tail, long loop",
+   "cat": "medium",
+   "why": "tail of 1, loop of 9"
+  },
+  {
+   "args": [
+    [
+     3,
+     4,
+     3,
+     1,
+     2
+    ]
+   ],
+   "expected": 3,
+   "label": "shuffled indices",
+   "cat": "edge",
+   "why": "0 → 3 → 1 → 4 → 2 → 3: order in the list does not matter"
+  },
+  {
+   "args": [
+    [
+     1,
+     -1,
+     0,
+     2
+    ]
+   ],
+   "expected": -1,
+   "label": "extra URLs point into the chain",
+   "cat": "edge",
+   "why": "URLs 2 and 3 are never reached from 0"
+  },
+  {
+   "args": [
+    [
+     1,
+     -1,
+     3,
+     2
+    ]
+   ],
+   "expected": -1,
+   "label": "loop that 0 never reaches",
+   "cat": "edge",
+   "why": "the 2 ↔ 3 loop is not on the walk from 0"
+  }
+ ],
+ "perf": {
+  "label": "performance: 100,000 URLs, a tail of 60,000 then a loop of 40,000",
+  "gen": "[[i + 1 for i in range(99999)] + [60000]]",
+  "expected": 60000
+ },
+ "al": {
+  "kind": "fundamentals",
+  "from": "LC 142 Linked List Cycle II",
+  "talk": [
+   "Phase 1 detects the loop: slow moves 1, fast moves 2. With a loop, fast gains 1 hop per step inside it, so it catches slow within one lap. Without one, fast hits <code>-1</code>, so I check <code>nxt[fast]</code> and <code>nxt[nxt[fast]]</code> before every move.",
+   "Why resetting one pointer to the head finds the start: at the meeting, slow walked <code>a + b</code> and fast <code>2(a + b)</code>, and the difference is whole laps, so <code>a + b = kL</code>, i.e. <code>a = kL - b</code>. Walking <code>a</code> more hops from the meeting point completes the lap to the loop start, and walking <code>a</code> hops from the head reaches the loop start too. So they meet there.",
+   "The set version is three lines and O(n) memory; Floyd keeps two ints. On a real linked list I would compare nodes with <code>is</code>; here nodes are indices, so <code>==</code> on ints is the same thing.",
+   "Edge cases I test: empty list, a self-loop <code>[0]</code>, the whole list as a loop (answer 0 after phase 2 with zero steps), and odd and even lengths without a loop."
+  ],
+  "extensions": [
+   "Also return the loop length: keep fast at the meeting point and count hops until slow comes back to it.",
+   "Just say whether a loop exists (LC 141): stop after phase 1.",
+   "Break the loop so the chain ends: walk from the loop start to the URL whose <code>nxt</code> is the loop start and set it to -1.",
+   "Real redirects are URLs, not indices: <code>next_url</code> is a dict from string to string, with <code>None</code> at the end. What changes, and does Floyd still need O(1) memory if you have to call an HTTP endpoint for each hop?",
+   "Find the Duplicate Number (LC 287): an array of n + 1 values in 1..n is a <code>nxt</code> list in disguise. Why is the duplicate the loop start?"
+  ]
+ }
+}

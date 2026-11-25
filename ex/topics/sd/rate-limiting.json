@@ -1,0 +1,162 @@
+{
+ "id": "rate-limiting",
+ "track": "sd",
+ "order": 15,
+ "title": "Rate limiting",
+ "short": "Cap how often one user can call you, so nobody floods the system.",
+ "what": "A rate limiter counts requests per user, API key or IP and refuses the extra ones, usually with HTTP 429 Too Many Requests. The token bucket is the classic way: allow short bursts, but hold the average to a fixed rate. It protects your servers from bugs, scrapers and attacks.",
+ "analogy": "A ticket machine at a busy counter that prints 1 ticket a minute and holds at most 5. Arrive in a crowd and the first 5 are served; after that, wait for the next ticket.",
+ "viz": {
+  "kind": "array",
+  "frames": [
+   {
+    "cells": [
+     "●",
+     "●",
+     "●",
+     "●",
+     "●"
+    ],
+    "label": "bucket for API key 42, t = 0 s",
+    "say": "A weather API gives each key a bucket of 5 tokens. Every request spends one. One token drips back in each second, up to 5."
+   },
+   {
+    "cells": [
+     "●",
+     "●",
+     "",
+     "",
+     ""
+    ],
+    "label": "t = 0 s",
+    "dim": [
+     2,
+     3,
+     4
+    ],
+    "ok": [
+     0,
+     1
+    ],
+    "out": "3 allowed",
+    "say": "A script sends 3 requests at once. Each takes a token and goes through. Short bursts are fine, up to the bucket size."
+   },
+   {
+    "cells": [
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "label": "t = 0 s, bucket empty",
+    "dim": [
+     0,
+     1,
+     2,
+     3,
+     4
+    ],
+    "out": "2 allowed, 1 refused (429)",
+    "say": "Then 3 more at once. Two get the last tokens. The third finds the bucket empty and gets 429 Too Many Requests."
+   },
+   {
+    "cells": [
+     "●",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "label": "t = 1 s",
+    "hi": [
+     0
+    ],
+    "dim": [
+     1,
+     2,
+     3,
+     4
+    ],
+    "out": "+1 token",
+    "say": "At t = 1 s one token drips back in. The script retries, and that one request goes through."
+   },
+   {
+    "cells": [
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "label": "t = 1 s to 5 s",
+    "dim": [
+     0,
+     1,
+     2,
+     3,
+     4
+    ],
+    "out": "1 allowed, 9 refused per s",
+    "say": "The script keeps firing 10 requests a second. Only 1 a second gets through, the refill rate. Your servers' load stays capped."
+   },
+   {
+    "cells": [
+     "●",
+     "●",
+     "●",
+     "●",
+     "●"
+    ],
+    "label": "t = 10 s",
+    "ok": [
+     0,
+     1,
+     2,
+     3,
+     4
+    ],
+    "out": "full: 5, never more",
+    "say": "The script stops for 5 seconds. The bucket refills to 5 and stops there, so even a long break earns at most a burst of 5."
+   }
+  ]
+ },
+ "when": [
+  "A public API must be shared fairly",
+  "Bots or scripts could flood you",
+  "Login or signup must resist password guessing",
+  "A costly backend (payments, SMS) needs protection"
+ ],
+ "python": "class TokenBucket:\n    def __init__(self, capacity, per_second):\n        self.capacity, self.rate = capacity, per_second\n        self.tokens, self.last = capacity, 0.0\n    def allow(self, now):\n        self.tokens = min(self.capacity, self.tokens + (now - self.last) * self.rate)  # refill\n        self.last = now\n        if self.tokens >= 1:\n            self.tokens -= 1\n            return True\n        return False\n\nbucket = TokenBucket(capacity=5, per_second=1)\nfor n, t in enumerate([0, 0, 0, 0, 0, 0, 1, 1, 6], 1):\n    print(f\"t={t}s request {n}:\", \"ok\" if bucket.allow(t) else \"429 Too Many Requests\")",
+ "output": "t=0s request 1: ok\nt=0s request 2: ok\nt=0s request 3: ok\nt=0s request 4: ok\nt=0s request 5: ok\nt=0s request 6: 429 Too Many Requests\nt=1s request 7: ok\nt=1s request 8: 429 Too Many Requests\nt=6s request 9: ok",
+ "cost": [
+  [
+   "Check one request",
+   "O(1)"
+  ],
+  [
+   "Memory per user",
+   "2 numbers: tokens and last time"
+  ],
+  [
+   "Check in a shared Redis",
+   "~1 ms per request"
+  ]
+ ],
+ "watch": [
+  "With many servers, keep the bucket in a shared store like Redis, or each server allows the full rate.",
+  "Tell clients when to retry: send 429 with a Retry-After header.",
+  "Limiting only by IP is unfair: a whole office or phone network can share one IP."
+ ],
+ "interview": [
+  "Design a rate limiter",
+  "Design an API gateway",
+  "Design a login system that stops password guessing"
+ ],
+ "related": [
+  "api-gateway",
+  "sliding-window",
+  "load-balancer",
+  "caching"
+ ]
+}

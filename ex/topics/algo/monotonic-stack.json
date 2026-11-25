@@ -1,0 +1,145 @@
+{
+ "id": "monotonic-stack",
+ "track": "algo",
+ "order": 23,
+ "title": "Monotonic stack",
+ "short": "Find the next bigger or smaller item for every element in one pass.",
+ "what": "A stack that you keep in sorted order. Items wait on the stack until a bigger one arrives. When it does, it pops every smaller item off the top, and each popped item has found its answer. Every item goes on once and comes off once, so it is O(n).",
+ "analogy": "People waiting in a line to see over a wall. When a taller person arrives, everyone shorter in front of them can stop waiting: their view is blocked by someone taller.",
+ "viz": {
+  "kind": "stack",
+  "frames": [
+   {
+    "items": [
+     "73 (day 0)"
+    ],
+    "label": "day 0: 73",
+    "hi": [
+     0
+    ],
+    "say": "Temps: 73 74 75 71 69 72 76. For each day: how many days until a warmer one? Day 0 has no answer yet, so it waits on the stack."
+   },
+   {
+    "items": [
+     "74 (day 1)"
+    ],
+    "label": "day 1: 74",
+    "hi": [
+     0
+    ],
+    "out": "day 0: 1",
+    "say": "Day 1 is 74, warmer than 73 on top. Pop day 0: it waited 1 - 0 = 1 day. Then push day 1 to wait for its own answer."
+   },
+   {
+    "items": [
+     "75 (day 2)"
+    ],
+    "label": "day 2: 75",
+    "hi": [
+     0
+    ],
+    "out": "day 1: 1",
+    "say": "75 is warmer than 74, so day 1 gets 1. Push day 2."
+   },
+   {
+    "items": [
+     "75 (day 2)",
+     "71 (day 3)",
+     "69 (day 4)"
+    ],
+    "label": "days 3, 4: 71, 69",
+    "hi": [
+     1,
+     2
+    ],
+    "say": "71 and 69 are colder than the top, so nothing pops. They wait too. Bottom to top the stack only gets colder: that's the monotonic part."
+   },
+   {
+    "items": [
+     "75 (day 2)",
+     "71 (day 3)",
+     "69 (day 4)"
+    ],
+    "label": "day 5: 72",
+    "ok": [
+     1,
+     2
+    ],
+    "out": "day 4: 1, day 3: 2",
+    "say": "72 arrives. It beats 69, so pop day 4: 1 day. It beats 71, so pop day 3: 2 days. 75 is warmer than 72, so stop."
+   },
+   {
+    "items": [
+     "75 (day 2)",
+     "72 (day 5)"
+    ],
+    "label": "day 5: 72",
+    "hi": [
+     1
+    ],
+    "say": "Push day 5. One warm day answered two waiting days at once."
+   },
+   {
+    "items": [
+     "75 (day 2)",
+     "72 (day 5)"
+    ],
+    "label": "day 6: 76",
+    "ok": [
+     0,
+     1
+    ],
+    "out": "day 5: 1, day 2: 4",
+    "say": "76 beats 72 (day 5 waited 1 day) and then 75 (day 2 waited 6 - 2 = 4 days). Both pop."
+   },
+   {
+    "items": [
+     "76 (day 6)"
+    ],
+    "label": "done",
+    "dim": [
+     0
+    ],
+    "out": "[1, 1, 4, 2, 1, 1, 0]",
+    "say": "Day 6 is still waiting when the list ends, so its answer is 0. Each day was pushed once and popped at most once: O(n)."
+   }
+  ]
+ },
+ "when": [
+  "Next greater or next smaller element",
+  "How many days until something bigger?",
+  "Largest rectangle in a histogram",
+  "A nested loop over pairs would be O(n^2)"
+ ],
+ "python": "def daily_temps(temps):\n    answer = [0] * len(temps)\n    stack = []  # days still waiting, colder toward the top\n    for day, t in enumerate(temps):\n        while stack and temps[stack[-1]] < t:\n            prev = stack.pop()\n            answer[prev] = day - prev\n        stack.append(day)\n    return answer\nprint(daily_temps([73, 74, 75, 71, 69, 72, 76]))",
+ "output": "[1, 1, 4, 2, 1, 1, 0]",
+ "cost": [
+  [
+   "Answer every element",
+   "O(n)"
+  ],
+  [
+   "Memory for the stack",
+   "O(n)"
+  ],
+  [
+   "Two nested loops instead",
+   "O(n^2)"
+  ]
+ ],
+ "watch": [
+  "Push indexes, not values, when you need distances or positions.",
+  "Pick < or <= on purpose: it decides what happens with equal values.",
+  "Items left on the stack at the end have no answer; give them the default."
+ ],
+ "interview": [
+  "LC 739 Daily Temperatures",
+  "LC 496 Next Greater Element I",
+  "LC 84 Largest Rectangle in Histogram"
+ ],
+ "related": [
+  "stack",
+  "sliding-window",
+  "two-pointers"
+ ]
+}

@@ -1,0 +1,387 @@
+{
+ "id": "common-elements-min-count",
+ "title": "Common Elements, Min Count",
+ "pattern": "hashing",
+ "level": "easy",
+ "statement": "<p>You get two integer arrays, <code>A</code> and <code>B</code>. Some numbers appear in both, possibly several times.</p><p>For every value <code>v</code> that appears in <b>both</b> arrays, take <code>min(count of v in A, count of v in B)</code>. Add those minimums up.</p><p>Write <code>def solution(A, B)</code> that returns that sum as an <code>int</code>. Put another way: it is the size of the multiset intersection, the number of elements you can pair off one from <code>A</code> with an equal one from <code>B</code>, each element used at most once.</p>",
+ "examples": [
+  {
+   "input": "A = [1, 2, 2, 3], B = [2, 2, 2, 3, 4]",
+   "output": "3",
+   "why": "<code>2</code> is in A twice and in B three times: min is 2. <code>3</code> is in each once: 1. <code>1</code> and <code>4</code> are in only one array. 2 + 1 = 3."
+  },
+  {
+   "input": "A = [5, 5, 5], B = [5]",
+   "output": "1",
+   "why": "Only one 5 in B can be paired, so the min is 1, not 3."
+  },
+  {
+   "input": "A = [1, 2, 3], B = [4, 5, 6]",
+   "output": "0",
+   "why": "No value is in both arrays."
+  }
+ ],
+ "constraints": [
+  "0 &le; len(A), len(B) &le; 100,000",
+  "-1,000,000,000 &le; A[i], B[i] &le; 1,000,000,000",
+  "arrays are not sorted; hidden tests are large enough that O(N &times; M) times out"
+ ],
+ "starter": "def solution(A, B):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "The OA wording was reported as \"framed very weirdly\". Restate it in your own words before you code.",
+   "a": "The report paraphrased it as: numbers in 2 arrays repeated in both, take the min of the occurrence counts and add it to the result. That means: count each value in A, count each value in B, and for shared values add the smaller count. The report does not say whether you add the count or the value times the count, so check your reading against the sample output before you write code. Say it back as \"the size of the multiset intersection\"."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "<code>A = [1, 2, 2, 3]</code>, <code>B = [2, 2, 2, 3, 4]</code>?",
+   "a": "Counts in A: <code>{1: 1, 2: 2, 3: 1}</code>. Counts in B: <code>{2: 3, 3: 1, 4: 1}</code>. Shared values 2 and 3: <code>min(2, 3) + min(1, 1) = 3</code>."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first correct thing you could write?",
+   "a": "Copy B into a list. For each <code>a</code> in A, if <code>a</code> is in the list, remove one copy and add 1. Correct, but <code>in</code> and <code>remove</code> are O(M) each, so O(N &times; M): 10^10 steps at the limits."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Clue words?",
+   "a": "\"occurrence count\" and \"in both\" &rarr; <b>hashing with counters</b>. A dict (or <code>collections.Counter</code>) turns \"how many times does v appear\" into an O(1) lookup."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li>Build <code>count_a = Counter(A)</code> and <code>count_b = Counter(B)</code>.</li><li>Loop over the values of the smaller counter.</li><li>If the value is in the other counter, add the smaller of the two counts.</li><li>Return the total.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "One or both arrays empty (0). No overlap (0). One value repeated many times on one side only. Negative numbers and zero (dict keys handle them, but a fixed-size count array would not). Identical arrays (answer is the full length)."
+  }
+ ],
+ "hints": [
+  "Restate the task as \"how many pairs (one from A, one from B) of equal values can I make, using each element once?\" Then check it gives 3 on the first example.",
+  "For one value <code>v</code>, the number of pairs is <code>min(countA[v], countB[v])</code>. So you only need the counts, not the positions.",
+  "Use <code>collections.Counter</code>. <code>sum((Counter(A) &amp; Counter(B)).values())</code> is a one-liner and passes. In a live round, be ready to say what <code>&amp;</code> does on two Counters: it keeps each shared key with the smaller count."
+ ],
+ "solution": "from collections import Counter\n\ndef solution(A, B):\n    # Count each array once. A value in both contributes min(count in A, count in B).\n    count_a = Counter(A)\n    count_b = Counter(B)\n    if len(count_a) > len(count_b):\n        count_a, count_b = count_b, count_a   # loop over the smaller one\n    total = 0\n    for value, times in count_a.items():\n        if value in count_b:\n            total += min(times, count_b[value])\n    return total\n",
+ "brute": "def solution(A, B):\n    # O(N * M): pair off equal elements one at a time, removing each used copy from B\n    pool = list(B)\n    matched = 0\n    for a in A:\n        if a in pool:\n            pool.remove(a)\n            matched += 1\n    return matched\n",
+ "explain": "<p>The hard part of this OA question is reading it, not coding it. Before writing anything, restate it and test the restatement on the example:</p><ul><li>\"For each value in both arrays, the smaller of its two counts, summed.\"</li><li>On <code>A = [1, 2, 2, 3]</code>, <code>B = [2, 2, 2, 3, 4]</code>: value 2 gives <code>min(2, 3) = 2</code>, value 3 gives <code>min(1, 1) = 1</code>. Total 3, which matches.</li></ul><p>If your restatement does not match the sample output, your reading is wrong. That check takes one minute and saves the whole question. In a proctored HackerRank OA you cannot ask anyone, so the samples are your only clarification.</p><p>The code is two counters and one loop. Looping over the smaller counter keeps the work at O(N + M) to build and O(min distinct) to compare.</p>",
+ "complexity": "O(N + M) time, O(distinct values) extra space",
+ "tests": [
+  {
+   "args": [
+    [
+     1,
+     2,
+     2,
+     3
+    ],
+    [
+     2,
+     2,
+     2,
+     3,
+     4
+    ]
+   ],
+   "expected": 3,
+   "label": "example 1",
+   "cat": "example",
+   "why": "value 2 contributes min(2, 3), value 3 contributes 1"
+  },
+  {
+   "args": [
+    [
+     5,
+     5,
+     5
+    ],
+    [
+     5
+    ]
+   ],
+   "expected": 1,
+   "label": "example 2",
+   "cat": "example",
+   "why": "the smaller count wins"
+  },
+  {
+   "args": [
+    [
+     1,
+     2,
+     3
+    ],
+    [
+     4,
+     5,
+     6
+    ]
+   ],
+   "expected": 0,
+   "label": "example 3 (no overlap)",
+   "cat": "example",
+   "why": "nothing shared"
+  },
+  {
+   "args": [
+    [],
+    [
+     1,
+     2,
+     3
+    ]
+   ],
+   "expected": 0,
+   "label": "A is empty",
+   "cat": "empty",
+   "why": "no elements to pair"
+  },
+  {
+   "args": [
+    [
+     1,
+     2,
+     2,
+     3
+    ],
+    []
+   ],
+   "expected": 0,
+   "label": "B is empty",
+   "cat": "empty",
+   "why": "A has more distinct values than B, so the solution swaps the counters: the swap must not crash"
+  },
+  {
+   "args": [
+    [],
+    []
+   ],
+   "expected": 0,
+   "label": "both empty",
+   "cat": "empty",
+   "why": "still 0, no crash"
+  },
+  {
+   "args": [
+    [
+     7
+    ],
+    [
+     7
+    ]
+   ],
+   "expected": 1,
+   "label": "one shared element",
+   "cat": "single",
+   "why": "smallest positive answer"
+  },
+  {
+   "args": [
+    [
+     9,
+     8,
+     7,
+     6,
+     5,
+     5
+    ],
+    [
+     5,
+     6
+    ]
+   ],
+   "expected": 2,
+   "label": "A has more distinct values",
+   "cat": "small",
+   "why": "5 gives min(2, 1) = 1, 6 gives 1; the loop runs over B's counter after the swap"
+  },
+  {
+   "args": [
+    [
+     0,
+     0,
+     1
+    ],
+    [
+     0,
+     2,
+     0,
+     0
+    ]
+   ],
+   "expected": 2,
+   "label": "zeros",
+   "cat": "zero",
+   "why": "zero is a normal value: min(2, 3) = 2"
+  },
+  {
+   "args": [
+    [
+     -1,
+     -1,
+     -2,
+     3
+    ],
+    [
+     -1,
+     -2,
+     -2,
+     -3
+    ]
+   ],
+   "expected": 2,
+   "label": "negatives",
+   "cat": "negative",
+   "why": "-1 gives 1, -2 gives 1"
+  },
+  {
+   "args": [
+    [
+     4,
+     4,
+     4,
+     4
+    ],
+    [
+     4,
+     4,
+     4,
+     4
+    ]
+   ],
+   "expected": 4,
+   "label": "identical arrays",
+   "cat": "dupes",
+   "why": "every element pairs: answer is the full length"
+  },
+  {
+   "args": [
+    [
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     2
+    ],
+    [
+     2,
+     2,
+     2,
+     2,
+     2,
+     1
+    ]
+   ],
+   "expected": 2,
+   "label": "skewed counts",
+   "cat": "dupes",
+   "why": "each side has many copies of the value the other side has few of"
+  },
+  {
+   "args": [
+    [
+     1000000000,
+     -1000000000
+    ],
+    [
+     -1000000000,
+     1000000000,
+     1000000000
+    ]
+   ],
+   "expected": 2,
+   "label": "extreme values",
+   "cat": "boundary",
+   "why": "values at the limits are just dict keys"
+  },
+  {
+   "args": [
+    [
+     0,
+     7,
+     4,
+     1,
+     8,
+     5,
+     2,
+     9,
+     6,
+     3,
+     0,
+     7,
+     4,
+     1,
+     8,
+     5,
+     2,
+     9,
+     6,
+     3,
+     0,
+     7,
+     4,
+     1,
+     8,
+     5,
+     2,
+     9,
+     6,
+     3
+    ],
+    [
+     0,
+     3,
+     6,
+     9,
+     12,
+     2,
+     5,
+     8,
+     11,
+     1,
+     4,
+     7,
+     10,
+     0,
+     3,
+     6,
+     9,
+     12,
+     2,
+     5,
+     8,
+     11,
+     1,
+     4,
+     7,
+     10
+    ]
+   ],
+   "expected": 20,
+   "label": "mixed 30 x 26",
+   "cat": "medium",
+   "why": "many shared values with different counts"
+  }
+ ],
+ "perf": {
+  "label": "performance: 15,000 + 15,000 mostly distinct values",
+  "gen": "[[(i * 7919) % 100003 for i in range(15000)], [(i * 104729) % 100003 for i in range(15000)]]",
+  "expected": 2249
+ },
+ "govtech": {
+  "round": "oa",
+  "tag": "reported",
+  "source": "GovTech HackerRank OA (2026), LeetCode 350 variant",
+  "evidence": "A 2026 GovTech OA report (Glassdoor snippet, unverified) describes adding up min(count in A, count in B) for numbers that appear in both arrays, a variant of LeetCode 350, and says the question was \"framed very weirdly\". It is unclear whether the counts or the values were summed; this page sums the counts.",
+  "extensions": [
+   "Return the sum of <code>v * min(countA[v], countB[v])</code> instead of the count: the same loop, one changed line.",
+   "Return the intersection itself as a sorted list with repeats, e.g. <code>[2, 2, 3]</code>.",
+   "Both arrays are already sorted. Do it in O(1) extra space with two pointers: advance the pointer at the smaller value, and on a match count it and advance both.",
+   "B is too large for memory and arrives as a stream. Keep only <code>Counter(A)</code> and decrement it as matches arrive."
+  ]
+ }
+}

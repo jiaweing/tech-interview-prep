@@ -1,0 +1,219 @@
+{
+ "id": "binary-search",
+ "track": "algo",
+ "order": 3,
+ "title": "Binary search",
+ "short": "Find a value in a sorted list by halving it each step.",
+ "what": "If a list is sorted, look at the middle. If your target is bigger, throw away the left half; if smaller, throw away the right half. Each step halves what is left, so even a million items take about 20 looks.",
+ "analogy": "Guessing a number from 1 to 100 when someone says higher or lower. Start at 50 and you never need more than 7 guesses.",
+ "viz": {
+  "kind": "array",
+  "frames": [
+   {
+    "cells": [
+     2,
+     5,
+     8,
+     12,
+     16,
+     23,
+     38,
+     56,
+     72,
+     91
+    ],
+    "label": "find 23",
+    "ptr": {
+     "lo": 0,
+     "hi": 9
+    },
+    "say": "The list is sorted. We want 23. lo and hi mark the part that could still hold it: everything."
+   },
+   {
+    "cells": [
+     2,
+     5,
+     8,
+     12,
+     16,
+     23,
+     38,
+     56,
+     72,
+     91
+    ],
+    "label": "find 23",
+    "ptr": {
+     "lo": 0,
+     "mid": 4,
+     "hi": 9
+    },
+    "hi": [
+     4
+    ],
+    "say": "mid = (0 + 9) // 2 = 4. The value there is 16."
+   },
+   {
+    "cells": [
+     2,
+     5,
+     8,
+     12,
+     16,
+     23,
+     38,
+     56,
+     72,
+     91
+    ],
+    "label": "find 23",
+    "ptr": {
+     "lo": 5,
+     "hi": 9
+    },
+    "dim": [
+     0,
+     1,
+     2,
+     3,
+     4
+    ],
+    "say": "16 is smaller than 23, so 23 must be to the right. Move lo to 5. Half the list is gone."
+   },
+   {
+    "cells": [
+     2,
+     5,
+     8,
+     12,
+     16,
+     23,
+     38,
+     56,
+     72,
+     91
+    ],
+    "label": "find 23",
+    "ptr": {
+     "lo": 5,
+     "mid": 7,
+     "hi": 9
+    },
+    "hi": [
+     7
+    ],
+    "dim": [
+     0,
+     1,
+     2,
+     3,
+     4
+    ],
+    "say": "mid = (5 + 9) // 2 = 7. The value is 56, too big."
+   },
+   {
+    "cells": [
+     2,
+     5,
+     8,
+     12,
+     16,
+     23,
+     38,
+     56,
+     72,
+     91
+    ],
+    "label": "find 23",
+    "ptr": {
+     "lo": 5,
+     "hi": 6
+    },
+    "dim": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     7,
+     8,
+     9
+    ],
+    "say": "56 is bigger than 23, so drop the right side: hi = 6. Two cells left."
+   },
+   {
+    "cells": [
+     2,
+     5,
+     8,
+     12,
+     16,
+     23,
+     38,
+     56,
+     72,
+     91
+    ],
+    "label": "find 23",
+    "ptr": {
+     "lo": 5,
+     "mid": 5,
+     "hi": 6
+    },
+    "ok": [
+     5
+    ],
+    "dim": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     6,
+     7,
+     8,
+     9
+    ],
+    "out": "found at index 5",
+    "say": "mid = 5 holds 23. Found it in 3 looks instead of 6."
+   }
+  ]
+ },
+ "when": [
+  "The input is sorted",
+  "Find the first or last position of something",
+  "O(log n) is asked for",
+  "Find the smallest value that works (search on the answer)"
+ ],
+ "python": "def find(nums, target):\n    lo, hi = 0, len(nums) - 1\n    while lo <= hi:\n        mid = (lo + hi) // 2\n        if nums[mid] == target:\n            return mid\n        if nums[mid] < target:\n            lo = mid + 1\n        else:\n            hi = mid - 1\n    return -1\n\nprint(find([2, 5, 8, 12, 16, 23, 38, 56, 72, 91], 23))\nprint(find([2, 5, 8], 4))",
+ "output": "5\n-1",
+ "cost": [
+  [
+   "Search a sorted list",
+   "O(log n)"
+  ],
+  [
+   "Search without sorting first",
+   "not allowed"
+  ],
+  [
+   "Sort first, then search",
+   "O(n log n)"
+  ]
+ ],
+ "watch": [
+  "It only works on sorted data.",
+  "Use lo <= hi in the loop, and move with mid + 1 and mid - 1, or it can loop forever.",
+  "Python has it built in: bisect.bisect_left(nums, target)."
+ ],
+ "interview": [
+  "LC 704 Binary Search",
+  "LC 35 Search Insert Position",
+  "LC 875 Koko Eating Bananas"
+ ],
+ "related": [
+  "array",
+  "sorting-overview",
+  "two-pointers"
+ ]
+}

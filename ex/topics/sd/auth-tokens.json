@@ -1,0 +1,445 @@
+{
+ "id": "auth-tokens",
+ "track": "sd",
+ "order": 26,
+ "title": "Auth tokens",
+ "short": "Log in once, then show a signed pass with every request.",
+ "what": "After you log in, the server gives you a token: a short text saying who you are and when it expires, signed so it can't be faked. You send it with each request, and any server can check the signature without a database lookup. A common format is JWT.",
+ "analogy": "A festival wristband. You show your ID once at the gate; after that, staff only glance at the wristband.",
+ "viz": {
+  "kind": "sd",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "Ana's app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "auth",
+      "label": "Auth service",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "db",
+      "label": "Users DB",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "api",
+      "label": "API servers",
+      "x": 50,
+      "y": 100,
+      "sub": "50 of them"
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "auth",
+      "email + password"
+     ],
+     [
+      "auth",
+      "db"
+     ],
+     [
+      "app",
+      "api"
+     ]
+    ],
+    "hi": [
+     "auth"
+    ],
+    "edgeHi": [
+     [
+      "app",
+      "auth"
+     ]
+    ],
+    "say": "Ana logs in once. Her app sends her email and password over HTTPS to the auth service."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "Ana's app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "auth",
+      "label": "Auth service",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "db",
+      "label": "Users DB",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "api",
+      "label": "API servers",
+      "x": 50,
+      "y": 100,
+      "sub": "50 of them"
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "auth"
+     ],
+     [
+      "auth",
+      "db",
+      "check hash"
+     ],
+     [
+      "app",
+      "api"
+     ]
+    ],
+    "ok": [
+     "db"
+    ],
+    "edgeHi": [
+     [
+      "auth",
+      "db"
+     ]
+    ],
+    "say": "The auth service checks the password against the hash stored in the users database. It matches."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "Ana's app",
+      "x": 0,
+      "y": 50,
+      "sub": "user 42, 15 min"
+     },
+     {
+      "id": "auth",
+      "label": "Auth service",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "db",
+      "label": "Users DB",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "api",
+      "label": "API servers",
+      "x": 50,
+      "y": 100,
+      "sub": "50 of them"
+     }
+    ],
+    "edges": [
+     [
+      "auth",
+      "app",
+      "signed token"
+     ],
+     [
+      "auth",
+      "db"
+     ],
+     [
+      "app",
+      "api"
+     ]
+    ],
+    "ok": [
+     "app"
+    ],
+    "edgeHi": [
+     [
+      "auth",
+      "app"
+     ]
+    ],
+    "say": "It sends back a token: 'user 42, expires in 15 minutes', plus a signature only servers with the secret key can make."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "Ana's app",
+      "x": 0,
+      "y": 50,
+      "sub": "user 42, 15 min"
+     },
+     {
+      "id": "auth",
+      "label": "Auth service",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "db",
+      "label": "Users DB",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "api",
+      "label": "API servers",
+      "x": 50,
+      "y": 100,
+      "sub": "check signature"
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "auth"
+     ],
+     [
+      "auth",
+      "db"
+     ],
+     [
+      "app",
+      "api",
+      "GET /orders + token"
+     ]
+    ],
+    "hi": [
+     "api"
+    ],
+    "edgeHi": [
+     [
+      "app",
+      "api"
+     ]
+    ],
+    "say": "From now on the app sends the token with every request, in the Authorization header. The password never travels again."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "Ana's app",
+      "x": 0,
+      "y": 50,
+      "sub": "user 42, 15 min"
+     },
+     {
+      "id": "auth",
+      "label": "Auth service",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "db",
+      "label": "Users DB",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "api",
+      "label": "API servers",
+      "x": 50,
+      "y": 100,
+      "sub": "valid: user 42"
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "auth"
+     ],
+     [
+      "auth",
+      "db"
+     ],
+     [
+      "app",
+      "api",
+      "GET /orders + token"
+     ]
+    ],
+    "ok": [
+     "api"
+    ],
+    "dim": [
+     "auth",
+     "db"
+    ],
+    "edgeHi": [
+     [
+      "app",
+      "api"
+     ]
+    ],
+    "say": "Any API server recomputes the signature with the secret key. It matches, so it's user 42. No database call: microseconds."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "Ana's app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "auth",
+      "label": "Auth service",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "db",
+      "label": "Users DB",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "api",
+      "label": "API servers",
+      "x": 50,
+      "y": 100,
+      "sub": "401 bad signature"
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "auth"
+     ],
+     [
+      "auth",
+      "db"
+     ],
+     [
+      "app",
+      "api",
+      "edited: user 43"
+     ]
+    ],
+    "bad": [
+     "api"
+    ],
+    "dim": [
+     "auth",
+     "db"
+    ],
+    "edgeHi": [
+     [
+      "app",
+      "api"
+     ]
+    ],
+    "say": "Someone edits a token to say user 43. The signature no longer matches the content, so the API answers 401."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "Ana's app",
+      "x": 0,
+      "y": 50,
+      "sub": "new 15 min token"
+     },
+     {
+      "id": "auth",
+      "label": "Auth service",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "db",
+      "label": "Users DB",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "api",
+      "label": "API servers",
+      "x": 50,
+      "y": 100,
+      "sub": "50 of them"
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "auth",
+      "refresh token"
+     ],
+     [
+      "auth",
+      "db"
+     ],
+     [
+      "app",
+      "api"
+     ]
+    ],
+    "hi": [
+     "auth"
+    ],
+    "ok": [
+     "app"
+    ],
+    "edgeHi": [
+     [
+      "app",
+      "auth"
+     ]
+    ],
+    "say": "After 15 minutes the token expires. The app trades its long-lived refresh token for a new one, and Ana stays logged in."
+   }
+  ]
+ },
+ "when": [
+  "Users log in once and call many APIs",
+  "Many servers must check who is calling",
+  "Phone apps and single sign-on",
+  "Sessions or tokens: which and why?"
+ ],
+ "python": "import hmac, hashlib, json\nSECRET = b\"only-the-servers-know-this\"\nmac = lambda body: hmac.new(SECRET, body.encode(), hashlib.sha256).hexdigest()[:12]\ndef verify(token, now):\n    body, sig = token.rsplit(\".\", 1)\n    if not hmac.compare_digest(sig, mac(body)):\n        return \"401 bad signature\"\n    data = json.loads(body)\n    return \"401 expired\" if now > data[\"exp\"] else \"ok, user \" + str(data[\"user\"])\n\nbody = json.dumps({\"user\": 42, \"exp\": 900})        # issued at t=0, valid 15 minutes\ntoken = body + \".\" + mac(body)\nprint(token, \"->\", verify(token, now=60))\nprint(verify(token.replace('\"user\": 42', '\"user\": 43'), now=60))\nprint(verify(token, now=901))",
+ "output": "{\"user\": 42, \"exp\": 900}.48f84b54150d -> ok, user 42\n401 bad signature\n401 expired",
+ "cost": [
+  [
+   "Check a token",
+   "microseconds, no database"
+  ],
+  [
+   "Size",
+   "~200-800 bytes on every request"
+  ],
+  [
+   "Log someone out right now",
+   "hard: wait for expiry or keep a block list"
+  ]
+ ],
+ "watch": [
+  "The content is only encoded, not encrypted: anyone can read it. Never put secrets in a token.",
+  "Keep access tokens short (5-15 minutes) and renew them with a refresh token.",
+  "Store tokens safely (an httpOnly cookie on the web) and always use HTTPS."
+ ],
+ "interview": [
+  "Design login and single sign-on",
+  "Sessions vs JWT: which and why?",
+  "Design an API gateway with authentication"
+ ],
+ "related": [
+  "api-gateway",
+  "rest-api",
+  "microservices",
+  "caching"
+ ]
+}

@@ -1,0 +1,547 @@
+{
+ "id": "batch-vs-stream",
+ "track": "sd",
+ "order": 24,
+ "title": "Batch vs stream",
+ "short": "Crunch data in big scheduled runs, or one event at a time.",
+ "what": "Batch processing collects data for a while, say a day, then runs one big job over all of it. Stream processing handles each event the moment it arrives and keeps a running result. Batch is simpler and exact; a stream is fresh within seconds.",
+ "analogy": "Doing laundry once a week versus washing each shirt as soon as you take it off.",
+ "viz": {
+  "kind": "sd",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "apps",
+      "label": "Video players",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "log",
+      "label": "Event log",
+      "x": 30,
+      "y": 50,
+      "sub": "2 billion a day"
+     },
+     {
+      "id": "batch",
+      "label": "Batch job",
+      "x": 65,
+      "y": 0
+     },
+     {
+      "id": "stream",
+      "label": "Stream job",
+      "x": 65,
+      "y": 100
+     },
+     {
+      "id": "dash",
+      "label": "View counts",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "apps",
+      "log"
+     ],
+     [
+      "log",
+      "batch"
+     ],
+     [
+      "log",
+      "stream"
+     ],
+     [
+      "batch",
+      "dash"
+     ],
+     [
+      "stream",
+      "dash"
+     ]
+    ],
+    "hi": [
+     "log"
+    ],
+    "edgeHi": [
+     [
+      "apps",
+      "log"
+     ]
+    ],
+    "say": "Every time someone watches a video, the player sends a view event. 2 billion of them a day land in an event log."
+   },
+   {
+    "nodes": [
+     {
+      "id": "apps",
+      "label": "Video players",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "log",
+      "label": "Event log",
+      "x": 30,
+      "y": 50
+     },
+     {
+      "id": "batch",
+      "label": "Batch job",
+      "x": 65,
+      "y": 0,
+      "sub": "midnight, 24 h"
+     },
+     {
+      "id": "stream",
+      "label": "Stream job",
+      "x": 65,
+      "y": 100
+     },
+     {
+      "id": "dash",
+      "label": "View counts",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "apps",
+      "log"
+     ],
+     [
+      "log",
+      "batch"
+     ],
+     [
+      "log",
+      "stream"
+     ],
+     [
+      "batch",
+      "dash"
+     ],
+     [
+      "stream",
+      "dash"
+     ]
+    ],
+    "hi": [
+     "batch"
+    ],
+    "dim": [
+     "stream"
+    ],
+    "edgeHi": [
+     [
+      "log",
+      "batch"
+     ]
+    ],
+    "say": "Batch: at midnight a job reads the whole day at once, counts views per video, and writes the totals. It runs for 40 minutes."
+   },
+   {
+    "nodes": [
+     {
+      "id": "apps",
+      "label": "Video players",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "log",
+      "label": "Event log",
+      "x": 30,
+      "y": 50
+     },
+     {
+      "id": "batch",
+      "label": "Batch job",
+      "x": 65,
+      "y": 0
+     },
+     {
+      "id": "stream",
+      "label": "Stream job",
+      "x": 65,
+      "y": 100
+     },
+     {
+      "id": "dash",
+      "label": "View counts",
+      "x": 100,
+      "y": 50,
+      "sub": "updated 00:40"
+     }
+    ],
+    "edges": [
+     [
+      "apps",
+      "log"
+     ],
+     [
+      "log",
+      "batch"
+     ],
+     [
+      "log",
+      "stream"
+     ],
+     [
+      "batch",
+      "dash"
+     ],
+     [
+      "stream",
+      "dash"
+     ]
+    ],
+    "ok": [
+     "dash"
+    ],
+    "dim": [
+     "stream"
+    ],
+    "edgeHi": [
+     [
+      "batch",
+      "dash"
+     ]
+    ],
+    "say": "The totals are exact and easy to rerun after a bug. But a video that went viral at 9 am shows no new views until tomorrow."
+   },
+   {
+    "nodes": [
+     {
+      "id": "apps",
+      "label": "Video players",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "log",
+      "label": "Event log",
+      "x": 30,
+      "y": 50
+     },
+     {
+      "id": "batch",
+      "label": "Batch job",
+      "x": 65,
+      "y": 0
+     },
+     {
+      "id": "stream",
+      "label": "Stream job",
+      "x": 65,
+      "y": 100,
+      "sub": "+1 per event"
+     },
+     {
+      "id": "dash",
+      "label": "View counts",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "apps",
+      "log"
+     ],
+     [
+      "log",
+      "batch"
+     ],
+     [
+      "log",
+      "stream"
+     ],
+     [
+      "batch",
+      "dash"
+     ],
+     [
+      "stream",
+      "dash"
+     ]
+    ],
+    "hi": [
+     "stream"
+    ],
+    "dim": [
+     "batch"
+    ],
+    "edgeHi": [
+     [
+      "log",
+      "stream"
+     ]
+    ],
+    "say": "Stream: a job that never stops reads each event as it arrives and adds 1 to that video's running count."
+   },
+   {
+    "nodes": [
+     {
+      "id": "apps",
+      "label": "Video players",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "log",
+      "label": "Event log",
+      "x": 30,
+      "y": 50
+     },
+     {
+      "id": "batch",
+      "label": "Batch job",
+      "x": 65,
+      "y": 0
+     },
+     {
+      "id": "stream",
+      "label": "Stream job",
+      "x": 65,
+      "y": 100
+     },
+     {
+      "id": "dash",
+      "label": "View counts",
+      "x": 100,
+      "y": 50,
+      "sub": "2 s behind"
+     }
+    ],
+    "edges": [
+     [
+      "apps",
+      "log"
+     ],
+     [
+      "log",
+      "batch"
+     ],
+     [
+      "log",
+      "stream"
+     ],
+     [
+      "batch",
+      "dash"
+     ],
+     [
+      "stream",
+      "dash"
+     ]
+    ],
+    "ok": [
+     "dash"
+    ],
+    "dim": [
+     "batch"
+    ],
+    "edgeHi": [
+     [
+      "stream",
+      "dash"
+     ]
+    ],
+    "say": "Now the count is about 2 seconds behind reality. The viral video's number climbs live while people watch."
+   },
+   {
+    "nodes": [
+     {
+      "id": "apps",
+      "label": "Video players",
+      "x": 0,
+      "y": 50,
+      "sub": "was offline 1 h"
+     },
+     {
+      "id": "log",
+      "label": "Event log",
+      "x": 30,
+      "y": 50
+     },
+     {
+      "id": "batch",
+      "label": "Batch job",
+      "x": 65,
+      "y": 0
+     },
+     {
+      "id": "stream",
+      "label": "Stream job",
+      "x": 65,
+      "y": 100,
+      "sub": "late event?"
+     },
+     {
+      "id": "dash",
+      "label": "View counts",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "apps",
+      "log"
+     ],
+     [
+      "log",
+      "batch"
+     ],
+     [
+      "log",
+      "stream"
+     ],
+     [
+      "batch",
+      "dash"
+     ],
+     [
+      "stream",
+      "dash"
+     ]
+    ],
+    "bad": [
+     "stream"
+    ],
+    "dim": [
+     "batch"
+    ],
+    "edgeHi": [
+     [
+      "apps",
+      "log"
+     ]
+    ],
+    "say": "The hard part: a phone that was offline for an hour sends its old views now. A stream needs rules for late and repeated events."
+   },
+   {
+    "nodes": [
+     {
+      "id": "apps",
+      "label": "Video players",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "log",
+      "label": "Event log",
+      "x": 30,
+      "y": 50
+     },
+     {
+      "id": "batch",
+      "label": "Batch job",
+      "x": 65,
+      "y": 0,
+      "sub": "exact, nightly"
+     },
+     {
+      "id": "stream",
+      "label": "Stream job",
+      "x": 65,
+      "y": 100,
+      "sub": "fast, nearly right"
+     },
+     {
+      "id": "dash",
+      "label": "View counts",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "apps",
+      "log"
+     ],
+     [
+      "log",
+      "batch"
+     ],
+     [
+      "log",
+      "stream"
+     ],
+     [
+      "batch",
+      "dash"
+     ],
+     [
+      "stream",
+      "dash"
+     ]
+    ],
+    "ok": [
+     "batch",
+     "stream"
+    ],
+    "edgeHi": [
+     [
+      "batch",
+      "dash"
+     ],
+     [
+      "stream",
+      "dash"
+     ]
+    ],
+    "say": "Many systems run both: the stream gives fast, nearly right numbers, and the nightly batch recomputes the exact ones."
+   }
+  ]
+ },
+ "when": [
+  "Results needed within seconds (stream) or by morning (batch)",
+  "Count views, clicks or trending topics",
+  "Nightly reports and billing",
+  "Flag fraud while the payment is happening"
+ ],
+ "python": "from collections import Counter\nevents = [(\"cat\", 9), (\"dog\", 9), (\"cat\", 10), (\"cat\", 23), (\"dog\", 23)]  # (video, hour)\n\n# Batch: wait for the whole day, then count everything at once\nprint(\"batch at midnight:\", dict(Counter(video for video, hour in events)))\n\n# Stream: update a running count as each event arrives\nlive = Counter()\nfor video, hour in events:\n    live[video] += 1\n    print(f\"stream at {hour:>2}:00 ->\", dict(live))",
+ "output": "batch at midnight: {'cat': 3, 'dog': 2}\nstream at  9:00 -> {'cat': 1}\nstream at  9:00 -> {'cat': 1, 'dog': 1}\nstream at 10:00 -> {'cat': 2, 'dog': 1}\nstream at 23:00 -> {'cat': 3, 'dog': 1}\nstream at 23:00 -> {'cat': 3, 'dog': 2}",
+ "cost": [
+  [
+   "Batch: how fresh",
+   "hours, until the next run"
+  ],
+  [
+   "Stream: how fresh",
+   "seconds"
+  ],
+  [
+   "Batch: cost per event",
+   "lowest, read in bulk"
+  ],
+  [
+   "Stream: work per event",
+   "O(1) update to saved state"
+  ]
+ ],
+ "watch": [
+  "Don't build a stream when nobody looks at the number until tomorrow.",
+  "Streams see late and duplicate events: give each event an id and decide how late is too late.",
+  "Keep the raw events, so you can rerun a batch after a bug."
+ ],
+ "interview": [
+  "Design YouTube view counts",
+  "Design trending hashtags",
+  "Design an ad click counter"
+ ],
+ "related": [
+  "message-queue",
+  "pub-sub",
+  "idempotency",
+  "observability"
+ ]
+}

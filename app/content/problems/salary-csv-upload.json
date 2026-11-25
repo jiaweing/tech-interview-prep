@@ -1,0 +1,1373 @@
+{
+ "id": "salary-csv-upload",
+ "title": "Salary CSV Upload",
+ "pattern": "strings",
+ "level": "medium",
+ "statement": "<p>A small HR service keeps users as <code>(name, salary)</code>. Staff upload a CSV file to add or update users. The upload is <b>all-or-nothing</b>: if any row is malformed, nothing is saved.</p><p>Write <code>def solution(users, csv_text)</code>. <code>users</code> is the current DB, a list of <code>[name, salary]</code> with unique names. <code>csv_text</code> is the uploaded file. Lines are split on <code>\\n</code>; strip each line and ignore blank ones.</p><ul><li>The first non-blank line is the header row. It is <b>always skipped and never checked</b>, whatever it contains (the real spec says the first row is always ignored). A file with no non-blank line at all has no header row.</li><li>Every later line has exactly 2 comma-separated fields. The name, after stripping, is non-empty. The salary, after stripping, is a decimal number: an optional <code>-</code>, digits, and optionally <code>.</code> followed by digits (<code>2500</code>, <code>2500.50</code>, <code>-10</code>). Nothing else counts, not even <code>1e3</code>.</li><li>A file with no header row, or any malformed data row, rejects the whole file: return the string <code>\"ERROR\"</code>.</li><li>Otherwise apply the rows in order. A row with a negative salary is <b>skipped</b> (it is valid, just ignored). Any other row upserts by exact name: a new name is added, an existing one is overwritten, and a later row wins over an earlier one.</li></ul><p>Return the new DB as a list of <code>[name, salary]</code> sorted by name, with every salary as a float.</p>",
+ "examples": [
+  {
+   "input": "users = [['Alice', 1000], ['Bob', 2500]], csv_text = \"NAME,SALARY\\nBob,3000\\nCarol,4000.50\"",
+   "output": "[['Alice', 1000.0], ['Bob', 3000.0], ['Carol', 4000.5]]",
+   "why": "Bob is overwritten, Carol is inserted, Alice keeps her salary as a float."
+  },
+  {
+   "input": "users = [['Alice', 1000]], csv_text = \"NAME,SALARY\\nDan,-10\\nEve,2000\"",
+   "output": "[['Alice', 1000.0], ['Eve', 2000.0]]",
+   "why": "Dan's row is well formed but negative, so it is skipped. Skipping is not an error, so Eve is still saved."
+  },
+  {
+   "input": "users = [['Alice', 1000]], csv_text = \"NAME,SALARY\\nDan,2000\\nEve,abc\"",
+   "output": "'ERROR'",
+   "why": "<code>abc</code> is not a number, so the whole file is rejected. Dan's good row is not saved either."
+  }
+ ],
+ "constraints": [
+  "0 &le; len(users) &le; 10,000",
+  "0 &le; number of lines in <code>csv_text</code> &le; 100,000",
+  "names contain no commas or newlines; salaries in <code>users</code> are numbers &ge; 0",
+  "no quoted fields: a comma always separates fields"
+ ],
+ "starter": "def solution(users, csv_text):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "What are the two kinds of \"bad\" row, and how do they differ?",
+   "a": "A <b>malformed</b> row (wrong field count, empty name, salary not a number) rejects the whole file. A <b>negative</b> salary row is valid but skipped. Mixing these up is the most common bug. The first row is a third case: it is the header, so it is skipped without being checked."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "DB <code>Amy 300</code>. File: header, <code>Amy,100</code>, <code>Amy,-5</code>, <code>Bo,7</code>. Result?",
+   "a": "All rows are well formed, so apply them. <code>Amy,100</code> overwrites. <code>Amy,-5</code> is skipped, so Amy stays 100. <code>Bo,7</code> is new. Answer <code>[['Amy', 100.0], ['Bo', 7.0]]</code>."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What goes wrong if you write rows into the DB as you read them?",
+   "a": "When row 900 turns out bad you have already saved 899 rows, and the file is meant to be all-or-nothing. You would need to undo them. Validate everything first, then write; in a real service this is one DB transaction."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Clue words?",
+   "a": "\"field\", \"row\", \"decimal number\", \"malformed\" &rarr; <b>string parsing</b> with a strict validator, then a <b>dict</b> for the upsert. The work is careful rules, not a clever algorithm."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li>Split into stripped, non-blank lines. None left: <code>ERROR</code>.</li><li>Drop the first line: it is the header, whatever it says.</li><li>For each data line: split on <code>,</code>, check 2 fields, non-empty name, decimal salary. Any failure: <code>ERROR</code>.</li><li>Copy the DB into a dict. Apply rows with salary &ge; 0.</li><li>Return <code>sorted</code> items as lists.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "Empty file. Header only. A first row that looks like data (it is still skipped). Windows line endings (<code>\\r\\n</code>). <code>1e3</code>, <code>inf</code> and <code>1.</code> (all rejected). A blank name with a negative salary (still an error). Zero salary (kept). The same name twice."
+  }
+ ],
+ "hints": [
+  "Do the work in two passes: <code>parse_rows(csv_text)</code> returns the rows or <code>None</code>, and only then do you touch the DB. That gives you all-or-nothing for free.",
+  "Do not use <code>float()</code> as your validator: it accepts <code>1e3</code>, <code>inf</code> and <code>nan</code>. Strip an optional leading <code>-</code>, split on <code>.</code>, and check you have 1 or 2 non-empty, all-digit parts.",
+  "Use a dict for the DB: <code>db = {name: float(s) for name, s in users}</code>. Each row is then <code>db[name] = salary</code> when <code>salary &gt;= 0</code>. Finish with <code>[[n, db[n]] for n in sorted(db)]</code>."
+ ],
+ "solution": "def is_decimal(text):\n    # Accept 2500, 2500.50 and -10. Reject '', '1e3', 'inf', '1.', '.5' and '1,000'.\n    if text.startswith('-'):\n        text = text[1:]\n    parts = text.split('.')\n    if len(parts) > 2:\n        return False\n    return all(part and all(ch in '0123456789' for ch in part) for part in parts)\n\n\ndef parse_rows(csv_text):\n    \"\"\"Return the data rows as (name, salary) pairs, or None if the file must be rejected.\"\"\"\n    lines = [ln.strip() for ln in csv_text.split('\\n')]   # strip also removes a Windows '\\r'\n    lines = [ln for ln in lines if ln]                      # blank lines carry no data\n    if not lines:\n        return None                                         # no header row at all\n    rows = []                                               # lines[0] is the header: skip it unchecked\n    for line in lines[1:]:\n        fields = line.split(',')\n        if len(fields) != 2:\n            return None\n        name, salary = fields[0].strip(), fields[1].strip()\n        if not name or not is_decimal(salary):\n            return None\n        rows.append((name, float(salary)))\n    return rows\n\n\ndef solution(users, csv_text):\n    rows = parse_rows(csv_text)\n    if rows is None:\n        return 'ERROR'                  # validate the whole file before touching the DB\n    db = {name: float(salary) for name, salary in users}\n    for name, salary in rows:\n        if salary >= 0:                 # a negative salary is skipped, not an error\n            db[name] = salary           # upsert: later rows win\n    return [[name, db[name]] for name in sorted(db)]\n",
+ "brute": "def solution(users, csv_text):\n    # Same rules, written longhand: the DB is a list and every upsert scans it.\n    lines = []\n    for raw in csv_text.split('\\n'):\n        if raw.strip() != '':\n            lines.append(raw.strip())\n    if len(lines) == 0:\n        return 'ERROR'\n    parsed = []\n    for line in lines[1:]:\n        cells = line.split(',')\n        if len(cells) != 2:\n            return 'ERROR'\n        name = cells[0].strip()\n        text = cells[1].strip()\n        if name == '':\n            return 'ERROR'\n        body = text[1:] if text[:1] == '-' else text\n        if body.count('.') > 1 or body == '' or body[0] == '.' or body[-1] == '.':\n            return 'ERROR'\n        for ch in body:\n            if ch not in '0123456789.':\n                return 'ERROR'\n        parsed.append([name, float(text)])\n    db = [[u[0], float(u[1])] for u in users]\n    for name, salary in parsed:\n        if salary < 0:\n            continue\n        found = False\n        for row in db:\n            if row[0] == name:\n                row[1] = salary\n                found = True\n        if not found:\n            db.append([name, salary])\n    db.sort(key=lambda row: row[0])\n    return db\n",
+ "explain": "<p>The problem is a parser with a strict contract. The key design choice is <b>validate first, write second</b>: <code>parse_rows</code> either returns every row or <code>None</code>, so a bad row on line 900 cannot leave 899 rows half-saved.</p><ul><li>Example 1: the header row is skipped, and both data rows pass. The dict starts as <code>{Alice: 1000.0, Bob: 2500.0}</code>; <code>Bob,3000</code> overwrites, <code>Carol,4000.50</code> inserts.</li><li>Example 2: <code>Dan,-10</code> passes validation (it is a number) but the apply step skips it.</li><li>Example 3: <code>Eve,abc</code> fails validation, so <code>parse_rows</code> returns <code>None</code> before the DB is read.</li></ul><p>In the real take-home this is an Express <code>POST /upload</code>. Say how the two passes map to a service: parse and validate the stream, then write all rows in one transaction (or one bulk upsert), so a crash mid-write also rolls back.</p>",
+ "complexity": "O(L + U log U) time for L file characters and U users after the upload, O(U) extra space for the dict",
+ "tests": [
+  {
+   "args": [
+    [
+     [
+      "Alice",
+      1000
+     ],
+     [
+      "Bob",
+      2500
+     ]
+    ],
+    "NAME,SALARY\nBob,3000\nCarol,4000.50"
+   ],
+   "expected": [
+    [
+     "Alice",
+     1000.0
+    ],
+    [
+     "Bob",
+     3000.0
+    ],
+    [
+     "Carol",
+     4000.5
+    ]
+   ],
+   "label": "example 1 (insert and overwrite)",
+   "cat": "example",
+   "why": "Bob is overwritten, Carol is new, Alice is untouched"
+  },
+  {
+   "args": [
+    [
+     [
+      "Alice",
+      1000
+     ]
+    ],
+    "NAME,SALARY\nDan,-10\nEve,2000"
+   ],
+   "expected": [
+    [
+     "Alice",
+     1000.0
+    ],
+    [
+     "Eve",
+     2000.0
+    ]
+   ],
+   "label": "example 2 (negative salary skipped)",
+   "cat": "example",
+   "why": "Dan's row is valid but negative, so it is dropped; the rest of the file still applies"
+  },
+  {
+   "args": [
+    [
+     [
+      "Alice",
+      1000
+     ]
+    ],
+    "NAME,SALARY\nDan,2000\nEve,abc"
+   ],
+   "expected": "ERROR",
+   "label": "example 3 (bad row rejects the file)",
+   "cat": "example",
+   "why": "one non-numeric salary rejects every row, including Dan's good one"
+  },
+  {
+   "args": [
+    [],
+    ""
+   ],
+   "expected": "ERROR",
+   "label": "empty file",
+   "cat": "empty",
+   "why": "no non-blank line, so there is no header row"
+  },
+  {
+   "args": [
+    [
+     [
+      "Zed",
+      5
+     ]
+    ],
+    "NAME,SALARY\n"
+   ],
+   "expected": [
+    [
+     "Zed",
+     5.0
+    ]
+   ],
+   "label": "header only",
+   "cat": "empty",
+   "why": "a valid file with no rows leaves the DB as it was"
+  },
+  {
+   "args": [
+    [],
+    "id,amount,notes\nAmy,1"
+   ],
+   "expected": [
+    [
+     "Amy",
+     1.0
+    ]
+   ],
+   "label": "header is never checked",
+   "cat": "edge",
+   "why": "the first row is skipped as the header even when it has three columns"
+  },
+  {
+   "args": [
+    [
+     [
+      "Amy",
+      1
+     ]
+    ],
+    "Amy,5\nBob,2"
+   ],
+   "expected": [
+    [
+     "Amy",
+     1.0
+    ],
+    [
+     "Bob",
+     2.0
+    ]
+   ],
+   "label": "first row looks like data",
+   "cat": "edge",
+   "why": "row 1 is the header by definition, so Amy,5 is skipped and Amy keeps 1"
+  },
+  {
+   "args": [
+    [],
+    "NAME,SALARY\nAmy,1,2"
+   ],
+   "expected": "ERROR",
+   "label": "three fields",
+   "cat": "edge",
+   "why": "every data row needs exactly two fields"
+  },
+  {
+   "args": [
+    [],
+    "NAME,SALARY\nAmy,1e3"
+   ],
+   "expected": "ERROR",
+   "label": "exponent is not allowed",
+   "cat": "boundary",
+   "why": "float() would accept 1e3, the rule does not"
+  },
+  {
+   "args": [
+    [
+     [
+      "Amy",
+      7
+     ]
+    ],
+    "NAME,SALARY\n   ,-5"
+   ],
+   "expected": "ERROR",
+   "label": "blank name, negative salary",
+   "cat": "negative",
+   "why": "validate first, skip second: a malformed row is an error even when its salary is negative"
+  },
+  {
+   "args": [
+    [],
+    "NAME,SALARY\nAmy,100\nAmy,200\nAmy,-50"
+   ],
+   "expected": [
+    [
+     "Amy",
+     200.0
+    ]
+   ],
+   "label": "same name three times",
+   "cat": "dupes",
+   "why": "the later valid row wins; the negative row does not overwrite"
+  },
+  {
+   "args": [
+    [
+     [
+      "Amy",
+      300
+     ]
+    ],
+    "NAME,SALARY\nAmy,0"
+   ],
+   "expected": [
+    [
+     "Amy",
+     0.0
+    ]
+   ],
+   "label": "zero salary",
+   "cat": "zero",
+   "why": "zero is not negative, so it overwrites"
+  },
+  {
+   "args": [
+    [],
+    "NAME,SALARY\r\n\r\nAmy, 100.25 \r\n\r\nBen ,7\r\n"
+   ],
+   "expected": [
+    [
+     "Amy",
+     100.25
+    ],
+    [
+     "Ben",
+     7.0
+    ]
+   ],
+   "label": "CRLF and blank lines",
+   "cat": "edge",
+   "why": "a file saved on Windows: strip \\r, skip blank lines, trim fields"
+  },
+  {
+   "args": [
+    [
+     [
+      "Hana",
+      3000
+     ],
+     [
+      "Ivan",
+      1200.5
+     ],
+     [
+      "Jo",
+      0
+     ],
+     [
+      "Kai",
+      4100
+     ]
+    ],
+    "NAME,SALARY\nIvan,1500\nLee,-1\nJo,2200.75\nMia,999\nKai,-4100\nNoor,3800\nHana,3100"
+   ],
+   "expected": [
+    [
+     "Hana",
+     3100.0
+    ],
+    [
+     "Ivan",
+     1500.0
+    ],
+    [
+     "Jo",
+     2200.75
+    ],
+    [
+     "Kai",
+     4100.0
+    ],
+    [
+     "Mia",
+     999.0
+    ],
+    [
+     "Noor",
+     3800.0
+    ]
+   ],
+   "label": "mixed upload",
+   "cat": "medium",
+   "why": "overwrites, inserts and skipped negatives together"
+  }
+ ],
+ "perf": {
+  "label": "performance: 5,000 CSV rows onto 50 users",
+  "gen": "[[['seed%03d' % i, i * 10] for i in range(50)], 'NAME,SALARY\\n' + '\\n'.join('emp%03d,%d' % ((i * 7919) % 200, (i * 37) % 6000 - 500) for i in range(5000))]",
+  "expected": [
+   [
+    "emp000",
+    3100.0
+   ],
+   [
+    "emp001",
+    23.0
+   ],
+   [
+    "emp002",
+    2946.0
+   ],
+   [
+    "emp003",
+    4469.0
+   ],
+   [
+    "emp004",
+    1392.0
+   ],
+   [
+    "emp005",
+    4315.0
+   ],
+   [
+    "emp006",
+    4438.0
+   ],
+   [
+    "emp007",
+    2761.0
+   ],
+   [
+    "emp008",
+    4284.0
+   ],
+   [
+    "emp009",
+    1207.0
+   ],
+   [
+    "emp010",
+    4130.0
+   ],
+   [
+    "emp011",
+    4253.0
+   ],
+   [
+    "emp012",
+    2576.0
+   ],
+   [
+    "emp013",
+    4099.0
+   ],
+   [
+    "emp014",
+    1022.0
+   ],
+   [
+    "emp015",
+    3945.0
+   ],
+   [
+    "emp016",
+    5468.0
+   ],
+   [
+    "emp017",
+    2391.0
+   ],
+   [
+    "emp018",
+    3914.0
+   ],
+   [
+    "emp019",
+    837.0
+   ],
+   [
+    "emp020",
+    3760.0
+   ],
+   [
+    "emp021",
+    5283.0
+   ],
+   [
+    "emp022",
+    2206.0
+   ],
+   [
+    "emp023",
+    3729.0
+   ],
+   [
+    "emp024",
+    652.0
+   ],
+   [
+    "emp025",
+    3575.0
+   ],
+   [
+    "emp026",
+    5098.0
+   ],
+   [
+    "emp027",
+    2021.0
+   ],
+   [
+    "emp028",
+    3544.0
+   ],
+   [
+    "emp029",
+    467.0
+   ],
+   [
+    "emp030",
+    3390.0
+   ],
+   [
+    "emp031",
+    4913.0
+   ],
+   [
+    "emp032",
+    1836.0
+   ],
+   [
+    "emp033",
+    3359.0
+   ],
+   [
+    "emp034",
+    282.0
+   ],
+   [
+    "emp035",
+    3205.0
+   ],
+   [
+    "emp036",
+    4728.0
+   ],
+   [
+    "emp037",
+    1651.0
+   ],
+   [
+    "emp038",
+    3174.0
+   ],
+   [
+    "emp039",
+    97.0
+   ],
+   [
+    "emp040",
+    3020.0
+   ],
+   [
+    "emp041",
+    4543.0
+   ],
+   [
+    "emp042",
+    1466.0
+   ],
+   [
+    "emp043",
+    4389.0
+   ],
+   [
+    "emp044",
+    4512.0
+   ],
+   [
+    "emp045",
+    2835.0
+   ],
+   [
+    "emp046",
+    4358.0
+   ],
+   [
+    "emp047",
+    1281.0
+   ],
+   [
+    "emp048",
+    4204.0
+   ],
+   [
+    "emp049",
+    4327.0
+   ],
+   [
+    "emp050",
+    2650.0
+   ],
+   [
+    "emp051",
+    4173.0
+   ],
+   [
+    "emp052",
+    1096.0
+   ],
+   [
+    "emp053",
+    4019.0
+   ],
+   [
+    "emp054",
+    4142.0
+   ],
+   [
+    "emp055",
+    2465.0
+   ],
+   [
+    "emp056",
+    3988.0
+   ],
+   [
+    "emp057",
+    911.0
+   ],
+   [
+    "emp058",
+    3834.0
+   ],
+   [
+    "emp059",
+    5357.0
+   ],
+   [
+    "emp060",
+    2280.0
+   ],
+   [
+    "emp061",
+    3803.0
+   ],
+   [
+    "emp062",
+    726.0
+   ],
+   [
+    "emp063",
+    3649.0
+   ],
+   [
+    "emp064",
+    5172.0
+   ],
+   [
+    "emp065",
+    2095.0
+   ],
+   [
+    "emp066",
+    3618.0
+   ],
+   [
+    "emp067",
+    541.0
+   ],
+   [
+    "emp068",
+    3464.0
+   ],
+   [
+    "emp069",
+    4987.0
+   ],
+   [
+    "emp070",
+    1910.0
+   ],
+   [
+    "emp071",
+    3433.0
+   ],
+   [
+    "emp072",
+    356.0
+   ],
+   [
+    "emp073",
+    3279.0
+   ],
+   [
+    "emp074",
+    4802.0
+   ],
+   [
+    "emp075",
+    1725.0
+   ],
+   [
+    "emp076",
+    3248.0
+   ],
+   [
+    "emp077",
+    171.0
+   ],
+   [
+    "emp078",
+    3094.0
+   ],
+   [
+    "emp079",
+    4617.0
+   ],
+   [
+    "emp080",
+    1540.0
+   ],
+   [
+    "emp081",
+    4463.0
+   ],
+   [
+    "emp082",
+    4586.0
+   ],
+   [
+    "emp083",
+    2909.0
+   ],
+   [
+    "emp084",
+    4432.0
+   ],
+   [
+    "emp085",
+    1355.0
+   ],
+   [
+    "emp086",
+    4278.0
+   ],
+   [
+    "emp087",
+    4401.0
+   ],
+   [
+    "emp088",
+    2724.0
+   ],
+   [
+    "emp089",
+    4247.0
+   ],
+   [
+    "emp090",
+    1170.0
+   ],
+   [
+    "emp091",
+    4093.0
+   ],
+   [
+    "emp092",
+    4216.0
+   ],
+   [
+    "emp093",
+    2539.0
+   ],
+   [
+    "emp094",
+    4062.0
+   ],
+   [
+    "emp095",
+    985.0
+   ],
+   [
+    "emp096",
+    3908.0
+   ],
+   [
+    "emp097",
+    5431.0
+   ],
+   [
+    "emp098",
+    2354.0
+   ],
+   [
+    "emp099",
+    3877.0
+   ],
+   [
+    "emp100",
+    800.0
+   ],
+   [
+    "emp101",
+    3723.0
+   ],
+   [
+    "emp102",
+    5246.0
+   ],
+   [
+    "emp103",
+    2169.0
+   ],
+   [
+    "emp104",
+    3692.0
+   ],
+   [
+    "emp105",
+    615.0
+   ],
+   [
+    "emp106",
+    3538.0
+   ],
+   [
+    "emp107",
+    5061.0
+   ],
+   [
+    "emp108",
+    1984.0
+   ],
+   [
+    "emp109",
+    3507.0
+   ],
+   [
+    "emp110",
+    430.0
+   ],
+   [
+    "emp111",
+    3353.0
+   ],
+   [
+    "emp112",
+    4876.0
+   ],
+   [
+    "emp113",
+    1799.0
+   ],
+   [
+    "emp114",
+    3322.0
+   ],
+   [
+    "emp115",
+    245.0
+   ],
+   [
+    "emp116",
+    3168.0
+   ],
+   [
+    "emp117",
+    4691.0
+   ],
+   [
+    "emp118",
+    1614.0
+   ],
+   [
+    "emp119",
+    3137.0
+   ],
+   [
+    "emp120",
+    60.0
+   ],
+   [
+    "emp121",
+    2983.0
+   ],
+   [
+    "emp122",
+    4506.0
+   ],
+   [
+    "emp123",
+    1429.0
+   ],
+   [
+    "emp124",
+    4352.0
+   ],
+   [
+    "emp125",
+    4475.0
+   ],
+   [
+    "emp126",
+    2798.0
+   ],
+   [
+    "emp127",
+    4321.0
+   ],
+   [
+    "emp128",
+    1244.0
+   ],
+   [
+    "emp129",
+    4167.0
+   ],
+   [
+    "emp130",
+    4290.0
+   ],
+   [
+    "emp131",
+    2613.0
+   ],
+   [
+    "emp132",
+    4136.0
+   ],
+   [
+    "emp133",
+    1059.0
+   ],
+   [
+    "emp134",
+    3982.0
+   ],
+   [
+    "emp135",
+    4105.0
+   ],
+   [
+    "emp136",
+    2428.0
+   ],
+   [
+    "emp137",
+    3951.0
+   ],
+   [
+    "emp138",
+    874.0
+   ],
+   [
+    "emp139",
+    3797.0
+   ],
+   [
+    "emp140",
+    5320.0
+   ],
+   [
+    "emp141",
+    2243.0
+   ],
+   [
+    "emp142",
+    3766.0
+   ],
+   [
+    "emp143",
+    689.0
+   ],
+   [
+    "emp144",
+    3612.0
+   ],
+   [
+    "emp145",
+    5135.0
+   ],
+   [
+    "emp146",
+    2058.0
+   ],
+   [
+    "emp147",
+    3581.0
+   ],
+   [
+    "emp148",
+    504.0
+   ],
+   [
+    "emp149",
+    3427.0
+   ],
+   [
+    "emp150",
+    4950.0
+   ],
+   [
+    "emp151",
+    1873.0
+   ],
+   [
+    "emp152",
+    3396.0
+   ],
+   [
+    "emp153",
+    319.0
+   ],
+   [
+    "emp154",
+    3242.0
+   ],
+   [
+    "emp155",
+    4765.0
+   ],
+   [
+    "emp156",
+    1688.0
+   ],
+   [
+    "emp157",
+    3211.0
+   ],
+   [
+    "emp158",
+    134.0
+   ],
+   [
+    "emp159",
+    3057.0
+   ],
+   [
+    "emp160",
+    4580.0
+   ],
+   [
+    "emp161",
+    1503.0
+   ],
+   [
+    "emp162",
+    4426.0
+   ],
+   [
+    "emp163",
+    4549.0
+   ],
+   [
+    "emp164",
+    2872.0
+   ],
+   [
+    "emp165",
+    4395.0
+   ],
+   [
+    "emp166",
+    1318.0
+   ],
+   [
+    "emp167",
+    4241.0
+   ],
+   [
+    "emp168",
+    4364.0
+   ],
+   [
+    "emp169",
+    2687.0
+   ],
+   [
+    "emp170",
+    4210.0
+   ],
+   [
+    "emp171",
+    1133.0
+   ],
+   [
+    "emp172",
+    4056.0
+   ],
+   [
+    "emp173",
+    4179.0
+   ],
+   [
+    "emp174",
+    2502.0
+   ],
+   [
+    "emp175",
+    4025.0
+   ],
+   [
+    "emp176",
+    948.0
+   ],
+   [
+    "emp177",
+    3871.0
+   ],
+   [
+    "emp178",
+    5394.0
+   ],
+   [
+    "emp179",
+    2317.0
+   ],
+   [
+    "emp180",
+    3840.0
+   ],
+   [
+    "emp181",
+    763.0
+   ],
+   [
+    "emp182",
+    3686.0
+   ],
+   [
+    "emp183",
+    5209.0
+   ],
+   [
+    "emp184",
+    2132.0
+   ],
+   [
+    "emp185",
+    3655.0
+   ],
+   [
+    "emp186",
+    578.0
+   ],
+   [
+    "emp187",
+    3501.0
+   ],
+   [
+    "emp188",
+    5024.0
+   ],
+   [
+    "emp189",
+    1947.0
+   ],
+   [
+    "emp190",
+    3470.0
+   ],
+   [
+    "emp191",
+    393.0
+   ],
+   [
+    "emp192",
+    3316.0
+   ],
+   [
+    "emp193",
+    4839.0
+   ],
+   [
+    "emp194",
+    1762.0
+   ],
+   [
+    "emp195",
+    3285.0
+   ],
+   [
+    "emp196",
+    208.0
+   ],
+   [
+    "emp197",
+    3131.0
+   ],
+   [
+    "emp198",
+    4654.0
+   ],
+   [
+    "emp199",
+    1577.0
+   ],
+   [
+    "seed000",
+    0.0
+   ],
+   [
+    "seed001",
+    10.0
+   ],
+   [
+    "seed002",
+    20.0
+   ],
+   [
+    "seed003",
+    30.0
+   ],
+   [
+    "seed004",
+    40.0
+   ],
+   [
+    "seed005",
+    50.0
+   ],
+   [
+    "seed006",
+    60.0
+   ],
+   [
+    "seed007",
+    70.0
+   ],
+   [
+    "seed008",
+    80.0
+   ],
+   [
+    "seed009",
+    90.0
+   ],
+   [
+    "seed010",
+    100.0
+   ],
+   [
+    "seed011",
+    110.0
+   ],
+   [
+    "seed012",
+    120.0
+   ],
+   [
+    "seed013",
+    130.0
+   ],
+   [
+    "seed014",
+    140.0
+   ],
+   [
+    "seed015",
+    150.0
+   ],
+   [
+    "seed016",
+    160.0
+   ],
+   [
+    "seed017",
+    170.0
+   ],
+   [
+    "seed018",
+    180.0
+   ],
+   [
+    "seed019",
+    190.0
+   ],
+   [
+    "seed020",
+    200.0
+   ],
+   [
+    "seed021",
+    210.0
+   ],
+   [
+    "seed022",
+    220.0
+   ],
+   [
+    "seed023",
+    230.0
+   ],
+   [
+    "seed024",
+    240.0
+   ],
+   [
+    "seed025",
+    250.0
+   ],
+   [
+    "seed026",
+    260.0
+   ],
+   [
+    "seed027",
+    270.0
+   ],
+   [
+    "seed028",
+    280.0
+   ],
+   [
+    "seed029",
+    290.0
+   ],
+   [
+    "seed030",
+    300.0
+   ],
+   [
+    "seed031",
+    310.0
+   ],
+   [
+    "seed032",
+    320.0
+   ],
+   [
+    "seed033",
+    330.0
+   ],
+   [
+    "seed034",
+    340.0
+   ],
+   [
+    "seed035",
+    350.0
+   ],
+   [
+    "seed036",
+    360.0
+   ],
+   [
+    "seed037",
+    370.0
+   ],
+   [
+    "seed038",
+    380.0
+   ],
+   [
+    "seed039",
+    390.0
+   ],
+   [
+    "seed040",
+    400.0
+   ],
+   [
+    "seed041",
+    410.0
+   ],
+   [
+    "seed042",
+    420.0
+   ],
+   [
+    "seed043",
+    430.0
+   ],
+   [
+    "seed044",
+    440.0
+   ],
+   [
+    "seed045",
+    450.0
+   ],
+   [
+    "seed046",
+    460.0
+   ],
+   [
+    "seed047",
+    470.0
+   ],
+   [
+    "seed048",
+    480.0
+   ],
+   [
+    "seed049",
+    490.0
+   ]
+  ]
+ },
+ "govtech": {
+  "round": "take-home",
+  "tag": "inspired",
+  "source": "GovTech ACE take-home (2025)",
+  "evidence": "A 2025 copy of the take-home spec (github.com/bryanlohxz/swe-take-home-assignment, which says it is adapted from GovTech ACE hiring) and a candidate's March 2025 solution (github.com/tjingsheng/swe-take-home-assignment) define <code>POST /upload</code> for a <code>NAME,SALARY</code> CSV whose first row is always ignored, where an unparseable salary or a wrong column count rejects the whole file, negative salaries are skipped and existing names are replaced; this is that rule set as one timed function, with the strict number format chosen for this exercise.",
+  "extensions": [
+   "The file is 10 GB. You cannot hold it in memory, but it is still all-or-nothing. Stream it line by line into a staging table, then swap or merge inside one transaction. The take-home README itself asks about long-running uploads.",
+   "Two staff upload files that touch the same names at the same time. What does each see? Discuss one transaction per upload, row locks or <code>INSERT ... ON CONFLICT DO UPDATE</code>, and which upload should win.",
+   "Return a useful error instead of <code>\"ERROR\"</code>: the line number and reason of the first bad row, e.g. <code>line 4: salary \"abc\" is not a number</code>. Count lines before you drop blank ones.",
+   "Support quoted fields such as <code>\"Tan, Ah Kow\",3000</code>. A plain <code>split(',')</code> breaks; use the <code>csv</code> module or a small state machine that tracks whether you are inside quotes."
+  ]
+ }
+}

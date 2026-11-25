@@ -1,0 +1,180 @@
+{
+ "id": "merge-sort",
+ "track": "algo",
+ "order": 9,
+ "title": "Merge sort",
+ "short": "Split in half, sort each half, merge the two sorted halves.",
+ "what": "Cut the list in half again and again until each piece has one item. Then merge pieces back together in pairs. Merging two sorted lists is easy: compare their front items and take the smaller one, over and over.",
+ "analogy": "Two sorted stacks of exam papers. To combine them, look at the top paper of each stack and take the one with the lower name. You never have to look deeper than the two tops.",
+ "viz": {
+  "kind": "bars",
+  "frames": [
+   {
+    "label": "merge sort",
+    "vals": [
+     6,
+     5,
+     8,
+     2,
+     3,
+     9,
+     4,
+     7
+    ],
+    "say": "Split the list in half, then in half again, until every piece is 1 item. One item is already sorted."
+   },
+   {
+    "label": "merge sort",
+    "vals": [
+     5,
+     6,
+     2,
+     8,
+     3,
+     9,
+     4,
+     7
+    ],
+    "hi": [
+     0,
+     1,
+     2,
+     3
+    ],
+    "say": "Merge pieces back in pairs. 6, 5 become 5, 6 and 8, 2 become 2, 8. The other two pairs were already in order."
+   },
+   {
+    "label": "merge sort",
+    "vals": [
+     2,
+     5,
+     6,
+     8,
+     3,
+     9,
+     4,
+     7
+    ],
+    "ok": [
+     0,
+     1,
+     2,
+     3
+    ],
+    "say": "Merge 5, 6 with 2, 8. Compare the two fronts, take the smaller each time: 2, then 5, 6, 8."
+   },
+   {
+    "label": "merge sort",
+    "vals": [
+     2,
+     5,
+     6,
+     8,
+     3,
+     4,
+     7,
+     9
+    ],
+    "ok": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7
+    ],
+    "say": "Same on the right: 3, 9 with 4, 7 gives 3, 4, 7, 9. Now we have two sorted halves of 4."
+   },
+   {
+    "label": "merge sort",
+    "vals": [
+     2,
+     5,
+     6,
+     8,
+     3,
+     4,
+     7,
+     9
+    ],
+    "hi": [
+     0,
+     4
+    ],
+    "dim": [
+     1,
+     2,
+     3,
+     5,
+     6,
+     7
+    ],
+    "say": "Last merge. The fronts are 2 and 3: take 2. Then 5 vs 3: take 3. Keep taking the smaller front."
+   },
+   {
+    "label": "merge sort",
+    "vals": [
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9
+    ],
+    "ok": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7
+    ],
+    "out": "3 levels x 8 items",
+    "say": "Sorted. There were 3 levels of merging (8 halves to 1 three times), each touching all 8 items: n log n."
+   }
+  ]
+ },
+ "when": [
+  "You need O(n log n) even in the worst case",
+  "Equal items must keep their order (stable)",
+  "Sorting a linked list",
+  "Merge two or k sorted lists"
+ ],
+ "python": "def merge_sort(a):\n    if len(a) <= 1:\n        return a\n    mid = len(a) // 2\n    left, right = merge_sort(a[:mid]), merge_sort(a[mid:])\n    out, i, j = [], 0, 0\n    while i < len(left) and j < len(right):\n        if left[i] <= right[j]:\n            out.append(left[i]); i += 1\n        else:\n            out.append(right[j]); j += 1\n    return out + left[i:] + right[j:]\n\nprint(merge_sort([6, 5, 8, 2, 3, 9, 4, 7]))",
+ "output": "[2, 3, 4, 5, 6, 7, 8, 9]",
+ "cost": [
+  [
+   "Sort, every case",
+   "O(n log n)"
+  ],
+  [
+   "Merge two sorted lists",
+   "O(n)"
+  ],
+  [
+   "Extra memory",
+   "O(n)"
+  ]
+ ],
+ "watch": [
+  "After the loop, one side still has items left. Add them: left[i:] + right[j:].",
+  "Use <= when comparing fronts, so equal items stay in order.",
+  "It needs a second list as big as the input. Quick sort avoids that."
+ ],
+ "interview": [
+  "LC 912 Sort an Array",
+  "LC 88 Merge Sorted Array",
+  "LC 148 Sort List"
+ ],
+ "related": [
+  "recursion",
+  "quick-sort",
+  "sorting-overview"
+ ]
+}

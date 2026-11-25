@@ -1,0 +1,356 @@
+{
+ "id": "tree-max-depth-diameter",
+ "title": "Tree Depth and Diameter",
+ "pattern": "stack",
+ "level": "medium",
+ "statement": "<p>A feed service keeps a binary tree of content categories. Before a release it reports two health numbers: the <b>maximum depth</b> (how many nodes the longest root-to-leaf lookup visits) and the <b>diameter</b> (the number of edges on the longest path between any two nodes; that path does not have to pass through the root).</p><p>Trees use LeetCode's list format: <code>tree[0]</code> is the root, then the children of each node, left before right, level by level. <code>None</code> marks a missing child, and missing nodes list no children. Trailing <code>None</code>s may be left off, and <code>[]</code> is the empty tree.</p><p>Write <code>def solution(tree)</code> that returns <code>[max_depth, diameter]</code>. The empty tree returns <code>[0, 0]</code>; a single node returns <code>[1, 0]</code>.</p><p>Trees can be 10,000 levels deep, so a recursive walk will overflow the stack in the browser: use an explicit stack.</p>",
+ "examples": [
+  {
+   "input": "tree = [3, 9, 20, None, None, 15, 7]",
+   "output": "[3, 3]",
+   "why": "Longest root-to-leaf path 3 &rarr; 20 &rarr; 15 has 3 nodes. Longest path 9 &rarr; 3 &rarr; 20 &rarr; 15 has 3 edges."
+  },
+  {
+   "input": "tree = [1, 2, 3, 4, 5]",
+   "output": "[3, 3]",
+   "why": "The LeetCode 543 example: 4 &rarr; 2 &rarr; 1 &rarr; 3 is 3 edges, and depth 1 &rarr; 2 &rarr; 4 is 3 nodes."
+  },
+  {
+   "input": "tree = [1, 2, None, 3, 4, 5, None, None, 6, 7, None, None, 8]",
+   "output": "[5, 6]",
+   "why": "The longest path 7 &rarr; 5 &rarr; 3 &rarr; 2 &rarr; 4 &rarr; 6 &rarr; 8 bends at node 2 and never touches the root."
+  }
+ ],
+ "constraints": [
+  "0 &le; number of nodes &le; 30,000",
+  "-10^4 &le; node value &le; 10^4",
+  "the tree can be 10,000+ levels deep"
+ ],
+ "starter": "def solution(tree):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "Depth counts nodes, diameter counts edges. How are they related at one node?",
+   "a": "Let <code>h(node)</code> be the height in nodes (0 for a missing child). Then <code>h = 1 + max(h(left), h(right))</code>, and the longest path that <b>bends at</b> this node has <code>h(left) + h(right)</code> edges. The diameter is the best bend over all nodes; the depth is <code>h(root)</code>."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Heights in <code>[1, 2, 3, 4, 5]</code>?",
+   "a": "Leaves 4, 5, 3 have h = 1. Node 2: h = 2, bend = 1 + 1 = 2. Root 1: h = 1 + max(2, 1) = 3, bend = 2 + 1 = 3. Answer <code>[3, 3]</code>."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first idea that works?",
+   "a": "For every node, measure the height of its left and right subtree from scratch and take the best sum. Each measurement walks a subtree, so a chain costs O(n^2)."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Which pattern?",
+   "a": "<b>Post-order on a stack</b>: a node needs its children's heights first. The textbook answer is recursion, but at 10,000 levels that overflows. Iterative trick: collect nodes in pre-order with a stack, then process the list <b>backwards</b>, so every child is finished before its parent."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li>Build the nodes.</li><li>Stack walk from the root, appending each node to <code>order</code> and pushing its children.</li><li>For node in <code>reversed(order)</code>: read the children's heights (0 if missing), set <code>node.h = 1 + max(l, r)</code>, update <code>best = max(best, l + r)</code>.</li><li>Return <code>[root.h, best]</code>, or <code>[0, 0]</code> for no root.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "Empty tree and a single node (diameter 0, not 1). A path that bends below the root. A 10,000-deep chain (recursion limit). Mixing edges and nodes: depth counts nodes, diameter counts edges."
+  }
+ ],
+ "hints": [
+  "One quantity answers both: the height of each subtree. Depth is the root's height; the diameter is the largest <code>height(left) + height(right)</code> over all nodes.",
+  "Children must be finished before parents. If you list nodes so every parent comes before its children (a stack walk does that), then walking the list backwards is a valid post-order.",
+  "Store the height on the node (<code>node.h</code>) or in a dict keyed by node, and treat a missing child as height 0."
+ ],
+ "solution": "from collections import deque\n\nclass Node:\n    def __init__(self, val):\n        self.val = val\n        self.left = None\n        self.right = None\n\ndef build(tree):\n    # LeetCode list -> linked nodes. Each popped parent takes the next two slots.\n    if not tree or tree[0] is None:\n        return None\n    root = Node(tree[0])\n    queue = deque([root])\n    i = 1\n    while queue and i < len(tree):\n        node = queue.popleft()\n        if i < len(tree) and tree[i] is not None:\n            node.left = Node(tree[i])\n            queue.append(node.left)\n        i += 1\n        if i < len(tree) and tree[i] is not None:\n            node.right = Node(tree[i])\n            queue.append(node.right)\n        i += 1\n    return root\n\ndef solution(tree):\n    root = build(tree)\n    if root is None:\n        return [0, 0]\n    # Pre-order with an explicit stack: every parent lands before its children.\n    order = []\n    stack = [root]\n    while stack:\n        node = stack.pop()\n        order.append(node)\n        if node.left is not None:\n            stack.append(node.left)\n        if node.right is not None:\n            stack.append(node.right)\n    # Walk backwards: children are done before their parent (post-order).\n    best = 0\n    for node in reversed(order):\n        left = node.left.h if node.left is not None else 0\n        right = node.right.h if node.right is not None else 0\n        node.h = 1 + max(left, right)     # height in nodes\n        best = max(best, left + right)    # longest path bending here, in edges\n    return [root.h, best]\n",
+ "brute": "from collections import deque\n\nclass Node:\n    def __init__(self, val):\n        self.val = val\n        self.left = None\n        self.right = None\n\ndef build(tree):\n    # LeetCode list -> linked nodes. Each popped parent takes the next two slots.\n    if not tree or tree[0] is None:\n        return None\n    root = Node(tree[0])\n    queue = deque([root])\n    i = 1\n    while queue and i < len(tree):\n        node = queue.popleft()\n        if i < len(tree) and tree[i] is not None:\n            node.left = Node(tree[i])\n            queue.append(node.left)\n        i += 1\n        if i < len(tree) and tree[i] is not None:\n            node.right = Node(tree[i])\n            queue.append(node.right)\n        i += 1\n    return root\n\ndef height(node):\n    # Height in nodes, by BFS over the subtree (no recursion).\n    if node is None:\n        return 0\n    levels = 0\n    queue = deque([node])\n    while queue:\n        levels += 1\n        for _ in range(len(queue)):\n            cur = queue.popleft()\n            if cur.left is not None:\n                queue.append(cur.left)\n            if cur.right is not None:\n                queue.append(cur.right)\n    return levels\n\ndef solution(tree):\n    # Measure both subtrees of every node from scratch: O(n^2) on a chain.\n    root = build(tree)\n    if root is None:\n        return [0, 0]\n    best = 0\n    stack = [root]\n    while stack:\n        node = stack.pop()\n        best = max(best, height(node.left) + height(node.right))\n        for child in (node.left, node.right):\n            if child is not None:\n                stack.append(child)\n    return [height(root), best]\n",
+ "explain": "<p>Example 3: <code>[1, 2, None, 3, 4, 5, None, None, 6, 7, None, None, 8]</code>. Node 2 has two arms of three nodes each: 3 &rarr; 5 &rarr; 7 and 4 &rarr; 6 &rarr; 8.</p><ul><li>Leaves 7 and 8: h = 1.</li><li>5 and 6: h = 2. 3 and 4: h = 3.</li><li>Node 2: h = 4, bend = 3 + 3 = <b>6</b>.</li><li>Root 1: h = 5, bend = 4 + 0 = 4.</li></ul><p>So the answer is <code>[5, 6]</code>. A solution that only checks the path through the root returns 4. The reversed pre-order list replaces recursion: it visits each node twice, so it is O(n) and never grows the call stack.</p>",
+ "complexity": "O(n) time, O(n) extra space for the order list and stack",
+ "tests": [
+  {
+   "args": [
+    [
+     3,
+     9,
+     20,
+     null,
+     null,
+     15,
+     7
+    ]
+   ],
+   "expected": [
+    3,
+    3
+   ],
+   "label": "example 1",
+   "cat": "example",
+   "why": "depth 3 nodes, diameter 3 edges"
+  },
+  {
+   "args": [
+    [
+     1,
+     2,
+     3,
+     4,
+     5
+    ]
+   ],
+   "expected": [
+    3,
+    3
+   ],
+   "label": "example 2 (LeetCode 543)",
+   "cat": "example",
+   "why": "the longest path goes 4, 2, 1, 3"
+  },
+  {
+   "args": [
+    [
+     1,
+     2,
+     null,
+     3,
+     4,
+     5,
+     null,
+     null,
+     6,
+     7,
+     null,
+     null,
+     8
+    ]
+   ],
+   "expected": [
+    5,
+    6
+   ],
+   "label": "example 3 (bend below root)",
+   "cat": "example",
+   "why": "the longest path bends at node 2, not the root"
+  },
+  {
+   "args": [
+    []
+   ],
+   "expected": [
+    0,
+    0
+   ],
+   "label": "empty tree",
+   "cat": "empty",
+   "why": "no nodes: [0, 0]"
+  },
+  {
+   "args": [
+    [
+     7
+    ]
+   ],
+   "expected": [
+    1,
+    0
+   ],
+   "label": "one node",
+   "cat": "single",
+   "why": "depth 1, no edges"
+  },
+  {
+   "args": [
+    [
+     0,
+     0,
+     0
+    ]
+   ],
+   "expected": [
+    2,
+    2
+   ],
+   "label": "zeros",
+   "cat": "zero",
+   "why": "values of 0 are real nodes"
+  },
+  {
+   "args": [
+    [
+     1,
+     2,
+     null,
+     3,
+     null,
+     4
+    ]
+   ],
+   "expected": [
+    4,
+    3
+   ],
+   "label": "left chain of 4",
+   "cat": "small",
+   "why": "depth 4, diameter 3 edges end to end"
+  },
+  {
+   "args": [
+    [
+     1,
+     null,
+     2,
+     null,
+     3,
+     null,
+     4,
+     null,
+     5
+    ]
+   ],
+   "expected": [
+    5,
+    4
+   ],
+   "label": "right chain of 5",
+   "cat": "small",
+   "why": "a chain to the right"
+  },
+  {
+   "args": [
+    [
+     5,
+     5,
+     5,
+     5,
+     5,
+     5,
+     5
+    ]
+   ],
+   "expected": [
+    3,
+    4
+   ],
+   "label": "all equal",
+   "cat": "dupes",
+   "why": "values do not matter, only shape"
+  },
+  {
+   "args": [
+    [
+     -1,
+     -2,
+     -3,
+     null,
+     -4,
+     null,
+     -5
+    ]
+   ],
+   "expected": [
+    3,
+    4
+   ],
+   "label": "negatives",
+   "cat": "negative",
+   "why": "negative values, a zig-zag shape"
+  },
+  {
+   "args": [
+    [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14,
+     15,
+     16,
+     17,
+     18,
+     19,
+     20,
+     21,
+     22,
+     23,
+     24,
+     25,
+     26,
+     27,
+     28,
+     29,
+     30,
+     31
+    ]
+   ],
+   "expected": [
+    5,
+    8
+   ],
+   "label": "full tree of 31",
+   "cat": "medium",
+   "why": "depth 5, leaf to leaf through the root is 8 edges"
+  },
+  {
+   "args": [
+    [
+     1,
+     2,
+     3,
+     null,
+     null,
+     4,
+     5,
+     6,
+     null,
+     null,
+     7,
+     8,
+     null,
+     null,
+     9
+    ]
+   ],
+   "expected": [
+    5,
+    6
+   ],
+   "label": "lopsided",
+   "cat": "medium",
+   "why": "the deep side is under the right child"
+  }
+ ],
+ "perf": {
+  "label": "performance: 20,001 nodes, two arms 10,000 deep",
+  "gen": "[[0, 1, -1] + [a for i in range(2, 10001) for a in (i, None, None, -i)]]",
+  "expected": [
+   10001,
+   20000
+  ]
+ },
+ "al": {
+  "kind": "fundamentals",
+  "from": "LC 104 Maximum Depth of Binary Tree + LC 543 Diameter of Binary Tree",
+  "talk": [
+   "One post-order pass gives both answers in O(n): height of each node from its children, and the diameter as the best <code>left + right</code> along the way.",
+   "Why iterative: Python's default recursion limit is 1,000 and a skewed tree of 10,000 nodes is a valid input. Reversed pre-order is the simplest post-order on a stack.",
+   "The diameter does not have to pass through the root, so I keep a running maximum over every node instead of only computing it at the top.",
+   "Units: depth counts nodes, diameter counts edges. Empty tree is <code>[0, 0]</code>, a single node <code>[1, 0]</code>."
+  ],
+  "extensions": [
+   "Return the actual longest path (the list of values), not just its length: also record which child gave each height.",
+   "Minimum depth (LC 111): the nearest leaf. BFS stops at the first leaf, which is faster on wide, unbalanced trees.",
+   "Check the tree is height-balanced (LC 110): every node's two heights differ by at most 1, in the same pass.",
+   "The tree is an n-ary reply tree: the diameter bends at a node through its two tallest children, so keep the top two child heights."
+  ]
+ }
+}

@@ -1,0 +1,183 @@
+{
+ "id": "mars-rover-wrap",
+ "title": "Mars Rover III: a round planet",
+ "pattern": "math",
+ "level": "easy",
+ "statement": "<p>The planet is round, so the grid wraps around. A grid <code>W H</code> has cells <code>x = 0..W-1</code> and <code>y = 0..H-1</code>. Driving east from <code>x = W-1</code> lands on <code>x = 0</code>; driving south from <code>y = 0</code> lands on <code>y = H-1</code>.</p><p>Commands are now <code>F</code> (forward one), <code>B</code> (backward one, heading unchanged), <code>L</code> and <code>R</code>.</p><p>Write <code>def solution(spec)</code>: first line <code>W H</code>, then <code>x y H</code> and a command line per rover. Return each final <code>x y H</code>, joined with <code>\\n</code>.</p>",
+ "examples": [
+  {
+   "input": "spec = \"5 5\\n0 0 N\\nB\"",
+   "output": "\"0 4 N\"",
+   "why": "Backing off <code>y = 0</code> wraps to the top row, <code>y = 4</code>."
+  },
+  {
+   "input": "spec = \"5 5\\n4 2 E\\nFF\"",
+   "output": "\"1 2 E\"",
+   "why": "<code>x</code>: 4 &rarr; 0 &rarr; 1."
+  },
+  {
+   "input": "spec = \"10 10\\n0 0 N\\nFFRFF\"",
+   "output": "\"2 2 E\"",
+   "why": "No wrapping needed."
+  }
+ ],
+ "constraints": [
+  "1 &le; W, H &le; 10^9",
+  "total commands up to 100,000, from F, B, L, R"
+ ],
+ "starter": "def solution(spec):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "What does \"round\" change?",
+   "a": "Only what happens at the edge: instead of stopping, you appear on the opposite side."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Width 5, at <code>x = 4</code> facing east, one <code>F</code>?",
+   "a": "<code>4 + 1 = 5</code>, which is off the grid; wrapped it is <code>5 % 5 = 0</code>."
+  },
+  {
+   "step": "Naive idea",
+   "q": "How would you wrap first?",
+   "a": "Four ifs: <code>if x &lt; 0: x = W - 1</code>, <code>if x &gt;= W: x = 0</code>, and the same for y. Works for one step at a time."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Shorter way?",
+   "a": "<b>Modular arithmetic</b>: <code>x = (x + dx) % W</code>. Python's <code>%</code> is never negative for a positive <code>W</code>, so <code>-1 % 5 == 4</code>. One line handles both edges, and it still works if one step were bigger than 1."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li>Parse <code>W H</code>.</li><li>For each rover: <code>L</code>/<code>R</code> rotate; <code>F</code> takes <code>(dx, dy)</code>, <code>B</code> takes <code>(-dx, -dy)</code>.</li><li><code>x, y = (x + dx) % W, (y + dy) % H</code>.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "A 1 x 1 planet (every move returns home). A full lap. Non-square planets (wrap x by W, y by H, not the same number)."
+  }
+ ],
+ "hints": [
+  "Python's modulo wraps negatives for you: <code>-1 % 5 == 4</code>.",
+  "<code>B</code> is <code>F</code> with the step negated. Don't change the heading.",
+  "Wrap x with W and y with H separately."
+ ],
+ "solution": "DIRS = 'NESW'\nSTEP = {'N': (0, 1), 'E': (1, 0), 'S': (0, -1), 'W': (-1, 0)}\n\ndef solution(spec):\n    lines = [ln.strip() for ln in spec.strip().split('\\n') if ln.strip()]\n    w, h = map(int, lines[0].split())        # cells are 0..w-1 by 0..h-1\n    out = []\n    for i in range(1, len(lines), 2):\n        x, y, d = lines[i].split()\n        x, y = int(x), int(y)\n        for c in lines[i + 1] if i + 1 < len(lines) else '':\n            if c in 'LR':\n                d = DIRS[(DIRS.index(d) + (1 if c == 'R' else -1)) % 4]\n            elif c in 'FB':\n                dx, dy = STEP[d]\n                if c == 'B':\n                    dx, dy = -dx, -dy\n                x, y = (x + dx) % w, (y + dy) % h   # the planet is round: wrap\n        out.append(f'{x} {y} {d}')\n    return '\\n'.join(out)\n",
+ "brute": "def solution(spec):\n    # Wrap with if-statements instead of %\n    lines = [ln.strip() for ln in spec.strip().split('\\n') if ln.strip()]\n    w, h = map(int, lines[0].split())\n    order = 'NESW'\n    result = []\n    for i in range(1, len(lines), 2):\n        x, y, d = lines[i].split()\n        x, y = int(x), int(y)\n        for c in (lines[i + 1] if i + 1 < len(lines) else ''):\n            if c == 'L': d = order[(order.index(d) + 3) % 4]\n            elif c == 'R': d = order[(order.index(d) + 1) % 4]\n            else:\n                sign = 1 if c == 'F' else -1\n                x += sign * ((d == 'E') - (d == 'W'))\n                y += sign * ((d == 'N') - (d == 'S'))\n                if x < 0: x = w - 1\n                if x >= w: x = 0\n                if y < 0: y = h - 1\n                if y >= h: y = 0\n        result.append('%d %d %s' % (x, y, d))\n    return '\\n'.join(result)\n",
+ "explain": "<p>Wrapping is just <code>% W</code> and <code>% H</code>. In Python <code>%</code> follows the sign of the divisor, so <code>(0 - 1) % 5</code> is <code>4</code>: no special case for the low edge.</p><p>This is the extension interviewers use to see whether your earlier code made the boundary rule easy to swap: if bounds were checked in one <code>is_free</code> / <code>next_cell</code> helper, the change is two lines.</p>",
+ "complexity": "O(total commands) time, O(1) extra space per rover",
+ "tests": [
+  {
+   "args": [
+    "5 5\n0 0 N\nB"
+   ],
+   "expected": "0 4 N",
+   "label": "example 1 (wrap south)",
+   "cat": "example",
+   "why": "backing off y = 0 lands on y = 4"
+  },
+  {
+   "args": [
+    "5 5\n4 2 E\nFF"
+   ],
+   "expected": "1 2 E",
+   "label": "example 2 (wrap east)",
+   "cat": "example",
+   "why": "x goes 4 \u2192 0 \u2192 1"
+  },
+  {
+   "args": [
+    "10 10\n0 0 N\nFFRFF"
+   ],
+   "expected": "2 2 E",
+   "label": "example 3",
+   "cat": "example",
+   "why": "no wrapping needed"
+  },
+  {
+   "args": [
+    "1 1\n0 0 N\nFFFBBRFL"
+   ],
+   "expected": "0 0 N",
+   "label": "one-cell planet",
+   "cat": "single",
+   "why": "every move wraps onto the same cell"
+  },
+  {
+   "args": [
+    "3 3\n1 1 W\nFFF"
+   ],
+   "expected": "1 1 W",
+   "label": "full lap",
+   "cat": "boundary",
+   "why": "three steps on a width-3 planet returns home"
+  },
+  {
+   "args": [
+    "4 6\n0 5 N\nFRFFFFF"
+   ],
+   "expected": "1 0 E",
+   "label": "non-square planet",
+   "cat": "edge",
+   "why": "width and height wrap separately"
+  },
+  {
+   "args": [
+    "5 5\n2 2 N\nFBFBFB\n2 2 N\nLLRR"
+   ],
+   "expected": "2 2 N\n2 2 N",
+   "label": "back and forth",
+   "cat": "dupes",
+   "why": "F then B cancel out"
+  },
+  {
+   "args": [
+    "7 5\n0 2 S\nFFLBBBLLRLFBFFFFFRFRLBFBRBRFFFFBLBRFRRFL\n5 0 W\nBBFRFLLFBLRLFFBFRRRFFBBRBBBLFFFBFFFBFRFR\n1 1 E\nRFBRFLFFRBBRBLBFLLLFRFFLFRLLRBBRLFBRFBFB"
+   ],
+   "expected": "4 2 W\n6 1 S\n4 3 E",
+   "label": "random 1",
+   "cat": "medium",
+   "why": "3 rovers, 40 commands"
+  },
+  {
+   "args": [
+    "7 5\n0 0 S\nRLFFRLRFLBBBRLFFBFRBFLRLFBFLFLFBBRBBLBRF\n5 2 W\nFBFFLFBBFFFLFBRFBFRLFRFLLFBFFRRLLBRBFLBB\n2 4 E\nRFFRBRLLFFRFRLFFLBBFLBBBRBRBFBRFRBRLFBRF"
+   ],
+   "expected": "6 1 E\n1 3 E\n4 2 S",
+   "label": "random 2",
+   "cat": "medium",
+   "why": "3 rovers, 40 commands"
+  },
+  {
+   "args": [
+    "7 5\n2 0 E\nRBRLBBLBFLFBFBBFBFFBRFFBFFBFRLLBFFRFBFRF\n3 0 N\nRFFFLFBBBLLBRLBFBBLLBFBRLLBBBLRRFFRBBRLF\n4 2 E\nFBFFRFBFRBFBBRFFLRRFRBFBFFRFLBLBFFBBBBLF"
+   ],
+   "expected": "6 3 S\n1 2 E\n5 4 N",
+   "label": "random 3",
+   "cat": "medium",
+   "why": "3 rovers, 40 commands"
+  }
+ ],
+ "perf": {
+  "label": "performance: 70,000 commands",
+  "gen": "['1000 1000\\n0 0 N\\n' + 'FFRFFLB' * 10000]",
+  "expected": "0 0 N"
+ },
+ "govtech": {
+  "round": "live",
+  "tag": "inspired",
+  "source": "Common follow-up to the GovTech \"Roving on Mars\" kata",
+  "evidence": "Wrap-around (a round planet) and backward moves are the standard third step of the Mars Rover kata; GovTech reports confirm the kata but not this exact variant.",
+  "extensions": [
+   "Combine with rocks: the rover reports the first rock it would hit after wrapping.",
+   "Accept commands as a list of objects (Command pattern) so new commands plug in without editing the loop.",
+   "What if W and H are huge (10^9) and a command string is <code>F</code> repeated 10^12 times as <code>F*10^12</code>? (Multiply, then one modulo.)"
+  ],
+  "viz": {
+   "kind": "rover",
+   "mode": "wrap",
+   "input": "5 4\n3 1 E\nFFFLFFFFRBB"
+  }
+ }
+}

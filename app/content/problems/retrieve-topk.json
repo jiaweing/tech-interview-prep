@@ -1,0 +1,891 @@
+{
+ "id": "retrieve-topk",
+ "title": "Permission-Aware Top-K Retrieval",
+ "pattern": "hashing",
+ "level": "medium",
+ "statement": "<p>A knowledge-base assistant answers questions from a team's documents. Before it calls the model, it retrieves the few documents most related to the question. Each document is shared with some groups, and a user must never see a document none of their groups can access.</p><p>Write <code>def solution(docs, query, user_groups, k)</code>. <code>docs</code> is a list of dicts <code>{\"id\": str, \"text\": str, \"groups\": [str, ...]}</code>. <code>user_groups</code> is the list of groups the user is in.</p><p><b>Words.</b> To get the words of a text: lowercase it, split it on spaces (several spaces in a row count as one), remove any <code>.</code> <code>,</code> <code>?</code> <code>!</code> characters from both ends of each word, and drop words that become empty. Other characters stay, so <code>ready-made</code> is one word. Apply this to both the query and each document; the query's words form a set, so a repeated query word counts once.</p><p><b>Rules.</b></p><ol><li>Access control comes first: a document is eligible only if it shares at least one group with <code>user_groups</code>. Ineligible documents are never scored.</li><li>The score of an eligible document is the number of distinct query words that appear among its words.</li><li>Drop documents with score 0.</li><li>Sort by score, highest first; break ties by <code>id</code> in ascending string order.</li></ol><p>Return the list of the first <code>k</code> ids (fewer if fewer documents remain).</p>",
+ "examples": [
+  {
+   "input": "docs = [{\"id\": \"d1\", \"text\": \"Leave policy. Staff get 14 days of annual leave.\", \"groups\": [\"hr\", \"all\"]}, {\"id\": \"d2\", \"text\": \"How to apply for leave in the HR portal?\", \"groups\": [\"all\"]}, {\"id\": \"d3\", \"text\": \"Server patching schedule for March.\", \"groups\": [\"eng\"]}], query = \"annual leave policy\", user_groups = [\"all\"], k = 2",
+   "output": "['d1', 'd2']",
+   "why": "<code>d1</code> contains <code>annual</code>, <code>leave</code> and <code>policy</code> (the <code>.</code> after <code>policy</code> is stripped): score 3. <code>d2</code> has only <code>leave</code>: score 1. <code>d3</code> is in <code>eng</code>, which the user is not in."
+  },
+  {
+   "input": "docs = [{\"id\": \"a\", \"text\": \"Budget 2026 draft: salary bands and bonus pool\", \"groups\": [\"finance\"]}, {\"id\": \"b\", \"text\": \"Bonus pool FAQ for staff\", \"groups\": [\"all\"]}, {\"id\": \"c\", \"text\": \"Team lunch budget\", \"groups\": [\"all\"]}], query = \"bonus pool budget\", user_groups = [\"all\"], k = 3",
+   "output": "['b', 'c']",
+   "why": "<code>a</code> would match all 3 words, but the user is not in <code>finance</code>, so it is filtered out <i>before</i> ranking. <code>b</code> scores 2, <code>c</code> scores 1."
+  }
+ ],
+ "constraints": [
+  "0 &le; len(docs) &le; 5,000",
+  "each text has at most 200 words; the query has at most 30 words",
+  "0 &le; len(groups), len(user_groups) &le; 20",
+  "1 &le; k &le; 1,000",
+  "ids are distinct non-empty strings"
+ ],
+ "starter": "def solution(docs, query, user_groups, k):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "What decides whether a document appears, and in what order?",
+   "a": "Two gates, then a sort. Gate 1: the user shares a group with the doc. Gate 2: the doc matches at least one query word. Order: more matched words first, then id."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Query <code>leave policy</code>, doc text <code>Leave policy: 14 days</code>?",
+   "a": "Doc words: <code>leave</code>, <code>policy:</code>, <code>14</code>, <code>days</code>. Only <code>. , ? !</code> are stripped, so <code>policy:</code> keeps its colon and does not match. Score 1. Saying this out loud shows you read the spec."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What's the first thing you'd write?",
+   "a": "Score every doc, sort everything, then filter by permission at the end. It returns the right ids only if you filter before cutting to <code>k</code>; filter after and the user gets fewer than <code>k</code> results, or worse, you leak the hidden doc into logs or prompts. Filter first."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Clue words?",
+   "a": "\"appears among its words\", \"shares at least one group\" &rarr; <b>set membership</b>. Turn the query, each doc and the user's groups into sets; then a score is <code>len(q &amp; doc_words)</code> and the permission check is <code>allowed &amp; set(groups)</code>."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li>Write <code>words(text)</code> once and reuse it.</li><li><code>q = words(query)</code>, <code>allowed = set(user_groups)</code>.</li><li>For each doc: skip if no shared group; score; keep <code>(-score, id)</code> if score &gt; 0.</li><li>Sort the tuples and return the first <code>k</code> ids.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "No docs. Empty query. A doc with no groups (visible to nobody). Ties on score. <code>k</code> bigger than the number of matches. Repeated query words. Punctuation and capitals. A high-scoring doc the user cannot see."
+  }
+ ],
+ "hints": [
+  "Write a helper <code>words(text)</code> that returns a <b>set</b>: <code>w.strip('.,?!')</code> for each word of <code>text.lower().split()</code>, skipping empty strings.",
+  "Check permission with set intersection: <code>if not set(user_groups) &amp; set(doc['groups']): continue</code>. Do it before scoring, never after.",
+  "Sort by two keys at once by storing <code>(-score, id)</code>: Python compares tuples left to right, so higher scores come first and ties fall back to id order."
+ ],
+ "solution": "PUNCT = '.,?!'\n\ndef words(text):\n    # lowercase, split on spaces, strip . , ? ! from both ends of each word\n    out = set()\n    for w in text.lower().split():\n        w = w.strip(PUNCT)\n        if w:\n            out.add(w)\n    return out\n\ndef solution(docs, query, user_groups, k):\n    q = words(query)                  # a set: duplicate query words count once\n    allowed = set(user_groups)\n    scored = []\n    for doc in docs:\n        # access control first: a doc the user cannot see is never scored\n        if not allowed & set(doc['groups']):\n            continue\n        score = len(q & words(doc['text']))\n        if score > 0:\n            scored.append((-score, doc['id']))   # sorts by score desc, then id asc\n    scored.sort()\n    return [doc_id for _, doc_id in scored[:k]]\n",
+ "brute": "def solution(docs, query, user_groups, k):\n    # Plain loops and lists: clean every word, compare one by one, then pick the best k by hand.\n    def clean(text):\n        result = []\n        for w in text.lower().split():\n            w = w.strip('.,?!')\n            if w != '':\n                result.append(w)\n        return result\n    q = []\n    for w in clean(query):\n        if w not in q:\n            q.append(w)\n    rows = []\n    for doc in docs:\n        ok = False\n        for g in doc['groups']:\n            if g in user_groups:\n                ok = True\n        if not ok:\n            continue\n        doc_words = clean(doc['text'])\n        score = 0\n        for w in q:\n            if w in doc_words:\n                score += 1\n        if score > 0:\n            rows.append([score, doc['id']])\n    picked = []\n    while rows and len(picked) < k:\n        best = rows[0]\n        for row in rows:\n            if row[0] > best[0] or (row[0] == best[0] and row[1] < best[1]):\n                best = row\n        picked.append(best[1])\n        rows.remove(best)\n    return picked\n",
+ "explain": "<p>Retrieval for an assistant has two jobs: find relevant text and never show the wrong person the wrong text. The second job is not a ranking tweak; it is a filter that runs first.</p><ul><li>Example 2: the user is in <code>all</code>. Doc <code>a</code> is only in <code>finance</code>, so the loop skips it before it computes any score.</li><li>Doc <code>b</code>: words <code>{bonus, pool, faq, for, staff}</code>. Query set <code>{bonus, pool, budget}</code>. Intersection size 2.</li><li>Doc <code>c</code>: <code>{team, lunch, budget}</code> &cap; query = <code>{budget}</code>, score 1.</li><li>Sorted tuples: <code>(-2, 'b')</code>, <code>(-1, 'c')</code> &rarr; <code>['b', 'c']</code>.</li></ul><p>Real systems replace word overlap with embeddings or BM25, but the shape stays: permission filter, score, sort, cut to <code>k</code>. If you filter after the cut, a user with narrow access gets fewer than <code>k</code> results; if you forget the filter, private text ends up in the prompt.</p>",
+ "complexity": "O(total words + m log m) time for m matching docs; O(words in one doc) extra space per doc",
+ "perf": {
+  "label": "performance: 3,000 docs × 40 words, 30-word query",
+  "gen": "[[{'id': 'd%05d' % i, 'text': ' '.join('w%d' % ((i * 7 + j * 13) % 500) for j in range(40)), 'groups': ['g%d' % (i % 5)]} for i in range(3000)], ' '.join('w%d' % ((j * 17) % 500) for j in range(30)), ['g1', 'g3'], 300]",
+  "expected": [
+   "d00003",
+   "d00013",
+   "d00016",
+   "d00018",
+   "d00021",
+   "d00023",
+   "d00026",
+   "d00033",
+   "d00038",
+   "d00041",
+   "d00046",
+   "d00051",
+   "d00063",
+   "d00068",
+   "d00076",
+   "d00093",
+   "d00098",
+   "d00101",
+   "d00103",
+   "d00106",
+   "d00113",
+   "d00116",
+   "d00118",
+   "d00121",
+   "d00123",
+   "d00126",
+   "d00136",
+   "d00141",
+   "d00148",
+   "d00151",
+   "d00153",
+   "d00156",
+   "d00161",
+   "d00178",
+   "d00188",
+   "d00193",
+   "d00196",
+   "d00198",
+   "d00201",
+   "d00206",
+   "d00213",
+   "d00216",
+   "d00223",
+   "d00228",
+   "d00231",
+   "d00233",
+   "d00236",
+   "d00241",
+   "d00251",
+   "d00256",
+   "d00268",
+   "d00273",
+   "d00278",
+   "d00281",
+   "d00293",
+   "d00303",
+   "d00306",
+   "d00308",
+   "d00311",
+   "d00313",
+   "d00316",
+   "d00323",
+   "d00326",
+   "d00328",
+   "d00331",
+   "d00333",
+   "d00336",
+   "d00358",
+   "d00361",
+   "d00366",
+   "d00371",
+   "d00383",
+   "d00388",
+   "d00396",
+   "d00403",
+   "d00406",
+   "d00408",
+   "d00411",
+   "d00413",
+   "d00416",
+   "d00423",
+   "d00426",
+   "d00431",
+   "d00438",
+   "d00441",
+   "d00443",
+   "d00446",
+   "d00448",
+   "d00451",
+   "d00461",
+   "d00478",
+   "d00483",
+   "d00486",
+   "d00488",
+   "d00491",
+   "d00498",
+   "d00503",
+   "d00513",
+   "d00516",
+   "d00518",
+   "d00521",
+   "d00523",
+   "d00526",
+   "d00533",
+   "d00538",
+   "d00541",
+   "d00546",
+   "d00551",
+   "d00563",
+   "d00568",
+   "d00576",
+   "d00593",
+   "d00598",
+   "d00601",
+   "d00603",
+   "d00606",
+   "d00613",
+   "d00616",
+   "d00618",
+   "d00621",
+   "d00623",
+   "d00626",
+   "d00636",
+   "d00641",
+   "d00648",
+   "d00651",
+   "d00653",
+   "d00656",
+   "d00661",
+   "d00678",
+   "d00688",
+   "d00693",
+   "d00696",
+   "d00698",
+   "d00701",
+   "d00706",
+   "d00713",
+   "d00716",
+   "d00723",
+   "d00728",
+   "d00731",
+   "d00733",
+   "d00736",
+   "d00741",
+   "d00751",
+   "d00756",
+   "d00768",
+   "d00773",
+   "d00778",
+   "d00781",
+   "d00793",
+   "d00803",
+   "d00806",
+   "d00808",
+   "d00811",
+   "d00813",
+   "d00816",
+   "d00823",
+   "d00826",
+   "d00828",
+   "d00831",
+   "d00833",
+   "d00836",
+   "d00858",
+   "d00861",
+   "d00866",
+   "d00871",
+   "d00883",
+   "d00888",
+   "d00896",
+   "d00903",
+   "d00906",
+   "d00908",
+   "d00911",
+   "d00913",
+   "d00916",
+   "d00923",
+   "d00926",
+   "d00931",
+   "d00938",
+   "d00941",
+   "d00943",
+   "d00946",
+   "d00948",
+   "d00951",
+   "d00961",
+   "d00978",
+   "d00983",
+   "d00986",
+   "d00988",
+   "d00991",
+   "d00998",
+   "d01003",
+   "d01013",
+   "d01016",
+   "d01018",
+   "d01021",
+   "d01023",
+   "d01026",
+   "d01033",
+   "d01038",
+   "d01041",
+   "d01046",
+   "d01051",
+   "d01063",
+   "d01068",
+   "d01076",
+   "d01093",
+   "d01098",
+   "d01101",
+   "d01103",
+   "d01106",
+   "d01113",
+   "d01116",
+   "d01118",
+   "d01121",
+   "d01123",
+   "d01126",
+   "d01136",
+   "d01141",
+   "d01148",
+   "d01151",
+   "d01153",
+   "d01156",
+   "d01161",
+   "d01178",
+   "d01188",
+   "d01193",
+   "d01196",
+   "d01198",
+   "d01201",
+   "d01206",
+   "d01213",
+   "d01216",
+   "d01223",
+   "d01228",
+   "d01231",
+   "d01233",
+   "d01236",
+   "d01241",
+   "d01251",
+   "d01256",
+   "d01268",
+   "d01273",
+   "d01278",
+   "d01281",
+   "d01293",
+   "d01303",
+   "d01306",
+   "d01308",
+   "d01311",
+   "d01313",
+   "d01316",
+   "d01323",
+   "d01326",
+   "d01328",
+   "d01331",
+   "d01333",
+   "d01336",
+   "d01358",
+   "d01361",
+   "d01366",
+   "d01371",
+   "d01383",
+   "d01388",
+   "d01396",
+   "d01403",
+   "d01406",
+   "d01408",
+   "d01411",
+   "d01413",
+   "d01416",
+   "d01423",
+   "d01426",
+   "d01431",
+   "d01438",
+   "d01441",
+   "d01443",
+   "d01446",
+   "d01448",
+   "d01451",
+   "d01461",
+   "d01478",
+   "d01483",
+   "d01486",
+   "d01488",
+   "d01491",
+   "d01498",
+   "d01503",
+   "d01513",
+   "d01516",
+   "d01518",
+   "d01521",
+   "d01523",
+   "d01526",
+   "d01533",
+   "d01538",
+   "d01541",
+   "d01546",
+   "d01551"
+  ]
+ },
+ "govtech": {
+  "round": "live",
+  "tag": "domain",
+  "source": "Giant Robots Labs-style practice",
+  "evidence": "Practice shaped like the lab's public products (GovBrain); not a reported interview question.",
+  "extensions": [
+   "Replace word overlap with <b>BM25</b>: rare words should count more than common ones. What extra data do you precompute per word (document frequency) and per doc (length)?",
+   "Build an <b>inverted index</b> <code>word -&gt; set of doc ids</code> once, so a query touches only docs that contain at least one query word instead of all 5,000.",
+   "Add document chunks: each doc is split into paragraphs, you rank chunks, but return each doc id at most once (its best chunk). Where does deduplication go relative to the cut to <code>k</code>?",
+   "Groups change: a user is removed from <code>finance</code>. If you cached query results, how do you make sure the cache never serves a doc they lost access to? (Key the cache by the user's group set, or check permissions again on read.)"
+  ]
+ },
+ "tests": [
+  {
+   "args": [
+    [
+     {
+      "id": "d1",
+      "text": "Leave policy. Staff get 14 days of annual leave.",
+      "groups": [
+       "hr",
+       "all"
+      ]
+     },
+     {
+      "id": "d2",
+      "text": "How to apply for leave in the HR portal?",
+      "groups": [
+       "all"
+      ]
+     },
+     {
+      "id": "d3",
+      "text": "Server patching schedule for March.",
+      "groups": [
+       "eng"
+      ]
+     }
+    ],
+    "annual leave policy",
+    [
+     "all"
+    ],
+    2
+   ],
+   "expected": [
+    "d1",
+    "d2"
+   ],
+   "label": "example 1",
+   "cat": "example",
+   "why": "d1 matches 3 words, d2 matches 1, d3 none"
+  },
+  {
+   "args": [
+    [
+     {
+      "id": "a",
+      "text": "Budget 2026 draft: salary bands and bonus pool",
+      "groups": [
+       "finance"
+      ]
+     },
+     {
+      "id": "b",
+      "text": "Bonus pool FAQ for staff",
+      "groups": [
+       "all"
+      ]
+     },
+     {
+      "id": "c",
+      "text": "Team lunch budget",
+      "groups": [
+       "all"
+      ]
+     }
+    ],
+    "bonus pool budget",
+    [
+     "all"
+    ],
+    3
+   ],
+   "expected": [
+    "b",
+    "c"
+   ],
+   "label": "example 2 (access control)",
+   "cat": "example",
+   "why": "doc a would score 3 but the user is not in finance"
+  },
+  {
+   "args": [
+    [],
+    "anything",
+    [
+     "all"
+    ],
+    3
+   ],
+   "expected": [],
+   "label": "no documents",
+   "cat": "empty",
+   "why": "nothing to rank"
+  },
+  {
+   "args": [
+    [
+     {
+      "id": "d1",
+      "text": "Leave policy. Staff get 14 days of annual leave.",
+      "groups": [
+       "hr",
+       "all"
+      ]
+     },
+     {
+      "id": "d2",
+      "text": "How to apply for leave in the HR portal?",
+      "groups": [
+       "all"
+      ]
+     },
+     {
+      "id": "d3",
+      "text": "Server patching schedule for March.",
+      "groups": [
+       "eng"
+      ]
+     }
+    ],
+    "",
+    [
+     "all"
+    ],
+    3
+   ],
+   "expected": [],
+   "label": "empty query",
+   "cat": "empty",
+   "why": "every score is 0, so every doc is dropped"
+  },
+  {
+   "args": [
+    [
+     {
+      "id": "d1",
+      "text": "Leave policy. Staff get 14 days of annual leave.",
+      "groups": [
+       "hr",
+       "all"
+      ]
+     },
+     {
+      "id": "d2",
+      "text": "How to apply for leave in the HR portal?",
+      "groups": [
+       "all"
+      ]
+     },
+     {
+      "id": "d3",
+      "text": "Server patching schedule for March.",
+      "groups": [
+       "eng"
+      ]
+     }
+    ],
+    "leave",
+    [
+     "all"
+    ],
+    1
+   ],
+   "expected": [
+    "d1"
+   ],
+   "label": "k = 1",
+   "cat": "single",
+   "why": "only the best (ties by id: d1 before d2)"
+  },
+  {
+   "args": [
+    [
+     {
+      "id": "m3",
+      "text": "meeting notes",
+      "groups": [
+       "x"
+      ]
+     },
+     {
+      "id": "m1",
+      "text": "meeting agenda",
+      "groups": [
+       "x"
+      ]
+     },
+     {
+      "id": "m2",
+      "text": "notes from the meeting",
+      "groups": [
+       "x"
+      ]
+     }
+    ],
+    "meeting notes",
+    [
+     "x"
+    ],
+    3
+   ],
+   "expected": [
+    "m2",
+    "m3",
+    "m1"
+   ],
+   "label": "ties by id",
+   "cat": "small",
+   "why": "m2 and m3 tie on 2 words: id order breaks it; m1 has 1"
+  },
+  {
+   "args": [
+    [
+     {
+      "id": "p1",
+      "text": "Is GovBrain ready? Yes, ready!",
+      "groups": [
+       "g"
+      ]
+     },
+     {
+      "id": "p2",
+      "text": "ready-made templates",
+      "groups": [
+       "g"
+      ]
+     },
+     {
+      "id": "p3",
+      "text": "Not READY.",
+      "groups": [
+       "g"
+      ]
+     }
+    ],
+    "ready",
+    [
+     "g"
+    ],
+    5
+   ],
+   "expected": [
+    "p1",
+    "p3"
+   ],
+   "label": "punctuation and case",
+   "cat": "edge",
+   "why": "\"ready?\", \"ready!\" and \"READY.\" all count; \"ready-made\" is one word, not \"ready\""
+  },
+  {
+   "args": [
+    [
+     {
+      "id": "d1",
+      "text": "Leave policy. Staff get 14 days of annual leave.",
+      "groups": [
+       "hr",
+       "all"
+      ]
+     },
+     {
+      "id": "d2",
+      "text": "How to apply for leave in the HR portal?",
+      "groups": [
+       "all"
+      ]
+     },
+     {
+      "id": "d3",
+      "text": "Server patching schedule for March.",
+      "groups": [
+       "eng"
+      ]
+     }
+    ],
+    "leave leave LEAVE",
+    [
+     "all"
+    ],
+    5
+   ],
+   "expected": [
+    "d1",
+    "d2"
+   ],
+   "label": "duplicate query words",
+   "cat": "dupes",
+   "why": "the query is a set, so each doc scores at most 1"
+  },
+  {
+   "args": [
+    [
+     {
+      "id": "d1",
+      "text": "Leave policy. Staff get 14 days of annual leave.",
+      "groups": [
+       "hr",
+       "all"
+      ]
+     },
+     {
+      "id": "d2",
+      "text": "How to apply for leave in the HR portal?",
+      "groups": [
+       "all"
+      ]
+     },
+     {
+      "id": "d3",
+      "text": "Server patching schedule for March.",
+      "groups": [
+       "eng"
+      ]
+     }
+    ],
+    "leave",
+    [
+     "eng"
+    ],
+    5
+   ],
+   "expected": [],
+   "label": "no visible match",
+   "cat": "zero",
+   "why": "d3 is visible but scores 0; d1 and d2 are hidden"
+  },
+  {
+   "args": [
+    [
+     {
+      "id": "n1",
+      "text": "secret roadmap",
+      "groups": []
+     },
+     {
+      "id": "n2",
+      "text": "public roadmap",
+      "groups": [
+       "all"
+      ]
+     }
+    ],
+    "roadmap",
+    [
+     "all",
+     "hr"
+    ],
+    5
+   ],
+   "expected": [
+    "n2"
+   ],
+   "label": "doc with no groups",
+   "cat": "edge",
+   "why": "a doc with no groups is visible to nobody"
+  },
+  {
+   "args": [
+    [
+     {
+      "id": "d1",
+      "text": "Leave policy. Staff get 14 days of annual leave.",
+      "groups": [
+       "hr",
+       "all"
+      ]
+     },
+     {
+      "id": "d2",
+      "text": "How to apply for leave in the HR portal?",
+      "groups": [
+       "all"
+      ]
+     },
+     {
+      "id": "d3",
+      "text": "Server patching schedule for March.",
+      "groups": [
+       "eng"
+      ]
+     }
+    ],
+    "leave days",
+    [
+     "hr",
+     "eng",
+     "all"
+    ],
+    10
+   ],
+   "expected": [
+    "d1",
+    "d2"
+   ],
+   "label": "k larger than matches",
+   "cat": "boundary",
+   "why": "return fewer than k ids"
+  },
+  {
+   "args": [
+    [
+     {
+      "id": "doc00",
+      "text": "w0 w3 w6 w9 w1 w4",
+      "groups": [
+       "g0"
+      ]
+     },
+     {
+      "id": "doc01",
+      "text": "w5 w8 w0 w3 w6 w9",
+      "groups": [
+       "g1"
+      ]
+     },
+     {
+      "id": "doc02",
+      "text": "w10 w2 w5 w8 w0 w3",
+      "groups": [
+       "g2"
+      ]
+     },
+     {
+      "id": "doc03",
+      "text": "w4 w7 w10 w2 w5 w8",
+      "groups": [
+       "g0"
+      ]
+     },
+     {
+      "id": "doc04",
+      "text": "w9 w1 w4 w7 w10 w2",
+      "groups": [
+       "g1"
+      ]
+     },
+     {
+      "id": "doc05",
+      "text": "w3 w6 w9 w1 w4 w7",
+      "groups": [
+       "g2"
+      ]
+     },
+     {
+      "id": "doc06",
+      "text": "w8 w0 w3 w6 w9 w1",
+      "groups": [
+       "g0"
+      ]
+     },
+     {
+      "id": "doc07",
+      "text": "w2 w5 w8 w0 w3 w6",
+      "groups": [
+       "g1"
+      ]
+     },
+     {
+      "id": "doc08",
+      "text": "w7 w10 w2 w5 w8 w0",
+      "groups": [
+       "g2"
+      ]
+     },
+     {
+      "id": "doc09",
+      "text": "w1 w4 w7 w10 w2 w5",
+      "groups": [
+       "g0"
+      ]
+     },
+     {
+      "id": "doc10",
+      "text": "w6 w9 w1 w4 w7 w10",
+      "groups": [
+       "g1"
+      ]
+     },
+     {
+      "id": "doc11",
+      "text": "w0 w3 w6 w9 w1 w4",
+      "groups": [
+       "g2"
+      ]
+     }
+    ],
+    "w1 w2 w3 w4 w5",
+    [
+     "g0",
+     "g2"
+    ],
+    4
+   ],
+   "expected": [
+    "doc09",
+    "doc00",
+    "doc02",
+    "doc03"
+   ],
+   "label": "medium mix",
+   "cat": "medium",
+   "why": "12 docs in 3 groups, the user sees 2 of them"
+  }
+ ],
+ "grl": true
+}

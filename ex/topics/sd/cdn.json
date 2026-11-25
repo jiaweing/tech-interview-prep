@@ -1,0 +1,487 @@
+{
+ "id": "cdn",
+ "track": "sd",
+ "order": 6,
+ "title": "CDN",
+ "short": "Serve files from a server near the user, not across the world.",
+ "what": "A content delivery network (CDN) is many cache servers spread around the world, called edge servers. Users get images, videos and scripts from the closest edge instead of from your main server, the origin. Only the first request in each region makes the long trip.",
+ "analogy": "A bestseller is stocked in every local bookshop. Readers don't order it from the publisher's warehouse on another continent.",
+ "viz": {
+  "kind": "sd",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "su",
+      "label": "Sydney user",
+      "x": 0,
+      "y": 100
+     },
+     {
+      "id": "o",
+      "label": "Origin",
+      "sub": "Virginia, USA",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "su",
+      "o",
+      "~200 ms trip"
+     ]
+    ],
+    "bad": [
+     "su"
+    ],
+    "edgeHi": [
+     [
+      "su",
+      "o"
+     ]
+    ],
+    "say": "Your photo app's servers are in Virginia. Ana opens it in Sydney, and every request crosses the Pacific: about 200 ms each round trip."
+   },
+   {
+    "nodes": [
+     {
+      "id": "lu",
+      "label": "London user",
+      "x": 0,
+      "y": 0
+     },
+     {
+      "id": "le",
+      "label": "London edge",
+      "sub": "CDN server",
+      "x": 45,
+      "y": 0
+     },
+     {
+      "id": "su",
+      "label": "Sydney user",
+      "x": 0,
+      "y": 100
+     },
+     {
+      "id": "se",
+      "label": "Sydney edge",
+      "sub": "CDN server",
+      "x": 45,
+      "y": 100
+     },
+     {
+      "id": "o",
+      "label": "Origin",
+      "sub": "Virginia, USA",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "lu",
+      "le"
+     ],
+     [
+      "le",
+      "o"
+     ],
+     [
+      "su",
+      "se"
+     ],
+     [
+      "se",
+      "o"
+     ]
+    ],
+    "hi": [
+     "le",
+     "se"
+    ],
+    "say": "A CDN has edge servers in hundreds of cities. DNS sends each user to the nearest edge instead of to Virginia."
+   },
+   {
+    "nodes": [
+     {
+      "id": "lu",
+      "label": "London user",
+      "x": 0,
+      "y": 0
+     },
+     {
+      "id": "le",
+      "label": "London edge",
+      "sub": "CDN server",
+      "x": 45,
+      "y": 0
+     },
+     {
+      "id": "su",
+      "label": "Sydney user",
+      "x": 0,
+      "y": 100
+     },
+     {
+      "id": "se",
+      "label": "Sydney edge",
+      "sub": "miss",
+      "x": 45,
+      "y": 100
+     },
+     {
+      "id": "o",
+      "label": "Origin",
+      "sub": "Virginia, USA",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "lu",
+      "le"
+     ],
+     [
+      "le",
+      "o"
+     ],
+     [
+      "su",
+      "se",
+      "cat.jpg?"
+     ],
+     [
+      "se",
+      "o"
+     ]
+    ],
+    "hi": [
+     "se"
+    ],
+    "edgeHi": [
+     [
+      "su",
+      "se"
+     ]
+    ],
+    "say": "Ana asks for cat.jpg. The Sydney edge has never seen it: a miss."
+   },
+   {
+    "nodes": [
+     {
+      "id": "lu",
+      "label": "London user",
+      "x": 0,
+      "y": 0
+     },
+     {
+      "id": "le",
+      "label": "London edge",
+      "sub": "CDN server",
+      "x": 45,
+      "y": 0
+     },
+     {
+      "id": "su",
+      "label": "Sydney user",
+      "x": 0,
+      "y": 100
+     },
+     {
+      "id": "se",
+      "label": "Sydney edge",
+      "sub": "saves a copy",
+      "x": 45,
+      "y": 100
+     },
+     {
+      "id": "o",
+      "label": "Origin",
+      "sub": "Virginia, USA",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "lu",
+      "le"
+     ],
+     [
+      "le",
+      "o"
+     ],
+     [
+      "su",
+      "se"
+     ],
+     [
+      "se",
+      "o",
+      "fetch once"
+     ]
+    ],
+    "hi": [
+     "o"
+    ],
+    "edgeHi": [
+     [
+      "se",
+      "o"
+     ]
+    ],
+    "say": "The edge fetches the photo from Virginia once (200 ms) and keeps a copy for 24 hours."
+   },
+   {
+    "nodes": [
+     {
+      "id": "lu",
+      "label": "London user",
+      "x": 0,
+      "y": 0
+     },
+     {
+      "id": "le",
+      "label": "London edge",
+      "sub": "CDN server",
+      "x": 45,
+      "y": 0
+     },
+     {
+      "id": "su",
+      "label": "Sydney user",
+      "sub": "50,000 users",
+      "x": 0,
+      "y": 100
+     },
+     {
+      "id": "se",
+      "label": "Sydney edge",
+      "sub": "hit",
+      "x": 45,
+      "y": 100
+     },
+     {
+      "id": "o",
+      "label": "Origin",
+      "sub": "Virginia, USA",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "lu",
+      "le"
+     ],
+     [
+      "le",
+      "o"
+     ],
+     [
+      "se",
+      "su",
+      "~10 ms"
+     ],
+     [
+      "se",
+      "o"
+     ]
+    ],
+    "ok": [
+     "se",
+     "su"
+    ],
+    "dim": [
+     "o"
+    ],
+    "edgeHi": [
+     [
+      "se",
+      "su"
+     ]
+    ],
+    "say": "Ana gets her photo. The next 50,000 people in Australia get it straight from Sydney in about 10 ms."
+   },
+   {
+    "nodes": [
+     {
+      "id": "lu",
+      "label": "London user",
+      "x": 0,
+      "y": 0
+     },
+     {
+      "id": "le",
+      "label": "London edge",
+      "sub": "miss, then saves",
+      "x": 45,
+      "y": 0
+     },
+     {
+      "id": "su",
+      "label": "Sydney user",
+      "x": 0,
+      "y": 100
+     },
+     {
+      "id": "se",
+      "label": "Sydney edge",
+      "sub": "CDN server",
+      "x": 45,
+      "y": 100
+     },
+     {
+      "id": "o",
+      "label": "Origin",
+      "sub": "Virginia, USA",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "lu",
+      "le"
+     ],
+     [
+      "le",
+      "o",
+      "fetch once"
+     ],
+     [
+      "su",
+      "se"
+     ],
+     [
+      "se",
+      "o"
+     ]
+    ],
+    "hi": [
+     "le",
+     "o"
+    ],
+    "edgeHi": [
+     [
+      "lu",
+      "le"
+     ],
+     [
+      "le",
+      "o"
+     ]
+    ],
+    "say": "Someone in London asks for the same photo. The London edge has its own cache, so it makes its own single trip to Virginia."
+   },
+   {
+    "nodes": [
+     {
+      "id": "lu",
+      "label": "London user",
+      "x": 0,
+      "y": 0
+     },
+     {
+      "id": "le",
+      "label": "London edge",
+      "sub": "hit",
+      "x": 45,
+      "y": 0
+     },
+     {
+      "id": "su",
+      "label": "Sydney user",
+      "x": 0,
+      "y": 100
+     },
+     {
+      "id": "se",
+      "label": "Sydney edge",
+      "sub": "hit",
+      "x": 45,
+      "y": 100
+     },
+     {
+      "id": "o",
+      "label": "Origin",
+      "sub": "2 requests a day",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "lu",
+      "le"
+     ],
+     [
+      "le",
+      "o"
+     ],
+     [
+      "su",
+      "se"
+     ],
+     [
+      "se",
+      "o"
+     ]
+    ],
+    "ok": [
+     "le",
+     "se"
+    ],
+    "dim": [
+     "o"
+    ],
+    "say": "Now each region is served locally. Virginia sends cat.jpg twice a day instead of millions of times: faster for users, cheaper for you."
+   }
+  ]
+ },
+ "when": [
+  "Users are spread across countries",
+  "Lots of images, video or other static files",
+  "The same file is downloaded by many people",
+  "Page load time matters"
+ ],
+ "python": "edges = {\"Sydney\": (-34, 151), \"London\": (51, 0), \"Virginia\": (38, -77)}\ncache = {name: set() for name in edges}\n\ndef nearest(lat, lon):\n    return min(edges, key=lambda e: (edges[e][0] - lat) ** 2 + (edges[e][1] - lon) ** 2)\n\nfor user, lat, lon in [(\"ana\", -33, 151), (\"bob\", -37, 145), (\"eve\", 52, -1)]:\n    edge = nearest(lat, lon)\n    status = \"hit\" if \"cat.jpg\" in cache[edge] else \"miss, fetch from origin\"\n    cache[edge].add(\"cat.jpg\")\n    print(user, \"->\", edge, \"edge:\", status)",
+ "output": "ana -> Sydney edge: miss, fetch from origin\nbob -> Sydney edge: hit\neve -> London edge: miss, fetch from origin",
+ "cost": [
+  [
+   "File from a nearby edge",
+   "~5-20 ms"
+  ],
+  [
+   "File from a far origin",
+   "~100-250 ms"
+  ],
+  [
+   "Origin requests",
+   "about 1 per edge per TTL"
+  ],
+  [
+   "Choosing the edge",
+   "done by DNS, once"
+  ]
+ ],
+ "watch": [
+  "Changed files are hard to update: edges keep the old copy until it expires. Put a version in the name, like app.v42.js.",
+  "A CDN helps files many people share; personal pages and private data usually can't be cached there.",
+  "The first user in each region still pays for the slow trip."
+ ],
+ "interview": [
+  "Design YouTube or Netflix",
+  "Design Instagram",
+  "Design a CDN"
+ ],
+ "related": [
+  "caching",
+  "dns",
+  "blob-storage",
+  "load-balancer"
+ ]
+}

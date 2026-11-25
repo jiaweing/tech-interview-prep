@@ -1,0 +1,274 @@
+{
+ "id": "connect-ropes",
+ "title": "Connect Ropes at Minimum Cost",
+ "pattern": "greedy-sim",
+ "level": "medium",
+ "statement": "<p>You have some ropes with integer lengths. You can join any two ropes into one. Joining ropes of length <code>a</code> and <code>b</code> costs <code>a + b</code>, and the new rope has length <code>a + b</code>. You keep joining until one rope is left.</p><p>Write <code>def solution(ropes)</code>. <code>ropes</code> is a list of lengths. Return the smallest possible total cost of joining all of them into one rope, as an <code>int</code>. If there are 0 or 1 ropes there is nothing to join, so return <code>0</code>.</p><p>Order matters: a rope that is joined early gets paid for again in every later join it is part of.</p>",
+ "examples": [
+  {
+   "input": "ropes = [4, 3, 2, 6]",
+   "output": "29",
+   "why": "Join 2 + 3 = 5 (cost 5), then 4 + 5 = 9 (cost 9), then 6 + 9 = 15 (cost 15). Total 5 + 9 + 15 = 29. Joining 4 + 6 first, then adding the 2, then the 3, costs 10 + 12 + 15 = 37."
+  },
+  {
+   "input": "ropes = [1, 2, 3, 4, 5]",
+   "output": "33",
+   "why": "1+2=3, 3+3=6, 4+5=9, 6+9=15. Costs 3 + 6 + 9 + 15 = 33. Note the third join is 4 + 5, not 6 + 4: always take the two smallest <i>current</i> ropes."
+  },
+  {
+   "input": "ropes = [7]",
+   "output": "0",
+   "why": "One rope is already done. No joins, no cost."
+  }
+ ],
+ "constraints": [
+  "0 &le; len(ropes) &le; 100,000",
+  "0 &le; ropes[i] &le; 1,000,000,000",
+  "the answer can exceed 2,147,483,647; Python ints do not overflow, but say this out loud in an interview"
+ ],
+ "starter": "def solution(ropes):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "What exactly are you minimising?",
+   "a": "The sum of the cost of every join. Each join costs the length of the rope it produces. With <code>n</code> ropes there are always exactly <code>n - 1</code> joins; only the order changes."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Try <code>[1, 2, 10]</code> two ways.",
+   "a": "Small first: 1+2=3 (3), 3+10=13 (13), total 16. Big first: 2+10=12 (12), 12+1=13 (13), total 25. Every rope is paid for once per join it takes part in, so short ropes should go in early and long ropes late."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first working version?",
+   "a": "Each round, sort the list (or scan for the two smallest), remove them, add their sum back. That is <code>n</code> rounds of <code>O(n)</code> work: <code>O(n&sup2;)</code>, too slow for 100,000 ropes on a HackerRank time limit."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Clue words?",
+   "a": "\"repeatedly take the two smallest\", \"merge\", \"minimum total cost\" &rarr; <b>greedy with a min-heap</b>. This is the same idea as building a Huffman code. A heap gives you the smallest item in <code>O(log n)</code> and lets you push the new rope back in <code>O(log n)</code>."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li>If fewer than 2 ropes, return 0.</li><li>Copy the list and <code>heapq.heapify</code> it.</li><li>While more than one rope: pop <code>a</code>, pop <code>b</code>, add <code>a + b</code> to the total, push <code>a + b</code>.</li><li>Return the total.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "Empty list and one rope (return 0, do not pop from an empty heap). Two ropes (one join). Zero-length ropes. All ropes equal. Very large lengths (the total grows past 32-bit range)."
+  }
+ ],
+ "hints": [
+  "Work out the cost of <code>[1, 2, 10]</code> joining the small ropes first and then the big ones first. Which is cheaper, and why?",
+  "Always join the two shortest ropes you currently have. The new rope goes back into the pool and may be one of the two shortest next time.",
+  "Use <code>heapq</code>: <code>heapq.heapify(h)</code> once, then <code>a = heapq.heappop(h)</code>, <code>b = heapq.heappop(h)</code>, <code>heapq.heappush(h, a + b)</code> in a loop while <code>len(h) &gt; 1</code>."
+ ],
+ "solution": "import heapq\n\ndef solution(ropes):\n    if len(ropes) < 2:\n        return 0                    # nothing to join\n    heap = list(ropes)              # copy: do not change the caller's list\n    heapq.heapify(heap)             # O(n)\n    total = 0\n    while len(heap) > 1:\n        a = heapq.heappop(heap)     # shortest\n        b = heapq.heappop(heap)     # second shortest\n        joined = a + b\n        total += joined             # pay for this join\n        heapq.heappush(heap, joined)\n    return total\n",
+ "brute": "def solution(ropes):\n    # Same greedy, but find the two shortest by scanning the list each round: O(n^2)\n    pool = list(ropes)\n    total = 0\n    while len(pool) > 1:\n        a = min(pool)\n        pool.remove(a)\n        b = min(pool)\n        pool.remove(b)\n        total += a + b\n        pool.append(a + b)\n    return total\n",
+ "explain": "<p>Every join costs the length of the rope it makes, so a rope's length is paid once for every join it is inside. Short ropes should be buried deep (joined early), long ropes should be joined last. Taking the two shortest each time does exactly that, and it is provably optimal (it is Huffman coding).</p><ul><li>Heap <code>[2, 3, 4, 6]</code>. Pop 2 and 3, push 5, total 5.</li><li>Heap <code>[4, 5, 6]</code>. Pop 4 and 5, push 9, total 14.</li><li>Heap <code>[6, 9]</code>. Pop 6 and 9, push 15, total 29.</li><li>One rope left: return 29.</li></ul><p>In an OA, the trap is sorting once and joining left to right. That fails on <code>[1, 2, 3, 4, 5]</code>: after making 3 and 6, the next two shortest are 4 and 5, not 6 and 4. The heap handles this for you.</p>",
+ "complexity": "O(n log n) time, O(n) extra space for the heap",
+ "tests": [
+  {
+   "args": [
+    [
+     4,
+     3,
+     2,
+     6
+    ]
+   ],
+   "expected": 29,
+   "label": "example 1",
+   "cat": "example",
+   "why": "the classic: join 2+3, then 4+5, then 6+9"
+  },
+  {
+   "args": [
+    [
+     1,
+     2,
+     3,
+     4,
+     5
+    ]
+   ],
+   "expected": 33,
+   "label": "example 2",
+   "cat": "example",
+   "why": "the new rope 6 is not one of the two shortest next round"
+  },
+  {
+   "args": [
+    [
+     7
+    ]
+   ],
+   "expected": 0,
+   "label": "example 3 (one rope)",
+   "cat": "example",
+   "why": "one rope needs no joins"
+  },
+  {
+   "args": [
+    []
+   ],
+   "expected": 0,
+   "label": "no ropes",
+   "cat": "empty",
+   "why": "do not pop from an empty heap"
+  },
+  {
+   "args": [
+    [
+     7,
+     8
+    ]
+   ],
+   "expected": 15,
+   "label": "two ropes",
+   "cat": "small",
+   "why": "exactly one join"
+  },
+  {
+   "args": [
+    [
+     0,
+     0,
+     5
+    ]
+   ],
+   "expected": 5,
+   "label": "zero-length ropes",
+   "cat": "zero",
+   "why": "0+0 costs 0, then 0+5 costs 5"
+  },
+  {
+   "args": [
+    [
+     5,
+     5,
+     5,
+     5
+    ]
+   ],
+   "expected": 40,
+   "label": "all equal",
+   "cat": "dupes",
+   "why": "5+5, 5+5, 10+10: total 40"
+  },
+  {
+   "args": [
+    [
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1
+    ]
+   ],
+   "expected": 24,
+   "label": "eight ones",
+   "cat": "dupes",
+   "why": "a balanced tree: 8 + 8 + 8 = 24"
+  },
+  {
+   "args": [
+    [
+     1000000000,
+     1000000000,
+     1000000000
+    ]
+   ],
+   "expected": 5000000000,
+   "label": "huge lengths",
+   "cat": "large",
+   "why": "the total passes 32-bit range; Python handles it"
+  },
+  {
+   "args": [
+    [
+     20,
+     4,
+     8,
+     2
+    ]
+   ],
+   "expected": 54,
+   "label": "unsorted input",
+   "cat": "medium",
+   "why": "do not assume the input is sorted"
+  },
+  {
+   "args": [
+    [
+     1,
+     920,
+     839,
+     758,
+     677,
+     596,
+     515,
+     434,
+     353,
+     272,
+     191,
+     110,
+     29,
+     948,
+     867,
+     786,
+     705,
+     624,
+     543,
+     462,
+     381,
+     300,
+     219,
+     138,
+     57
+    ]
+   ],
+   "expected": 50906,
+   "label": "pseudo-random 25",
+   "cat": "medium",
+   "why": "many joins where new ropes keep re-entering the middle of the heap"
+  },
+  {
+   "args": [
+    [
+     1,
+     100,
+     1,
+     100,
+     1,
+     100
+    ]
+   ],
+   "expected": 611,
+   "label": "mixed small and big",
+   "cat": "edge",
+   "why": "small ropes get joined together before touching the 100s"
+  }
+ ],
+ "perf": {
+  "label": "performance: 20,000 ropes",
+  "gen": "[[(i * 7919) % 1000 + 1 for i in range(20000)]]",
+  "expected": 140604861
+ },
+ "govtech": {
+  "round": "oa",
+  "tag": "inspired",
+  "source": "GovTech SWE OA topic: heaps and arrays",
+  "evidence": "GovTech OA reports (search snippets, unverified) list heaps and arrays among the topics but name no exact problem; connecting ropes is the standard heap-greedy question at that level.",
+  "extensions": [
+   "Return the order of joins as well as the cost, e.g. <code>[(2, 3), (4, 5), (6, 9)]</code>.",
+   "You may join up to <code>k</code> ropes at once, cost = their sum. What changes? (Pad with zero-length ropes until <code>(n - 1) % (k - 1) == 0</code>, then always pop <code>k</code>.)",
+   "The input is already sorted. Can you do it in <code>O(n)</code> without a heap? (Keep a second queue for joined ropes: they come out in increasing order, so the two shortest are always at the fronts of the two queues.)",
+   "Prove the greedy is optimal: an exchange argument shows the two shortest ropes can always be the deepest pair."
+  ]
+ }
+}

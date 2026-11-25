@@ -1,0 +1,474 @@
+{
+ "id": "leader-election",
+ "track": "sd",
+ "order": 29,
+ "title": "Leader election",
+ "short": "Pick exactly one node to be in charge, and a new one if it dies.",
+ "what": "Some jobs need exactly one boss: the node that accepts writes, or the one that runs the nightly job. Leader election lets a group of nodes agree on who that is. If the leader stops sending heartbeats, the others vote, and whoever gets a majority becomes the new leader.",
+ "analogy": "A team picking a captain. If the captain goes home sick, the team votes again, and you need more than half the votes to win.",
+ "viz": {
+  "kind": "sd",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "label": "Node A",
+      "x": 50,
+      "y": 0,
+      "sub": "leader, term 1"
+     },
+     {
+      "id": "B",
+      "label": "Node B",
+      "x": 100,
+      "y": 40,
+      "sub": "follower"
+     },
+     {
+      "id": "C",
+      "label": "Node C",
+      "x": 80,
+      "y": 100,
+      "sub": "follower"
+     },
+     {
+      "id": "D",
+      "label": "Node D",
+      "x": 20,
+      "y": 100,
+      "sub": "follower"
+     },
+     {
+      "id": "E",
+      "label": "Node E",
+      "x": 0,
+      "y": 40,
+      "sub": "follower"
+     }
+    ],
+    "edges": [
+     [
+      "A",
+      "B",
+      "heartbeat"
+     ],
+     [
+      "A",
+      "C"
+     ],
+     [
+      "A",
+      "D"
+     ],
+     [
+      "A",
+      "E"
+     ]
+    ],
+    "ok": [
+     "A"
+    ],
+    "edgeHi": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "A",
+      "C"
+     ],
+     [
+      "A",
+      "D"
+     ],
+     [
+      "A",
+      "E"
+     ]
+    ],
+    "say": "Five database nodes. A leads term 1: it takes all writes and sends a heartbeat every 100 ms to say it's alive."
+   },
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "label": "Node A",
+      "x": 50,
+      "y": 0,
+      "sub": "crashed"
+     },
+     {
+      "id": "B",
+      "label": "Node B",
+      "x": 100,
+      "y": 40,
+      "sub": "waits 240 ms"
+     },
+     {
+      "id": "C",
+      "label": "Node C",
+      "x": 80,
+      "y": 100,
+      "sub": "waits 170 ms"
+     },
+     {
+      "id": "D",
+      "label": "Node D",
+      "x": 20,
+      "y": 100,
+      "sub": "waits 290 ms"
+     },
+     {
+      "id": "E",
+      "label": "Node E",
+      "x": 0,
+      "y": 40,
+      "sub": "waits 205 ms"
+     }
+    ],
+    "edges": [],
+    "bad": [
+     "A"
+    ],
+    "say": "A crashes and the heartbeats stop. Each follower waits a random 150-300 ms before acting, so they rarely all act at once."
+   },
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "label": "Node A",
+      "x": 50,
+      "y": 0,
+      "sub": "crashed"
+     },
+     {
+      "id": "B",
+      "label": "Node B",
+      "x": 100,
+      "y": 40
+     },
+     {
+      "id": "C",
+      "label": "Node C",
+      "x": 80,
+      "y": 100,
+      "sub": "candidate, term 2"
+     },
+     {
+      "id": "D",
+      "label": "Node D",
+      "x": 20,
+      "y": 100
+     },
+     {
+      "id": "E",
+      "label": "Node E",
+      "x": 0,
+      "y": 40
+     }
+    ],
+    "edges": [
+     [
+      "C",
+      "B",
+      "vote for me?"
+     ],
+     [
+      "C",
+      "D"
+     ],
+     [
+      "C",
+      "E"
+     ],
+     [
+      "C",
+      "A"
+     ]
+    ],
+    "hi": [
+     "C"
+    ],
+    "dim": [
+     "A"
+    ],
+    "edgeHi": [
+     [
+      "C",
+      "B"
+     ],
+     [
+      "C",
+      "D"
+     ],
+     [
+      "C",
+      "E"
+     ]
+    ],
+    "say": "C's timer runs out first, at 170 ms. It starts term 2, votes for itself, and asks every other node for a vote."
+   },
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "label": "Node A",
+      "x": 50,
+      "y": 0,
+      "sub": "crashed"
+     },
+     {
+      "id": "B",
+      "label": "Node B",
+      "x": 100,
+      "y": 40,
+      "sub": "voted C, term 2"
+     },
+     {
+      "id": "C",
+      "label": "Node C",
+      "x": 80,
+      "y": 100,
+      "sub": "votes: 4 of 5"
+     },
+     {
+      "id": "D",
+      "label": "Node D",
+      "x": 20,
+      "y": 100,
+      "sub": "voted C, term 2"
+     },
+     {
+      "id": "E",
+      "label": "Node E",
+      "x": 0,
+      "y": 40,
+      "sub": "voted C, term 2"
+     }
+    ],
+    "edges": [
+     [
+      "B",
+      "C",
+      "yes"
+     ],
+     [
+      "D",
+      "C",
+      "yes"
+     ],
+     [
+      "E",
+      "C",
+      "yes"
+     ]
+    ],
+    "hi": [
+     "C"
+    ],
+    "ok": [
+     "B",
+     "D",
+     "E"
+    ],
+    "dim": [
+     "A"
+    ],
+    "edgeHi": [
+     [
+      "B",
+      "C"
+     ],
+     [
+      "D",
+      "C"
+     ],
+     [
+      "E",
+      "C"
+     ]
+    ],
+    "say": "B, D and E haven't voted in term 2 yet, so each says yes. A node gives one vote per term, so two winners are impossible."
+   },
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "label": "Node A",
+      "x": 50,
+      "y": 0,
+      "sub": "crashed"
+     },
+     {
+      "id": "B",
+      "label": "Node B",
+      "x": 100,
+      "y": 40,
+      "sub": "follower"
+     },
+     {
+      "id": "C",
+      "label": "Node C",
+      "x": 80,
+      "y": 100,
+      "sub": "leader, term 2"
+     },
+     {
+      "id": "D",
+      "label": "Node D",
+      "x": 20,
+      "y": 100,
+      "sub": "follower"
+     },
+     {
+      "id": "E",
+      "label": "Node E",
+      "x": 0,
+      "y": 40,
+      "sub": "follower"
+     }
+    ],
+    "edges": [
+     [
+      "C",
+      "B",
+      "heartbeat"
+     ],
+     [
+      "C",
+      "D"
+     ],
+     [
+      "C",
+      "E"
+     ]
+    ],
+    "ok": [
+     "C"
+    ],
+    "dim": [
+     "A"
+    ],
+    "edgeHi": [
+     [
+      "C",
+      "B"
+     ],
+     [
+      "C",
+      "D"
+     ],
+     [
+      "C",
+      "E"
+     ]
+    ],
+    "say": "C has 4 of 5 votes. More than half is enough, so C is the leader for term 2 and starts sending heartbeats."
+   },
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "label": "Node A",
+      "x": 50,
+      "y": 0,
+      "sub": "thinks: term 1"
+     },
+     {
+      "id": "B",
+      "label": "Node B",
+      "x": 100,
+      "y": 40,
+      "sub": "term 1 < 2: no"
+     },
+     {
+      "id": "C",
+      "label": "Node C",
+      "x": 80,
+      "y": 100,
+      "sub": "leader, term 2"
+     },
+     {
+      "id": "D",
+      "label": "Node D",
+      "x": 20,
+      "y": 100
+     },
+     {
+      "id": "E",
+      "label": "Node E",
+      "x": 0,
+      "y": 40
+     }
+    ],
+    "edges": [
+     [
+      "A",
+      "B",
+      "write, term 1"
+     ],
+     [
+      "C",
+      "D"
+     ],
+     [
+      "C",
+      "E"
+     ]
+    ],
+    "bad": [
+     "A"
+    ],
+    "ok": [
+     "C"
+    ],
+    "edgeHi": [
+     [
+      "A",
+      "B"
+     ]
+    ],
+    "say": "A restarts, still thinking it leads term 1. Its messages carry term 1, lower than 2, so they're rejected and A becomes a follower."
+   }
+  ]
+ },
+ "when": [
+  "Only one node may accept writes",
+  "A job must run once, not on every server",
+  "Replicas must agree which one is primary",
+  "Fail over when the main node dies"
+ ],
+ "python": "nodes = [\"A\", \"B\", \"C\", \"D\", \"E\"]\nalive = {\"B\", \"C\", \"D\", \"E\"}                            # A, the old leader, crashed\ntimeouts = {\"B\": 240, \"C\": 170, \"D\": 290, \"E\": 205}     # ms, picked at random\nvoted_in = {n: 1 for n in nodes}                        # last term each node voted in\n\nterm = 2\ncandidate = min(alive, key=timeouts.get)                # first timer to run out\nvotes = [candidate]                                     # it votes for itself\nfor n in sorted(alive - {candidate}):\n    if voted_in[n] < term:                              # one vote per term\n        voted_in[n] = term\n        votes.append(n)\nprint(candidate, \"asks for votes in term\", term, \"->\", votes)\nprint(\"leader!\" if len(votes) > len(nodes) // 2 else \"no majority, try again\")\nprint(\"message from A in term 1 accepted?\", 1 >= term)",
+ "output": "C asks for votes in term 2 -> ['C', 'B', 'D', 'E']\nleader!\nmessage from A in term 1 accepted? False",
+ "cost": [
+  [
+   "Notice a dead leader",
+   "150-300 ms"
+  ],
+  [
+   "Win an election",
+   "1 round of messages, O(n)"
+  ],
+  [
+   "Failures 5 nodes survive",
+   "2 (any minority)"
+  ]
+ ],
+ "watch": [
+  "Use an odd number of nodes, 3 or 5. Four nodes survive no more failures than three.",
+  "An old leader must be fenced off by its term number, or two leaders write at once (split brain).",
+  "Don't write your own: use ZooKeeper, etcd, or your database's built-in election."
+ ],
+ "interview": [
+  "Design a distributed key-value store",
+  "Design a job scheduler that runs each job exactly once",
+  "Design a replicated log like Kafka"
+ ],
+ "related": [
+  "replication",
+  "cap-theorem",
+  "health-checks",
+  "consistent-hashing"
+ ]
+}

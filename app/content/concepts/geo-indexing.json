@@ -1,0 +1,92 @@
+{
+ "id": "geo-indexing",
+ "title": "Geo indexing",
+ "group": "Data",
+ "tagline": "Turn \"who is near me?\" from a scan of every point into a lookup of a few grid cells.",
+ "why": "<p>\"Find drivers within 2 km\" sounds simple: compute the distance to every driver and keep the close ones. With 50,000 online drivers and 2,000 queries per second that is 100 million distance calculations per second, and the drivers move every few seconds. A normal B-tree index does not help, because it sorts on one dimension and location has two.</p><p>A geo index maps a 2D position to keys that keep nearby points close together. Then a nearby query reads a handful of cells, filters the few dozen candidates by exact distance, and sorts. Click the map in the sim below: the query only checks drivers in the rider's cell and its 8 neighbours. Set the search radius to 0 and put the rider near a cell edge: drivers just across the line are missed.</p>",
+ "how": "<p><b>Geohash.</b> Split the world in half by longitude, then latitude, again and again, writing one bit per split. Every 5 bits become one base-32 character. A longer string is a smaller cell, and points that share a prefix are in the same cell. Because it is just a string, it works with any sorted index: <code>WHERE geohash LIKE 'w21z7%'</code>. Two points a metre apart can sit on either side of a cell edge and share no long prefix, so always query the cell <b>plus its 8 neighbours</b>, then filter by real distance.</p><p><b>Quadtree.</b> Start with one square. When it holds more than K points (say 100), split it into 4. Dense areas like the CBD get small cells; empty sea stays one big cell. Good for uneven data, but it is an in-memory tree you must rebuild or update as points move.</p><p><b>H3 (Uber's hexagon grid).</b> 16 resolutions of hexagons. Every hexagon has 6 neighbours whose centres are the same distance away (each resolution also has 12 pentagons, placed out at sea), which makes \"ring of cells around me\" and surge-pricing-by-area calculations cleaner than with squares. You store the cell id per resolution and look up rings with <code>gridDisk</code>.</p><p><b>Redis GEO.</b> <code>GEOADD drivers 103.85 1.29 d42</code> stores a 52-bit geohash as the score in a sorted set. <code>GEOSEARCH drivers FROMLONLAT 103.85 1.29 BYRADIUS 2 km ASC COUNT 20</code> returns the closest. It is in memory, so a driver update every few seconds is cheap. For stored, rarely moving places (clinics, shops) use PostGIS with a GiST index and <code>ST_DWithin</code>.</p>",
+ "sim": "geo",
+ "tradeoffs": [
+  {
+   "option": "Geohash in a normal DB index",
+   "pro": "Works in any store with a sorted index (Postgres, DynamoDB sort key, Redis). Easy to shard by prefix.",
+   "con": "Square cells of fixed size; edge effects mean you must query neighbours; dense areas put many points in one cell."
+  },
+  {
+   "option": "Quadtree",
+   "pro": "Adapts to density: small cells downtown, large ones elsewhere, so every leaf holds a similar number of points.",
+   "con": "Custom in-memory structure; frequent moves cause splits and merges; harder to shard and persist."
+  },
+  {
+   "option": "H3 hexagons",
+   "pro": "Uniform neighbour distance, many resolutions, good for aggregating demand and pricing by area.",
+   "con": "A library dependency; hexagons do not nest exactly into their parent, so roll-ups are approximate."
+  },
+  {
+   "option": "Redis GEO",
+   "pro": "One command to add and one to search; in memory, so it handles high update rates.",
+   "con": "Data must fit in RAM; a single sorted set is one key on one shard, so split by city or cell when it grows."
+  },
+  {
+   "option": "PostGIS (GiST / R-tree)",
+   "pro": "Exact geometry, polygons, joins with business data, durable.",
+   "con": "Slower for tens of thousands of position updates per second; better for places that rarely move."
+  }
+ ],
+ "numbers": [
+  "Geohash cell size: 5 chars <b>~4.9 &times; 4.9 km</b>, 6 chars <b>~1.2 &times; 0.6 km</b>, 7 chars <b>~153 &times; 153 m</b>.",
+  "1 degree of latitude &asymp; <b>111 km</b>. Singapore is about <b>50 &times; 27 km</b>.",
+  "H3 has <b>16</b> resolutions (0-15); a resolution-9 hexagon averages about <b>0.1 km&sup2;</b>.",
+  "Drivers that ping every <b>4 s</b>: 50,000 drivers = <b>12,500 writes/s</b> into the index.",
+  "Nearby query = <b>9 cells</b> (own cell + 8 neighbours), then exact-distance filter on the candidates."
+ ],
+ "say": [
+  "I'll keep live driver positions in an in-memory geo index, Redis GEO or a geohash map, sharded by city, and not in the main database.",
+  "A nearby search reads the rider's cell plus its eight neighbours, then filters by exact distance and sorts, so it touches dozens of drivers, not all of them.",
+  "I'd make each cell at least as wide as the search radius, so the rider's cell plus its eight neighbours is guaranteed to cover it. For 2 km that is geohash precision 5, about 4.9 km cells."
+ ],
+ "pitfalls": [
+  "Querying only the rider's own cell. A driver 50 m away across the cell edge is missed.",
+  "Writing every location ping to the primary SQL database. 12,500 updates/s of throwaway data belongs in memory, with sampled history in a log.",
+  "Using one cell size everywhere without checking density: a downtown cell can hold thousands of drivers.",
+  "Treating latitude and longitude degrees as equal distances. Use haversine or the store's distance function.",
+  "Putting all drivers in one Redis key. It lives on one shard and becomes a hot key."
+ ],
+ "quiz": [
+  {
+   "q": "Why does a geohash nearby query also scan the 8 neighbouring cells?",
+   "options": [
+    "To double-check the hash",
+    "Because a close point can be just across a cell edge and have a different prefix",
+    "Because geohash cells overlap",
+    "To balance load across shards"
+   ],
+   "answer": 1,
+   "why": "Shared prefix means same cell, but different prefix does not mean far away. Neighbours cover the edge."
+  },
+  {
+   "q": "Your data is very uneven: 80% of points are in 5% of the area. Which index adapts best?",
+   "options": [
+    "Fixed-precision geohash",
+    "A B-tree on latitude only",
+    "Quadtree"
+   ],
+   "answer": 2,
+   "why": "A quadtree splits only crowded cells, so leaves hold similar counts. Fixed cells leave hot spots."
+  },
+  {
+   "q": "50,000 drivers each send a location every 4 seconds. Where should positions live?",
+   "options": [
+    "An in-memory geo index such as Redis GEO, sharded by city",
+    "A new Postgres row per ping, indexed on latitude",
+    "S3, one object per driver",
+    "The CDN"
+   ],
+   "answer": 0,
+   "why": "12,500 updates/s of short-lived data is a fit for memory. Keep history in a stream or log if you need it."
+  }
+ ],
+ "used_in": [
+  "uber"
+ ]
+}

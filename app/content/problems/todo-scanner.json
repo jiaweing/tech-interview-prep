@@ -1,0 +1,331 @@
+{
+ "id": "todo-scanner",
+ "title": "TODO Scanner",
+ "pattern": "stack",
+ "level": "easy",
+ "statement": "<p>Your team wants a report of every file that still has a <code>TODO</code> in it. You are given a directory tree as nested dictionaries: a <b>dict</b> is a folder (keys are the names inside it), and a <b>string</b> is a file (the value is the file's content).</p><p>Write <code>def solution(tree)</code>. Return a list of the paths of all files whose content contains the substring <code>\"TODO\"</code> (case-sensitive, so <code>\"todo\"</code> does not count). A path is the folder names and the file name joined with <code>/</code>, starting below <code>tree</code>, for example <code>\"src/app/main.py\"</code>. Sort the list with plain string order (Python <code>sorted</code>). Return <code>[]</code> if no file matches.</p><p>Trees can be very deep (thousands of nested folders), so your walk must not rely on deep recursion.</p>",
+ "examples": [
+  {
+   "input": "tree = {\"src\": {\"app\": {\"main.py\": \"x = 1  # TODO: validate\", \"util.py\": \"pass\"}, \"README.md\": \"TODO write docs\"}, \"setup.py\": \"print(1)\"}",
+   "why": "Two files contain <code>TODO</code>. In string order <code>\"src/README.md\"</code> comes first because uppercase <code>R</code> sorts before lowercase <code>a</code>.",
+   "output": "['src/README.md', 'src/app/main.py']"
+  },
+  {
+   "input": "tree = {\"notes.txt\": \"todo later\", \"plan.txt\": \"TODO\"}",
+   "why": "The match is case-sensitive: <code>\"todo later\"</code> does not count.",
+   "output": "['plan.txt']"
+  },
+  {
+   "input": "tree = {\"empty\": {}, \"docs\": {\"a.md\": \"done\"}}",
+   "why": "Empty folders and clean files give an empty list.",
+   "output": "[]"
+  }
+ ],
+ "constraints": [
+  "0 &le; total files and folders &le; 50,000",
+  "folder depth up to 2,000",
+  "names are non-empty and never contain <code>/</code>",
+  "file contents are strings up to 10,000 characters"
+ ],
+ "starter": "def solution(tree):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "What is a file and what is a folder here?",
+   "a": "If the value is a <code>dict</code>, it is a folder and you must look inside it. If it is a <code>str</code>, it is a file and you check whether <code>\"TODO\" in content</code>. The path is every name on the way down, joined with <code>/</code>."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "<code>{\"a\": {\"b.py\": \"TODO\"}, \"c.py\": \"ok\"}</code>?",
+   "a": "Root has folder <code>a</code> and file <code>c.py</code>. <code>c.py</code> is clean. Inside <code>a</code>, <code>b.py</code> has TODO, so its path is <code>\"a/b.py\"</code>. Answer <code>[\"a/b.py\"]</code>."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first thing you would write?",
+   "a": "A recursive <code>walk(folder, prefix)</code>. It is short and correct, but each folder level costs one call frame. CPython stops at about 1,000 frames, so a tree 2,000 folders deep crashes with <code>RecursionError</code>."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Clue words?",
+   "a": "\"directory tree\", \"recursively\", \"very deep\" &rarr; <b>depth-first search with an explicit stack</b>. Push <code>(prefix, folder)</code> pairs on a list and pop them in a loop. The stack lives on the heap, so depth only costs memory, not call frames."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li><code>stack = [(\"\", tree)]</code>, <code>found = []</code>.</li><li>Pop a <code>(prefix, folder)</code>.</li><li>For each <code>name, node</code>: if <code>node</code> is a dict, push <code>(prefix + name + \"/\", node)</code>; else if <code>\"TODO\" in node</code>, add <code>prefix + name</code>.</li><li>When the stack is empty, sort <code>found</code> and return it.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "Empty tree. Empty folders. Lowercase <code>todo</code>. <code>TODO</code> inside a longer word like <code>TODOS</code> (still a substring, so it counts). A file and a folder whose names sort oddly (<code>\"a.txt\"</code> vs <code>\"a/b\"</code>). A tree deeper than the recursion limit."
+  }
+ ],
+ "hints": [
+  "Use <code>isinstance(node, dict)</code> to tell folders from files.",
+  "Replace recursion with a list used as a stack: <code>stack = [(\"\", tree)]</code>, then <code>while stack: prefix, folder = stack.pop()</code>.",
+  "The stack visits folders in no useful order, so collect all matches first and call <code>sort()</code> once at the end."
+ ],
+ "solution": "def solution(tree):\n    # A dict is a folder, a string is a file's content.\n    # Walk with an explicit stack so a 2,000-level-deep tree cannot\n    # hit Python's recursion limit (about 1,000 frames).\n    found = []\n    stack = [('', tree)]                 # (path prefix, folder)\n    while stack:\n        prefix, folder = stack.pop()\n        for name, node in folder.items():\n            path = prefix + name\n            if isinstance(node, dict):\n                stack.append((path + '/', node))   # visit later\n            elif 'TODO' in node:                  # case-sensitive substring\n                found.append(path)\n    found.sort()                         # stack order is not sorted order\n    return found\n",
+ "brute": "def solution(tree):\n    # Recursive walk: the obvious first version. Correct, but every folder\n    # level is one Python call frame, so a very deep tree raises RecursionError.\n    out = []\n    def walk(folder, prefix):\n        for name in folder:\n            node = folder[name]\n            if isinstance(node, dict):\n                walk(node, prefix + name + '/')\n            elif 'TODO' in node:\n                out.append(prefix + name)\n    walk(tree, '')\n    return sorted(out)\n",
+ "explain": "<p>Walk the tree depth-first, but keep the \"to do\" list of folders yourself instead of letting Python's call stack do it.</p><ul><li>Start: stack = <code>[(\"\", root)]</code>.</li><li>Pop root. <code>src</code> is a folder: push <code>(\"src/\", ...)</code>. <code>setup.py</code> is clean.</li><li>Pop <code>src/</code>. <code>README.md</code> has TODO: record <code>\"src/README.md\"</code>. <code>app</code> is a folder: push <code>(\"src/app/\", ...)</code>.</li><li>Pop <code>src/app/</code>. <code>main.py</code> has TODO: record <code>\"src/app/main.py\"</code>. <code>util.py</code> is clean.</li><li>Stack empty. Sort and return.</li></ul><p>Each folder and file is touched once. The recursive version does the same work, but on a 2,000-deep tree it needs 2,000 call frames and CPython gives up at about 1,000. Say this out loud in the interview: it shows you know why the iterative version exists. On a real disk you would use <code>os.walk</code>, which is already iterative, and read files line by line instead of loading them whole.</p>",
+ "complexity": "O(total characters in names and file contents) time, plus O(m log m) to sort m matches; O(depth) stack",
+ "tests": [
+  {
+   "args": [
+    {
+     "src": {
+      "app": {
+       "main.py": "x = 1  # TODO: validate",
+       "util.py": "pass"
+      },
+      "README.md": "TODO write docs"
+     },
+     "setup.py": "print(1)"
+    }
+   ],
+   "expected": [
+    "src/README.md",
+    "src/app/main.py"
+   ],
+   "label": "example 1",
+   "cat": "example",
+   "why": "nested folders, two matches, string order"
+  },
+  {
+   "args": [
+    {
+     "notes.txt": "todo later",
+     "plan.txt": "TODO"
+    }
+   ],
+   "expected": [
+    "plan.txt"
+   ],
+   "label": "example 2 (case-sensitive)",
+   "cat": "example",
+   "why": "lowercase todo does not count"
+  },
+  {
+   "args": [
+    {
+     "empty": {},
+     "docs": {
+      "a.md": "done"
+     }
+    }
+   ],
+   "expected": [],
+   "label": "example 3 (no matches)",
+   "cat": "example",
+   "why": "empty folder and clean files"
+  },
+  {
+   "args": [
+    {}
+   ],
+   "expected": [],
+   "label": "empty tree",
+   "cat": "empty",
+   "why": "nothing to scan"
+  },
+  {
+   "args": [
+    {
+     "only.py": "# TODO"
+    }
+   ],
+   "expected": [
+    "only.py"
+   ],
+   "label": "one file",
+   "cat": "single",
+   "why": "a single top-level file that matches"
+  },
+  {
+   "args": [
+    {
+     "a": {
+      "b": {
+       "c": {
+        "d": {
+         "e.txt": "xTODOx"
+        }
+       }
+      }
+     }
+    }
+   ],
+   "expected": [
+    "a/b/c/d/e.txt"
+   ],
+   "label": "deep single file",
+   "cat": "small",
+   "why": "TODO in the middle of other text, four folders down"
+  },
+  {
+   "args": [
+    {
+     "a.txt": "TODO",
+     "a": {
+      "b": "TODO"
+     },
+     "A": {
+      "z": "TODO"
+     }
+    }
+   ],
+   "expected": [
+    "A/z",
+    "a.txt",
+    "a/b"
+   ],
+   "label": "tricky sort order",
+   "cat": "edge",
+   "why": "\"A/z\" sorts before \"a.txt\", which sorts before \"a/b\""
+  },
+  {
+   "args": [
+    {
+     "x": {
+      "TODO": "clean"
+     },
+     "TODO.md": "nothing",
+     "y": {
+      "f": "TODOS"
+     }
+    }
+   ],
+   "expected": [
+    "y/f"
+   ],
+   "label": "name vs content",
+   "cat": "edge",
+   "why": "a file or folder named TODO does not count; only content does, and \"TODOS\" contains \"TODO\""
+  },
+  {
+   "args": [
+    {
+     "main.py": "import os\n\n# TODO: handle errors\nprint(os.name)\n",
+     "ok.py": "import sys\n# T O D O\n# To-do\n"
+    }
+   ],
+   "label": "multi-line file contents",
+   "cat": "edge",
+   "why": "TODO on the third line of a file still counts; spaced-out or mixed-case spellings do not",
+   "expected": [
+    "main.py"
+   ]
+  },
+  {
+   "args": [
+    {
+     "a": {
+      "f.py": "TODO"
+     },
+     "b": {
+      "f.py": "TODO"
+     },
+     "c": {
+      "f.py": "ok"
+     }
+    }
+   ],
+   "expected": [
+    "a/f.py",
+    "b/f.py"
+   ],
+   "label": "same file name in many folders",
+   "cat": "dupes",
+   "why": "paths keep them apart"
+  },
+  {
+   "args": [
+    {
+     "lib": {
+      "m0.py": "# TODO 0",
+      "m1.py": "ok",
+      "m2.py": "ok",
+      "m3.py": "# TODO 3",
+      "m4.py": "ok",
+      "m5.py": "ok",
+      "m6.py": "# TODO 6",
+      "m7.py": "ok",
+      "m8.py": "ok",
+      "m9.py": "# TODO 9"
+     },
+     "test": {
+      "t1.py": "assert TODO",
+      "t2.py": "todo"
+     }
+    }
+   ],
+   "expected": [
+    "lib/m0.py",
+    "lib/m3.py",
+    "lib/m6.py",
+    "lib/m9.py",
+    "test/t1.py"
+   ],
+   "label": "medium folder",
+   "cat": "medium",
+   "why": "lib modules 0, 3, 6 and 9 and test/t1.py contain TODO; test/t2.py only has lowercase todo"
+  },
+  {
+   "args": [
+    {
+     "d": {
+      "e": {},
+      "f": {
+       "g": {}
+      }
+     },
+     "h": ""
+    }
+   ],
+   "expected": [],
+   "label": "only empty folders and an empty file",
+   "cat": "zero",
+   "why": "empty content cannot contain TODO"
+  }
+ ],
+ "perf": {
+  "label": "performance: 2,000-deep chain + 20,000-file folder",
+  "gen": "(lambda ds: [ds[i].__setitem__('d', ds[i + 1]) for i in range(len(ds) - 1)] and [{'deep': ds[0], 'wide': {'f%05d.py' % j: ('# TODO' if j % 1000 == 7 else 'ok') for j in range(20000)}}])([{'f%d.txt' % i: ('TODO' if i == 2000 else 'clean')} for i in range(2001)])",
+  "expected": [
+   "deep/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/d/f2000.txt",
+   "wide/f00007.py",
+   "wide/f01007.py",
+   "wide/f02007.py",
+   "wide/f03007.py",
+   "wide/f04007.py",
+   "wide/f05007.py",
+   "wide/f06007.py",
+   "wide/f07007.py",
+   "wide/f08007.py",
+   "wide/f09007.py",
+   "wide/f10007.py",
+   "wide/f11007.py",
+   "wide/f12007.py",
+   "wide/f13007.py",
+   "wide/f14007.py",
+   "wide/f15007.py",
+   "wide/f16007.py",
+   "wide/f17007.py",
+   "wide/f18007.py",
+   "wide/f19007.py"
+  ]
+ },
+ "govtech": {
+  "round": "take-home",
+  "tag": "inspired",
+  "source": "GovTech take-home: TODO scanner (candidate repo)",
+  "evidence": "A public candidate repo lists a GovTech take-home that walks a directory recursively and reports the files containing \"TODO\"; this version swaps the real file system for nested dicts so it runs in the browser, and the exact rules here are ours.",
+  "extensions": [
+   "Use the real file system: <code>os.walk(root)</code> and open each file. What do you do with a binary file or one you cannot decode as UTF-8?",
+   "Report line numbers: return <code>\"src/app/main.py:12\"</code> for every line that contains TODO. Read line by line so a 2 GB log file does not load into memory.",
+   "Skip folders such as <code>.git</code> and <code>node_modules</code>, or honour a <code>.gitignore</code>-style list of patterns.",
+   "Symlinks can create cycles (a folder that links to its parent). How do you avoid walking forever? Track visited <code>(device, inode)</code> pairs.",
+   "Make it fast on 1 million files: scan files in parallel with a thread pool, since the work is mostly waiting on disk I/O."
+  ]
+ }
+}

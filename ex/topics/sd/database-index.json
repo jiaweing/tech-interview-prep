@@ -1,0 +1,273 @@
+{
+ "id": "database-index",
+ "track": "sd",
+ "order": 8,
+ "title": "Database index",
+ "short": "A sorted lookup list so the database skips the full scan.",
+ "what": "An index is an extra sorted structure the database keeps for one column, with a pointer from each value to its row. Instead of reading every row, the database searches the sorted index in a few steps. Real databases use a B-tree, a wide sorted tree, so even a billion rows take only 3 or 4 disk reads.",
+ "analogy": "The index at the back of a textbook. To find 'photosynthesis' you don't read every page; you look it up alphabetically and jump to page 212.",
+ "viz": {
+  "kind": "array",
+  "frames": [
+   {
+    "cells": [
+     "tom",
+     "ana",
+     "zoe",
+     "kim",
+     "bob",
+     "eve",
+     "sam",
+     "lea",
+     "max",
+     "ivy"
+    ],
+    "label": "users table (row order)",
+    "say": "A users table, stored in signup order. You ask for the user named lea. There is no index yet."
+   },
+   {
+    "cells": [
+     "tom",
+     "ana",
+     "zoe",
+     "kim",
+     "bob",
+     "eve",
+     "sam",
+     "lea",
+     "max",
+     "ivy"
+    ],
+    "label": "users table (row order)",
+    "ptr": {
+     "scan": 3
+    },
+    "dim": [
+     0,
+     1,
+     2
+    ],
+    "hi": [
+     3
+    ],
+    "out": "reads: 4",
+    "say": "With no index, the database reads rows one by one: tom, ana, zoe, kim. None of them is lea."
+   },
+   {
+    "cells": [
+     "tom",
+     "ana",
+     "zoe",
+     "kim",
+     "bob",
+     "eve",
+     "sam",
+     "lea",
+     "max",
+     "ivy"
+    ],
+    "label": "users table (row order)",
+    "ptr": {
+     "scan": 7
+    },
+    "dim": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "ok": [
+     7
+    ],
+    "out": "reads: 8",
+    "say": "Row 7 is lea. But names aren't unique, so it can't stop here. Another lea could be further down."
+   },
+   {
+    "cells": [
+     "tom",
+     "ana",
+     "zoe",
+     "kim",
+     "bob",
+     "eve",
+     "sam",
+     "lea",
+     "max",
+     "ivy"
+    ],
+    "label": "users table (row order)",
+    "ptr": {
+     "scan": 9
+    },
+    "dim": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     8,
+     9
+    ],
+    "ok": [
+     7
+    ],
+    "out": "reads: 10",
+    "say": "10 reads for 10 rows: a full table scan. With 10 million users, that's 10 million reads and seconds per query."
+   },
+   {
+    "cells": [
+     "ana",
+     "bob",
+     "eve",
+     "ivy",
+     "kim",
+     "lea",
+     "max",
+     "sam",
+     "tom",
+     "zoe"
+    ],
+    "label": "index on name (sorted)",
+    "say": "CREATE INDEX builds a sorted copy of the name column. Each entry keeps a pointer to its row, like lea -> row 7."
+   },
+   {
+    "cells": [
+     "ana",
+     "bob",
+     "eve",
+     "ivy",
+     "kim",
+     "lea",
+     "max",
+     "sam",
+     "tom",
+     "zoe"
+    ],
+    "label": "index on name (sorted)",
+    "ptr": {
+     "L": 0,
+     "mid": 4,
+     "R": 9
+    },
+    "hi": [
+     4
+    ],
+    "out": "steps: 1",
+    "say": "Search it like a phone book. The middle entry is kim. lea comes after kim, so the whole left half is skipped."
+   },
+   {
+    "cells": [
+     "ana",
+     "bob",
+     "eve",
+     "ivy",
+     "kim",
+     "lea",
+     "max",
+     "sam",
+     "tom",
+     "zoe"
+    ],
+    "label": "index on name (sorted)",
+    "ptr": {
+     "L": 5,
+     "mid": 7,
+     "R": 9
+    },
+    "dim": [
+     0,
+     1,
+     2,
+     3,
+     4
+    ],
+    "hi": [
+     7
+    ],
+    "out": "steps: 2",
+    "say": "The middle of what's left is sam. lea comes before sam, so the right part goes too."
+   },
+   {
+    "cells": [
+     "ana",
+     "bob",
+     "eve",
+     "ivy",
+     "kim",
+     "lea",
+     "max",
+     "sam",
+     "tom",
+     "zoe"
+    ],
+    "label": "index on name (sorted)",
+    "ptr": {
+     "mid": 5
+    },
+    "dim": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     6,
+     7,
+     8,
+     9
+    ],
+    "ok": [
+     5
+    ],
+    "out": "steps: 3",
+    "say": "Next is lea: found in 3 steps, then jump to row 7. For 10 million rows it's about 24 steps instead of 10 million reads."
+   }
+  ]
+ },
+ "when": [
+  "A query is slow and filters on one column",
+  "You look rows up by email, username or id",
+  "You sort or filter by a range, like dates",
+  "Reads far outnumber writes"
+ ],
+ "python": "import bisect, math\nnames = [\"tom\", \"ana\", \"zoe\", \"kim\", \"bob\", \"eve\", \"sam\", \"lea\", \"max\", \"ivy\"]\n\nreads = 0\nfor row, name in enumerate(names):          # no index: read every row\n    reads += 1\n    if name == \"lea\":\n        found = row\nprint(\"full scan: row\", found, \"after\", reads, \"reads\")\n\nindex = sorted((name, row) for row, name in enumerate(names))   # CREATE INDEX\ni = bisect.bisect_left(index, (\"lea\",))     # binary search in the sorted index\nprint(\"index: row\", index[i][1])\nprint(\"10 million rows:\", math.ceil(math.log2(10_000_000)), \"steps instead of 10,000,000 reads\")",
+ "output": "full scan: row 7 after 10 reads\nindex: row 7\n10 million rows: 24 steps instead of 10,000,000 reads",
+ "cost": [
+  [
+   "Find by an indexed column",
+   "O(log n), ~24 steps for 10M rows"
+  ],
+  [
+   "Find without an index",
+   "O(n), every row"
+  ],
+  [
+   "Each insert or update",
+   "a bit slower: every index changes too"
+  ],
+  [
+   "Disk space",
+   "an extra copy of the column per index"
+  ]
+ ],
+ "watch": [
+  "Every index slows writes and uses disk; index the columns you search by, not all of them.",
+  "An index on (last_name, first_name) helps searches by last_name, but not by first_name alone.",
+  "Wrapping the column in a function, like LOWER(name), can stop the index from being used."
+ ],
+ "interview": [
+  "Why is this query slow, and how do you fix it?",
+  "Design a URL shortener (find by short code)",
+  "Design a leaderboard"
+ ],
+ "related": [
+  "binary-search",
+  "sql-vs-nosql",
+  "bst",
+  "search-index"
+ ]
+}

@@ -1,0 +1,628 @@
+{
+ "id": "bulk-messaging",
+ "title": "Bulk SMS/email campaigns for agencies",
+ "tagline": "Let an officer upload a list, write one template, and safely send a million personalised messages.",
+ "govtech": true,
+ "govtech_label": "GovTech-relevant",
+ "mirrors": "Postman",
+ "featured": false,
+ "difficulty": "medium",
+ "govtech_note": "<p>OGP runs <b>Postman</b> (postman.gov.sg), a tool for public officers to send templated messages to a list of recipients. This is a design <i>like</i> it, not a description of how it is built. Treat it as <b>domain-flavoured practice</b>: no evidence says GovTech asks it as an interview question, but it exercises exactly what interviewers probe in async systems: <b>queues, rate limits, retries, idempotency and webhooks</b>.</p>",
+ "summary": "<p>This is a <b>fan-out pipeline</b>, not a request/response app. The officer's click returns in milliseconds; the work happens over hours. A splitter turns the uploaded CSV into message rows and queue batches, workers <b>pace</b> sends to each provider's rate limit, and providers report delivery back through <b>webhooks</b>. The two things that must never happen: a recipient getting the same message twice, and a campaign silently losing messages. Per-message rows, idempotent workers and at-least-once queues handle both.</p>",
+ "requirements": {
+  "functional": [
+   "Create a campaign: channel (email or SMS), template with <code>{{keywords}}</code>",
+   "Upload a CSV of recipients; validate it and preview a rendered message",
+   "Send, stop, and retry failed messages",
+   "Live progress: queued, sent, delivered, failed counts",
+   "Recipients can unsubscribe; unsubscribed people are skipped"
+  ],
+  "nonfunctional": [
+   "No recipient gets the same campaign message twice, even when workers crash or retry",
+   "No message is silently lost: each ends as delivered, failed (with a reason) or skipped",
+   "Stay within each provider's rate limit; a slow SMS provider must not delay email",
+   "A 1M-recipient campaign must not starve a 50-recipient urgent one",
+   "Recipient data is personal data: access control per agency, retention limits"
+  ],
+  "out_of_scope": [
+   "Two-way replies and conversations",
+   "Open and click tracking",
+   "Running our own SMS gateway or mail servers"
+  ]
+ },
+ "estimates": [
+  {
+   "label": "Recipients in a large campaign",
+   "calc": "assume a nationwide notice",
+   "value": "1M"
+  },
+  {
+   "label": "CSV size",
+   "calc": "1M rows × ~60 B (contact + 2 fields)",
+   "value": "~60 MB: upload straight to object storage"
+  },
+  {
+   "label": "Queue batches",
+   "calc": "1M ÷ 500 per batch",
+   "value": "2,000 messages"
+  },
+  {
+   "label": "Email send time",
+   "calc": "1M ÷ 100 emails/s (assumed account limit)",
+   "value": "~2.8 h"
+  },
+  {
+   "label": "SMS send time",
+   "calc": "1M ÷ 50 SMS/s (assumed account limit)",
+   "value": "~5.6 h"
+  },
+  {
+   "label": "Status callbacks",
+   "calc": "~2 per message (accepted, then delivered or failed)",
+   "value": "~2M per campaign"
+  },
+  {
+   "label": "Message storage",
+   "calc": "assume 30M messages/month × 12 × 300 B",
+   "value": "~110 GB/year"
+  }
+ ],
+ "api": [
+  {
+   "method": "POST",
+   "path": "/api/campaigns {name, channel, template}",
+   "desc": "Officer only. 201 {id}."
+  },
+  {
+   "method": "POST",
+   "path": "/api/campaigns/{id}/upload-url",
+   "desc": "Returns a pre-signed PUT URL (10 min) so the CSV goes straight to object storage."
+  },
+  {
+   "method": "POST",
+   "path": "/api/campaigns/{id}/recipients {fileKey}",
+   "desc": "Validates columns against template keywords, counts rows, returns a rendered preview. 422 lists bad rows."
+  },
+  {
+   "method": "POST",
+   "path": "/api/campaigns/{id}/send + Idempotency-Key",
+   "desc": "202. A second call (double click) is a no-op."
+  },
+  {
+   "method": "POST",
+   "path": "/api/campaigns/{id}/stop",
+   "desc": "Marks the campaign halted; workers skip its remaining batches."
+  },
+  {
+   "method": "GET",
+   "path": "/api/campaigns/{id}/stats",
+   "desc": "Counts by status, refreshed every few seconds."
+  },
+  {
+   "method": "POST",
+   "path": "/callbacks/{provider}",
+   "desc": "Provider delivery webhooks. Signature checked; always 200 quickly."
+  },
+  {
+   "method": "GET",
+   "path": "/u/{token}",
+   "desc": "Unsubscribe link in each message. Token is signed, so it cannot be forged for other people."
+  }
+ ],
+ "data": [
+  {
+   "name": "campaigns",
+   "store": "PostgreSQL",
+   "fields": [
+    "id PK",
+    "agency_id",
+    "channel",
+    "template",
+    "status",
+    "sent / delivered / failed counts"
+   ],
+   "note": "Status: draft → queued → sending → done or halted. Counts are updated in batches, not per message."
+  },
+  {
+   "name": "messages",
+   "store": "PostgreSQL",
+   "fields": [
+    "id PK",
+    "campaign_id",
+    "recipient",
+    "params jsonb",
+    "status",
+    "provider_msg_id",
+    "attempts",
+    "error"
+   ],
+   "note": "UNIQUE (campaign_id, recipient) dedupes repeated CSV rows. Index on provider_msg_id so callbacks find their row."
+  },
+  {
+   "name": "unsubscribes",
+   "store": "PostgreSQL",
+   "fields": [
+    "agency_id",
+    "channel",
+    "recipient",
+    "created_at"
+   ],
+   "note": "Primary key on all three. Checked by the sender just before each send."
+  },
+  {
+   "name": "send batch",
+   "store": "SQS",
+   "fields": [
+    "campaign_id",
+    "message_ids[500]"
+   ],
+   "note": "One queue per channel. Small messages: the worker loads rows by id."
+  },
+  {
+   "name": "bucket:{provider}, sent:{msg_id}",
+   "store": "Redis",
+   "fields": [
+    "token bucket state",
+    "SET NX, TTL 3 days"
+   ],
+   "note": "Shared pacing across all workers, and a fast dedupe check before each send."
+  }
+ ],
+ "diagram": {
+  "w": 960,
+  "h": 540,
+  "groups": [
+   {
+    "label": "Create and fan out",
+    "x": 10,
+    "y": 22,
+    "w": 780,
+    "h": 226
+   },
+   {
+    "label": "Delivery status (async)",
+    "x": 320,
+    "y": 446,
+    "w": 470,
+    "h": 88
+   }
+  ],
+  "nodes": [
+   {
+    "id": "officer",
+    "label": "Officer",
+    "sub": "CSV + template",
+    "kind": "client",
+    "x": 85,
+    "y": 80
+   },
+   {
+    "id": "s3",
+    "label": "Object storage",
+    "sub": "CSV files",
+    "kind": "storage",
+    "x": 85,
+    "y": 200
+   },
+   {
+    "id": "api",
+    "label": "Campaign API",
+    "sub": "auth, preview",
+    "kind": "service",
+    "x": 300,
+    "y": 80
+   },
+   {
+    "id": "splitter",
+    "label": "Splitter",
+    "sub": "batches of 500",
+    "kind": "worker",
+    "x": 300,
+    "y": 200
+   },
+   {
+    "id": "pg",
+    "label": "PostgreSQL",
+    "sub": "campaigns, messages",
+    "kind": "db",
+    "x": 540,
+    "y": 80
+   },
+   {
+    "id": "queue",
+    "label": "Send queue",
+    "sub": "one per channel",
+    "kind": "queue",
+    "x": 600,
+    "y": 200
+   },
+   {
+    "id": "redis",
+    "label": "Redis",
+    "sub": "pacing, dedupe",
+    "kind": "cache",
+    "x": 715,
+    "y": 80
+   },
+   {
+    "id": "senders",
+    "label": "Send workers",
+    "sub": "paced per provider",
+    "kind": "worker",
+    "x": 665,
+    "y": 330
+   },
+   {
+    "id": "email",
+    "label": "Email provider",
+    "sub": "bulk email API",
+    "kind": "ext",
+    "x": 875,
+    "y": 180
+   },
+   {
+    "id": "sms",
+    "label": "SMS provider",
+    "sub": "agency account",
+    "kind": "ext",
+    "x": 880,
+    "y": 400
+   },
+   {
+    "id": "inbound",
+    "label": "Inbound handler",
+    "sub": "webhooks, unsubs",
+    "kind": "service",
+    "x": 685,
+    "y": 497
+   },
+   {
+    "id": "status",
+    "label": "Status worker",
+    "sub": "batch updates",
+    "kind": "worker",
+    "x": 410,
+    "y": 497
+   }
+  ],
+  "edges": [
+   {
+    "id": "o-api",
+    "from": "officer",
+    "to": "api",
+    "label": "create"
+   },
+   {
+    "id": "o-s3",
+    "from": "officer",
+    "to": "s3",
+    "label": "upload CSV"
+   },
+   {
+    "id": "api-pg",
+    "from": "api",
+    "to": "pg",
+    "label": "campaign"
+   },
+   {
+    "id": "api-sp",
+    "from": "api",
+    "to": "splitter",
+    "label": "send",
+    "dashed": true
+   },
+   {
+    "id": "s3-sp",
+    "from": "s3",
+    "to": "splitter",
+    "label": "rows"
+   },
+   {
+    "id": "sp-pg",
+    "from": "splitter",
+    "to": "pg",
+    "label": "message rows"
+   },
+   {
+    "id": "sp-q",
+    "from": "splitter",
+    "to": "queue",
+    "label": "batches",
+    "dashed": true
+   },
+   {
+    "id": "q-w",
+    "from": "queue",
+    "to": "senders",
+    "dashed": true
+   },
+   {
+    "id": "w-r",
+    "from": "senders",
+    "to": "redis",
+    "label": "pace"
+   },
+   {
+    "id": "w-e",
+    "from": "senders",
+    "to": "email",
+    "label": "send"
+   },
+   {
+    "id": "w-s",
+    "from": "senders",
+    "to": "sms",
+    "label": "send"
+   },
+   {
+    "id": "e-in",
+    "from": "email",
+    "to": "inbound",
+    "label": "webhooks"
+   },
+   {
+    "id": "s-in",
+    "from": "sms",
+    "to": "inbound",
+    "label": "status"
+   },
+   {
+    "id": "in-st",
+    "from": "inbound",
+    "to": "status",
+    "label": "events",
+    "dashed": true
+   },
+   {
+    "id": "st-pg",
+    "from": "status",
+    "to": "pg",
+    "label": "UPDATE counts"
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "create",
+   "name": "Create and fan out",
+   "desc": "The officer's part takes seconds; the splitter does the heavy lifting.",
+   "steps": [
+    {
+     "edge": "o-api",
+     "note": "Officer creates a campaign: channel, and a template such as <code>Dear {{name}}, your appointment is on {{date}}</code>. The API returns a pre-signed upload URL."
+    },
+    {
+     "edge": "o-s3",
+     "note": "The browser PUTs the 60 MB CSV <b>straight to object storage</b>. Pushing large files through API servers ties up threads and memory for no benefit."
+    },
+    {
+     "edge": "api-pg",
+     "note": "API reads the header row, checks every <code>{{keyword}}</code> has a column, counts rows, and renders a preview of the first message. Bad files fail here, before anything is sent."
+    },
+    {
+     "edge": "api-sp",
+     "note": "Officer clicks Send (with an Idempotency-Key, so a double click does nothing extra). Status becomes <i>queued</i>, a split job is enqueued, and the API returns 202 at once."
+    },
+    {
+     "edge": "s3-sp",
+     "note": "The splitter <b>streams</b> the CSV row by row. It never loads 1M rows into memory, and it normalises phone numbers and emails as it goes."
+    },
+    {
+     "edge": "sp-pg",
+     "note": "Insert message rows in chunks of 5,000 with <code>ON CONFLICT DO NOTHING</code> on (campaign_id, recipient): duplicate CSV rows quietly collapse into one message."
+    },
+    {
+     "edge": "sp-q",
+     "note": "Publish one queue message per 500 message ids: 2,000 queue messages for 1M recipients. The splitter records how far it got, so a crash resumes instead of restarting."
+    }
+   ]
+  },
+  {
+   "id": "send",
+   "name": "Send a batch",
+   "desc": "Paced, idempotent, retryable.",
+   "steps": [
+    {
+     "edge": "q-w",
+     "note": "A worker receives a batch. The queue hides it for a visibility timeout (say 10 min); if the worker dies, the batch reappears and another worker takes it."
+    },
+    {
+     "edge": "w-r",
+     "note": "Two Redis calls per message: take a token from the provider's shared bucket (all workers together stay under, say, 100 emails/s), and <code>SET sent:{id} NX</code> so a message already sent by a crashed worker is skipped."
+    },
+    {
+     "node": "senders",
+     "note": "Skip unsubscribed recipients and halted campaigns. Render the template with the row's params, HTML-escaping values for email so a CSV cell cannot inject markup."
+    },
+    {
+     "edge": "w-e",
+     "note": "Send email. On 429 or 5xx, back off exponentially with jitter (1 s, 2 s, 4 s...) and retry up to 5 times. On a hard bounce (no such mailbox), mark failed and never retry."
+    },
+    {
+     "edge": "w-s",
+     "note": "SMS goes through its own queue and workers, so a slow SMS provider never holds up email. Store the provider's message id on the row for matching callbacks later."
+    },
+    {
+     "edge": "q-w",
+     "rev": true,
+     "note": "Delete the batch from the queue only when every message in it is sent, failed or skipped. Messages still retrying go back as a smaller batch with a delay."
+    }
+   ]
+  },
+  {
+   "id": "status",
+   "name": "Delivery status and unsubscribes",
+   "steps": [
+    {
+     "edge": "e-in",
+     "note": "The email provider calls our webhook with events (delivered, bounced, complained). Verify the signature: an unsigned endpoint lets anyone mark messages as delivered."
+    },
+    {
+     "edge": "s-in",
+     "note": "SMS delivery receipts arrive the same way, minutes to hours later. Callbacks can come twice or out of order, so status only moves forward (sent → delivered, never back)."
+    },
+    {
+     "node": "inbound",
+     "note": "The same public service handles unsubscribe links from recipients: it verifies the signed token and inserts into <code>unsubscribes</code>. It always answers 200 within milliseconds and does no heavy work itself."
+    },
+    {
+     "edge": "in-st",
+     "note": "Events go onto a queue. At 300 events/s, updating the campaign row once per event would make it a hot row; buffering lets the worker aggregate."
+    },
+    {
+     "edge": "st-pg",
+     "note": "Every second: update message rows in bulk by provider_msg_id, then one <code>UPDATE campaigns SET delivered = delivered + 812</code> per campaign. Thousands of events become a handful of writes."
+    },
+    {
+     "edge": "api-pg",
+     "rev": true,
+     "note": "The officer's dashboard polls <code>/stats</code> every 5 s and sees counts climb. Totals are eventually consistent, a few seconds behind, which is fine for a progress bar."
+    }
+   ]
+  }
+ ],
+ "deep": [
+  {
+   "title": "Why a queue between split and send",
+   "sim": "queue",
+   "html": "<p>The splitter can produce 2,000 batches in a minute; the providers accept 100 emails/s. A queue <b>absorbs the difference</b> and lets you size workers for the provider limit, not for the upload size.</p><ul><li><b>Crash safety</b>: a batch stays in the queue until a worker deletes it, so a dead worker loses nothing.</li><li><b>Isolation</b>: one queue per channel, so an SMS slowdown does not delay email.</li><li><b>Fairness</b>: one giant FIFO lets a 1M campaign block a 50-person urgent one for hours. Interleave by campaign (round-robin across per-campaign queues, or a priority lane for small campaigns) so small sends finish in seconds.</li></ul>"
+  },
+  {
+   "title": "Pacing to provider limits",
+   "sim": "bucket",
+   "html": "<p>Providers enforce limits per account (messages per second) and answer 429 when you exceed them. Retrying 429s blindly makes it worse. Instead keep one <b>token bucket per provider account</b> in Redis, shared by all workers: refill at the contracted rate, take a token before each send. Adding workers then cannot break the limit; it only helps until the bucket is the bottleneck.</p><p>If the provider still returns 429 (limits change, or another system shares the account), cut the refill rate for a minute: <b>adaptive backoff</b>.</p>"
+  },
+  {
+   "title": "Never send twice",
+   "html": "<p>Queues deliver at least once, so the same batch can be processed twice. The dangerous moment is a worker that sends a message and crashes <i>before</i> recording it.</p><ol><li><b>Claim before send</b>: <code>SET sent:{id} NX</code> (or update the row's status to <i>sending</i> with a conditional UPDATE). The second worker sees the claim and skips.</li><li><b>Record after send</b>: store the provider's message id and set status <i>sent</i>.</li><li>A crash between 1 and 2 leaves a message claimed but unconfirmed. Do not resend it automatically; a reconciler checks the provider's logs, or marks it <i>unknown</i> for the officer. Sending twice to a citizen is worse than one message needing a manual look.</li></ol><p>Where the provider accepts an idempotency key, pass the message id and the provider dedupes for you.</p>"
+  },
+  {
+   "title": "Templates and recipient hygiene",
+   "html": "<ul><li>Extract keywords with a regex like <code>\\{\\{(\\w+)\\}\\}</code>; every keyword needs a CSV column, and an empty value in a required column fails that row at upload, not at send time.</li><li>Normalise phones to E.164 and lowercase emails before deduping, or the same person appears twice.</li><li>Escape values when rendering HTML email.</li><li>Show a rendered preview and let the officer send a test to themselves. Most real incidents are a wrong template, not a crashed server.</li><li>Keep a <b>stop</b> button: workers check campaign status before each batch, so a mistake can be halted within seconds.</li></ul>"
+  }
+ ],
+ "tradeoffs": [
+  {
+   "choice": "Batch size per queue message",
+   "pick": "~500 message ids",
+   "why": "One per message means 1M queue operations and overhead; one per campaign means a single crash redoes everything and no parallelism. 500 balances both."
+  },
+  {
+   "choice": "Per-message rows or just counters?",
+   "pick": "A row per message",
+   "why": "You need per-recipient status to retry failures, match callbacks and answer \"did my message reach X?\". 300 B × 1M is only 300 MB."
+  },
+  {
+   "choice": "Delivery semantics",
+   "pick": "At-least-once queue + idempotent workers",
+   "why": "Exactly-once delivery across a queue and an external provider is not achievable; claim-before-send plus provider idempotency gets very close."
+  },
+  {
+   "choice": "Retry policy",
+   "pick": "Retry 429/5xx with exponential backoff and jitter, max 5; never retry hard failures",
+   "why": "Retrying an invalid number wastes money; retrying everything at once after an outage hits the provider with a thundering herd."
+  },
+  {
+   "choice": "Update counts on every callback?",
+   "pick": "No, aggregate per second",
+   "why": "Per-event updates make the campaign row a write hotspot at hundreds of events per second."
+  }
+ ],
+ "bottlenecks": [
+  {
+   "issue": "Provider rate limits make a 1M SMS campaign take hours",
+   "fix": "Show an honest ETA at send time, pace with a shared token bucket, and let urgent small campaigns jump ahead through a priority lane."
+  },
+  {
+   "issue": "Webhook storm after a big send",
+   "fix": "Inbound handler only verifies and enqueues; the status worker batches updates by provider_msg_id and per campaign."
+  },
+  {
+   "issue": "One agency's huge campaign starves others",
+   "fix": "Round-robin across campaigns and per-agency send quotas, so each gets a fair share of the provider budget."
+  },
+  {
+   "issue": "A worker crashes mid-batch",
+   "fix": "Visibility timeout returns the batch; claimed messages are skipped, unclaimed ones are sent, and nobody gets a duplicate."
+  }
+ ],
+ "followups": [
+  {
+   "q": "How would you schedule a campaign for 9 am tomorrow?",
+   "a": "<p>Store <code>send_at</code> on the campaign. A scheduler polls every minute for due campaigns and starts the splitter. Split ahead of time if the CSV is large, but hold the batches until <code>send_at</code>.</p>"
+  },
+  {
+   "q": "How do you support resending only to failed recipients?",
+   "a": "<p>Because each message has a row with a status, \"retry failed\" is a query: select messages with status failed and a retryable error, reset them to queued, and enqueue new batches. No re-upload needed.</p>"
+  },
+  {
+   "q": "An officer sent the wrong template to 200k people already. What now?",
+   "a": "<p>Hit stop: workers check status before each batch, so sending ends within seconds. Messages already sent cannot be recalled; the message rows tell you exactly who received it, so a correction can go to that set only.</p>"
+  },
+  {
+   "q": "Where do you keep the provider credentials?",
+   "a": "<p>In a secrets manager, encrypted, scoped per agency, read by workers at start-up and never shown back in the UI after entry. Rotate on staff changes.</p>"
+  },
+  {
+   "q": "How long do you keep recipient data?",
+   "a": "<p>Only as long as needed for delivery reporting, for example 90 days, then delete the CSV and null out params, keeping aggregate counts. Personal data you no longer hold cannot leak.</p>"
+  }
+ ],
+ "quiz": [
+  {
+   "q": "Why does the browser upload the CSV straight to object storage?",
+   "options": [
+    "Object storage parses CSV",
+    "A 60 MB upload through API servers wastes their threads and memory",
+    "It is encrypted only there",
+    "APIs cannot accept files"
+   ],
+   "answer": 1,
+   "why": "A pre-signed URL keeps large uploads off the API tier, which only handles small JSON requests."
+  },
+  {
+   "q": "A worker crashes after sending half a batch. What prevents duplicates when the batch reappears?",
+   "options": [
+    "The queue guarantees exactly-once",
+    "A per-message claim (SET NX or a conditional status update) checked before each send",
+    "Sending faster",
+    "The provider never accepts duplicates"
+   ],
+   "answer": 1,
+   "why": "Queues are at-least-once; idempotency has to be built into the worker."
+  },
+  {
+   "q": "How do 20 workers together stay under 100 emails/s?",
+   "options": [
+    "Each sleeps 10 ms",
+    "A shared token bucket in Redis that every send must take a token from",
+    "Use one worker",
+    "The provider queues extra messages"
+   ],
+   "answer": 1,
+   "why": "A shared limiter enforces the account-wide rate however many workers run."
+  },
+  {
+   "q": "Why one queue per channel?",
+   "options": [
+    "SQS limits queue size",
+    "So a slow or failing SMS provider does not hold up email",
+    "Email needs FIFO order",
+    "It is cheaper"
+   ],
+   "answer": 1,
+   "why": "Isolation: each channel drains at its own provider's pace."
+  },
+  {
+   "q": "Callbacks arrive twice or out of order. What is the safe update rule?",
+   "options": [
+    "Last write wins",
+    "Only move status forward (sent → delivered/failed), ignore older states",
+    "Reject duplicates with 400",
+    "Retry the send"
+   ],
+   "answer": 1,
+   "why": "A forward-only state machine makes callback handling idempotent and order-tolerant."
+  }
+ ]
+}

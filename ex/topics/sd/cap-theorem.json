@@ -1,0 +1,456 @@
+{
+ "id": "cap-theorem",
+ "track": "sd",
+ "order": 12,
+ "title": "CAP theorem",
+ "short": "When the network breaks, choose: correct answers or any answer.",
+ "what": "A system with copies of data in several places can promise three things: Consistency (every read sees the latest write), Availability (every request gets an answer), and Partition tolerance (it keeps working when machines can't reach each other). Networks do fail, so during a failure you must give up either C or A.",
+ "analogy": "Two ticket booths sell seats for the same show and phone each other after each sale. If the phone line dies, each booth either stops selling (correct but closed) or keeps selling and risks selling a seat twice.",
+ "viz": {
+  "kind": "sd",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "ana",
+      "label": "Ana",
+      "x": 0,
+      "y": 0
+     },
+     {
+      "id": "ny",
+      "label": "New York DB",
+      "sub": "seat 14B: free",
+      "x": 55,
+      "y": 0
+     },
+     {
+      "id": "bob",
+      "label": "Bob",
+      "x": 0,
+      "y": 100
+     },
+     {
+      "id": "lon",
+      "label": "London DB",
+      "sub": "seat 14B: free",
+      "x": 55,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "ana",
+      "ny"
+     ],
+     [
+      "bob",
+      "lon"
+     ],
+     [
+      "ny",
+      "lon",
+      "copy changes"
+     ]
+    ],
+    "say": "A concert booking site keeps a copy of its data in New York and in London. Every change is copied across. Seat 14B is the last one."
+   },
+   {
+    "nodes": [
+     {
+      "id": "ana",
+      "label": "Ana",
+      "x": 0,
+      "y": 0
+     },
+     {
+      "id": "ny",
+      "label": "New York DB",
+      "sub": "can't reach London",
+      "x": 55,
+      "y": 0
+     },
+     {
+      "id": "bob",
+      "label": "Bob",
+      "x": 0,
+      "y": 100
+     },
+     {
+      "id": "lon",
+      "label": "London DB",
+      "sub": "can't reach NY",
+      "x": 55,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "ana",
+      "ny"
+     ],
+     [
+      "bob",
+      "lon"
+     ],
+     [
+      "ny",
+      "lon",
+      "link down",
+      "async"
+     ]
+    ],
+    "bad": [
+     "ny",
+     "lon"
+    ],
+    "say": "The undersea link between them fails. Both still run but can't talk. This is a network partition, and it will happen sooner or later."
+   },
+   {
+    "nodes": [
+     {
+      "id": "ana",
+      "label": "Ana",
+      "x": 0,
+      "y": 0
+     },
+     {
+      "id": "ny",
+      "label": "New York DB",
+      "sub": "seat 14B: free",
+      "x": 55,
+      "y": 0
+     },
+     {
+      "id": "bob",
+      "label": "Bob",
+      "x": 0,
+      "y": 100
+     },
+     {
+      "id": "lon",
+      "label": "London DB",
+      "sub": "seat 14B: free",
+      "x": 55,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "ana",
+      "ny",
+      "book 14B"
+     ],
+     [
+      "bob",
+      "lon",
+      "book 14B"
+     ],
+     [
+      "ny",
+      "lon",
+      "link down",
+      "async"
+     ]
+    ],
+    "hi": [
+     "ny",
+     "lon"
+    ],
+    "edgeHi": [
+     [
+      "ana",
+      "ny"
+     ],
+     [
+      "bob",
+      "lon"
+     ]
+    ],
+    "say": "At the same moment Ana (in New York) and Bob (in London) both click Book on seat 14B. Each side can only see its own copy."
+   },
+   {
+    "nodes": [
+     {
+      "id": "ana",
+      "label": "Ana",
+      "x": 0,
+      "y": 0
+     },
+     {
+      "id": "ny",
+      "label": "New York DB",
+      "sub": "14B: Ana",
+      "x": 55,
+      "y": 0
+     },
+     {
+      "id": "bob",
+      "label": "Bob",
+      "x": 0,
+      "y": 100
+     },
+     {
+      "id": "lon",
+      "label": "London DB",
+      "sub": "refuses",
+      "x": 55,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "ny",
+      "ana",
+      "booked"
+     ],
+     [
+      "lon",
+      "bob",
+      "error"
+     ],
+     [
+      "ny",
+      "lon",
+      "link down",
+      "async"
+     ]
+    ],
+    "hi": [
+     "lon"
+    ],
+    "ok": [
+     "ny",
+     "ana"
+    ],
+    "bad": [
+     "bob"
+    ],
+    "edgeHi": [
+     [
+      "ny",
+      "ana"
+     ],
+     [
+      "lon",
+      "bob"
+     ]
+    ],
+    "say": "Choice 1, Consistency: London can't check with New York, which owns this seat, so it refuses. Bob sees an error, but 14B is sold once."
+   },
+   {
+    "nodes": [
+     {
+      "id": "ana",
+      "label": "Ana",
+      "x": 0,
+      "y": 0
+     },
+     {
+      "id": "ny",
+      "label": "New York DB",
+      "sub": "14B: Ana",
+      "x": 55,
+      "y": 0
+     },
+     {
+      "id": "bob",
+      "label": "Bob",
+      "x": 0,
+      "y": 100
+     },
+     {
+      "id": "lon",
+      "label": "London DB",
+      "sub": "14B: Bob",
+      "x": 55,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "ny",
+      "ana",
+      "booked"
+     ],
+     [
+      "lon",
+      "bob",
+      "booked"
+     ],
+     [
+      "ny",
+      "lon",
+      "link down",
+      "async"
+     ]
+    ],
+    "ok": [
+     "ana",
+     "bob",
+     "ny",
+     "lon"
+    ],
+    "edgeHi": [
+     [
+      "ny",
+      "ana"
+     ],
+     [
+      "lon",
+      "bob"
+     ]
+    ],
+    "say": "Choice 2, Availability: both sides say yes. Everyone gets an answer, but seat 14B is now sold twice."
+   },
+   {
+    "nodes": [
+     {
+      "id": "ana",
+      "label": "Ana",
+      "x": 0,
+      "y": 0
+     },
+     {
+      "id": "ny",
+      "label": "New York DB",
+      "sub": "14B: Ana",
+      "x": 55,
+      "y": 0
+     },
+     {
+      "id": "bob",
+      "label": "Bob",
+      "x": 0,
+      "y": 100
+     },
+     {
+      "id": "lon",
+      "label": "London DB",
+      "sub": "14B: Bob",
+      "x": 55,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "ana",
+      "ny"
+     ],
+     [
+      "bob",
+      "lon"
+     ],
+     [
+      "ny",
+      "lon",
+      "conflict!"
+     ]
+    ],
+    "bad": [
+     "ny",
+     "lon"
+    ],
+    "edgeHi": [
+     [
+      "ny",
+      "lon"
+     ]
+    ],
+    "say": "When the link heals, the copies disagree. The system must pick a winner, and someone gets an apology email."
+   },
+   {
+    "nodes": [
+     {
+      "id": "ana",
+      "label": "Ana",
+      "x": 0,
+      "y": 0
+     },
+     {
+      "id": "ny",
+      "label": "New York DB",
+      "sub": "14B: Ana",
+      "x": 55,
+      "y": 0
+     },
+     {
+      "id": "bob",
+      "label": "Bob",
+      "x": 0,
+      "y": 100
+     },
+     {
+      "id": "lon",
+      "label": "London DB",
+      "sub": "14B: Ana",
+      "x": 55,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "ana",
+      "ny"
+     ],
+     [
+      "bob",
+      "lon"
+     ],
+     [
+      "ny",
+      "lon",
+      "copy changes"
+     ]
+    ],
+    "ok": [
+     "ny",
+     "lon"
+    ],
+    "say": "CAP: when the network splits, keep Consistency or Availability, not both. Bookings and money pick C. Likes and feeds pick A."
+   }
+  ]
+ },
+ "when": [
+  "Data is copied across data centers or regions",
+  "Someone asks 'what if the network splits?'",
+  "Double booking or overselling would be bad",
+  "Users must always get an answer, even a slightly old one"
+ ],
+ "python": "def book(copies, side, user, mode):\n    \"\"\"The link is down: each side only sees its own copy. New York owns the seat.\"\"\"\n    if mode == \"CP\" and side != \"NY\":\n        return \"error, try again later\"\n    copies[side] = user\n    return \"booked\"\n\nfor mode in [\"CP\", \"AP\"]:\n    seat = {\"NY\": None, \"London\": None}\n    print(mode, \"Ana:\", book(seat, \"NY\", \"Ana\", mode))\n    print(mode, \"Bob:\", book(seat, \"London\", \"Bob\", mode))\n    print(mode, \"copies:\", seat)",
+ "output": "CP Ana: booked\nCP Bob: error, try again later\nCP copies: {'NY': 'Ana', 'London': None}\nAP Ana: booked\nAP Bob: booked\nAP copies: {'NY': 'Ana', 'London': 'Bob'}",
+ "cost": [
+  [
+   "Pick C: during a partition",
+   "some requests fail"
+  ],
+  [
+   "Pick A: during a partition",
+   "all answer, copies may conflict"
+  ],
+  [
+   "No partition",
+   "you get both"
+  ],
+  [
+   "Consistent write across oceans",
+   "+~70-150 ms per write"
+  ]
+ ],
+ "watch": [
+  "P is not a choice: networks fail, so the real question is C or A while they do.",
+  "The C in CAP means every read sees the latest write; it is not the C in ACID.",
+  "Choose per feature, not per company: the cart can be A while payments are C."
+ ],
+ "interview": [
+  "Design a ticket booking system",
+  "Design a distributed key-value store",
+  "Design a shopping cart that never refuses an add"
+ ],
+ "related": [
+  "replication",
+  "sharding",
+  "sql-vs-nosql",
+  "leader-election"
+ ]
+}

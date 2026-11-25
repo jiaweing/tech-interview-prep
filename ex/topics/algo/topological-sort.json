@@ -1,0 +1,544 @@
+{
+ "id": "topological-sort",
+ "track": "algo",
+ "order": 15,
+ "title": "Topological sort",
+ "short": "Put tasks in an order that respects every 'do this first' rule.",
+ "what": "You have tasks and rules like 'A must come before B'. Draw each rule as an arrow. A topological order lists every task so all arrows point forward. Kahn's way: count arrows coming into each task, start with tasks that have none, and remove their arrows as you go.",
+ "analogy": "Getting dressed. Socks before shoes, shirt before jacket. Many orders work, but shoes before socks never does.",
+ "viz": {
+  "kind": "graph",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "C",
+      "x": 0,
+      "y": 10
+     },
+     {
+      "id": "D",
+      "x": 0,
+      "y": 80
+     },
+     {
+      "id": "A",
+      "x": 35,
+      "y": 45
+     },
+     {
+      "id": "B",
+      "x": 70,
+      "y": 10
+     },
+     {
+      "id": "E",
+      "x": 100,
+      "y": 65
+     }
+    ],
+    "edges": [
+     [
+      "C",
+      "A"
+     ],
+     [
+      "D",
+      "A"
+     ],
+     [
+      "A",
+      "B"
+     ],
+     [
+      "D",
+      "E"
+     ],
+     [
+      "B",
+      "E"
+     ]
+    ],
+    "directed": true,
+    "dist": {
+     "C": "in 0",
+     "D": "in 0",
+     "A": "in 2",
+     "B": "in 1",
+     "E": "in 2"
+    },
+    "label": "tasks",
+    "say": "An arrow means 'comes first': C before A, A before B. Under each task: in = how many arrows still point into it."
+   },
+   {
+    "nodes": [
+     {
+      "id": "C",
+      "x": 0,
+      "y": 10
+     },
+     {
+      "id": "D",
+      "x": 0,
+      "y": 80
+     },
+     {
+      "id": "A",
+      "x": 35,
+      "y": 45
+     },
+     {
+      "id": "B",
+      "x": 70,
+      "y": 10
+     },
+     {
+      "id": "E",
+      "x": 100,
+      "y": 65
+     }
+    ],
+    "edges": [
+     [
+      "C",
+      "A"
+     ],
+     [
+      "D",
+      "A"
+     ],
+     [
+      "A",
+      "B"
+     ],
+     [
+      "D",
+      "E"
+     ],
+     [
+      "B",
+      "E"
+     ]
+    ],
+    "directed": true,
+    "dist": {
+     "C": "in 0",
+     "D": "in 0",
+     "A": "in 2",
+     "B": "in 1",
+     "E": "in 2"
+    },
+    "hi": [
+     "C",
+     "D"
+    ],
+    "label": "ready",
+    "out": "ready: C, D",
+    "say": "C and D have in 0: nothing has to happen before them. Put them in a queue of ready tasks."
+   },
+   {
+    "nodes": [
+     {
+      "id": "C",
+      "x": 0,
+      "y": 10
+     },
+     {
+      "id": "D",
+      "x": 0,
+      "y": 80
+     },
+     {
+      "id": "A",
+      "x": 35,
+      "y": 45
+     },
+     {
+      "id": "B",
+      "x": 70,
+      "y": 10
+     },
+     {
+      "id": "E",
+      "x": 100,
+      "y": 65
+     }
+    ],
+    "edges": [
+     [
+      "C",
+      "A"
+     ],
+     [
+      "D",
+      "A"
+     ],
+     [
+      "A",
+      "B"
+     ],
+     [
+      "D",
+      "E"
+     ],
+     [
+      "B",
+      "E"
+     ]
+    ],
+    "directed": true,
+    "dist": {
+     "C": "#1",
+     "D": "in 0",
+     "A": "in 1",
+     "B": "in 1",
+     "E": "in 2"
+    },
+    "ok": [
+     "C"
+    ],
+    "hi": [
+     "D"
+    ],
+    "edgeHi": [
+     [
+      "C",
+      "A"
+     ]
+    ],
+    "label": "take C",
+    "out": "order: C",
+    "say": "Take C and erase its arrows. A drops from 2 to 1. A still waits for D."
+   },
+   {
+    "nodes": [
+     {
+      "id": "C",
+      "x": 0,
+      "y": 10
+     },
+     {
+      "id": "D",
+      "x": 0,
+      "y": 80
+     },
+     {
+      "id": "A",
+      "x": 35,
+      "y": 45
+     },
+     {
+      "id": "B",
+      "x": 70,
+      "y": 10
+     },
+     {
+      "id": "E",
+      "x": 100,
+      "y": 65
+     }
+    ],
+    "edges": [
+     [
+      "D",
+      "A"
+     ],
+     [
+      "A",
+      "B"
+     ],
+     [
+      "D",
+      "E"
+     ],
+     [
+      "B",
+      "E"
+     ]
+    ],
+    "directed": true,
+    "dist": {
+     "C": "#1",
+     "D": "#2",
+     "A": "in 0",
+     "B": "in 1",
+     "E": "in 1"
+    },
+    "ok": [
+     "C",
+     "D"
+    ],
+    "hi": [
+     "A"
+    ],
+    "edgeHi": [
+     [
+      "D",
+      "A"
+     ],
+     [
+      "D",
+      "E"
+     ]
+    ],
+    "label": "take D",
+    "out": "order: C D",
+    "say": "Take D. A drops to 0, so A is ready now. E drops to 1."
+   },
+   {
+    "nodes": [
+     {
+      "id": "C",
+      "x": 0,
+      "y": 10
+     },
+     {
+      "id": "D",
+      "x": 0,
+      "y": 80
+     },
+     {
+      "id": "A",
+      "x": 35,
+      "y": 45
+     },
+     {
+      "id": "B",
+      "x": 70,
+      "y": 10
+     },
+     {
+      "id": "E",
+      "x": 100,
+      "y": 65
+     }
+    ],
+    "edges": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "B",
+      "E"
+     ]
+    ],
+    "directed": true,
+    "dist": {
+     "C": "#1",
+     "D": "#2",
+     "A": "#3",
+     "B": "in 0",
+     "E": "in 1"
+    },
+    "ok": [
+     "C",
+     "D",
+     "A"
+    ],
+    "hi": [
+     "B"
+    ],
+    "edgeHi": [
+     [
+      "A",
+      "B"
+     ]
+    ],
+    "label": "take A",
+    "out": "order: C D A",
+    "say": "Take A. B drops to 0 and joins the queue."
+   },
+   {
+    "nodes": [
+     {
+      "id": "C",
+      "x": 0,
+      "y": 10
+     },
+     {
+      "id": "D",
+      "x": 0,
+      "y": 80
+     },
+     {
+      "id": "A",
+      "x": 35,
+      "y": 45
+     },
+     {
+      "id": "B",
+      "x": 70,
+      "y": 10
+     },
+     {
+      "id": "E",
+      "x": 100,
+      "y": 65
+     }
+    ],
+    "edges": [
+     [
+      "B",
+      "E"
+     ]
+    ],
+    "directed": true,
+    "dist": {
+     "C": "#1",
+     "D": "#2",
+     "A": "#3",
+     "B": "#4",
+     "E": "in 0"
+    },
+    "ok": [
+     "C",
+     "D",
+     "A",
+     "B"
+    ],
+    "hi": [
+     "E"
+    ],
+    "edgeHi": [
+     [
+      "B",
+      "E"
+     ]
+    ],
+    "label": "take B",
+    "out": "order: C D A B",
+    "say": "Take B. E drops to 0: both things it waited for are done."
+   },
+   {
+    "nodes": [
+     {
+      "id": "C",
+      "x": 0,
+      "y": 10
+     },
+     {
+      "id": "D",
+      "x": 0,
+      "y": 80
+     },
+     {
+      "id": "A",
+      "x": 35,
+      "y": 45
+     },
+     {
+      "id": "B",
+      "x": 70,
+      "y": 10
+     },
+     {
+      "id": "E",
+      "x": 100,
+      "y": 65
+     }
+    ],
+    "edges": [
+     [
+      "C",
+      "A"
+     ],
+     [
+      "D",
+      "A"
+     ],
+     [
+      "A",
+      "B"
+     ],
+     [
+      "D",
+      "E"
+     ],
+     [
+      "B",
+      "E"
+     ]
+    ],
+    "directed": true,
+    "dist": {
+     "C": "#1",
+     "D": "#2",
+     "A": "#3",
+     "B": "#4",
+     "E": "#5"
+    },
+    "ok": [
+     "C",
+     "D",
+     "A",
+     "B",
+     "E"
+    ],
+    "edgeHi": [
+     [
+      "C",
+      "A"
+     ],
+     [
+      "D",
+      "A"
+     ],
+     [
+      "A",
+      "B"
+     ],
+     [
+      "D",
+      "E"
+     ],
+     [
+      "B",
+      "E"
+     ]
+    ],
+    "label": "done",
+    "out": "order: C D A B E",
+    "say": "Take E. Every arrow points forward in C D A B E. If the queue empties before all tasks are placed, the rules form a cycle."
+   }
+  ]
+ },
+ "when": [
+  "Some tasks must happen before others (prerequisites)",
+  "Build order, install order, course schedule",
+  "Is there a cycle in these dependencies?",
+  "The graph is directed and has no loops"
+ ],
+ "python": "from collections import deque\nbefore = {\"C\": [\"A\"], \"D\": [\"A\", \"E\"], \"A\": [\"B\"], \"B\": [\"E\"], \"E\": []}\nindeg = {n: 0 for n in before}\nfor n in before:\n    for m in before[n]:\n        indeg[m] += 1\nready = deque(n for n in before if indeg[n] == 0)\norder = []\nwhile ready:\n    n = ready.popleft()\n    order.append(n)\n    for m in before[n]:\n        indeg[m] -= 1\n        if indeg[m] == 0:\n            ready.append(m)\nprint(order if len(order) == len(before) else \"cycle!\")",
+ "output": "['C', 'D', 'A', 'B', 'E']",
+ "cost": [
+  [
+   "Sort V tasks with E rules",
+   "O(V + E)"
+  ],
+  [
+   "Detect a cycle",
+   "O(V + E)"
+  ],
+  [
+   "Memory",
+   "O(V)"
+  ]
+ ],
+ "watch": [
+  "It only works on directed graphs without cycles. Check that every task got placed.",
+  "Get the arrow direction right: 'A before B' is an arrow from A to B.",
+  "There is often more than one valid order; any of them is accepted."
+ ],
+ "interview": [
+  "LC 207 Course Schedule",
+  "LC 210 Course Schedule II",
+  "LC 269 Alien Dictionary"
+ ],
+ "related": [
+  "graph",
+  "bfs",
+  "dfs",
+  "queue"
+ ]
+}

@@ -1,0 +1,360 @@
+{
+ "id": "websockets",
+ "track": "sd",
+ "order": 18,
+ "title": "WebSockets",
+ "short": "Keep a line open so the server can push news the moment it happens.",
+ "what": "Normal HTTP is ask, then answer: the server can't speak first. A WebSocket starts as one HTTP request, then stays open as a two-way line. Either side can send a message at any time, so chat messages and live scores arrive at once.",
+ "analogy": "Keeping a phone call open, instead of texting 'anything new?' every 5 seconds.",
+ "viz": {
+  "kind": "sd",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "alice",
+      "label": "Alice",
+      "x": 0,
+      "y": 15
+     },
+     {
+      "id": "bob",
+      "label": "Bob",
+      "x": 0,
+      "y": 85
+     },
+     {
+      "id": "srv",
+      "label": "Chat server",
+      "x": 55,
+      "y": 50
+     }
+    ],
+    "edges": [],
+    "say": "Alice and Bob chat through a server. When Bob sends a message, Alice's screen should show it right away."
+   },
+   {
+    "nodes": [
+     {
+      "id": "alice",
+      "label": "Alice",
+      "x": 0,
+      "y": 15
+     },
+     {
+      "id": "bob",
+      "label": "Bob",
+      "x": 0,
+      "y": 85
+     },
+     {
+      "id": "srv",
+      "label": "Chat server",
+      "x": 55,
+      "y": 50,
+      "sub": "no. no. no."
+     }
+    ],
+    "edges": [
+     [
+      "alice",
+      "srv",
+      "anything new?"
+     ]
+    ],
+    "hi": [
+     "alice"
+    ],
+    "edgeHi": [
+     [
+      "alice",
+      "srv"
+     ]
+    ],
+    "say": "With plain HTTP the server can't speak first, so Alice's app asks every 5 seconds: 12 requests a minute, most answered 'no'."
+   },
+   {
+    "nodes": [
+     {
+      "id": "alice",
+      "label": "Alice",
+      "x": 0,
+      "y": 15
+     },
+     {
+      "id": "bob",
+      "label": "Bob",
+      "x": 0,
+      "y": 85
+     },
+     {
+      "id": "srv",
+      "label": "Chat server",
+      "x": 55,
+      "y": 50,
+      "sub": "101 Switching"
+     }
+    ],
+    "edges": [
+     [
+      "alice",
+      "srv",
+      "Upgrade: websocket"
+     ]
+    ],
+    "hi": [
+     "srv"
+    ],
+    "edgeHi": [
+     [
+      "alice",
+      "srv"
+     ]
+    ],
+    "say": "WebSocket: Alice sends one HTTP request asking to upgrade. The server answers 101 Switching Protocols and keeps the line open."
+   },
+   {
+    "nodes": [
+     {
+      "id": "alice",
+      "label": "Alice",
+      "x": 0,
+      "y": 15
+     },
+     {
+      "id": "bob",
+      "label": "Bob",
+      "x": 0,
+      "y": 85
+     },
+     {
+      "id": "srv",
+      "label": "Chat server",
+      "x": 55,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "alice",
+      "srv",
+      "open"
+     ],
+     [
+      "bob",
+      "srv",
+      "open"
+     ]
+    ],
+    "ok": [
+     "alice",
+     "bob"
+    ],
+    "say": "Bob's app does the same. The server now holds one open connection per online user, and either side can send at any time."
+   },
+   {
+    "nodes": [
+     {
+      "id": "alice",
+      "label": "Alice",
+      "x": 0,
+      "y": 15
+     },
+     {
+      "id": "bob",
+      "label": "Bob",
+      "x": 0,
+      "y": 85
+     },
+     {
+      "id": "srv",
+      "label": "Chat server",
+      "x": 55,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "alice",
+      "srv"
+     ],
+     [
+      "bob",
+      "srv",
+      "hi Alice!"
+     ]
+    ],
+    "hi": [
+     "bob",
+     "srv"
+    ],
+    "edgeHi": [
+     [
+      "bob",
+      "srv"
+     ]
+    ],
+    "say": "Bob sends 'hi Alice!' on his connection. Each message costs a few bytes of framing, not hundreds of bytes of HTTP headers."
+   },
+   {
+    "nodes": [
+     {
+      "id": "alice",
+      "label": "Alice",
+      "x": 0,
+      "y": 15
+     },
+     {
+      "id": "bob",
+      "label": "Bob",
+      "x": 0,
+      "y": 85
+     },
+     {
+      "id": "srv",
+      "label": "Chat server",
+      "x": 55,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "srv",
+      "alice",
+      "push: hi Alice!"
+     ],
+     [
+      "bob",
+      "srv"
+     ]
+    ],
+    "ok": [
+     "alice"
+    ],
+    "edgeHi": [
+     [
+      "srv",
+      "alice"
+     ]
+    ],
+    "say": "The server pushes it down Alice's open connection at once. No asking, and no waiting up to 5 seconds for the next poll."
+   },
+   {
+    "nodes": [
+     {
+      "id": "alice",
+      "label": "Alice",
+      "x": 0,
+      "y": 15
+     },
+     {
+      "id": "bob",
+      "label": "Bob",
+      "x": 0,
+      "y": 85
+     },
+     {
+      "id": "s1",
+      "label": "Server 1",
+      "x": 45,
+      "y": 15
+     },
+     {
+      "id": "s2",
+      "label": "Server 2",
+      "x": 45,
+      "y": 85
+     },
+     {
+      "id": "ps",
+      "label": "Pub/sub",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "bob",
+      "s2",
+      "hi Alice!"
+     ],
+     [
+      "s2",
+      "ps",
+      "publish"
+     ],
+     [
+      "ps",
+      "s1",
+      "deliver"
+     ],
+     [
+      "s1",
+      "alice",
+      "push"
+     ]
+    ],
+    "ok": [
+     "alice"
+    ],
+    "edgeHi": [
+     [
+      "bob",
+      "s2"
+     ],
+     [
+      "s2",
+      "ps"
+     ],
+     [
+      "ps",
+      "s1"
+     ],
+     [
+      "s1",
+      "alice"
+     ]
+    ],
+    "say": "With millions online, Alice and Bob sit on different servers. A pub/sub channel carries Bob's message to the server holding Alice's line."
+   }
+  ]
+ },
+ "when": [
+  "Chat, live comments, multiplayer games",
+  "The server must push updates the moment they happen",
+  "Polling would mostly come back with 'nothing new'",
+  "Live dashboards, prices, sports scores"
+ ],
+ "python": "import math\n\nbob_sends_at = [13, 31, 47]          # seconds into the minute\n\n# Polling: Alice's app asks \"anything new?\" every 5 seconds\nasks = 60 // 5\nwaits = [math.ceil(t / 5) * 5 - t for t in bob_sends_at]\nprint(\"polling:\", asks, \"requests,\", asks - len(bob_sends_at), \"empty\")\nprint(\"polling waits:\", waits, \"seconds\")\n\n# WebSocket: one handshake, then the server pushes each message\nprint(\"websocket: 1 handshake,\", len(bob_sends_at), \"pushes, waits 0 seconds\")",
+ "output": "polling: 12 requests, 9 empty\npolling waits: [2, 4, 3] seconds\nwebsocket: 1 handshake, 3 pushes, waits 0 seconds",
+ "cost": [
+  [
+   "Delay to deliver a message",
+   "network time only"
+  ],
+  [
+   "Overhead per message",
+   "2-14 bytes, not ~500 bytes of headers"
+  ],
+  [
+   "Open connections per server",
+   "tens of thousands"
+  ]
+ ],
+ "watch": [
+  "Connections drop when phones switch networks: reconnect, then fetch what you missed.",
+  "Each open connection pins a server. The load balancer must allow long-lived connections.",
+  "For one-way updates (server to client), server-sent events or long polling may be enough."
+ ],
+ "interview": [
+  "Design WhatsApp or a chat app",
+  "Design a live sports scoreboard",
+  "Design Google Docs live editing"
+ ],
+ "related": [
+  "pub-sub",
+  "rest-api",
+  "load-balancer",
+  "client-server"
+ ]
+}

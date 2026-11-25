@@ -1,0 +1,604 @@
+{
+ "id": "vaccination-booking",
+ "title": "National vaccination booking",
+ "tagline": "Let millions of invited residents grab a limited set of appointment slots without overbooking or melting down.",
+ "govtech": true,
+ "govtech_label": "GovTech-relevant",
+ "mirrors": "vaccine booking",
+ "featured": true,
+ "difficulty": "hard",
+ "govtech_note": "<p>OGP built the booking system Singapore used for COVID-19 vaccination appointments. The publicly visible shape: residents were invited in waves by age group, got an SMS with a personal booking link, and many tried to book in the first minutes after each wave opened. Treat this as <b>domain-flavoured practice</b>: there is no evidence GovTech asks it as an interview question, and the design below is a reasonable one, not a description of the real system. It is a strong vehicle for the topics interviewers do probe: <b>contention, correctness under concurrency, and graceful overload</b>.</p>",
+ "summary": "<p>The hard part is not storage (a few GB) but <b>contention</b>. Hundreds of thousands of people arrive in the same minute and fight over a few thousand popular slots. The design has three ideas: a <b>waiting room</b> that admits people at a rate the backend can serve, a <b>reserve-then-confirm</b> flow where a slot is held for 5 minutes, and an <b>atomic conditional UPDATE</b> plus unique constraints so that no slot is ever overbooked and no person is ever booked twice, even when code has bugs or requests are retried.</p>",
+ "requirements": {
+  "functional": [
+   "Invite residents in waves (by age group) with a personal SMS link",
+   "Browse centres and see roughly how many slots remain per time window",
+   "Hold a slot (or a dose 1 + dose 2 pair) for a few minutes, then confirm",
+   "Reschedule or cancel; the freed slot goes back into the pool",
+   "Send a confirmation SMS and a reminder the day before"
+  ],
+  "nonfunctional": [
+   "Never overbook a slot and never give one person two active bookings for the same dose",
+   "Survive a launch spike of ~2k arrivals/s without errors; queue people instead of failing them",
+   "Fair: people who arrive earlier are served earlier; bots and shared links get no edge",
+   "Confirmed bookings are durable (strong consistency on the booking write path)",
+   "Availability counts may be a few seconds stale"
+  ],
+  "out_of_scope": [
+   "Clinical records and dose administration at the centre",
+   "Centre staffing and vaccine stock logistics",
+   "Walk-in queues"
+  ]
+ },
+ "estimates": [
+  {
+   "label": "Appointments to book",
+   "calc": "~5M people × 2 doses",
+   "value": "~10M"
+  },
+  {
+   "label": "Launch rush",
+   "calc": "1M invited in a wave, 30% open the link in the first 10 min → 300k ÷ 600 s",
+   "value": "~500 arrivals/s (peaks ~2k/s)"
+  },
+  {
+   "label": "Admit rate",
+   "calc": "~10 API calls per booking; API sized for ~3k req/s → 3,000 ÷ 10",
+   "value": "~300 people/s"
+  },
+  {
+   "label": "Wait for the last of the rush",
+   "calc": "300k ÷ 300/s",
+   "value": "~17 min in the waiting room"
+  },
+  {
+   "label": "DB write load",
+   "calc": "300 bookings/s × 2 txns (hold + confirm)",
+   "value": "~600 txn/s: one Postgres primary"
+  },
+  {
+   "label": "Slot rows",
+   "calc": "40 centres × 14 days × 24 half-hour windows",
+   "value": "~13k rows (tiny)"
+  },
+  {
+   "label": "SMS for one wave",
+   "calc": "1M invites ÷ 200 SMS/s provider limit",
+   "value": "~83 min, so stagger waves"
+  }
+ ],
+ "api": [
+  {
+   "method": "GET",
+   "path": "/queue/status",
+   "desc": "Waiting room. Returns your position, or a signed pass (10 min) once admitted."
+  },
+  {
+   "method": "GET",
+   "path": "/api/invites/{token}",
+   "desc": "Pass required. Checks the single-use invite and identity; returns eligibility."
+  },
+  {
+   "method": "GET",
+   "path": "/api/centres/{id}/availability?date=",
+   "desc": "Remaining slots per window. Served from cache, may be ~2 s stale."
+  },
+  {
+   "method": "POST",
+   "path": "/api/holds {slotIds[]}",
+   "desc": "Atomically takes 1 or 2 slots. 201 {holdId, expiresAt}; 409 if any slot is full or you already hold one."
+  },
+  {
+   "method": "POST",
+   "path": "/api/bookings {holdId} + Idempotency-Key",
+   "desc": "Turns a live hold into bookings. 201; 410 if the hold expired. Retries return the same booking."
+  },
+  {
+   "method": "PATCH",
+   "path": "/api/bookings/{id} {newSlotId}",
+   "desc": "Reschedule: take the new slot and free the old one in one transaction."
+  },
+  {
+   "method": "DELETE",
+   "path": "/api/bookings/{id}",
+   "desc": "Cancel; the slot returns to the pool."
+  }
+ ],
+ "data": [
+  {
+   "name": "slots",
+   "store": "PostgreSQL",
+   "fields": [
+    "id PK",
+    "centre_id",
+    "starts_at",
+    "capacity",
+    "taken",
+    "CHECK (taken &lt;= capacity)"
+   ],
+   "note": "<code>taken</code> counts live holds plus bookings. The CHECK constraint makes overbooking impossible even if application code is wrong."
+  },
+  {
+   "name": "holds",
+   "store": "PostgreSQL",
+   "fields": [
+    "id PK",
+    "resident_id UNIQUE",
+    "slot_ids[]",
+    "expires_at"
+   ],
+   "note": "One live hold per person. Expired rows are deleted by the sweeper, which gives the seats back."
+  },
+  {
+   "name": "bookings",
+   "store": "PostgreSQL",
+   "fields": [
+    "id PK",
+    "resident_id",
+    "dose_no",
+    "slot_id",
+    "status",
+    "idempotency_key UNIQUE"
+   ],
+   "note": "Partial unique index on (resident_id, dose_no) WHERE status = 'active': nobody gets two active dose-1 bookings."
+  },
+  {
+   "name": "invites",
+   "store": "PostgreSQL",
+   "fields": [
+    "token_hash PK",
+    "resident_id",
+    "wave",
+    "sent_at",
+    "used_at"
+   ],
+   "note": "Store a hash of the link token, never the token itself, so a DB leak cannot be replayed."
+  },
+  {
+   "name": "avail:{centre}:{date}",
+   "store": "Redis",
+   "fields": [
+    "hash: window → remaining",
+    "rebuilt every 2 s"
+   ],
+   "note": "Read-only view for browsing. Never used to decide who gets a slot."
+  },
+  {
+   "name": "waiting room",
+   "store": "Redis",
+   "fields": [
+    "arrival counter (INCR)",
+    "admitted-up-to pointer"
+   ],
+   "note": "Your ticket number is your arrival order; the pointer moves forward at the admit rate."
+  }
+ ],
+ "diagram": {
+  "w": 960,
+  "h": 440,
+  "groups": [
+   {
+    "label": "Booking path (hot, synchronous)",
+    "x": 20,
+    "y": 20,
+    "w": 820,
+    "h": 250
+   },
+   {
+    "label": "Invites and reminders (async)",
+    "x": 20,
+    "y": 318,
+    "w": 795,
+    "h": 104
+   }
+  ],
+  "nodes": [
+   {
+    "id": "resident",
+    "label": "Resident",
+    "sub": "taps SMS link",
+    "kind": "user",
+    "x": 80,
+    "y": 140
+   },
+   {
+    "id": "wroom",
+    "label": "Waiting room",
+    "sub": "FIFO, ~300/s",
+    "kind": "gateway",
+    "x": 300,
+    "y": 140
+   },
+   {
+    "id": "api",
+    "label": "Booking API",
+    "sub": "stateless",
+    "kind": "service",
+    "x": 495,
+    "y": 140
+   },
+   {
+    "id": "redis",
+    "label": "Redis",
+    "sub": "availability view",
+    "kind": "cache",
+    "x": 745,
+    "y": 75
+   },
+   {
+    "id": "pg",
+    "label": "PostgreSQL",
+    "sub": "slots + bookings",
+    "kind": "db",
+    "x": 745,
+    "y": 205
+   },
+   {
+    "id": "sweeper",
+    "label": "Hold sweeper",
+    "sub": "every 30 s",
+    "kind": "cron",
+    "x": 880,
+    "y": 300
+   },
+   {
+    "id": "sms",
+    "label": "SMS provider",
+    "sub": "2 providers",
+    "kind": "ext",
+    "x": 80,
+    "y": 380
+   },
+   {
+    "id": "worker",
+    "label": "Notify worker",
+    "sub": "rate-limited",
+    "kind": "worker",
+    "x": 290,
+    "y": 380
+   },
+   {
+    "id": "queue",
+    "label": "Notify queue",
+    "sub": "SQS",
+    "kind": "queue",
+    "x": 495,
+    "y": 380
+   },
+   {
+    "id": "sched",
+    "label": "Scheduler",
+    "sub": "waves, reminders",
+    "kind": "cron",
+    "x": 735,
+    "y": 380
+   }
+  ],
+  "edges": [
+   {
+    "id": "r-w",
+    "from": "resident",
+    "to": "wroom",
+    "label": "tap link"
+   },
+   {
+    "id": "w-a",
+    "from": "wroom",
+    "to": "api",
+    "label": "pass"
+   },
+   {
+    "id": "a-r",
+    "from": "api",
+    "to": "redis",
+    "label": "browse"
+   },
+   {
+    "id": "a-p",
+    "from": "api",
+    "to": "pg",
+    "label": "hold/confirm"
+   },
+   {
+    "id": "s-p",
+    "from": "sweeper",
+    "to": "pg",
+    "label": "free"
+   },
+   {
+    "id": "a-q",
+    "from": "api",
+    "to": "queue",
+    "label": "booked",
+    "dashed": true
+   },
+   {
+    "id": "sc-p",
+    "from": "sched",
+    "to": "pg",
+    "label": "who to invite"
+   },
+   {
+    "id": "sc-q",
+    "from": "sched",
+    "to": "queue",
+    "label": "invites",
+    "dashed": true
+   },
+   {
+    "id": "q-w",
+    "from": "queue",
+    "to": "worker",
+    "dashed": true
+   },
+   {
+    "id": "w-s",
+    "from": "worker",
+    "to": "sms",
+    "label": "send"
+   },
+   {
+    "id": "s-r",
+    "from": "sms",
+    "to": "resident",
+    "label": "SMS link"
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "rush",
+   "name": "Launch rush: get in and hold a slot",
+   "desc": "The minute a wave opens.",
+   "steps": [
+    {
+     "edge": "r-w",
+     "note": "At 10:00 a wave of 1M invites becomes valid and ~500 people/s tap their link. Every request lands on the <b>waiting room</b> first, which is cheap: a static page plus one Redis INCR to hand out a ticket number."
+    },
+    {
+     "node": "wroom",
+     "note": "The admit pointer advances at ~300 tickets/s, the rate the booking path can sustain. Ticket 120,000 waits about 120,000 ÷ 300 = <b>~7 min</b>, and the page tells them so. Queueing people is better than letting the API return 503s that make everyone hit refresh."
+    },
+    {
+     "edge": "w-a",
+     "note": "Admitted users get a <b>signed pass</b> (short-lived token, 10 min). The API checks the signature locally with no DB call, so requests without a pass are rejected for almost no cost."
+    },
+    {
+     "edge": "a-r",
+     "note": "Show remaining slots per window from Redis, rebuilt every 2 s. It can be slightly stale, and that is fine: it only guides the choice. The real check happens on the next hop."
+    },
+    {
+     "edge": "a-p",
+     "note": "Hold: <code>UPDATE slots SET taken = taken + 1 WHERE id = $1 AND taken &lt; capacity</code>. One row updated means you got it; zero rows means it just filled, so suggest the next window. Insert a hold row with <code>expires_at = now() + 5 min</code> in the same transaction."
+    },
+    {
+     "edge": "w-a",
+     "rev": true,
+     "note": "Return <code>{holdId, expiresAt}</code>. The UI shows a 5-minute countdown. Short holds stop people from sitting on seats they will not use."
+    }
+   ]
+  },
+  {
+   "id": "confirm",
+   "name": "Confirm and get an SMS",
+   "desc": "Turning a hold into a booking.",
+   "steps": [
+    {
+     "edge": "w-a",
+     "note": "Resident presses Confirm. The request carries an <b>Idempotency-Key</b>, because on a slow mobile network people press twice and clients retry."
+    },
+    {
+     "edge": "a-p",
+     "note": "One transaction: delete the hold <code>WHERE id = $1 AND expires_at &gt; now()</code> (must hit 1 row, else 410 Gone), insert the bookings. The partial unique index on (resident_id, dose_no) rejects a second active booking for the same dose."
+    },
+    {
+     "edge": "a-q",
+     "note": "After commit, publish a <i>booked</i> event (or write it to an outbox table in the same transaction and relay it, so the event can never be lost if the API crashes between commit and publish)."
+    },
+    {
+     "edge": "q-w",
+     "note": "A worker picks it up. The booking is already safe; the SMS is a convenience, so it is async and can retry for minutes without the user waiting."
+    },
+    {
+     "edge": "w-s",
+     "note": "Send at the provider's contracted rate (say 200 SMS/s) using a token bucket. On repeated 5xx from the primary, fail over to the second provider."
+    },
+    {
+     "edge": "s-r",
+     "note": "Confirmation SMS with date, centre and a manage-booking link. Dedupe by booking id so a retried job does not send two texts."
+    }
+   ]
+  },
+  {
+   "id": "invite",
+   "name": "Invite a wave and send reminders",
+   "steps": [
+    {
+     "node": "sched",
+     "note": "Invites go out in waves (for example by age group), not all at once. Waves are the first fairness and load-control tool: they shrink the crowd that races for slots at any moment."
+    },
+    {
+     "edge": "sc-p",
+     "note": "Select eligible residents not yet booked, in pages of 10k. Create invite rows with a random 128-bit token; store only its hash."
+    },
+    {
+     "edge": "sc-q",
+     "note": "Enqueue invite jobs. 1M SMS at 200/s takes ~83 min, so the wave's booking window should open after the last SMS is out, or the people texted last are at a disadvantage."
+    },
+    {
+     "edge": "q-w",
+     "note": "The same workers handle invites, confirmations and the day-before reminders the scheduler queues each evening."
+    },
+    {
+     "edge": "w-s",
+     "note": "Rate-limit per provider; retry with backoff. Track per-message status so you can resend to failures only."
+    },
+    {
+     "edge": "s-r",
+     "note": "The link carries the token, e.g. <code>/b/8f3k...</code>. It is single-use for booking and is tied to the invited person's identity check, so forwarding it to a friend does not help them."
+    }
+   ]
+  },
+  {
+   "id": "expire",
+   "name": "A hold expires",
+   "steps": [
+    {
+     "node": "sweeper",
+     "note": "About a third of holds are abandoned (people compare options, or their phone dies). Without a sweeper those seats would stay locked forever."
+    },
+    {
+     "edge": "s-p",
+     "note": "Every 30 s: <code>DELETE FROM holds WHERE expires_at &lt; now() RETURNING slot_ids</code>, then <code>taken = taken - 1</code> for each, in one transaction so the count never drifts."
+    },
+    {
+     "edge": "a-r",
+     "note": "Within 2 s the availability view shows the seat again and the next person can take it. Holds of 5 min with a 30 s sweep means a seat is idle at most ~5.5 min."
+    }
+   ]
+  }
+ ],
+ "deep": [
+  {
+   "title": "The waiting room",
+   "sim": "queue",
+   "html": "<p>A spike of 2k arrivals/s against a backend that can admit 300/s cannot be solved by autoscaling alone: the database primary is the real limit, and it does not autoscale in seconds. So <b>queue people at the edge</b>.</p><ul><li><b>Ticket</b>: <code>INCR arrivals</code> in Redis gives each arrival a number. Store it in a signed cookie so refreshing does not lose your place.</li><li><b>Admit pointer</b>: a controller raises <code>admitted_up_to</code> by ~300 every second, and slows down automatically if API p99 latency or DB CPU climbs.</li><li><b>Pre-opening crowd</b>: people who arrive before 10:00 are all equally early. Give them a <b>random</b> order at 10:00 instead of rewarding whoever has the fastest script, then FIFO for later arrivals.</li><li>The waiting room page is static and served from a CDN, so it holds up when nothing else would.</li></ul>"
+  },
+  {
+   "title": "Never double book: layers of defence",
+   "html": "<ol><li><b>Atomic conditional update</b> on the slot row (<code>WHERE taken &lt; capacity</code>). The check and the write happen in one statement, so two requests can never both see \"1 left\" and both take it. This replaces read-then-write, which is the classic race.</li><li><b>CHECK (taken &lt;= capacity)</b> as a database-level backstop.</li><li><b>Unique constraints</b> on people: one live hold per resident, one active booking per (resident, dose).</li><li><b>Idempotency keys</b> on confirm, so retries return the first result instead of creating a second booking.</li></ol><p>Alternatives: <code>SELECT ... FOR UPDATE</code> (pessimistic lock, holds the row lock across a round trip) or a <code>version</code> column with optimistic retry (fine when contention is low, but under a launch rush most attempts fail and retry, which multiplies load). The single conditional UPDATE is simplest and holds the lock for microseconds.</p>"
+  },
+  {
+   "title": "Hot slots",
+   "html": "<p>Saturday 10:00 at the nearest centre is wanted by thousands at once. Every hold on that slot updates the <b>same row</b>, and Postgres serialises writers on a row lock: at ~1 ms per update you get ~1,000 updates/s on that row at best, and long queues of waiting transactions.</p><ul><li><b>Split the counter</b>: store the capacity of 20 as 4 sub-rows of 5 and pick one at random; try another if it is full. Contention drops ~4×.</li><li><b>Gate in Redis first</b>: a Lua script decrements <code>remaining</code> atomically; only winners go to Postgres for the durable write, losers get \"full\" in under 1 ms. Postgres stays the source of truth and a reconciler fixes any drift.</li><li><b>Steer demand</b>: show the next 3 nearby windows with space when a slot fills, so retries spread out instead of hammering one row.</li></ul>"
+  },
+  {
+   "title": "Two doses and rescheduling",
+   "html": "<p>A dose-1 slot is useless without a dose-2 slot about 3 to 4 weeks later, so <b>hold both in one transaction</b>. Lock the two slot rows in a fixed order (lower id first) so two transactions holding the same pair in opposite order cannot deadlock.</p><p><b>Reschedule</b> is take-new then release-old in one transaction. Doing it as cancel then book can leave the person with nothing if the new slot fills in between.</p>"
+  }
+ ],
+ "tradeoffs": [
+  {
+   "choice": "Where do holds live?",
+   "pick": "Postgres rows with expires_at, plus a sweeper",
+   "why": "Redis keys with TTL expire neatly, but then the seat count lives in two systems and can drift if a process dies mid-way. Keeping holds and counts in one transactional store is easier to reason about; Redis serves only the browse view."
+  },
+  {
+   "choice": "Concurrency control on the slot row",
+   "pick": "Atomic conditional UPDATE",
+   "why": "Holds the row lock for one statement. Optimistic versioning thrashes under heavy contention; SELECT FOR UPDATE holds the lock across a network round trip."
+  },
+  {
+   "choice": "Absorb the spike: autoscale or queue?",
+   "pick": "Waiting room in front, autoscaled API behind it",
+   "why": "The DB primary is the bottleneck and cannot scale in seconds. A waiting room turns errors into a visible wait and keeps the order fair."
+  },
+  {
+   "choice": "Allocation rule",
+   "pick": "Invite waves + first come, first served within a wave",
+   "why": "A ballot is fairer for very scarce slots but needs a second round of notifications. With enough total capacity, waves keep each race small and FCFS is easy to explain."
+  },
+  {
+   "choice": "Exact or approximate availability on the browse page?",
+   "pick": "Approximate, 2 s stale",
+   "why": "Reads outnumber holds ~10:1. The conditional UPDATE is the real arbiter, so staleness costs at most one \"just filled, try 10:30\" message."
+  }
+ ],
+ "bottlenecks": [
+  {
+   "issue": "One popular slot row becomes a lock hotspot",
+   "fix": "Split capacity into sub-rows, gate with an atomic Redis decrement, and suggest nearby windows when a slot fills."
+  },
+  {
+   "issue": "SMS provider throttles or fails during a 1M-invite wave",
+   "fix": "Queue + token bucket per provider, a second provider for failover, and open booking only after the wave's last SMS is sent."
+  },
+  {
+   "issue": "Bots or forwarded links grab slots",
+   "fix": "Single-use invite token bound to an identity check, a pass from the waiting room, per-identity and per-IP rate limits, and one hold per resident."
+  },
+  {
+   "issue": "Availability reads stampede the database",
+   "fix": "Serve browsing only from the Redis view rebuilt every 2 s; the database sees only holds and confirms."
+  }
+ ],
+ "followups": [
+  {
+   "q": "What happens if the API crashes after taking the slot but before replying?",
+   "a": "<p>The hold row was committed with <code>taken + 1</code>, so the seat is accounted for. The client retries; since the resident already has a live hold (unique per resident) we return it instead of taking a second seat. If they never come back, the sweeper frees it after 5 minutes.</p>"
+  },
+  {
+   "q": "How do you stop a script from booking for many people?",
+   "a": "<p>Each invite is single-use and tied to one person's identity check, holds are limited to one per resident, and admitted passes are rate-limited per identity and IP. A script gains nothing by being fast because the pre-opening crowd is randomised.</p>"
+  },
+  {
+   "q": "How would you add a ballot instead of first come, first served?",
+   "a": "<p>Collect preferences for a window (say 24 h), then run an allocation job: shuffle applicants with a seeded random order, assign each their highest-ranked preference with space, and notify results in a batch. No real-time contention at all, at the cost of a slower answer.</p>"
+  },
+  {
+   "q": "A centre closes for a day. What do you do?",
+   "a": "<p>Set those slots' capacity to 0, find active bookings on them, and offer each person a one-tap move to the nearest centre with space, holding the new slot for them for 24 h. All of it is a batch job plus notifications; the core schema does not change.</p>"
+  },
+  {
+   "q": "Why not just put everything in Redis for speed?",
+   "a": "<p>Bookings must survive failures and be auditable. Postgres gives transactions, constraints and durable writes at the ~600 txn/s we need. Redis is used where losing data is harmless: the availability view and the waiting-room counters.</p>"
+  }
+ ],
+ "quiz": [
+  {
+   "q": "Which statement prevents two people taking the last seat?",
+   "options": [
+    "SELECT taken FROM slots, then UPDATE if taken &lt; capacity",
+    "UPDATE slots SET taken = taken + 1 WHERE id = $1 AND taken &lt; capacity",
+    "Cache the remaining count in Redis with a TTL",
+    "Retry the booking until it succeeds"
+   ],
+   "answer": 1,
+   "why": "The check and the write are one atomic statement. Read-then-write lets both requests read \"1 left\" before either writes."
+  },
+  {
+   "q": "Why do holds have a short expiry?",
+   "options": [
+    "To save disk space",
+    "So abandoned sessions give seats back instead of locking them forever",
+    "Because SMS links expire",
+    "To make the browse page faster"
+   ],
+   "answer": 1,
+   "why": "Many holds are abandoned. A 5-minute hold plus a sweeper returns those seats to the pool."
+  },
+  {
+   "q": "What does the waiting room protect most directly?",
+   "options": [
+    "The CDN",
+    "The SMS provider",
+    "The database primary, which cannot scale out in seconds",
+    "The browser"
+   ],
+   "answer": 2,
+   "why": "Stateless API servers autoscale; the single write primary does not. The admit rate is set by what it can handle."
+  },
+  {
+   "q": "A resident double-taps Confirm on a slow network. What stops two bookings?",
+   "options": [
+    "The CDN cache",
+    "An Idempotency-Key plus a unique index on (resident_id, dose_no) for active bookings",
+    "The hold sweeper",
+    "Rate limiting by IP"
+   ],
+   "answer": 1,
+   "why": "The retry returns the first result, and even a buggy client cannot create a second active booking for the same dose."
+  },
+  {
+   "q": "Two transactions each hold a dose-1 and dose-2 slot pair in opposite order. How do you avoid deadlock?",
+   "options": [
+    "Lock rows in a fixed order, such as by slot id",
+    "Use a bigger connection pool",
+    "Set a longer lock timeout",
+    "Hold the slots in two separate transactions"
+   ],
+   "answer": 0,
+   "why": "A consistent lock order removes the cycle that causes deadlock. Separate transactions would let someone end up with dose 1 but no dose 2."
+  }
+ ]
+}

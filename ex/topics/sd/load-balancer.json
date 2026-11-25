@@ -1,0 +1,435 @@
+{
+ "id": "load-balancer",
+ "track": "sd",
+ "order": 3,
+ "title": "Load balancer",
+ "short": "Spread traffic across many servers so none drowns.",
+ "what": "One server can only handle so many requests. A load balancer sits in front of several copies of your server and hands each new request to one of them. If a server dies, it stops sending traffic there.",
+ "analogy": "The host at a busy restaurant. Guests don't pick a waiter; the host seats each new table with whoever has room.",
+ "viz": {
+  "kind": "sd",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "u",
+      "label": "Users",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "lb",
+      "label": "Load balancer",
+      "x": 35,
+      "y": 50
+     },
+     {
+      "id": "a",
+      "label": "Server A",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "b",
+      "label": "Server B",
+      "x": 100,
+      "y": 50
+     },
+     {
+      "id": "c",
+      "label": "Server C",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "u",
+      "lb"
+     ],
+     [
+      "lb",
+      "a"
+     ],
+     [
+      "lb",
+      "b"
+     ],
+     [
+      "lb",
+      "c"
+     ]
+    ],
+    "say": "Three identical servers sit behind one load balancer. Users only know the balancer's address."
+   },
+   {
+    "nodes": [
+     {
+      "id": "u",
+      "label": "Users",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "lb",
+      "label": "Load balancer",
+      "x": 35,
+      "y": 50
+     },
+     {
+      "id": "a",
+      "label": "Server A",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "b",
+      "label": "Server B",
+      "x": 100,
+      "y": 50
+     },
+     {
+      "id": "c",
+      "label": "Server C",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "u",
+      "lb",
+      "request 1"
+     ],
+     [
+      "lb",
+      "a"
+     ],
+     [
+      "lb",
+      "b"
+     ],
+     [
+      "lb",
+      "c"
+     ]
+    ],
+    "hi": [
+     "lb",
+     "a"
+    ],
+    "edgeHi": [
+     [
+      "u",
+      "lb"
+     ],
+     [
+      "lb",
+      "a"
+     ]
+    ],
+    "say": "Request 1 arrives. Round robin sends it to A."
+   },
+   {
+    "nodes": [
+     {
+      "id": "u",
+      "label": "Users",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "lb",
+      "label": "Load balancer",
+      "x": 35,
+      "y": 50
+     },
+     {
+      "id": "a",
+      "label": "Server A",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "b",
+      "label": "Server B",
+      "x": 100,
+      "y": 50
+     },
+     {
+      "id": "c",
+      "label": "Server C",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "u",
+      "lb",
+      "request 2"
+     ],
+     [
+      "lb",
+      "a"
+     ],
+     [
+      "lb",
+      "b"
+     ],
+     [
+      "lb",
+      "c"
+     ]
+    ],
+    "hi": [
+     "lb",
+     "b"
+    ],
+    "edgeHi": [
+     [
+      "u",
+      "lb"
+     ],
+     [
+      "lb",
+      "b"
+     ]
+    ],
+    "say": "Request 2 goes to B, request 3 to C, then back to A. Each server gets a third of the work."
+   },
+   {
+    "nodes": [
+     {
+      "id": "u",
+      "label": "Users",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "lb",
+      "label": "Load balancer",
+      "x": 35,
+      "y": 50
+     },
+     {
+      "id": "a",
+      "label": "Server A",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "b",
+      "label": "Server B",
+      "sub": "health check fails",
+      "x": 100,
+      "y": 50
+     },
+     {
+      "id": "c",
+      "label": "Server C",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "u",
+      "lb"
+     ],
+     [
+      "lb",
+      "a"
+     ],
+     [
+      "lb",
+      "b"
+     ],
+     [
+      "lb",
+      "c"
+     ]
+    ],
+    "bad": [
+     "b"
+    ],
+    "say": "The balancer pings each server every few seconds. B stops answering, so it is marked unhealthy."
+   },
+   {
+    "nodes": [
+     {
+      "id": "u",
+      "label": "Users",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "lb",
+      "label": "Load balancer",
+      "x": 35,
+      "y": 50
+     },
+     {
+      "id": "a",
+      "label": "Server A",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "b",
+      "label": "Server B",
+      "x": 100,
+      "y": 50
+     },
+     {
+      "id": "c",
+      "label": "Server C",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "u",
+      "lb"
+     ],
+     [
+      "lb",
+      "a"
+     ],
+     [
+      "lb",
+      "c"
+     ]
+    ],
+    "dim": [
+     "b"
+    ],
+    "ok": [
+     "a",
+     "c"
+    ],
+    "edgeHi": [
+     [
+      "lb",
+      "a"
+     ],
+     [
+      "lb",
+      "c"
+     ]
+    ],
+    "say": "Traffic now only goes to A and C. Users never see an error, and B rejoins once it is healthy."
+   },
+   {
+    "nodes": [
+     {
+      "id": "u",
+      "label": "Users",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "lb",
+      "label": "Load balancer",
+      "x": 35,
+      "y": 50
+     },
+     {
+      "id": "a",
+      "label": "Server A",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "b",
+      "label": "Server B",
+      "x": 100,
+      "y": 50
+     },
+     {
+      "id": "c",
+      "label": "Server C",
+      "x": 100,
+      "y": 100
+     },
+     {
+      "id": "d",
+      "label": "Server D",
+      "sub": "added at peak",
+      "x": 70,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "u",
+      "lb"
+     ],
+     [
+      "lb",
+      "a"
+     ],
+     [
+      "lb",
+      "b"
+     ],
+     [
+      "lb",
+      "c"
+     ],
+     [
+      "lb",
+      "d"
+     ]
+    ],
+    "ok": [
+     "d"
+    ],
+    "edgeHi": [
+     [
+      "lb",
+      "d"
+     ]
+    ],
+    "say": "At peak time you add server D. The balancer starts using it right away. This is scaling out."
+   }
+  ]
+ },
+ "when": [
+  "One server can't handle the traffic",
+  "You need no downtime when a server dies",
+  "You want to add servers at peak and remove them later"
+ ],
+ "python": "from itertools import cycle\n\nservers = cycle([\"A\", \"B\", \"C\"])\nfor request in range(1, 6):\n    print(\"request\", request, \"->\", next(servers))",
+ "output": "request 1 -> A\nrequest 2 -> B\nrequest 3 -> C\nrequest 4 -> A\nrequest 5 -> B",
+ "cost": [
+  [
+   "Extra time per request",
+   "under 1 ms"
+  ],
+  [
+   "Servers you can add",
+   "many, one at a time"
+  ],
+  [
+   "Round robin pick",
+   "O(1)"
+  ]
+ ],
+ "watch": [
+  "The balancer itself can fail: run two of them.",
+  "Servers should keep no user state in memory, or a user's next request lands on a server that doesn't know them.",
+  "Round robin ignores load. Least connections sends work to the least busy server."
+ ],
+ "interview": [
+  "Design a URL shortener",
+  "Design a rate limiter",
+  "Design a chat app"
+ ],
+ "related": [
+  "horizontal-scaling",
+  "caching",
+  "health-checks"
+ ]
+}

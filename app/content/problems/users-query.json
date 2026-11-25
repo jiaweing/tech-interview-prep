@@ -1,0 +1,643 @@
+{
+ "id": "users-query",
+ "title": "Users Query",
+ "pattern": "sorting",
+ "level": "easy",
+ "statement": "<p>An HR API serves <code>GET /users?min=&amp;max=&amp;offset=&amp;limit=&amp;sort=</code>. Query-string values always arrive as strings, so the endpoint must validate them before it can filter, sort and page.</p><p>Write <code>def solution(users, params)</code>. <code>users</code> is a list of <code>[name, salary]</code> (unique names, salary a number). <code>params</code> is a dict of strings; any key may be missing.</p><ul><li><code>min</code> (default <code>\"0\"</code>) and <code>max</code> (default <code>\"4000\"</code>): decimal numbers, meaning an optional <code>-</code>, digits, and optionally <code>.</code> plus digits. <code>max</code> is also illegal when it is less than <code>min</code>.</li><li><code>offset</code> (default <code>\"0\"</code>) and <code>limit</code> (default: no limit): whole numbers &ge; 0, digits only.</li><li><code>sort</code>: <code>NAME</code> or <code>SALARY</code>, any case. Missing means keep the given order.</li><li>A param that is present but empty is illegal.</li></ul><p>If any param is illegal, return <code>{\"error\": name}</code> for the first illegal one in the order <code>min, max, offset, limit, sort</code>.</p><p>Otherwise keep users with <code>min &le; salary &le; max</code>, sort them (by name, or by salary with ties broken by name), then skip <code>offset</code> rows and keep at most <code>limit</code>. Return <code>{\"results\": [[name, salary], ...]}</code>.</p>",
+ "examples": [
+  {
+   "input": "users = [['Carol', 3200.0], ['Alex', 1500.0], ['Bob', 4500.0], ['Dina', 1500.0], ['Eve', 800.5]], params = {}",
+   "output": "{'results': [['Carol', 3200.0], ['Alex', 1500.0], ['Dina', 1500.0], ['Eve', 800.5]]}",
+   "why": "Defaults are <code>min 0</code>, <code>max 4000</code>, no sort. Bob earns 4500, so he is filtered out; the rest keep their order."
+  },
+  {
+   "input": "users = [['Carol', 3200.0], ['Alex', 1500.0], ['Bob', 4500.0], ['Dina', 1500.0], ['Eve', 800.5]], params = {'min': '1000', 'sort': 'salary', 'limit': '2'}",
+   "output": "{'results': [['Alex', 1500.0], ['Dina', 1500.0]]}",
+   "why": "Eve is under 1000 and Bob over 4000. Sorted by salary: Alex and Dina tie on 1500, so name decides. <code>limit 2</code> keeps the first two."
+  },
+  {
+   "input": "users = [['Carol', 3200.0], ['Alex', 1500.0], ['Bob', 4500.0], ['Dina', 1500.0], ['Eve', 800.5]], params = {'min': '2000', 'max': '1000'}",
+   "output": "{'error': 'max'}",
+   "why": "Both are numbers, but <code>max</code> is below <code>min</code>, so <code>max</code> is the illegal param."
+  }
+ ],
+ "constraints": [
+  "0 &le; len(users) &le; 100,000",
+  "0 &le; salary &le; 1,000,000 for every user",
+  "<code>params</code> keys are a subset of <code>min, max, offset, limit, sort</code>; values are strings of length &le; 20"
+ ],
+ "starter": "def solution(users, params):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "What are the four stages, and in what order?",
+   "a": "Validate, filter, sort, page. Paging must come <b>last</b>: <code>limit 2</code> means the first two rows of the sorted, filtered list, not two random users."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Users <code>A 5, B 3, C 5</code>, <code>sort=SALARY</code>, <code>offset=1</code>. Result?",
+   "a": "Filter keeps all three. Sort by <code>(salary, name)</code>: <code>B 3, A 5, C 5</code>. Skip one: <code>[['A', 5], ['C', 5]]</code>."
+  },
+  {
+   "step": "Naive idea",
+   "q": "Why not just call <code>int(params['limit'])</code>?",
+   "a": "It crashes on a missing key and on <code>\"abc\"</code>, and <code>int(\"-1\")</code> succeeds even though a negative limit is illegal. <code>float()</code> also accepts <code>\"1e3\"</code> and <code>\"nan\"</code>. Write small explicit validators."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Clue words?",
+   "a": "\"sort by\", \"ties\", \"offset\", \"limit\" &rarr; <b>sorting</b> with a tuple key, then slicing. <code>key=lambda r: (r[1], r[0])</code> sorts by salary and breaks ties by name in one pass."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li>Read each param with its default; validate in order min, max, offset, limit, sort; return the first error.</li><li>Filter <code>lo &lt;= salary &lt;= hi</code>.</li><li>Sort if asked.</li><li>Slice <code>rows[offset : offset + limit]</code>, or <code>rows[offset:]</code> with no limit.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "Empty DB. Offset past the end (empty list, not an error). <code>limit=0</code>. <code>min == max</code>. Two illegal params (name the first). <code>sort=salary</code> in lower case. <code>?sort=</code> with an empty value. A salary equal to <code>max</code> (inclusive)."
+  }
+ ],
+ "hints": [
+  "Use <code>params.get('min', '0')</code> for defaults, and keep <code>params.get('limit')</code> as <code>None</code> to mean \"no limit\".",
+  "Validate in the order the spec gives and return on the first failure. For offset and limit, \"digits only\" rejects <code>-1</code>, <code>1.5</code> and the empty string in one check.",
+  "Sort by salary with <code>rows.sort(key=lambda r: (r[1], r[0]))</code>, then slice with <code>rows[start:end]</code> where <code>end</code> is <code>None</code> when there is no limit."
+ ],
+ "solution": "def is_decimal(text):\n    # 2500, 2500.50 and -10 are numbers; '', '1e3', '.5' and 'abc' are not.\n    if text.startswith('-'):\n        text = text[1:]\n    parts = text.split('.')\n    return len(parts) <= 2 and all(p and all(c in '0123456789' for c in p) for p in parts)\n\n\ndef is_count(text):\n    # offset and limit: a whole number >= 0, so '-1' and '1.5' fail.\n    return text != '' and all(c in '0123456789' for c in text)\n\n\ndef solution(users, params):\n    # 1. Validate in a fixed order, so the first illegal param is predictable.\n    lo = params.get('min', '0')\n    if not is_decimal(lo):\n        return {'error': 'min'}\n    hi = params.get('max', '4000')\n    if not is_decimal(hi) or float(hi) < float(lo):\n        return {'error': 'max'}\n    offset = params.get('offset', '0')\n    if not is_count(offset):\n        return {'error': 'offset'}\n    limit = params.get('limit')                     # None means \"no limit\"\n    if limit is not None and not is_count(limit):\n        return {'error': 'limit'}\n    sort = params.get('sort')\n    if sort is not None and sort.upper() not in ('NAME', 'SALARY'):\n        return {'error': 'sort'}\n\n    # 2. Filter, 3. sort (ties by name), 4. page.\n    lo, hi = float(lo), float(hi)\n    rows = [[name, salary] for name, salary in users if lo <= salary <= hi]\n    if sort is not None and sort.upper() == 'NAME':\n        rows.sort(key=lambda r: r[0])\n    elif sort is not None:\n        rows.sort(key=lambda r: (r[1], r[0]))\n    start = int(offset)\n    end = None if limit is None else start + int(limit)\n    return {'results': rows[start:end]}\n",
+ "brute": "def solution(users, params):\n    # Same rules, longhand: try/except parsing and an insertion sort.\n    def number(text):\n        # float() alone is too lenient ('1e3', 'nan', '1_000', ' 5'), so whitelist characters first.\n        if text == '' or any(c not in '0123456789.-' for c in text):\n            return None\n        if text.startswith('.') or text.endswith('.') or text.startswith('-.'):\n            return None\n        try:\n            return float(text)\n        except ValueError:\n            return None\n    lo = number(params['min']) if 'min' in params else 0.0\n    if lo is None:\n        return {'error': 'min'}\n    hi = number(params['max']) if 'max' in params else 4000.0\n    if hi is None or hi < lo:\n        return {'error': 'max'}\n    counts = {}\n    for key in ('offset', 'limit'):\n        if key in params:\n            text = params[key]\n            if text == '' or any(c not in '0123456789' for c in text):\n                return {'error': key}\n            counts[key] = int(text)\n    mode = None\n    if 'sort' in params:\n        mode = params['sort'].lower()\n        if mode not in ('name', 'salary'):\n            return {'error': 'sort'}\n    picked = []\n    for u in users:\n        if u[1] >= lo and u[1] <= hi:\n            picked.append([u[0], u[1]])\n    if mode is not None:\n        for i in range(1, len(picked)):\n            j = i\n            while j > 0:\n                a, b = picked[j - 1], picked[j]\n                if mode == 'name':\n                    swap = a[0] > b[0]\n                else:\n                    swap = a[1] > b[1] or (a[1] == b[1] and a[0] > b[0])\n                if not swap:\n                    break\n                picked[j - 1], picked[j] = b, a\n                j -= 1\n    start = counts.get('offset', 0)\n    out = picked[start:]\n    if 'limit' in counts:\n        out = out[:counts['limit']]\n    return {'results': out}\n",
+ "explain": "<p>The function is a pipeline: <b>validate &rarr; filter &rarr; sort &rarr; page</b>. Most bugs come from doing these in the wrong order or from trusting <code>int()</code>/<code>float()</code> as validators.</p><ul><li>Example 2: <code>min</code> is <code>\"1000\"</code>, <code>max</code> defaults to <code>\"4000\"</code>, <code>offset</code> to <code>\"0\"</code>, <code>limit</code> is <code>\"2\"</code>, <code>sort</code> upper-cases to <code>SALARY</code>. All legal.</li><li>Filter keeps Carol 3200, Alex 1500, Dina 1500.</li><li>Sort by <code>(salary, name)</code>: Alex 1500, Dina 1500, Carol 3200.</li><li>Slice <code>[0:2]</code>: Alex and Dina.</li></ul><p>In the take-home this sits behind Express. In an interview, say that the same pipeline maps to SQL: <code>WHERE salary BETWEEN $1 AND $2 ORDER BY salary, name OFFSET $3 LIMIT $4</code>, and that the tie-breaker is what makes pages stable.</p>",
+ "complexity": "O(n log n) time for the sort (O(n) without sort), O(n) extra space for the filtered rows",
+ "tests": [
+  {
+   "args": [
+    [
+     [
+      "Carol",
+      3200.0
+     ],
+     [
+      "Alex",
+      1500.0
+     ],
+     [
+      "Bob",
+      4500.0
+     ],
+     [
+      "Dina",
+      1500.0
+     ],
+     [
+      "Eve",
+      800.5
+     ]
+    ],
+    {}
+   ],
+   "expected": {
+    "results": [
+     [
+      "Carol",
+      3200.0
+     ],
+     [
+      "Alex",
+      1500.0
+     ],
+     [
+      "Dina",
+      1500.0
+     ],
+     [
+      "Eve",
+      800.5
+     ]
+    ]
+   },
+   "label": "example 1 (all defaults)",
+   "cat": "example",
+   "why": "defaults are min 0, max 4000, no sort: Bob (4500) is filtered out, order is kept"
+  },
+  {
+   "args": [
+    [
+     [
+      "Carol",
+      3200.0
+     ],
+     [
+      "Alex",
+      1500.0
+     ],
+     [
+      "Bob",
+      4500.0
+     ],
+     [
+      "Dina",
+      1500.0
+     ],
+     [
+      "Eve",
+      800.5
+     ]
+    ],
+    {
+     "min": "1000",
+     "sort": "salary",
+     "limit": "2"
+    }
+   ],
+   "expected": {
+    "results": [
+     [
+      "Alex",
+      1500.0
+     ],
+     [
+      "Dina",
+      1500.0
+     ]
+    ]
+   },
+   "label": "example 2 (sort, then limit)",
+   "cat": "example",
+   "why": "Alex and Dina tie on 1500, so the tie breaks by name; limit keeps the first 2"
+  },
+  {
+   "args": [
+    [
+     [
+      "Carol",
+      3200.0
+     ],
+     [
+      "Alex",
+      1500.0
+     ],
+     [
+      "Bob",
+      4500.0
+     ],
+     [
+      "Dina",
+      1500.0
+     ],
+     [
+      "Eve",
+      800.5
+     ]
+    ],
+    {
+     "min": "2000",
+     "max": "1000"
+    }
+   ],
+   "expected": {
+    "error": "max"
+   },
+   "label": "example 3 (min above max)",
+   "cat": "example",
+   "why": "max is illegal when it is below min"
+  },
+  {
+   "args": [
+    [],
+    {
+     "sort": "NAME"
+    }
+   ],
+   "expected": {
+    "results": []
+   },
+   "label": "empty DB",
+   "cat": "empty",
+   "why": "no users gives an empty list, not an error"
+  },
+  {
+   "args": [
+    [
+     [
+      "Solo",
+      4000
+     ]
+    ],
+    {}
+   ],
+   "expected": {
+    "results": [
+     [
+      "Solo",
+      4000
+     ]
+    ]
+   },
+   "label": "max is inclusive",
+   "cat": "boundary",
+   "why": "a salary equal to the default max of 4000 is included"
+  },
+  {
+   "args": [
+    [
+     [
+      "Carol",
+      3200.0
+     ],
+     [
+      "Alex",
+      1500.0
+     ],
+     [
+      "Bob",
+      4500.0
+     ],
+     [
+      "Dina",
+      1500.0
+     ],
+     [
+      "Eve",
+      800.5
+     ]
+    ],
+    {
+     "sort": "NaMe",
+     "offset": "1",
+     "limit": "2"
+    }
+   ],
+   "expected": {
+    "results": [
+     [
+      "Carol",
+      3200.0
+     ],
+     [
+      "Dina",
+      1500.0
+     ]
+    ]
+   },
+   "label": "sort by name, page 2",
+   "cat": "small",
+   "why": "sort is case-insensitive; offset 1 skips Alex"
+  },
+  {
+   "args": [
+    [
+     [
+      "Carol",
+      3200.0
+     ],
+     [
+      "Alex",
+      1500.0
+     ],
+     [
+      "Bob",
+      4500.0
+     ],
+     [
+      "Dina",
+      1500.0
+     ],
+     [
+      "Eve",
+      800.5
+     ]
+    ],
+    {
+     "offset": "10"
+    }
+   ],
+   "expected": {
+    "results": []
+   },
+   "label": "offset past the end",
+   "cat": "edge",
+   "why": "slicing past the end gives an empty list, not an error"
+  },
+  {
+   "args": [
+    [
+     [
+      "Carol",
+      3200.0
+     ],
+     [
+      "Alex",
+      1500.0
+     ],
+     [
+      "Bob",
+      4500.0
+     ],
+     [
+      "Dina",
+      1500.0
+     ],
+     [
+      "Eve",
+      800.5
+     ]
+    ],
+    {
+     "limit": "0"
+    }
+   ],
+   "expected": {
+    "results": []
+   },
+   "label": "limit zero",
+   "cat": "zero",
+   "why": "a limit of 0 is legal and returns nothing"
+  },
+  {
+   "args": [
+    [
+     [
+      "Carol",
+      3200.0
+     ],
+     [
+      "Alex",
+      1500.0
+     ],
+     [
+      "Bob",
+      4500.0
+     ],
+     [
+      "Dina",
+      1500.0
+     ],
+     [
+      "Eve",
+      800.5
+     ]
+    ],
+    {
+     "min": "800.5",
+     "max": "800.5"
+    }
+   ],
+   "expected": {
+    "results": [
+     [
+      "Eve",
+      800.5
+     ]
+    ]
+   },
+   "label": "min equals max",
+   "cat": "boundary",
+   "why": "both ends are inclusive, decimals are fine"
+  },
+  {
+   "args": [
+    [
+     [
+      "Carol",
+      3200.0
+     ],
+     [
+      "Alex",
+      1500.0
+     ],
+     [
+      "Bob",
+      4500.0
+     ],
+     [
+      "Dina",
+      1500.0
+     ],
+     [
+      "Eve",
+      800.5
+     ]
+    ],
+    {
+     "offset": "-1"
+    }
+   ],
+   "expected": {
+    "error": "offset"
+   },
+   "label": "negative offset",
+   "cat": "negative",
+   "why": "offset must be a whole number >= 0"
+  },
+  {
+   "args": [
+    [
+     [
+      "Carol",
+      3200.0
+     ],
+     [
+      "Alex",
+      1500.0
+     ],
+     [
+      "Bob",
+      4500.0
+     ],
+     [
+      "Dina",
+      1500.0
+     ],
+     [
+      "Eve",
+      800.5
+     ]
+    ],
+    {
+     "min": "abc",
+     "sort": "AGE"
+    }
+   ],
+   "expected": {
+    "error": "min"
+   },
+   "label": "two illegal params",
+   "cat": "edge",
+   "why": "min is checked before sort, so the error names min"
+  },
+  {
+   "args": [
+    [
+     [
+      "Carol",
+      3200.0
+     ],
+     [
+      "Alex",
+      1500.0
+     ],
+     [
+      "Bob",
+      4500.0
+     ],
+     [
+      "Dina",
+      1500.0
+     ],
+     [
+      "Eve",
+      800.5
+     ]
+    ],
+    {
+     "limit": "1.5",
+     "sort": "AGE"
+    }
+   ],
+   "expected": {
+    "error": "limit"
+   },
+   "label": "fractional limit",
+   "cat": "edge",
+   "why": "limit must be a whole number; it is checked before sort"
+  },
+  {
+   "args": [
+    [
+     [
+      "Carol",
+      3200.0
+     ],
+     [
+      "Alex",
+      1500.0
+     ],
+     [
+      "Bob",
+      4500.0
+     ],
+     [
+      "Dina",
+      1500.0
+     ],
+     [
+      "Eve",
+      800.5
+     ]
+    ],
+    {
+     "sort": ""
+    }
+   ],
+   "expected": {
+    "error": "sort"
+   },
+   "label": "empty sort value",
+   "cat": "edge",
+   "why": "a param that is present but empty (?sort=) is illegal"
+  },
+  {
+   "args": [
+    [
+     [
+      "Kim",
+      2000.0
+     ],
+     [
+      "Ann",
+      2000.0
+     ],
+     [
+      "Raj",
+      1999.99
+     ],
+     [
+      "Lee",
+      2000.0
+     ],
+     [
+      "Bea",
+      3999.0
+     ],
+     [
+      "Zoe",
+      0.0
+     ],
+     [
+      "Max",
+      2000.01
+     ]
+    ],
+    {
+     "min": "1999.99",
+     "max": "2000.01",
+     "sort": "SALARY",
+     "offset": "1"
+    }
+   ],
+   "expected": {
+    "results": [
+     [
+      "Ann",
+      2000.0
+     ],
+     [
+      "Kim",
+      2000.0
+     ],
+     [
+      "Lee",
+      2000.0
+     ],
+     [
+      "Max",
+      2000.01
+     ]
+    ]
+   },
+   "label": "salary ties, mid page",
+   "cat": "dupes",
+   "why": "three people on 2000 sort Ann, Kim, Lee; offset 1 drops Raj"
+  }
+ ],
+ "perf": {
+  "label": "performance: 20,000 users, sort by salary, one page",
+  "gen": "[[['user%05d' % ((i * 7919) % 20000), (i * 37) % 5000] for i in range(20000)], {'min': '1000', 'max': '3000', 'sort': 'SALARY', 'offset': '100', 'limit': '5'}]",
+  "expected": {
+   "results": [
+    [
+     "user01675",
+     1025
+    ],
+    [
+     "user06675",
+     1025
+    ],
+    [
+     "user11675",
+     1025
+    ],
+    [
+     "user16675",
+     1025
+    ],
+    [
+     "user04862",
+     1026
+    ]
+   ]
+  }
+ },
+ "govtech": {
+  "round": "take-home",
+  "tag": "inspired",
+  "source": "GovTech ACE take-home (2025)",
+  "evidence": "A 2025 copy of the take-home spec (github.com/bryanlohxz/swe-take-home-assignment, which says it is adapted from GovTech ACE hiring) and a candidate's March 2025 solution (github.com/tjingsheng/swe-take-home-assignment) define <code>GET /users</code> with <code>min</code> (default 0.0), <code>max</code> (default 4000.0), <code>offset</code>, <code>limit</code> and <code>sort=NAME|SALARY</code>; the spec leaves <code>min &gt; max</code>, salary ties and the error body open (that candidate returned an empty list for <code>min &gt; max</code>), so those rules are this exercise's choice.",
+  "extensions": [
+   "<code>OFFSET 100000</code> makes the DB read and throw away 100,000 rows, and rows shift if someone inserts while you page. Switch to keyset pagination: <code>WHERE (salary, name) &gt; ($last_salary, $last_name) ORDER BY salary, name LIMIT 20</code>.",
+   "Which index makes <code>WHERE salary BETWEEN ... ORDER BY salary, name</code> fast? A composite index on <code>(salary, name)</code> serves the filter, the sort and the tie-breaker without a separate sort step.",
+   "Return a total count with each page so the UI can show \"page 3 of 40\". Count after filtering but before paging, and discuss what an exact <code>COUNT(*)</code> costs on millions of rows.",
+   "Return 400 with a message per bad param instead of just the first one, e.g. <code>{\"errors\": {\"limit\": \"must be a whole number\"}}</code>. Collect every error rather than returning early."
+  ]
+ }
+}

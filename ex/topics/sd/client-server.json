@@ -1,0 +1,344 @@
+{
+ "id": "client-server",
+ "track": "sd",
+ "order": 1,
+ "title": "Client and server",
+ "short": "One side asks, the other answers: the shape of every app.",
+ "what": "A client is the program in the user's hands: a browser or a phone app. A server is a computer that waits for requests and sends back responses. They talk over the network, usually with HTTP: one request in, one response out.",
+ "analogy": "Ordering at a coffee counter. You ask for a latte, the barista makes it and hands it over. The barista serves everyone in line and never walks up to you first.",
+ "viz": {
+  "kind": "sd",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "p",
+      "label": "Your phone",
+      "sub": "client",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "s",
+      "label": "Server",
+      "sub": "api.weather.com",
+      "x": 50,
+      "y": 50
+     },
+     {
+      "id": "db",
+      "label": "Database",
+      "sub": "forecasts",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "p",
+      "s"
+     ],
+     [
+      "s",
+      "db"
+     ]
+    ],
+    "say": "Your phone runs a weather app: the client. A server in a data center holds the forecasts. They talk only over the network."
+   },
+   {
+    "nodes": [
+     {
+      "id": "p",
+      "label": "Your phone",
+      "sub": "client",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "s",
+      "label": "Server",
+      "sub": "api.weather.com",
+      "x": 50,
+      "y": 50
+     },
+     {
+      "id": "db",
+      "label": "Database",
+      "sub": "forecasts",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "p",
+      "s",
+      "request"
+     ],
+     [
+      "s",
+      "db"
+     ]
+    ],
+    "hi": [
+     "p"
+    ],
+    "edgeHi": [
+     [
+      "p",
+      "s"
+     ]
+    ],
+    "say": "You open the app. It sends a request, a short text message to the server's address: GET /forecast?city=Paris."
+   },
+   {
+    "nodes": [
+     {
+      "id": "p",
+      "label": "Your phone",
+      "sub": "client",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "s",
+      "label": "Server",
+      "sub": "reads the request",
+      "x": 50,
+      "y": 50
+     },
+     {
+      "id": "db",
+      "label": "Database",
+      "sub": "forecasts",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "p",
+      "s"
+     ],
+     [
+      "s",
+      "db"
+     ]
+    ],
+    "hi": [
+     "s"
+    ],
+    "say": "The server is always on, listening. It reads the request, checks that Paris is a real city, and works out what data it needs."
+   },
+   {
+    "nodes": [
+     {
+      "id": "p",
+      "label": "Your phone",
+      "sub": "client",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "s",
+      "label": "Server",
+      "sub": "api.weather.com",
+      "x": 50,
+      "y": 50
+     },
+     {
+      "id": "db",
+      "label": "Database",
+      "sub": "forecasts",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "p",
+      "s"
+     ],
+     [
+      "s",
+      "db",
+      "find Paris"
+     ]
+    ],
+    "hi": [
+     "db"
+    ],
+    "edgeHi": [
+     [
+      "s",
+      "db"
+     ]
+    ],
+    "say": "It asks its database for the Paris forecast. The database sits in the same building, so this takes about 2 ms."
+   },
+   {
+    "nodes": [
+     {
+      "id": "p",
+      "label": "Your phone",
+      "sub": "client",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "s",
+      "label": "Server",
+      "sub": "api.weather.com",
+      "x": 50,
+      "y": 50
+     },
+     {
+      "id": "db",
+      "label": "Database",
+      "sub": "forecasts",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "s",
+      "p",
+      "response"
+     ],
+     [
+      "s",
+      "db"
+     ]
+    ],
+    "ok": [
+     "p"
+    ],
+    "edgeHi": [
+     [
+      "s",
+      "p"
+     ]
+    ],
+    "say": "It sends back a response: status 200 OK plus the data, temp 14 and rain 60%. Your phone draws the screen. Total trip: about 120 ms."
+   },
+   {
+    "nodes": [
+     {
+      "id": "p",
+      "label": "Your phone",
+      "sub": "client",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "s",
+      "label": "Server",
+      "sub": "api.weather.com",
+      "x": 50,
+      "y": 50
+     },
+     {
+      "id": "db",
+      "label": "Database",
+      "sub": "forecasts",
+      "x": 100,
+      "y": 50
+     },
+     {
+      "id": "l",
+      "label": "Laptop",
+      "sub": "client",
+      "x": 0,
+      "y": 0
+     },
+     {
+      "id": "t",
+      "label": "Tablet",
+      "sub": "client",
+      "x": 0,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "l",
+      "s"
+     ],
+     [
+      "p",
+      "s"
+     ],
+     [
+      "t",
+      "s"
+     ],
+     [
+      "s",
+      "db"
+     ]
+    ],
+    "hi": [
+     "s"
+    ],
+    "edgeHi": [
+     [
+      "l",
+      "s"
+     ],
+     [
+      "p",
+      "s"
+     ],
+     [
+      "t",
+      "s"
+     ]
+    ],
+    "say": "The same server answers thousands of phones and laptops. Each request carries everything needed, so the server treats them all alike."
+   }
+  ]
+ },
+ "when": [
+  "Anything with users on phones or browsers",
+  "Data must be shared by many users",
+  "Logic or secrets can't live on the user's device",
+  "Someone asks what happens when you open a URL"
+ ],
+ "python": "import json, threading\nfrom http.server import BaseHTTPRequestHandler, HTTPServer\nfrom urllib.request import urlopen\n\nclass Weather(BaseHTTPRequestHandler):          # the server side\n    def do_GET(self):\n        self.send_response(200)\n        self.end_headers()\n        self.wfile.write(json.dumps({\"city\": \"Paris\", \"temp\": 14}).encode())\n\nserver = HTTPServer((\"127.0.0.1\", 0), Weather)\nthreading.Thread(target=server.serve_forever, daemon=True).start()\nwith urlopen(f\"http://127.0.0.1:{server.server_port}/forecast?city=Paris\") as r:   # the client side\n    print(r.status, json.loads(r.read()))",
+ "output": "200 {'city': 'Paris', 'temp': 14}",
+ "cost": [
+  [
+   "Request in the same city",
+   "~10-30 ms"
+  ],
+  [
+   "Request across an ocean",
+   "~100-200 ms"
+  ],
+  [
+   "Server work per request",
+   "a few ms"
+  ],
+  [
+   "Clients one server can handle",
+   "thousands per second"
+  ]
+ ],
+ "watch": [
+  "Never trust the client: check every input again on the server.",
+  "Each request is a round trip; on phones, a few big requests beat many small ones.",
+  "Keep login state in a database or cache, not in one server's memory, so any server can answer."
+ ],
+ "interview": [
+  "What happens when you type a URL and press Enter?",
+  "Design a URL shortener",
+  "Design Instagram"
+ ],
+ "related": [
+  "dns",
+  "load-balancer",
+  "rest-api",
+  "horizontal-scaling"
+ ]
+}

@@ -1,0 +1,440 @@
+{
+ "id": "observability",
+ "track": "sd",
+ "order": 25,
+ "title": "Observability",
+ "short": "Metrics, traces and logs tell you what broke, where, and why.",
+ "what": "Once a request crosses many services, you can't step through it in a debugger. Observability is what the system tells you about itself: metrics (numbers over time, for alerts), traces (one request's path with timings), and logs (detailed lines about each event).",
+ "analogy": "A car's dashboard, its trip history and the mechanic's notes. The dashboard says something is wrong, the trip shows where, the notes say why.",
+ "viz": {
+  "kind": "sd",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "gw",
+      "label": "Gateway",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "co",
+      "label": "Checkout",
+      "x": 33,
+      "y": 50
+     },
+     {
+      "id": "inv",
+      "label": "Inventory",
+      "x": 33,
+      "y": 100
+     },
+     {
+      "id": "pay",
+      "label": "Payments",
+      "x": 67,
+      "y": 50
+     },
+     {
+      "id": "bank",
+      "label": "Bank API",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "gw",
+      "co"
+     ],
+     [
+      "co",
+      "inv"
+     ],
+     [
+      "co",
+      "pay"
+     ],
+     [
+      "pay",
+      "bank"
+     ]
+    ],
+    "say": "A checkout goes through Gateway, Checkout, then Inventory and Payments. Users say checkout feels slow. Where do you start?"
+   },
+   {
+    "nodes": [
+     {
+      "id": "gw",
+      "label": "Gateway",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "co",
+      "label": "Checkout",
+      "x": 33,
+      "y": 50,
+      "sub": "p99 0.3 -> 2.4 s"
+     },
+     {
+      "id": "inv",
+      "label": "Inventory",
+      "x": 33,
+      "y": 100
+     },
+     {
+      "id": "pay",
+      "label": "Payments",
+      "x": 67,
+      "y": 50
+     },
+     {
+      "id": "bank",
+      "label": "Bank API",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "gw",
+      "co"
+     ],
+     [
+      "co",
+      "inv"
+     ],
+     [
+      "co",
+      "pay"
+     ],
+     [
+      "pay",
+      "bank"
+     ]
+    ],
+    "bad": [
+     "co"
+    ],
+    "say": "Metrics first: numbers over time. Checkout's p99, the slowest 1 in 100 requests, jumped from 0.3 s to 2.4 s. An alert fires."
+   },
+   {
+    "nodes": [
+     {
+      "id": "gw",
+      "label": "Gateway",
+      "x": 0,
+      "y": 50,
+      "sub": "2.45 s"
+     },
+     {
+      "id": "co",
+      "label": "Checkout",
+      "x": 33,
+      "y": 50,
+      "sub": "2.40 s"
+     },
+     {
+      "id": "inv",
+      "label": "Inventory",
+      "x": 33,
+      "y": 100,
+      "sub": "0.04 s"
+     },
+     {
+      "id": "pay",
+      "label": "Payments",
+      "x": 67,
+      "y": 50,
+      "sub": "2.30 s"
+     },
+     {
+      "id": "bank",
+      "label": "Bank API",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "gw",
+      "co"
+     ],
+     [
+      "co",
+      "inv"
+     ],
+     [
+      "co",
+      "pay"
+     ],
+     [
+      "pay",
+      "bank"
+     ]
+    ],
+    "hi": [
+     "gw",
+     "co",
+     "inv",
+     "pay"
+    ],
+    "edgeHi": [
+     [
+      "gw",
+      "co"
+     ],
+     [
+      "co",
+      "inv"
+     ],
+     [
+      "co",
+      "pay"
+     ]
+    ],
+    "say": "Next, a trace: one slow request, id 7f3a, followed through every service with the time spent in each."
+   },
+   {
+    "nodes": [
+     {
+      "id": "gw",
+      "label": "Gateway",
+      "x": 0,
+      "y": 50,
+      "sub": "2.45 s"
+     },
+     {
+      "id": "co",
+      "label": "Checkout",
+      "x": 33,
+      "y": 50,
+      "sub": "2.40 s"
+     },
+     {
+      "id": "inv",
+      "label": "Inventory",
+      "x": 33,
+      "y": 100,
+      "sub": "0.04 s"
+     },
+     {
+      "id": "pay",
+      "label": "Payments",
+      "x": 67,
+      "y": 50,
+      "sub": "2.30 s"
+     },
+     {
+      "id": "bank",
+      "label": "Bank API",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "gw",
+      "co"
+     ],
+     [
+      "co",
+      "inv"
+     ],
+     [
+      "co",
+      "pay"
+     ],
+     [
+      "pay",
+      "bank"
+     ]
+    ],
+    "ok": [
+     "inv"
+    ],
+    "bad": [
+     "pay"
+    ],
+    "dim": [
+     "gw"
+    ],
+    "edgeHi": [
+     [
+      "co",
+      "pay"
+     ]
+    ],
+    "say": "Inventory took 0.04 s, so it's fine. Payments took 2.3 of the 2.45 seconds. That's where to look."
+   },
+   {
+    "nodes": [
+     {
+      "id": "gw",
+      "label": "Gateway",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "co",
+      "label": "Checkout",
+      "x": 33,
+      "y": 50
+     },
+     {
+      "id": "inv",
+      "label": "Inventory",
+      "x": 33,
+      "y": 100
+     },
+     {
+      "id": "pay",
+      "label": "Payments",
+      "x": 67,
+      "y": 50,
+      "sub": "timeout, retry 3/3"
+     },
+     {
+      "id": "bank",
+      "label": "Bank API",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "gw",
+      "co"
+     ],
+     [
+      "co",
+      "inv"
+     ],
+     [
+      "co",
+      "pay"
+     ],
+     [
+      "pay",
+      "bank"
+     ]
+    ],
+    "hi": [
+     "pay"
+    ],
+    "dim": [
+     "gw",
+     "inv"
+    ],
+    "say": "Now the logs. Payments' lines for trace 7f3a say: 'bank API timeout, retry 3 of 3'. Each try waited about 0.7 s."
+   },
+   {
+    "nodes": [
+     {
+      "id": "gw",
+      "label": "Gateway",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "co",
+      "label": "Checkout",
+      "x": 33,
+      "y": 50
+     },
+     {
+      "id": "inv",
+      "label": "Inventory",
+      "x": 33,
+      "y": 100
+     },
+     {
+      "id": "pay",
+      "label": "Payments",
+      "x": 67,
+      "y": 50,
+      "sub": "waiting on bank"
+     },
+     {
+      "id": "bank",
+      "label": "Bank API",
+      "x": 100,
+      "y": 50,
+      "sub": "slow since 14:02"
+     }
+    ],
+    "edges": [
+     [
+      "gw",
+      "co"
+     ],
+     [
+      "co",
+      "inv"
+     ],
+     [
+      "co",
+      "pay"
+     ],
+     [
+      "pay",
+      "bank"
+     ]
+    ],
+    "bad": [
+     "bank"
+    ],
+    "dim": [
+     "gw",
+     "inv"
+    ],
+    "edgeHi": [
+     [
+      "pay",
+      "bank"
+     ]
+    ],
+    "say": "The cause is outside: the bank's API slowed down. Metrics said when, the trace said where, the logs said why."
+   }
+  ]
+ },
+ "when": [
+  "How would you debug this in production?",
+  "Many services handle one request",
+  "Alert when errors or latency go up",
+  "Find which service is slow"
+ ],
+ "python": "latencies = [0.28] * 95 + [2.4] * 5      # metrics: last 100 checkouts, in seconds\nranked = sorted(latencies)\nprint(\"p50:\", ranked[49], \"s   p99:\", ranked[98], \"s\")\n\n# trace 7f3a: time spent in each step inside checkout\nspans = {\"inventory\": 0.04, \"payments\": 2.30}\nslowest = max(spans, key=spans.get)\nprint(\"slowest step:\", slowest, spans[slowest], \"s\")\n\n# logs: every line carries the trace id, so you can filter by it\nlogs = [(\"91bc\", \"payments\", \"charged $24\"), (\"7f3a\", \"inventory\", \"3 in stock\"),\n        (\"7f3a\", \"payments\", \"bank API timeout, retry 3 of 3\")]\nfor trace_id, service, message in logs:\n    if trace_id == \"7f3a\" and service == slowest:\n        print(service + \":\", message)",
+ "output": "p50: 0.28 s   p99: 2.4 s\nslowest step: payments 2.3 s\npayments: bank API timeout, retry 3 of 3",
+ "cost": [
+  [
+   "Metrics",
+   "cheap: a few numbers a minute, kept for months"
+  ],
+  [
+   "Traces",
+   "keep 1-10% of requests"
+  ],
+  [
+   "Logs",
+   "biggest: GBs a day, kept for days"
+  ]
+ ],
+ "watch": [
+  "Averages hide pain. Alert on p99, not the mean.",
+  "Pass the trace id through every call and log line, or you can't connect them.",
+  "Never log passwords, tokens or card numbers."
+ ],
+ "interview": [
+  "How would you debug a slow endpoint in production?",
+  "Design a metrics and alerting system",
+  "Design a logging system for 1,000 services"
+ ],
+ "related": [
+  "microservices",
+  "health-checks",
+  "circuit-breaker",
+  "batch-vs-stream"
+ ]
+}

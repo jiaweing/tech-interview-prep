@@ -1,0 +1,314 @@
+{
+ "id": "consensus-raft",
+ "title": "Consensus and Raft",
+ "group": "Reliability & correctness",
+ "tagline": "How five machines agree on one ordered log, and keep agreeing when two of them die.",
+ "why": "<p>One database server is simple and wrong in one way: when it dies, writes stop. Copying data to backups fixes that only if every copy agrees on what was written and in what order. If two servers both think they are the leader during a network blip, they accept conflicting writes and you get split brain: two vouchers redeemed from one balance.</p><p>A consensus protocol makes a group of nodes act like one reliable machine. They agree on a single ordered log of commands; every node applies the same log in the same order, so every node ends in the same state. Raft is widely used (etcd, Consul, CockroachDB, TiKV, and a Raft variant in Kafka's KRaft mode) because it was designed to be understandable: one leader, a log, and majority votes.</p><p>The only named recent GovTech system design prompt, \"design a chain of consensus system\", is a one-line Glassdoor snippet (reported, unverified) with no spec. Consensus is the obvious core of it, so know Raft well enough to draw it and do the majority math out loud.</p>",
+ "how": "<p><b>Roles and terms.</b> Each node is a follower, candidate or leader. Time is divided into numbered <b>terms</b>; each term has at most one leader. Any message with a higher term makes a node step down to follower and adopt that term, which is how stale leaders are fenced off.</p><p><b>Leader election.</b> Followers expect a heartbeat from the leader. If none arrives within a random election timeout (150-300 ms in the paper; etcd defaults to 1 s), the follower becomes a candidate, increments the term, votes for itself and sends <code>RequestVote</code> to everyone. A node grants at most one vote per term, and only to a candidate whose log is at least as up to date as its own. A majority of votes makes a leader. Random timeouts make split votes rare.</p><p><b>Log replication.</b> Clients send commands to the leader. The leader appends the entry to its log and sends <code>AppendEntries</code> to followers with the index and term of the entry before it; a follower rejects if that does not match, and the leader backs up until the logs agree. Once a <b>majority</b> has the entry on disk, it is <b>committed</b>: the leader applies it, answers the client, and tells followers the new commit index.</p><p><b>Why majorities.</b> With n = 2f + 1 nodes, any two majorities overlap in at least one node. A committed entry is on a majority, and a new leader needs votes from a majority, so some voter has the entry and refuses a candidate that lacks it. Committed data is never lost while at most f nodes fail.</p><p><b>Reads.</b> A leader that was cut off may not know it lost leadership. For linearizable reads it confirms it still has a majority (a heartbeat round, \"ReadIndex\") before answering, or holds a time-based lease. Reading from followers is faster but may be stale.</p><p><b>Raft is not Byzantine.</b> It assumes nodes crash but never lie. If participants do not trust each other, use a BFT protocol (PBFT, Tendermint) with 3f + 1 nodes and signed votes. See the <a href=\"#sd-d-consensus-chain\">chain of consensus</a> design.</p>",
+ "diagram": {
+  "w": 960,
+  "h": 420,
+  "groups": [
+   {
+    "label": "Raft cluster, n = 5, majority = 3",
+    "x": 220,
+    "y": 10,
+    "w": 720,
+    "h": 400
+   }
+  ],
+  "nodes": [
+   {
+    "id": "client",
+    "label": "Client",
+    "sub": "PUT x=5",
+    "kind": "client",
+    "x": 100,
+    "y": 210
+   },
+   {
+    "id": "a",
+    "label": "Node A",
+    "sub": "leader, term 7",
+    "kind": "service",
+    "x": 360,
+    "y": 210
+   },
+   {
+    "id": "b",
+    "label": "Node B",
+    "sub": "follower",
+    "kind": "service",
+    "x": 740,
+    "y": 52
+   },
+   {
+    "id": "c",
+    "label": "Node C",
+    "sub": "follower",
+    "kind": "service",
+    "x": 740,
+    "y": 156
+   },
+   {
+    "id": "d",
+    "label": "Node D",
+    "sub": "follower, slow",
+    "kind": "service",
+    "x": 740,
+    "y": 264
+   },
+   {
+    "id": "e",
+    "label": "Node E",
+    "sub": "crashed",
+    "kind": "service",
+    "x": 740,
+    "y": 368
+   }
+  ],
+  "edges": [
+   {
+    "id": "c-a",
+    "from": "client",
+    "to": "a",
+    "label": "command"
+   },
+   {
+    "id": "a-b",
+    "from": "a",
+    "to": "b",
+    "label": "Vote / AppendEntries"
+   },
+   {
+    "id": "a-c",
+    "from": "a",
+    "to": "c",
+    "label": "Vote / AppendEntries"
+   },
+   {
+    "id": "a-d",
+    "from": "a",
+    "to": "d",
+    "label": "Vote / AppendEntries"
+   },
+   {
+    "id": "a-e",
+    "from": "a",
+    "to": "e",
+    "label": "no reply",
+    "dashed": true
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "election",
+   "name": "Leader election",
+   "desc": "The old leader died; A wins term 7.",
+   "steps": [
+    {
+     "node": "a",
+     "note": "No heartbeat from the old leader. Each follower waits a <b>random</b> election timeout (150-300 ms in the Raft paper). A's fires first: it moves to term 7, becomes a candidate and votes for itself (1 of 5)."
+    },
+    {
+     "edge": "a-b",
+     "note": "<code>RequestVote(term 7, lastLogIndex 42, lastLogTerm 6)</code>. B grants only if it has not voted in term 7 and A's log is at least as up to date as its own."
+    },
+    {
+     "edge": "a-b",
+     "rev": true,
+     "note": "B votes yes and writes that vote to disk first, so a restart cannot make it vote twice in one term. A has 2 votes."
+    },
+    {
+     "edge": "a-c",
+     "note": "The same request goes to C (and to D and E in parallel)."
+    },
+    {
+     "edge": "a-c",
+     "rev": true,
+     "note": "C votes yes. <b>3 of 5 is a majority</b>: A is leader for term 7. It does not need D or E."
+    },
+    {
+     "edge": "a-d",
+     "note": "A immediately sends empty <code>AppendEntries</code> as heartbeats (every ~50-100 ms) so the other timers reset and no rival election starts."
+    },
+    {
+     "edge": "a-e",
+     "note": "E is down and never answers. Fine: 5 nodes tolerate 2 failures. If two candidates had split the vote, both would time out at random and retry."
+    }
+   ]
+  },
+  {
+   "id": "replicate",
+   "name": "Log replication and commit",
+   "desc": "A write is safe once a majority has it on disk.",
+   "steps": [
+    {
+     "edge": "c-a",
+     "note": "Client sends <code>PUT x=5</code> to the leader. A follower that gets it would reply with the leader's address."
+    },
+    {
+     "node": "a",
+     "note": "A appends entry 43 (term 7) to its own log and fsyncs. It is <b>not committed</b> yet; it could still be lost if A dies now."
+    },
+    {
+     "edge": "a-b",
+     "note": "<code>AppendEntries(prevLogIndex 42, prevLogTerm 6, [43])</code>. B checks that its entry 42 matches; if not it rejects and A walks back until the logs agree."
+    },
+    {
+     "edge": "a-c",
+     "note": "Sent to C, D and E in parallel, not one after another."
+    },
+    {
+     "edge": "a-b",
+     "rev": true,
+     "note": "B has fsynced entry 43: ack."
+    },
+    {
+     "edge": "a-c",
+     "rev": true,
+     "note": "C acks. A + B + C = <b>3 of 5</b> hold entry 43 on disk, so it is <b>committed</b>. D is slow and E is down; neither blocks the write."
+    },
+    {
+     "node": "a",
+     "note": "A advances its commit index to 43, applies <code>x=5</code> to its state machine, and the next heartbeat tells followers to apply it too."
+    },
+    {
+     "edge": "c-a",
+     "rev": true,
+     "note": "A answers OK. Write latency = one round trip to the fastest majority + an fsync: a few ms inside one region, ~70 ms if the majority spans Singapore and Tokyo."
+    },
+    {
+     "edge": "a-d",
+     "note": "D catches up later: the leader keeps retrying <code>AppendEntries</code> until D's log matches."
+    }
+   ]
+  },
+  {
+   "id": "majority",
+   "name": "Majority math: 2f + 1",
+   "desc": "Why clusters have 3, 5 or 7 nodes.",
+   "steps": [
+    {
+     "node": "a",
+     "note": "Majority of n = floor(n/2) + 1. To survive <b>f</b> crashed nodes you need <b>n = 2f + 1</b>: 3 nodes survive 1, 5 survive 2, 7 survive 3."
+    },
+    {
+     "node": "e",
+     "note": "E crashed. 4 nodes are left and a majority (3) is still reachable, so writes continue."
+    },
+    {
+     "node": "d",
+     "note": "If D dies too, exactly 3 remain: still a majority. One more failure and writes stop. Raft chooses safety over availability."
+    },
+    {
+     "node": "b",
+     "note": "Any two majorities of 5 share at least one node (3 + 3 &gt; 5). So every possible future leader got a vote from someone holding each committed entry, and that voter refuses a candidate whose log is behind."
+    },
+    {
+     "node": "c",
+     "note": "4 nodes tolerate only 1 failure (majority 3), the same as 3 nodes, and each write waits for one more ack. That is why clusters use odd sizes."
+    },
+    {
+     "node": "client",
+     "note": "In a partition, only the side with 3+ nodes can elect a leader and commit. An old leader on the minority side can accept requests but never commit them, so clients time out instead of seeing split brain."
+    }
+   ]
+  }
+ ],
+ "tradeoffs": [
+  {
+   "option": "3-node cluster",
+   "pro": "Cheapest; each write waits for 1 follower ack, so low latency.",
+   "con": "Tolerates only 1 failure. During a node upgrade, one more crash stops writes."
+  },
+  {
+   "option": "5-node cluster",
+   "pro": "Tolerates 2 failures, so you can patch one node and still survive a crash. The usual production choice.",
+   "con": "More copies of every write and more network traffic; each write waits for the 2nd-fastest follower."
+  },
+  {
+   "option": "Nodes spread across 3 AZs or regions",
+   "pro": "Survives losing a whole AZ or region.",
+   "con": "Commit latency becomes a cross-site round trip (1-2 ms across AZs, 30-200 ms across regions)."
+  },
+  {
+   "option": "Leader-only reads (ReadIndex or lease)",
+   "pro": "Linearizable: you always see the latest committed write.",
+   "con": "All reads hit one node, and ReadIndex adds a heartbeat round trip."
+  },
+  {
+   "option": "Follower reads",
+   "pro": "Spreads read load across all nodes.",
+   "con": "May be stale by the replication lag; fine for dashboards, not for balances."
+  }
+ ],
+ "numbers": [
+  "Survive <b>f</b> failures with <b>2f + 1</b> nodes (crash faults) or <b>3f + 1</b> nodes (Byzantine faults).",
+  "Majority of 3 = 2, of 5 = 3, of 7 = 4. A 4-node cluster tolerates 1 failure, no better than 3.",
+  "Raft paper: election timeout <b>150-300 ms</b>, randomised. etcd defaults: heartbeat <b>100 ms</b>, election timeout <b>1,000 ms</b>.",
+  "Commit = 1 round trip to the fastest majority + fsync: <b>~1-5 ms</b> in one region, <b>~70 ms</b> Singapore to Tokyo.",
+  "etcd recommends <b>3 or 5</b> members; more members make writes slower, not faster."
+ ],
+ "say": [
+  "I'll run Raft on five nodes across three availability zones: a write commits once three of five have it on disk, so we survive any two node failures.",
+  "Election timeouts are randomised, terms fence off stale leaders, and a node only votes for a candidate whose log is at least as up to date as its own, so a committed entry is never lost.",
+  "Raft assumes crash faults only; if the participants are separate agencies that don't trust each other, I'd switch to a BFT protocol with 3f + 1 nodes and signed votes."
+ ],
+ "pitfalls": [
+  "Saying an entry is committed when the leader writes it locally. It is committed only when a majority has it on disk.",
+  "Choosing an even cluster size for \"more safety\". 4 nodes tolerate the same 1 failure as 3.",
+  "Serving reads from a leader without checking it is still leader. A partitioned old leader returns stale data.",
+  "Using consensus for every piece of data. It is for small, critical state (config, leader leases, ledgers); bulk data goes in a normal replicated store.",
+  "Calling Raft Byzantine fault tolerant. A node that lies can corrupt it."
+ ],
+ "quiz": [
+  {
+   "q": "A 5-node Raft cluster loses 2 nodes. What happens to writes?",
+   "options": [
+    "Writes stop until all 5 are back",
+    "Writes continue: 3 of 5 is still a majority",
+    "Writes continue but are not durable",
+    "The cluster splits into two leaders"
+   ],
+   "answer": 1,
+   "why": "n = 2f + 1 = 5 tolerates f = 2. A third failure would stop writes."
+  },
+  {
+   "q": "When is a log entry committed in Raft?",
+   "options": [
+    "When the leader appends it to its own log",
+    "When every follower acks it",
+    "When a majority of nodes, leader included, have it on disk"
+   ],
+   "answer": 2,
+   "why": "Majority, not all: slow or dead followers do not block writes, and majorities always overlap."
+  },
+  {
+   "q": "Why does Raft randomise election timeouts?",
+   "options": [
+    "So that usually one node times out first and wins before others start, avoiding repeated split votes",
+    "To encrypt votes",
+    "To balance CPU between nodes"
+   ],
+   "answer": 0,
+   "why": "If every follower timed out at once, they would all vote for themselves and nobody would get a majority, again and again."
+  },
+  {
+   "q": "Your team proposes 4 nodes instead of 3 \"for extra safety\". What do you say?",
+   "options": [
+    "Good idea: it tolerates 2 failures",
+    "4 nodes need a majority of 3, so it still tolerates only 1 failure and every write waits for one more ack; go to 5",
+    "4 nodes cannot elect a leader",
+    "It halves write latency"
+   ],
+   "answer": 1,
+   "why": "Majority of 4 is 3, leaving room for just 1 failure, the same as a 3-node cluster."
+  }
+ ],
+ "used_in": [
+  "consensus-chain",
+  "kv-store"
+ ]
+}

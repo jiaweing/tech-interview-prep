@@ -1,0 +1,529 @@
+{
+ "id": "message-queue",
+ "track": "sd",
+ "order": 13,
+ "title": "Message queue",
+ "short": "Hand slow work to a line of jobs that workers take in turn.",
+ "what": "A message queue is a waiting line of small messages between two parts of a system. A producer adds a job and moves on; workers (consumers) take jobs one at a time and confirm each one when done. If traffic spikes, the line gets longer instead of servers falling over.",
+ "analogy": "Order tickets in a restaurant kitchen. The waiter pins the order and goes back to the tables; cooks take the next ticket when their hands are free.",
+ "viz": {
+  "kind": "sd",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "u",
+      "label": "User",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "api",
+      "label": "Upload server",
+      "x": 33,
+      "y": 50
+     },
+     {
+      "id": "q",
+      "label": "Queue",
+      "sub": "empty",
+      "x": 66,
+      "y": 50
+     },
+     {
+      "id": "w1",
+      "label": "Worker 1",
+      "sub": "idle",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "w2",
+      "label": "Worker 2",
+      "sub": "idle",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "u",
+      "api"
+     ],
+     [
+      "api",
+      "q"
+     ],
+     [
+      "q",
+      "w1"
+     ],
+     [
+      "q",
+      "w2"
+     ]
+    ],
+    "say": "A video site. Turning one upload into 4 sizes takes 2 minutes. You can't keep the user staring at the upload page for that long."
+   },
+   {
+    "nodes": [
+     {
+      "id": "u",
+      "label": "User",
+      "sub": "uploads cat.mp4",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "api",
+      "label": "Upload server",
+      "x": 33,
+      "y": 50
+     },
+     {
+      "id": "q",
+      "label": "Queue",
+      "sub": "1 job waiting",
+      "x": 66,
+      "y": 50
+     },
+     {
+      "id": "w1",
+      "label": "Worker 1",
+      "sub": "idle",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "w2",
+      "label": "Worker 2",
+      "sub": "idle",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "u",
+      "api"
+     ],
+     [
+      "api",
+      "q"
+     ],
+     [
+      "q",
+      "w1"
+     ],
+     [
+      "q",
+      "w2"
+     ]
+    ],
+    "hi": [
+     "api",
+     "q"
+    ],
+    "edgeHi": [
+     [
+      "u",
+      "api"
+     ],
+     [
+      "api",
+      "q"
+     ]
+    ],
+    "say": "Ana uploads cat.mp4. The server saves the file, puts a small message 'resize cat.mp4' on the queue, and replies 'Processing' in 50 ms."
+   },
+   {
+    "nodes": [
+     {
+      "id": "u",
+      "label": "User",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "api",
+      "label": "Upload server",
+      "x": 33,
+      "y": 50
+     },
+     {
+      "id": "q",
+      "label": "Queue",
+      "sub": "empty",
+      "x": 66,
+      "y": 50
+     },
+     {
+      "id": "w1",
+      "label": "Worker 1",
+      "sub": "resizing cat.mp4",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "w2",
+      "label": "Worker 2",
+      "sub": "idle",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "u",
+      "api"
+     ],
+     [
+      "api",
+      "q"
+     ],
+     [
+      "q",
+      "w1",
+      "take job"
+     ],
+     [
+      "q",
+      "w2"
+     ]
+    ],
+    "hi": [
+     "w1"
+    ],
+    "edgeHi": [
+     [
+      "q",
+      "w1"
+     ]
+    ],
+    "say": "Worker 1 takes the next message and starts resizing. Meanwhile the upload server is already handling other users."
+   },
+   {
+    "nodes": [
+     {
+      "id": "u",
+      "label": "User",
+      "sub": "300 uploads/min",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "api",
+      "label": "Upload server",
+      "x": 33,
+      "y": 50
+     },
+     {
+      "id": "q",
+      "label": "Queue",
+      "sub": "300 jobs waiting",
+      "x": 66,
+      "y": 50
+     },
+     {
+      "id": "w1",
+      "label": "Worker 1",
+      "sub": "busy",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "w2",
+      "label": "Worker 2",
+      "sub": "busy",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "u",
+      "api"
+     ],
+     [
+      "api",
+      "q"
+     ],
+     [
+      "q",
+      "w1"
+     ],
+     [
+      "q",
+      "w2"
+     ]
+    ],
+    "hi": [
+     "q"
+    ],
+    "edgeHi": [
+     [
+      "u",
+      "api"
+     ],
+     [
+      "api",
+      "q"
+     ]
+    ],
+    "say": "A spike: 300 uploads in one minute. The queue holds them all. Nothing crashes; jobs wait their turn instead."
+   },
+   {
+    "nodes": [
+     {
+      "id": "u",
+      "label": "User",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "api",
+      "label": "Upload server",
+      "x": 33,
+      "y": 50
+     },
+     {
+      "id": "q",
+      "label": "Queue",
+      "sub": "job back in line",
+      "x": 66,
+      "y": 50
+     },
+     {
+      "id": "w1",
+      "label": "Worker 1",
+      "sub": "busy",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "w2",
+      "label": "Worker 2",
+      "sub": "crashed",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "u",
+      "api"
+     ],
+     [
+      "api",
+      "q"
+     ],
+     [
+      "q",
+      "w1"
+     ],
+     [
+      "q",
+      "w2"
+     ]
+    ],
+    "bad": [
+     "w2"
+    ],
+    "say": "Worker 2 crashes halfway through a job. It never confirmed the job as done (an ack), so after a timeout the queue hands it out again."
+   },
+   {
+    "nodes": [
+     {
+      "id": "u",
+      "label": "User",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "api",
+      "label": "Upload server",
+      "x": 33,
+      "y": 50
+     },
+     {
+      "id": "q",
+      "label": "Queue",
+      "sub": "250 jobs waiting",
+      "x": 66,
+      "y": 50
+     },
+     {
+      "id": "w1",
+      "label": "Worker 1",
+      "sub": "done, ack",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "w2",
+      "label": "Worker 2",
+      "sub": "crashed",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "u",
+      "api"
+     ],
+     [
+      "api",
+      "q"
+     ],
+     [
+      "q",
+      "w1",
+      "retry job"
+     ],
+     [
+      "q",
+      "w2"
+     ]
+    ],
+    "ok": [
+     "w1"
+    ],
+    "dim": [
+     "w2"
+    ],
+    "edgeHi": [
+     [
+      "q",
+      "w1"
+     ]
+    ],
+    "say": "Worker 1 picks the job up again and finishes it. This is why jobs must be safe to run twice."
+   },
+   {
+    "nodes": [
+     {
+      "id": "u",
+      "label": "User",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "api",
+      "label": "Upload server",
+      "x": 33,
+      "y": 50
+     },
+     {
+      "id": "q",
+      "label": "Queue",
+      "sub": "draining",
+      "x": 66,
+      "y": 50
+     },
+     {
+      "id": "w1",
+      "label": "Worker 1",
+      "sub": "busy",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "w2",
+      "label": "Worker 2",
+      "sub": "restarted",
+      "x": 100,
+      "y": 100
+     },
+     {
+      "id": "w3",
+      "label": "Worker 3",
+      "sub": "added",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "u",
+      "api"
+     ],
+     [
+      "api",
+      "q"
+     ],
+     [
+      "q",
+      "w1"
+     ],
+     [
+      "q",
+      "w2"
+     ],
+     [
+      "q",
+      "w3"
+     ]
+    ],
+    "ok": [
+     "w1",
+     "w2",
+     "w3"
+    ],
+    "edgeHi": [
+     [
+      "q",
+      "w1"
+     ],
+     [
+      "q",
+      "w2"
+     ],
+     [
+      "q",
+      "w3"
+     ]
+    ],
+    "say": "To drain the backlog faster, add workers. Upload servers and workers scale on their own and never talk to each other directly."
+   }
+  ]
+ },
+ "when": [
+  "Some work is slow (video, email, reports) and the user shouldn't wait",
+  "Traffic comes in spikes",
+  "Work must not be lost if a server crashes",
+  "The sender and the worker should scale separately"
+ ],
+ "python": "from collections import deque\n\nqueue = deque(f\"video{i}\" for i in range(1, 6))   # 5 uploads arrive at once\ndone, crashed_once = [], False\nwhile queue:\n    job = queue.popleft()                        # a worker takes the next job\n    if job == \"video2\" and not crashed_once:\n        crashed_once = True\n        print(\"worker crashed on\", job, \"-> back in the queue\")\n        queue.append(job)                        # never acked, so it is handed out again\n        continue\n    done.append(job)                             # ack: finished, remove it for good\nprint(\"done:\", done)",
+ "output": "worker crashed on video2 -> back in the queue\ndone: ['video1', 'video3', 'video4', 'video5', 'video2']",
+ "cost": [
+  [
+   "Add a message",
+   "O(1), ~1-5 ms"
+  ],
+  [
+   "User waits",
+   "50 ms instead of 2 min"
+  ],
+  [
+   "Jobs per minute",
+   "grows with the number of workers"
+  ]
+ ],
+ "watch": [
+  "Most queues deliver at least once, so a job can run twice: make jobs idempotent.",
+  "Watch the queue length; if it keeps growing, add workers.",
+  "Move jobs that keep failing to a dead-letter queue instead of retrying forever."
+ ],
+ "interview": [
+  "Design YouTube's video processing",
+  "Design a notification system",
+  "Design a web crawler"
+ ],
+ "related": [
+  "pub-sub",
+  "idempotency",
+  "batch-vs-stream",
+  "queue"
+ ]
+}

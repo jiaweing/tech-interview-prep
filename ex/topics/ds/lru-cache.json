@@ -1,0 +1,188 @@
+{
+ "id": "lru-cache",
+ "track": "ds",
+ "order": 16,
+ "title": "LRU cache",
+ "short": "Keep the recently used items, drop the stalest one.",
+ "what": "A cache keeps a few results close at hand so you don't fetch them again. When it is full, an LRU (least recently used) cache throws out the item that was used longest ago. A dict gives one-step lookups, and the dict's order tracks which item is oldest.",
+ "analogy": "A small desk with room for three books. When you need a fourth, the one you haven't opened for the longest goes back to the shelf.",
+ "viz": {
+  "kind": "map",
+  "frames": [
+   {
+    "rows": [],
+    "label": "cache",
+    "say": "An empty cache that holds at most 3 items. The top row will always be the least recently used one."
+   },
+   {
+    "rows": [
+     [
+      "\"a\"",
+      "1"
+     ],
+     [
+      "\"b\"",
+      "2"
+     ],
+     [
+      "\"c\"",
+      "3"
+     ]
+    ],
+    "hi": [
+     0,
+     1,
+     2
+    ],
+    "label": "cache",
+    "say": "put a, b and c. They line up in the order they were used: a is the oldest, c the newest."
+   },
+   {
+    "rows": [
+     [
+      "\"a\"",
+      "1"
+     ],
+     [
+      "\"b\"",
+      "2"
+     ],
+     [
+      "\"c\"",
+      "3"
+     ]
+    ],
+    "ok": [
+     0
+    ],
+    "label": "cache",
+    "out": "get(\"a\") -> 1",
+    "say": "get(\"a\") finds 1 in one step through the dict. Using a counts as a fresh use."
+   },
+   {
+    "rows": [
+     [
+      "\"b\"",
+      "2"
+     ],
+     [
+      "\"c\"",
+      "3"
+     ],
+     [
+      "\"a\"",
+      "1"
+     ]
+    ],
+    "hi": [
+     2
+    ],
+    "label": "cache",
+    "say": "So a moves to the bottom as the newest. Now b is the least recently used."
+   },
+   {
+    "rows": [
+     [
+      "\"b\"",
+      "2"
+     ],
+     [
+      "\"c\"",
+      "3"
+     ],
+     [
+      "\"a\"",
+      "1"
+     ]
+    ],
+    "bad": [
+     0
+    ],
+    "label": "cache",
+    "out": "evict \"b\"",
+    "say": "put(\"d\", 4), but the cache is full. Throw out the top row: b, unused for the longest time."
+   },
+   {
+    "rows": [
+     [
+      "\"c\"",
+      "3"
+     ],
+     [
+      "\"a\"",
+      "1"
+     ],
+     [
+      "\"d\"",
+      "4"
+     ]
+    ],
+    "ok": [
+     2
+    ],
+    "label": "cache",
+    "say": "d goes in at the bottom as the newest. Order now: c, a, d."
+   },
+   {
+    "rows": [
+     [
+      "\"c\"",
+      "3"
+     ],
+     [
+      "\"a\"",
+      "1"
+     ],
+     [
+      "\"d\"",
+      "4"
+     ]
+    ],
+    "label": "cache",
+    "out": "get(\"b\") -> -1",
+    "say": "get(\"b\") misses because b was evicted. Every get and put took O(1)."
+   }
+  ]
+ },
+ "when": [
+  "Keep only the last N used items",
+  "get and put both in O(1)",
+  "A cache with limited memory",
+  "Evict the least recently used item"
+ ],
+ "python": "from collections import OrderedDict\ncache, SIZE = OrderedDict(a=1, b=2, c=3), 3   # a is the oldest\ndef get(key):\n    if key in cache:\n        cache.move_to_end(key)        # mark as newest\n    return cache.get(key, -1)\ndef put(key, value):\n    cache[key] = value\n    cache.move_to_end(key)\n    if len(cache) > SIZE:\n        cache.popitem(last=False)     # drop the oldest\nprint(get(\"a\"))\nput(\"d\", 4)\nprint(get(\"b\"), list(cache))",
+ "output": "1\n-1 ['c', 'a', 'd']",
+ "cost": [
+  [
+   "get a key",
+   "O(1)"
+  ],
+  [
+   "put a key",
+   "O(1)"
+  ],
+  [
+   "Throw out the oldest",
+   "O(1)"
+  ],
+  [
+   "Memory",
+   "O(capacity)"
+  ]
+ ],
+ "watch": [
+  "Both get and put count as a use. Move the key to the newest end in both.",
+  "Evict after inserting, and only when you are over capacity.",
+  "Interviews may ask you to build it from a dict plus a doubly linked list instead of OrderedDict."
+ ],
+ "interview": [
+  "LC 146 LRU Cache",
+  "LC 460 LFU Cache"
+ ],
+ "related": [
+  "hash-map",
+  "linked-list",
+  "deque",
+  "caching"
+ ]
+}

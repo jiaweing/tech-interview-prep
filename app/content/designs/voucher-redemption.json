@@ -1,0 +1,614 @@
+{
+ "id": "voucher-redemption",
+ "title": "Digital voucher redemption",
+ "tagline": "Give every household a QR of vouchers, let shops scan it, and make sure each voucher is spent exactly once.",
+ "govtech": true,
+ "govtech_label": "GovTech-relevant",
+ "mirrors": "RedeemSG",
+ "featured": false,
+ "difficulty": "medium",
+ "govtech_note": "<p>OGP's <b>RedeemSG</b> runs digital voucher schemes such as the CDC vouchers. The publicly described shape: residents get their vouchers through an <b>SMS link or a Singpass login</b>; <b>one QR code covers several vouchers</b>; a <b>merchant app scans</b> it; and voucher status updates <b>in real time</b> so a voucher cannot be redeemed twice. An earlier idea of merchants scanning residents' <b>paper QR codes</b> was rejected, because a redeemed voucher's QR could simply be scanned again. Public figures cite <b>20M+ redemptions</b>.</p><p>Treat this as <b>domain-flavoured practice</b>: there is no evidence GovTech asks it as an interview question, and the design below is a reasonable one, not how RedeemSG is built. It is good practice because it is a payment problem in disguise: <b>exactly-once state changes under retries, flaky devices, fraud and settlement</b>.</p>",
+ "summary": "<p>The QR code is only a <b>pointer</b> to the household's vouchers; the truth lives on the server. Redeeming is one <b>atomic conditional update</b> that flips vouchers from UNREDEEMED to REDEEMED and records one redemption row, keyed by an <b>idempotency key</b> from the merchant app so retries cannot charge twice. Everything else is around that core: a CDN and waiting room for the launch-day rush, an event stream for fraud rules, and a <b>nightly batch job</b> that reconciles redemptions and pays merchants the next day.</p>",
+ "requirements": {
+  "functional": [
+   "Resident opens their vouchers by SMS link or Singpass login and sees one QR for all of them",
+   "Merchant app scans the QR, picks vouchers (or an amount) and redeems them",
+   "Resident's screen shows the new balance within a second or two",
+   "Merchants see their redemptions and are paid the next working day",
+   "Ops can freeze a merchant or revoke a household's link"
+  ],
+  "nonfunctional": [
+   "A voucher is redeemed at most once, even with retries, screenshots and two shops scanning at once",
+   "Redemption p99 under ~500 ms; the cashier is waiting",
+   "Survive the launch-day spike when SMS links go out",
+   "Every dollar paid out traces back to redemption rows"
+  ],
+  "out_of_scope": [
+   "Merchant onboarding and KYC",
+   "Eligibility rules for who gets vouchers",
+   "Card or bank payments for amounts above the voucher value"
+  ]
+ },
+ "estimates": [
+  {
+   "label": "Households",
+   "calc": "assume ~1.3M eligible households",
+   "value": "~1.3M"
+  },
+  {
+   "label": "Voucher rows",
+   "calc": "1.3M × ~30 vouchers each (assumption) × ~100 B",
+   "value": "~39M rows, ~4 GB"
+  },
+  {
+   "label": "Redemptions per tranche",
+   "calc": "assume the public RedeemSG figure (20M+, not split by tranche) as one tranche",
+   "value": "~20M"
+  },
+  {
+   "label": "Average redemptions/s",
+   "calc": "20M ÷ (180 days × 12 trading h × 3,600 s)",
+   "value": "~2.6/s"
+  },
+  {
+   "label": "Peak redemptions/s",
+   "calc": "× 50 on a weekend lunch hour after launch",
+   "value": "~130/s"
+  },
+  {
+   "label": "Launch-day page loads",
+   "calc": "if all 1.3M SMS links go out at once and 20% open in the first 5 min: 260k ÷ 300 s",
+   "value": "~870/s"
+  },
+  {
+   "label": "Merchant payouts per night",
+   "calc": "assume ~20k active merchants, one transfer each",
+   "value": "~20k transfers"
+  }
+ ],
+ "api": [
+  {
+   "method": "GET",
+   "path": "/v/{linkToken}",
+   "desc": "Resident's voucher page from the SMS link (static, CDN). Fetches vouchers and the household QR token."
+  },
+  {
+   "method": "POST",
+   "path": "/claims (Singpass session)",
+   "desc": "Alternative to the SMS link. Returns the same household QR token."
+  },
+  {
+   "method": "WS",
+   "path": "/households/me/events",
+   "desc": "Pushes {voucherIds, status: REDEEMED, merchant} the moment a redemption commits. Falls back to polling every 3 s."
+  },
+  {
+   "method": "POST",
+   "path": "/redemptions {qrToken, voucherIds[], merchantId}",
+   "desc": "Header Idempotency-Key (UUID made when the cashier taps Confirm). 200 with a receipt, 409 if any voucher is already redeemed, 403 if the merchant is frozen."
+  },
+  {
+   "method": "GET",
+   "path": "/merchants/me/redemptions?date=",
+   "desc": "The merchant's own list, matching what the payout job will pay."
+  }
+ ],
+ "data": [
+  {
+   "name": "vouchers",
+   "store": "PostgreSQL",
+   "fields": [
+    "id PK",
+    "household_id",
+    "campaign_id",
+    "value_cents",
+    "status UNREDEEMED|REDEEMED|VOID",
+    "redemption_id",
+    "expires_at",
+    "INDEX (household_id)"
+   ],
+   "note": "Status changes only through a conditional UPDATE ... WHERE status = 'UNREDEEMED'."
+  },
+  {
+   "name": "redemptions",
+   "store": "PostgreSQL",
+   "fields": [
+    "id PK",
+    "merchant_id",
+    "idempotency_key",
+    "household_id",
+    "amount_cents",
+    "created_at",
+    "payout_batch_id",
+    "UNIQUE (merchant_id, idempotency_key)"
+   ],
+   "note": "One row per scan. The unique key turns a retried request into a lookup of the first result."
+  },
+  {
+   "name": "qr_tokens",
+   "store": "PostgreSQL",
+   "fields": [
+    "token (128-bit random) PK",
+    "household_id",
+    "campaign_id",
+    "revoked_at"
+   ],
+   "note": "Opaque and unguessable. It carries no balance, so a screenshot or reprint grants nothing beyond what the server says is left."
+  },
+  {
+   "name": "payouts",
+   "store": "PostgreSQL",
+   "fields": [
+    "merchant_id",
+    "business_date",
+    "amount_cents",
+    "status",
+    "bank_ref",
+    "UNIQUE (merchant_id, business_date)"
+   ],
+   "note": "The unique key makes the nightly job safe to re-run."
+  },
+  {
+   "name": "outbox",
+   "store": "PostgreSQL → stream",
+   "fields": [
+    "id",
+    "event_type",
+    "payload",
+    "published_at"
+   ],
+   "note": "Written in the same transaction as the redemption, so the stream never misses or invents one."
+  }
+ ],
+ "diagram": {
+  "w": 960,
+  "h": 480,
+  "groups": [
+   {
+    "label": "Redeem (synchronous)",
+    "x": 14,
+    "y": 196,
+    "w": 660,
+    "h": 112
+   },
+   {
+    "label": "Next day (batch)",
+    "x": 240,
+    "y": 360,
+    "w": 430,
+    "h": 108
+   }
+  ],
+  "nodes": [
+   {
+    "id": "resident",
+    "label": "Resident",
+    "sub": "SMS or Singpass",
+    "kind": "mobile",
+    "x": 90,
+    "y": 80
+   },
+   {
+    "id": "cdn",
+    "label": "CDN",
+    "sub": "+ waiting room",
+    "kind": "cdn",
+    "x": 320,
+    "y": 80
+   },
+   {
+    "id": "vapi",
+    "label": "Voucher API",
+    "sub": "claim, show QR",
+    "kind": "service",
+    "x": 570,
+    "y": 80
+   },
+   {
+    "id": "sp",
+    "label": "Singpass",
+    "sub": "OIDC login",
+    "kind": "auth",
+    "x": 840,
+    "y": 80
+   },
+   {
+    "id": "merchant",
+    "label": "Merchant app",
+    "sub": "scan + retry key",
+    "kind": "mobile",
+    "x": 95,
+    "y": 250
+   },
+   {
+    "id": "rapi",
+    "label": "Redemption API",
+    "sub": "stateless × N",
+    "kind": "service",
+    "x": 330,
+    "y": 250
+   },
+   {
+    "id": "db",
+    "label": "PostgreSQL",
+    "sub": "vouchers, redemptions",
+    "kind": "db",
+    "x": 570,
+    "y": 250
+   },
+   {
+    "id": "stream",
+    "label": "Event stream",
+    "sub": "from outbox",
+    "kind": "stream",
+    "x": 840,
+    "y": 250
+   },
+   {
+    "id": "fraud",
+    "label": "Fraud rules",
+    "sub": "velocity, collusion",
+    "kind": "worker",
+    "x": 840,
+    "y": 414
+   },
+   {
+    "id": "payout",
+    "label": "Payout job",
+    "sub": "02:00, reconcile",
+    "kind": "cron",
+    "x": 570,
+    "y": 414
+   },
+   {
+    "id": "bank",
+    "label": "Bank",
+    "sub": "FAST / GIRO file",
+    "kind": "ext",
+    "x": 330,
+    "y": 414
+   }
+  ],
+  "edges": [
+   {
+    "id": "r-cdn",
+    "from": "resident",
+    "to": "cdn",
+    "label": "open link"
+   },
+   {
+    "id": "cdn-v",
+    "from": "cdn",
+    "to": "vapi",
+    "label": "GET vouchers"
+   },
+   {
+    "id": "v-sp",
+    "from": "vapi",
+    "to": "sp",
+    "label": "verify login"
+   },
+   {
+    "id": "v-db",
+    "from": "vapi",
+    "to": "db",
+    "label": "read"
+   },
+   {
+    "id": "m-r",
+    "from": "merchant",
+    "to": "rapi",
+    "label": "redeem"
+   },
+   {
+    "id": "r-db",
+    "from": "rapi",
+    "to": "db",
+    "label": "UPDATE"
+   },
+   {
+    "id": "r-res",
+    "from": "rapi",
+    "to": "resident",
+    "label": "WS: redeemed",
+    "dashed": true
+   },
+   {
+    "id": "d-s",
+    "from": "db",
+    "to": "stream",
+    "label": "outbox",
+    "dashed": true
+   },
+   {
+    "id": "s-f",
+    "from": "stream",
+    "to": "fraud",
+    "label": "events",
+    "dashed": true
+   },
+   {
+    "id": "f-db",
+    "from": "fraud",
+    "to": "db",
+    "label": "freeze merchant"
+   },
+   {
+    "id": "p-db",
+    "from": "payout",
+    "to": "db",
+    "label": "sum by merchant"
+   },
+   {
+    "id": "p-b",
+    "from": "payout",
+    "to": "bank",
+    "label": "pay T+1"
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "claim",
+   "name": "Resident opens their vouchers",
+   "desc": "Read-mostly; built to survive the SMS blast.",
+   "steps": [
+    {
+     "edge": "r-cdn",
+     "note": "Resident taps the SMS link. The page is static and served from the CDN, so 870 loads a second cost the origin nothing. If the API is saturated, the CDN serves a <b>waiting room</b> page instead."
+    },
+    {
+     "edge": "cdn-v",
+     "note": "The page calls the Voucher API with the link token from the URL."
+    },
+    {
+     "edge": "v-sp",
+     "note": "Singpass path only: verify the OIDC login and map the NRIC to a household. The SMS path skips this; the link token itself is the credential, so it must be long and random."
+    },
+    {
+     "edge": "v-db",
+     "note": "Read the household's vouchers and its QR token. One QR covers all of them, so the resident shows one code no matter how many vouchers they spend."
+    },
+    {
+     "edge": "r-cdn",
+     "rev": true,
+     "note": "Render the balance and the QR. The QR holds only the opaque token; the balance is always read from the server."
+    }
+   ]
+  },
+  {
+   "id": "redeem",
+   "name": "Redeem at a shop",
+   "desc": "One atomic update; the core of the design.",
+   "steps": [
+    {
+     "edge": "m-r",
+     "note": "Cashier scans the QR, picks $10 of vouchers and taps Confirm. The app creates an <b>Idempotency-Key</b> at that moment and reuses it on every retry of this payment."
+    },
+    {
+     "edge": "r-db",
+     "note": "One transaction: INSERT the redemption row (<code>UNIQUE (merchant_id, idempotency_key)</code>), then <code>UPDATE vouchers SET status='REDEEMED', redemption_id=$r WHERE id = ANY($ids) AND household_id=$h AND status='UNREDEEMED'</code>. Updated row count must equal the number requested, else roll back."
+    },
+    {
+     "node": "db",
+     "note": "Also in the same transaction: an <b>outbox</b> row. If the transaction commits, the event exists; if it rolls back, it does not. No dual-write gap."
+    },
+    {
+     "edge": "m-r",
+     "rev": true,
+     "note": "Return the receipt. The cashier hands over the goods only on this green screen, never on a spinner."
+    },
+    {
+     "edge": "r-res",
+     "note": "Push the new balance to the resident's open page over WebSocket. The resident sees the vouchers go grey while still at the counter."
+    },
+    {
+     "edge": "d-s",
+     "note": "A relay publishes the outbox row to the event stream for fraud rules and reporting."
+    }
+   ]
+  },
+  {
+   "id": "double",
+   "name": "Two shops scan the same QR",
+   "desc": "A screenshot shared, or a retry after a timeout.",
+   "steps": [
+    {
+     "edge": "m-r",
+     "note": "Shop B scans a screenshot of the same QR a second after shop A, asking for the same vouchers."
+    },
+    {
+     "edge": "r-db",
+     "note": "B's UPDATE waits on A's row locks, then re-checks <code>status='UNREDEEMED'</code> after A commits: <b>0 rows</b> match. B's transaction rolls back."
+    },
+    {
+     "edge": "m-r",
+     "rev": true,
+     "note": "Return <b>409</b> with when and where the vouchers were used. Compare the rejected paper-QR idea: a redeemed voucher's printed code could be scanned again. Here every scan is checked against one live record."
+    },
+    {
+     "edge": "m-r",
+     "note": "Separately, shop A's app timed out and retries with the <b>same</b> Idempotency-Key."
+    },
+    {
+     "edge": "r-db",
+     "note": "The INSERT hits the unique key; the API loads the existing redemption instead of redeeming again."
+    },
+    {
+     "edge": "m-r",
+     "rev": true,
+     "note": "Return the <b>original</b> receipt. Same request, same answer, no second charge."
+    }
+   ]
+  },
+  {
+   "id": "settle",
+   "name": "Fraud checks and next-day payout",
+   "steps": [
+    {
+     "edge": "s-f",
+     "note": "Fraud rules read the stream: one household redeemed at 5 shops in 3 minutes, a merchant whose redemptions jump 20× overnight, many households redeeming at one stall at 3 a.m."
+    },
+    {
+     "edge": "f-db",
+     "note": "A strong signal freezes the merchant: new redemptions get 403 and their payout is held for review. Weak signals go to a human queue."
+    },
+    {
+     "edge": "p-db",
+     "note": "At 02:00, for yesterday's business date: <code>SELECT merchant_id, SUM(amount_cents) FROM redemptions WHERE ... GROUP BY merchant_id</code>, skipping held merchants, and stamp each row with a <code>payout_batch_id</code>."
+    },
+    {
+     "node": "payout",
+     "note": "<b>Reconcile</b> before paying: sum of redemptions = sum of voucher values flipped = count of distinct event ids on the stream (the relay is at-least-once, so duplicates are possible). Any mismatch stops that merchant's payout and alerts ops."
+    },
+    {
+     "edge": "p-b",
+     "note": "Send one transfer per merchant. <code>UNIQUE (merchant_id, business_date)</code> on payouts means a crashed or re-run job never pays twice; it resumes where it stopped."
+    }
+   ]
+  }
+ ],
+ "deep": [
+  {
+   "title": "Preventing double redemption",
+   "html": "<p>The bug to avoid is <b>read-then-write</b>: read status UNREDEEMED, then write REDEEMED. Two scans 50 ms apart both read UNREDEEMED and both succeed. Fixes, strongest first:</p><ol><li><b>Atomic conditional update</b>: <code>UPDATE ... WHERE status = 'UNREDEEMED'</code>. The check and the write are one statement under a row lock, so exactly one caller flips each row. Check the affected row count.</li><li><b>Unique redemption row</b>: a separate <code>voucher_redemptions(voucher_id UNIQUE)</code> table, written in the same transaction. Even buggy code that skips the status check cannot record two redemptions for one voucher; a plain <code>redemption_id</code> column could just be overwritten.</li><li><b>Idempotency key from the merchant app</b>: distinguishes a retry of the same payment (return the first receipt) from a new payment (redeem again). Without it, a timeout leaves the cashier guessing.</li></ol><p>A Redis lock in front adds a failure mode without adding safety: the database still has to be right. At ~130 redemptions/s and contention only within one household, a single Postgres primary is plenty. One detail: when two scans of the same household overlap, lock vouchers in id order (<code>SELECT ... ORDER BY id FOR UPDATE</code>) so they queue instead of deadlocking.</p>"
+  },
+  {
+   "title": "Offline and flaky merchant devices",
+   "html": "<p>A hawker's phone on weak 4G is normal. The hard truth: <b>offline redemption cannot prevent double spending</b>, because the device cannot know what another shop did a second ago. Options:</p><ul><li><b>Online only</b> (my default): the app retries with the same idempotency key and shows \"pending\" until it gets an answer. A pending payment that later succeeds shows up in the merchant's list, so nothing is lost.</li><li><b>Offline with limits</b>: accept a small capped amount per household offline, sign the redemption on the device, and sync later. On conflict, the first commit wins and someone (the scheme or the merchant) carries the loss, up to the cap. Simple to explain, but now you are running a risk policy.</li><li><b>Resident-side check</b>: the resident's page shows the deduction live, a second signal the cashier can watch for.</li></ul><p>Say the trade-off out loud: correctness needs one place of truth, and that needs a network.</p>"
+  },
+  {
+   "title": "Launch-day peak",
+   "sim": "queue",
+   "html": "<p>The spike comes from the SMS blast and the first weekend, not from steady redemptions.</p><ul><li><b>Static first</b>: the voucher page is a static bundle on the CDN; only one small JSON call hits the API.</li><li><b>Stagger the SMS</b> in batches of, say, 100k every 10 minutes. You control the arrival rate, which is cheaper than any autoscaling.</li><li><b>Waiting room</b> at the edge if API latency climbs: hand out queue positions and admit at the rate the database can take.</li><li><b>Cache reads, never redemptions</b>: the balance can be cached for a second; the redeem path always goes to the primary.</li><li><b>Load test</b> at 3× the estimate before launch, with the real Singpass sandbox and SMS provider limits in the plan.</li></ul>"
+  },
+  {
+   "title": "Fraud and next-day payouts",
+   "html": "<p>Money leaves on a <b>batch</b>, not per scan: one transfer per merchant per day is cheaper, gives a window to catch fraud before money moves, and gives one clean point to reconcile.</p><ul><li><b>Collusion</b> (a merchant \"redeems\" vouchers for cash at a discount) is the main fraud. Signals: redemptions per merchant versus its category, many households at one stall at odd hours, round amounts, new merchants with sudden volume.</li><li><b>Reconciliation</b>: three numbers must agree for each merchant and day: redemption rows, vouchers flipped to REDEEMED, and distinct event ids seen on the stream (the relay is at-least-once, so count ids, not messages). Pay only when they match.</li><li><b>Idempotent payouts</b>: <code>UNIQUE (merchant_id, business_date)</code> and a bank reference per transfer. Re-running the job is safe; it skips what is already paid.</li><li><b>Reversals</b> (a refund at the shop) are new rows that net against the next payout, never edits to old ones.</li></ul>"
+  }
+ ],
+ "tradeoffs": [
+  {
+   "choice": "Where is \"redeemed once\" enforced?",
+   "pick": "Conditional UPDATE in Postgres",
+   "why": "One statement, one row lock, held for a few milliseconds. A distributed lock in Redis still needs the database check behind it, so it adds a moving part without adding safety."
+  },
+  {
+   "choice": "Allow offline redemption?",
+   "pick": "No, online with retries",
+   "why": "Offline cannot see other shops' scans, so it allows double spending by design. Allow it only with a small cap and an explicit loss policy."
+  },
+  {
+   "choice": "Pay merchants per scan or in a nightly batch?",
+   "pick": "Nightly batch (T+1)",
+   "why": "Fewer bank transfers, a fraud window before money leaves, and one point to reconcile. The cost is a day's float for merchants, which must be fast enough that they keep accepting vouchers."
+  },
+  {
+   "choice": "Static QR per household or a rotating one?",
+   "pick": "Static token, server-side state",
+   "why": "The QR carries no balance, so copying it grants nothing extra. A rotating code makes screenshots useless, but needs the resident's phone online and adds support load for older residents."
+  },
+  {
+   "choice": "Events to the stream: dual write or outbox?",
+   "pick": "Transactional outbox",
+   "why": "Writing to the DB and then the stream can lose events on a crash between the two. The outbox row commits with the redemption, and a relay publishes it at least once."
+  }
+ ],
+ "bottlenecks": [
+  {
+   "issue": "SMS blast sends 1.3M people to the page in minutes",
+   "fix": "Static page on the CDN, staggered SMS batches, and a waiting room at the edge. The API only serves one small JSON read per resident."
+  },
+  {
+   "issue": "Merchant app hangs when the redemption API is slow",
+   "fix": "Short client timeout, retry with the same idempotency key, a clear \"pending\" state, and autoscale the stateless API. The DB primary handles ~130 small transactions a second easily."
+  },
+  {
+   "issue": "Payout job crashes halfway through 20k merchants",
+   "fix": "Each payout is its own unique row keyed by (merchant, date). Re-run the job; it skips merchants already paid."
+  },
+  {
+   "issue": "Primary database fails during peak",
+   "fix": "Synchronous standby in another AZ with automatic failover. Retries with idempotency keys make the failover window safe: no lost or doubled redemptions."
+  }
+ ],
+ "followups": [
+  {
+   "q": "The merchant app timed out but the server had committed. What does the cashier see?",
+   "a": "<p>The app retries with the same Idempotency-Key. The unique index finds the first redemption and the API returns its receipt, so the cashier sees success once, and the resident is charged once.</p>"
+  },
+  {
+   "q": "Why not let the resident's phone mark vouchers as spent?",
+   "a": "<p>The phone is not trusted and can be copied or offline. Two copies of the same state would both say \"unspent\". The server must be the single place where a voucher changes state.</p>"
+  },
+  {
+   "q": "Why was scanning the resident's paper QR rejected?",
+   "a": "<p>The public reason: a printed code cannot change after a redemption, so a redeemed voucher's QR could be scanned again. Keeping status on the server, updated in real time, closes that hole: the QR points to live state instead of standing for a voucher itself.</p>"
+  },
+  {
+   "q": "How would you detect a merchant colluding to turn vouchers into cash?",
+   "a": "<p>Stream redemptions into rules: volume against similar merchants, many households at odd hours, repeated round amounts. For weaker signals, hold that merchant's next payout for review instead of blocking redemptions, so false positives are cheap; freeze the merchant only on strong ones.</p>"
+  },
+  {
+   "q": "A resident says vouchers were used at a shop they never visited. What do you check?",
+   "a": "<p>The redemption row shows merchant, time and the device that scanned. Check whether their link was shared or leaked, revoke the QR token and issue a new one, then reverse the redemption with a new row if the claim holds.</p>"
+  }
+ ],
+ "quiz": [
+  {
+   "q": "Two shops redeem the same voucher 50 ms apart. Which query prevents both from succeeding?",
+   "options": [
+    "SELECT status, then UPDATE if UNREDEEMED",
+    "UPDATE vouchers SET status='REDEEMED' WHERE id=$1 AND status='UNREDEEMED', then check the row count",
+    "UPDATE vouchers SET status='REDEEMED' WHERE id=$1",
+    "A cache of redeemed voucher ids"
+   ],
+   "answer": 1,
+   "why": "The condition and the write happen in one statement under a row lock, so the second update matches zero rows."
+  },
+  {
+   "q": "What does the merchant app's idempotency key protect against?",
+   "options": [
+    "The same payment being applied twice when the app retries after a timeout",
+    "Two different shops scanning one QR",
+    "Fraudulent merchants",
+    "Expired vouchers"
+   ],
+   "answer": 0,
+   "why": "The key identifies one payment attempt. A retry finds the first result; a new payment gets a new key."
+  },
+  {
+   "q": "Why pay merchants in a nightly batch instead of on every scan?",
+   "options": [
+    "Banks do not allow single transfers",
+    "Batch jobs are always faster",
+    "Merchants prefer waiting",
+    "It leaves a window to catch fraud and one place to reconcile before money moves"
+   ],
+   "answer": 3,
+   "why": "Batching cuts transfers to one per merchant per day and lets reconciliation and fraud holds run before payment."
+  },
+  {
+   "q": "Why can't offline redemption fully prevent double spending?",
+   "options": [
+    "Phones cannot read QR codes offline",
+    "Encryption needs a network",
+    "The offline device cannot see a redemption another shop made moments ago",
+    "The QR code expires offline"
+   ],
+   "answer": 2,
+   "why": "Preventing double spend needs one up-to-date place of truth. Offline devices only know their own history."
+  },
+  {
+   "q": "Why write an outbox row in the same transaction as the redemption?",
+   "options": [
+    "It makes the redemption faster",
+    "The stream needs a database to start",
+    "An event exists if and only if the redemption committed, with no gap between two writes",
+    "It replaces the idempotency key"
+   ],
+   "answer": 2,
+   "why": "Writing to the database and then to the stream can lose or invent an event if the process dies between the two. The outbox row commits or rolls back with the redemption, and a relay publishes it at least once."
+  }
+ ]
+}

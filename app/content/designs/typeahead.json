@@ -1,0 +1,523 @@
+{
+ "id": "typeahead",
+ "title": "Search autocomplete",
+ "tagline": "Suggest the top 10 completions for every keystroke in well under 100 ms.",
+ "govtech": false,
+ "featured": false,
+ "difficulty": "medium",
+ "summary": "<p>Autocomplete is a read problem with a tight budget: the suggestions must appear before the user types the next letter, so roughly <b>100 ms end to end</b>. You win by doing the work <b>offline</b>. Aggregate query logs into counts, precompute the <b>top-k completions for every prefix</b>, and serve them as a plain key lookup, cached in the browser and at the CDN. A small near-real-time path adds <b>trending</b> queries that the hourly build would miss.</p>",
+ "requirements": {
+  "functional": [
+   "Return up to 10 completions for a prefix, ranked by popularity",
+   "Update rankings from what people actually search",
+   "Surface sudden trending queries within minutes",
+   "Never suggest blocked or offensive queries"
+  ],
+  "nonfunctional": [
+   "Suggestions visible within ~100 ms of a keystroke; server p99 under 20 ms",
+   "Peak ~20k requests/s before caching",
+   "Available: if suggestions fail, search itself must still work",
+   "Stale by an hour is fine for normal queries"
+  ],
+  "out_of_scope": [
+   "Spelling correction and fuzzy matching (a follow-up)",
+   "Per-user personalisation beyond recent searches stored on the device",
+   "The search results page itself"
+  ]
+ },
+ "estimates": [
+  {
+   "label": "Searches per day",
+   "calc": "10M daily users × 10 searches",
+   "value": "100M"
+  },
+  {
+   "label": "Suggest requests per day",
+   "calc": "100M × ~5 requests per search after debouncing",
+   "value": "500M"
+  },
+  {
+   "label": "Average and peak QPS",
+   "calc": "500M ÷ 86,400 s, peak × 3",
+   "value": "~6k/s, ~17k/s peak"
+  },
+  {
+   "label": "Origin QPS at peak",
+   "calc": "17k × 50% that miss browser and CDN caches",
+   "value": "~8.5k/s"
+  },
+  {
+   "label": "Prefix table size",
+   "calc": "~100M prefixes × (key 20 B + 10 × 30 B list)",
+   "value": "~32 GB"
+  },
+  {
+   "label": "Query log volume",
+   "calc": "100M × ~100 B per entry",
+   "value": "~10 GB/day"
+  }
+ ],
+ "api": [
+  {
+   "method": "GET",
+   "path": "/suggest?q={prefix}&locale=en",
+   "desc": "Returns up to 10 strings. Cache-Control: public, max-age=300, so browsers and the CDN can reuse it."
+  },
+  {
+   "method": "POST",
+   "path": "/search {q}",
+   "desc": "The real search. Logs the submitted query, which is what feeds the counts."
+  },
+  {
+   "method": "PUT",
+   "path": "/admin/blocklist/{term}",
+   "desc": "Remove a term from suggestions everywhere within minutes."
+  }
+ ],
+ "data": [
+  {
+   "name": "prefix → top-k",
+   "store": "Redis cluster or in-memory KV, sharded",
+   "fields": [
+    "key: normalised prefix",
+    "value: 10 × (query, score)",
+    "build_version"
+   ],
+   "note": "Built offline and loaded as a whole new version, then swapped in. Never edited in place."
+  },
+  {
+   "name": "query_counts",
+   "store": "Data warehouse table",
+   "fields": [
+    "query",
+    "day",
+    "count",
+    "decayed_score"
+   ],
+   "note": "Score = sum of daily counts × 0.9^age_in_days, so last week matters more than last year."
+  },
+  {
+   "name": "trending",
+   "store": "Redis",
+   "fields": [
+    "key: prefix",
+    "value: rising queries + score",
+    "TTL 1 h"
+   ],
+   "note": "Small and short-lived. Merged on top of the stable list at request time."
+  },
+  {
+   "name": "query_log",
+   "store": "Kafka topic → object storage",
+   "fields": [
+    "query",
+    "ts",
+    "locale",
+    "anonymous session"
+   ],
+   "note": "No user IDs needed for counting; drop them early."
+  }
+ ],
+ "diagram": {
+  "w": 960,
+  "h": 520,
+  "groups": [
+   {
+    "label": "Online: every keystroke",
+    "x": 8,
+    "y": 24,
+    "w": 944,
+    "h": 246
+   },
+   {
+    "label": "Logging and aggregation",
+    "x": 8,
+    "y": 288,
+    "w": 944,
+    "h": 222
+   }
+  ],
+  "nodes": [
+   {
+    "id": "browser",
+    "label": "Browser",
+    "kind": "client",
+    "x": 85,
+    "y": 95,
+    "sub": "debounce 150 ms"
+   },
+   {
+    "id": "cdn",
+    "label": "CDN edge",
+    "kind": "cdn",
+    "x": 310,
+    "y": 95,
+    "sub": "caches /suggest?q="
+   },
+   {
+    "id": "sugg",
+    "label": "Suggest service",
+    "kind": "service",
+    "x": 560,
+    "y": 95,
+    "sub": "stateless"
+   },
+   {
+    "id": "kv",
+    "label": "Prefix store",
+    "kind": "nosql",
+    "x": 840,
+    "y": 95,
+    "sub": "prefix → top 10"
+   },
+   {
+    "id": "trend",
+    "label": "Trending overlay",
+    "kind": "cache",
+    "x": 560,
+    "y": 225,
+    "sub": "Redis, TTL 1 h"
+   },
+   {
+    "id": "search",
+    "label": "Search service",
+    "kind": "service",
+    "x": 85,
+    "y": 450,
+    "sub": "logs each query"
+   },
+   {
+    "id": "log",
+    "label": "Query log",
+    "kind": "stream",
+    "x": 310,
+    "y": 450,
+    "sub": "Kafka, 1 topic"
+   },
+   {
+    "id": "detect",
+    "label": "Trend detector",
+    "kind": "worker",
+    "x": 310,
+    "y": 330,
+    "sub": "Flink, 5-min windows"
+   },
+   {
+    "id": "batch",
+    "label": "Batch aggregator",
+    "kind": "worker",
+    "x": 560,
+    "y": 450,
+    "sub": "Spark, hourly"
+   },
+   {
+    "id": "snap",
+    "label": "Built snapshots",
+    "kind": "storage",
+    "x": 840,
+    "y": 450,
+    "sub": "S3, versioned"
+   }
+  ],
+  "edges": [
+   {
+    "id": "b-c",
+    "from": "browser",
+    "to": "cdn",
+    "label": "q=sys"
+   },
+   {
+    "id": "c-s",
+    "from": "cdn",
+    "to": "sugg",
+    "label": "miss"
+   },
+   {
+    "id": "s-k",
+    "from": "sugg",
+    "to": "kv",
+    "label": "GET \"sys\""
+   },
+   {
+    "id": "s-t",
+    "from": "sugg",
+    "to": "trend",
+    "label": "rising?"
+   },
+   {
+    "id": "b-se",
+    "from": "browser",
+    "to": "search",
+    "label": "submit search"
+   },
+   {
+    "id": "se-l",
+    "from": "search",
+    "to": "log",
+    "label": "append",
+    "dashed": true
+   },
+   {
+    "id": "l-b",
+    "from": "log",
+    "to": "batch",
+    "label": "hourly",
+    "dashed": true
+   },
+   {
+    "id": "b-sn",
+    "from": "batch",
+    "to": "snap",
+    "label": "top-k tables"
+   },
+   {
+    "id": "sn-k",
+    "from": "snap",
+    "to": "kv",
+    "label": "bulk load"
+   },
+   {
+    "id": "l-d",
+    "from": "log",
+    "to": "detect",
+    "label": "stream",
+    "dashed": true
+   },
+   {
+    "id": "d-t",
+    "from": "detect",
+    "to": "trend",
+    "label": "rising queries"
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "hit",
+   "name": "Keystroke, served from cache",
+   "desc": "Most short prefixes never reach a server.",
+   "steps": [
+    {
+     "node": "browser",
+     "note": "The user types <code>s</code>, <code>y</code>, <code>s</code> quickly. The client waits 150 ms after the last keystroke before sending, so a fast typist sends one request instead of three. It also keeps a small in-memory map of prefixes it has already fetched."
+    },
+    {
+     "edge": "b-c",
+     "note": "Send <code>GET /suggest?q=sys</code>. Normalise first (lower-case, trim spaces) so <code>Sys</code> and <code>sys </code> share one cache entry."
+    },
+    {
+     "node": "cdn",
+     "note": "The edge keys its cache on the full URL. There are only 26 one-letter and 676 two-letter prefixes (a-z), and they are the hottest keys, so they are almost always cached."
+    },
+    {
+     "edge": "b-c",
+     "rev": true,
+     "note": "Hit: the edge answers in ~10-20 ms from a nearby node, with no origin work at all. The browser also keeps the answer, so a backspace to <code>sy</code> costs nothing."
+    }
+   ]
+  },
+  {
+   "id": "miss",
+   "name": "Keystroke, cache miss",
+   "desc": "A rarer, longer prefix.",
+   "steps": [
+    {
+     "edge": "b-c",
+     "note": "The user has typed <code>system desi</code>. Longer prefixes are rarer, so the CDN is less likely to have them."
+    },
+    {
+     "edge": "c-s",
+     "note": "Forward to any suggest replica. The service holds no state, so it scales by adding copies."
+    },
+    {
+     "edge": "s-k",
+     "note": "One key lookup: <code>GET \"system desi\"</code> returns the precomputed 10 completions with scores. ~1 ms. No tree walk, no sorting at request time."
+    },
+    {
+     "edge": "s-t",
+     "note": "In parallel, check the trending overlay for this prefix. Usually empty. If not, merge a rising query into the list by score."
+    },
+    {
+     "edge": "c-s",
+     "rev": true,
+     "note": "Return the list with <code>max-age=300</code>. The CDN caches it for the next user who types the same prefix."
+    },
+    {
+     "edge": "b-c",
+     "rev": true,
+     "note": "The browser renders the dropdown. If the response for an older prefix arrives late, discard it: only the latest request may update the UI."
+    }
+   ]
+  },
+  {
+   "id": "build",
+   "name": "Hourly rebuild from query logs",
+   "desc": "Where the rankings come from.",
+   "steps": [
+    {
+     "edge": "b-se",
+     "note": "The user presses Enter. Only <b>submitted</b> searches count as signal; half-typed prefixes are noise."
+    },
+    {
+     "edge": "se-l",
+     "note": "The search service appends <code>{query, ts, locale}</code> to a Kafka topic. Fire and forget; logging must never slow search."
+    },
+    {
+     "edge": "l-b",
+     "note": "Every hour a Spark job counts queries, adds them to decayed historical scores, drops queries from fewer than ~5 distinct sessions (privacy and noise), and removes blocklisted terms."
+    },
+    {
+     "edge": "b-sn",
+     "note": "For each surviving query, emit every prefix up to 20 characters; group by prefix and keep the top 10 by score. 10M distinct queries give up to 200M (prefix, query) pairs, which collapse to ~100M distinct prefixes because short prefixes are shared."
+    },
+    {
+     "edge": "sn-k",
+     "note": "Load the new snapshot into fresh tables, check it (row counts, spot checks), then flip a version pointer. Rollback is flipping it back."
+    }
+   ]
+  },
+  {
+   "id": "trending",
+   "name": "A trending query appears",
+   "desc": "Freshness the hourly build cannot give.",
+   "steps": [
+    {
+     "edge": "l-d",
+     "note": "The same log feeds a streaming job. It counts queries in 5-minute sliding windows and compares them with the usual rate for that hour."
+    },
+    {
+     "edge": "d-t",
+     "note": "A query searched 50× more than normal (a breaking news name, say) is written into the overlay for its prefixes, with a 1 h TTL."
+    },
+    {
+     "node": "trend",
+     "note": "The overlay holds a few thousand entries, not millions. By the time it expires, the hourly build has caught up and the query sits in the main table on its own merit."
+    },
+    {
+     "edge": "s-t",
+     "note": "The next request that misses the CDN for one of those prefixes merges the query in, capped at 2 of 10 slots. CDN copies refresh within their 5-minute TTL, so the trend shows up in minutes."
+    }
+   ]
+  }
+ ],
+ "deep": [
+  {
+   "title": "Trie or precomputed prefix table?",
+   "html": "<p>A <b>trie</b> stores queries letter by letter; completing a prefix means walking to its node and then searching the subtree for the best queries. Searching the subtree on every keystroke is too slow, so real tries <b>cache the top-k at every node</b>. At that point the trie is just a way of computing a map from prefix to top-k list.</p><p>So store that map directly in a key-value store: one lookup per request, easy to shard, easy to replicate, rebuilt offline. The cost is memory: each query is copied into the list of every prefix it has (up to 20). With ~100M prefixes × ~320 B that is ~32 GB, which fits on a few cache nodes with replicas. Cap prefix length and drop rare queries to keep it bounded.</p>"
+  },
+  {
+   "title": "Ranking and the offline build",
+   "html": "<ul><li><b>Score</b>: decayed count, for example the sum of daily counts × 0.9^age. A query popular last year fades; one popular this week rises.</li><li><b>Map step</b>: for query <code>\"system design\"</code> with score 900, emit <code>(\"s\", ...)</code>, <code>(\"sy\", ...)</code> up to the full string.</li><li><b>Reduce step</b>: per prefix, keep a min-heap of size 10. O(n log 10) instead of sorting everything.</li><li><b>Filters</b>: minimum count, blocklist, and no personal data (queries that look like NRIC numbers, phone numbers or emails are dropped).</li></ul><p>Shard the serving table by prefix. Range sharding (<code>a-c</code>, <code>d-f</code>...) is skewed because <code>s</code> and <code>c</code> are far more common than <code>x</code>; hash sharding spreads load evenly. Compare both in the sim.</p>",
+   "sim": "shard"
+  },
+  {
+   "title": "Caching at every layer",
+   "html": "<p>The cheapest request is the one never sent:</p><ol><li><b>Debounce</b> on the client (150-300 ms) cuts requests per search from ~15 to ~5.</li><li><b>Browser cache</b>: a backspace returns to a prefix you already have.</li><li><b>CDN</b>: one-letter and two-letter prefixes are few (702 for a-z) and very hot, so the edge serves nearly all of them.</li><li><b>Service cache</b>: an in-process LRU of the hottest prefixes in front of the store.</li></ol><p>Popularity is very skewed, so a small LRU absorbs most of the traffic. Try the LRU sim with a skewed key pattern. Keep TTLs short (minutes) so blocklist changes and trends show up.</p>",
+   "sim": "lru"
+  },
+  {
+   "title": "Freshness and safety",
+   "html": "<p>Hourly builds miss news that breaks at 9:05. The streaming path detects queries whose current rate is far above their usual rate and writes them to a small overlay with a TTL. Merge at request time and cap how many trending slots a list may take (say 2 of 10).</p><p>Autocomplete puts words in people's mouths, so safety matters more than for search results: a human-curated blocklist applied at build time <b>and</b> at request time, a minimum number of distinct users before a query is suggested, and a kill switch that purges a term from caches within minutes.</p>"
+  }
+ ],
+ "tradeoffs": [
+  {
+   "choice": "Compute top-k at request time or offline?",
+   "pick": "Offline, per prefix",
+   "why": "Request time work would scan or walk many candidates per keystroke at ~8k/s. A precomputed list is one key lookup."
+  },
+  {
+   "choice": "Trie in memory or KV store?",
+   "pick": "KV store of prefix → list",
+   "why": "Same answers, simpler to shard and replicate, and rebuilding means bulk-loading a new version instead of mutating a live tree."
+  },
+  {
+   "choice": "Update counts in real time?",
+   "pick": "No: hourly batch plus a trending overlay",
+   "why": "Updating ~20 prefix lists on every search costs ~20 writes per search and creates hot keys on short prefixes. A batch plus a small overlay gets freshness where it matters."
+  },
+  {
+   "choice": "Cache TTL",
+   "pick": "~5 minutes",
+   "why": "Longer TTLs save more origin load but delay trending queries and blocklist removals."
+  }
+ ],
+ "bottlenecks": [
+  {
+   "issue": "Short prefixes like \"s\" are extremely hot keys",
+   "fix": "They are few, so serve them from the CDN and an in-process cache on every suggest replica; the store barely sees them."
+  },
+  {
+   "issue": "A bad build ships wrong or offensive suggestions",
+   "fix": "Validate the snapshot before the flip (row counts, blocklist re-check, diff against the last build) and keep the previous version for instant rollback."
+  },
+  {
+   "issue": "Slow responses arrive out of order",
+   "fix": "Tag each request with a sequence number on the client and ignore any response older than the latest one shown."
+  }
+ ],
+ "followups": [
+  {
+   "q": "How would you support typos (\"sytem\")?",
+   "a": "<p>Add a fuzzy fallback: when a prefix has few or no completions, look up candidates within edit distance 1-2 (a precomputed deletion index or n-gram index) and suggest the best of those. Keep the exact prefix path as the fast default.</p>"
+  },
+  {
+   "q": "How do you personalise suggestions?",
+   "a": "<p>Merge the global list with the user's own recent searches, stored on the device. That needs no server state and keeps history private.</p>"
+  },
+  {
+   "q": "How do you support several languages?",
+   "a": "<p>Build one table per locale, key by <code>(locale, prefix)</code>, and normalise per language (accents, full-width characters). For Chinese, use pinyin input as an extra prefix key.</p>"
+  },
+  {
+   "q": "What if the suggest service is down?",
+   "a": "<p>The search box still works; the dropdown is simply empty. The client should time out after ~300 ms and never block typing or submission.</p>"
+  }
+ ],
+ "quiz": [
+  {
+   "q": "Why precompute top-k per prefix instead of searching a trie on each request?",
+   "options": [
+    "Tries cannot store strings",
+    "One key lookup per keystroke is far cheaper than walking and ranking a subtree",
+    "Key-value stores sort automatically",
+    "It uses less memory"
+   ],
+   "answer": 1,
+   "why": "It costs memory (each query appears under every prefix) to make every request O(1)."
+  },
+  {
+   "q": "What does debouncing on the client do?",
+   "options": [
+    "Encrypts the prefix",
+    "Waits for a short pause in typing before sending, cutting request volume",
+    "Retries failed requests",
+    "Sorts suggestions"
+   ],
+   "answer": 1,
+   "why": "A fast typist sends one request per pause, not one per letter."
+  },
+  {
+   "q": "A celebrity name starts trending at 9:05 and the hourly build ran at 9:00. How does it appear quickly?",
+   "options": [
+    "Rebuild the whole table every minute",
+    "A streaming job writes it to a small trending overlay merged at request time",
+    "Increase CDN TTL",
+    "Wait for the next build"
+   ],
+   "answer": 1,
+   "why": "The overlay is small and short-lived; the next hourly build absorbs it."
+  },
+  {
+   "q": "Why hash-shard the prefix table rather than range-shard by first letter?",
+   "options": [
+    "Hashing keeps prefixes sorted",
+    "First letters are unevenly popular, so ranges create hot shards",
+    "Range sharding needs more replicas",
+    "Hash sharding allows range scans"
+   ],
+   "answer": 1,
+   "why": "Far more queries start with \"s\" than with \"x\". Hashing spreads that skew across all shards."
+  }
+ ]
+}

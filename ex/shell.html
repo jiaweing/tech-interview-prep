@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Explained: tech interview basics</title>
+<meta name="description" content="Data structures, algorithms and system design explained from zero, with step-by-step visual examples and Python.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Inter:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root { --bg: #ffffff; --subtle: #f7f7f8; --sunk: #ececee; --fg: #111113; --fg2: #4a4a52; --muted: #8a8a93; --accent: #2563eb; --ok: #16a34a; --ok-soft: #dcfce7; --bad: #dc2626; --bad-soft: #fee2e2; --hi: #b45309; --hi-soft: #fef3c7; --hair2: rgba(0,0,0,.14);
+  --tk-kw: #b4237d; --tk-str: #1a7f37; --tk-num: #b35900; --tk-builtin: #2563eb;
+  --f-display: 'Geist', ui-sans-serif, system-ui, sans-serif; --f-body: 'Inter', ui-sans-serif, system-ui, sans-serif; --f-code: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #0d0d0f; --subtle: #17171a; --sunk: #232328; --fg: #f2f2f4; --fg2: #b9b9c2; --muted: #7d7d88; --accent: #4f8cff; --ok: #22c55e; --ok-soft: #12321f; --bad: #f05252; --bad-soft: #3a1717; --hi: #f5a524; --hi-soft: #3a2a0c; --hair2: rgba(255,255,255,.16); --tk-kw: #ff7ab8; --tk-str: #7ee787; --tk-num: #ffa657; --tk-builtin: #79b8ff; color-scheme: dark; } }
+:root[data-theme="dark"] { --bg: #0d0d0f; --subtle: #17171a; --sunk: #232328; --fg: #f2f2f4; --fg2: #b9b9c2; --muted: #7d7d88; --accent: #4f8cff; --ok: #22c55e; --ok-soft: #12321f; --bad: #f05252; --bad-soft: #3a1717; --hi: #f5a524; --hi-soft: #3a2a0c; --hair2: rgba(255,255,255,.16); --tk-kw: #ff7ab8; --tk-str: #7ee787; --tk-num: #ffa657; --tk-builtin: #79b8ff; color-scheme: dark; }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 400 15px/1.5 var(--f-body); }
+a { color: var(--accent); }
+[hidden] { display: none !important; }
+.top { position: sticky; top: 0; z-index: 20; display: flex; justify-content: center; padding: 12px 16px 6px; background: linear-gradient(var(--bg) 70%, transparent); }
+.pill { display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 999px; background: var(--bg); box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.08); max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.pill a, .pill button { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border: 0; border-radius: 999px; background: none; color: var(--fg2); font: 500 14px/1 var(--f-body); text-decoration: none; white-space: nowrap; cursor: pointer; }
+.pill a:hover, .pill button:hover { color: var(--fg); }
+.pill a.on { background: var(--fg); color: var(--bg); }
+.pill .brand { font: 600 15px/1 var(--f-display); color: var(--fg); padding: 0 12px 0 14px; }
+.pill svg { width: 16px; height: 16px; }
+main { padding: 12px 16px 60px; }
+.home { max-width: 1080px; margin: 0 auto; }
+.home h1 { margin: 18px 0 6px; font: 600 38px/1.1 var(--f-display); letter-spacing: -.02em; }
+.home .lead { margin: 0 0 22px; font: 400 18px/1.5 var(--f-body); color: var(--fg2); max-width: 680px; }
+.tracks { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 28px; }
+.track { display: flex; flex-direction: column; gap: 6px; padding: 18px; border-radius: 18px; background: var(--subtle); color: var(--fg); text-decoration: none; }
+.track:hover { background: var(--sunk); }
+.track b { font: 600 20px/1.2 var(--f-display); }
+.track span { color: var(--fg2); }
+.track small { color: var(--muted); font-size: 13px; }
+.how { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.how div { padding: 16px; border-radius: 16px; background: var(--subtle); }
+.how b { display: block; font: 600 15px/1.3 var(--f-display); margin-bottom: 4px; }
+.how p { margin: 0; color: var(--fg2); font-size: 14px; }
+footer { max-width: 1080px; margin: 30px auto 0; color: var(--muted); font-size: 13px; }
+@media (max-width: 640px) { .home h1 { font-size: 30px; } .pill .brand { display: none; } }
+
+.pill a svg, .pill button svg { width: 16px; height: 16px; flex: none; }
+.pill .brand svg { display: none; }
+/* phones: icon bar at the bottom, like SG Theory Prep; the active tab shows its label */
+@media (max-width: 760px) {
+  .top { position: fixed; top: auto; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); padding: 0 12px; background: none; }
+  .pill { overflow: visible; gap: 0; padding: 5px; box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 10px 30px rgba(0,0,0,.16); }
+  .pill a, .pill button { width: 42px; height: 42px; padding: 0; gap: 0; justify-content: center; border-radius: 50%; flex: none; }
+  .pill .lab { display: none !important; }
+  .pill .brand { display: inline-flex; width: 42px; padding: 0; }
+  .pill svg { width: 19px !important; height: 19px !important; }
+  .pill .brand svg { display: block; }
+  .pill a.brand.on { background: var(--fg); color: var(--bg); }
+  main { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 96px); }
+}
+@media (max-width: 380px) { .pill a, .pill button, .pill .brand { width: 38px; height: 38px; } }
+/*EXPLAIN_CSS*/
+</style>
+</head>
+<body>
+<header class="top"><nav class="pill" aria-label="Sections">
+  <a class="brand" href="#home" aria-label="Explained" title="Explained"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span class="lab">Explained</span></a>
+  <a href="#py" data-t="py" aria-label="Python" title="Python"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg><span class="lab">Python</span></a>
+  <a href="#ds" data-t="ds" aria-label="Data structures" title="Data structures"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg><span class="lab">Data structures</span></a>
+  <a href="#algo" data-t="algo" aria-label="Algorithms" title="Algorithms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="8" x="3" y="3" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect width="8" height="8" x="13" y="13" rx="2"/></svg><span class="lab">Algorithms</span></a>
+  <a href="#sd" data-t="sd" aria-label="System design" title="System design"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg><span class="lab">System design</span></a>
+  <a href="#which" data-t="which" aria-label="Which one?" title="Which one?"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 13v8"/><path d="M12 3v3"/><path d="M18 6a2 2 0 0 1 1.387.56l2.307 2.22a1 1 0 0 1 0 1.44l-2.307 2.22A2 2 0 0 1 18 13H6a2 2 0 0 1-1.387-.56l-2.306-2.22a1 1 0 0 1 0-1.44L4.613 6.56A2 2 0 0 1 6 6z"/></svg><span class="lab">Which one?</span></a>
+  <a href="#sheet" data-t="sheet" aria-label="Cheatsheet" title="Cheatsheet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg><span class="lab">Cheatsheet</span></a>
+  <button type="button" id="theme" aria-label="Switch light or dark theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg></button>
+</nav></header>
+<main id="main"></main>
+<script>window.EXPLAIN_TOPICS = /*TOPICS*/[]; window.EXPLAIN_REL = /*REL*/{};</script>
+<script>/*EXPLAIN_JS*/</script>
+<script>/*WHICH_JS*/</script>
+<script>
+(function () {
+  'use strict';
+  const main = document.getElementById('main');
+  let stop = () => {};
+  const count = id => EXPLAIN.topics().filter(t => t.track === id).length;
+  function home() {
+    main.innerHTML = '<div class="home"><h1>Tech interview basics, explained.</h1><p class="lead">Rusty? Each topic starts from zero: what it is, a real-world picture, an example you step through, then the Python and how fast it is.</p>' +
+      '<div class="tracks">' + EXPLAIN.TRACKS.map(t => '<a class="track" href="#' + t.id + '"><b>' + t.name + '</b><span>' + ({ py: 'Only the Python you need: lists, dicts, sorting, heapq and the gotchas.', ds: 'Arrays, hash maps, stacks, trees, graphs and more.', algo: 'Searching, sorting, graph walks, two pointers, DP.', sd: 'How real systems scale: caches, queues, databases.' })[t.id] + '</span><small>' + count(t.id) + ' topics</small></a>').join('') + '</div>' +
+      '<div class="how"><div><b>Go in order</b><p>Each track is numbered as a learning path. Earlier topics are used by later ones.</p></div><div><b>Step through it</b><p>Press Play, or use the arrow keys. Every step says what changed and why.</p></div><div><b>Run the code</b><p>Every Python snippet runs as-is and shows its output.</p></div></div>' +
+      '<footer>Videos by <a href="https://www.youtube.com/@CodistCS" target="_blank" rel="noopener noreferrer">Codist</a> and <a href="https://www.youtube.com/@NeetCode" target="_blank" rel="noopener noreferrer">NeetCode</a>. Code is MIT licensed.</footer></div>';
+    return () => {};
+  }
+  function route() {
+    stop(); window.scrollTo(0, 0);
+    const h = (location.hash || '#home').slice(1);
+    let tab = '';
+    if (h.startsWith('x-') && EXPLAIN.byId(h.slice(2))) { const t = EXPLAIN.byId(h.slice(2)); tab = t.track; stop = EXPLAIN.mountTopic(main, t); document.title = t.title + ' · Explained'; }
+    else if (h === 'sheet') { tab = 'sheet'; main.innerHTML = EXPLAIN.sheetHTML(); EXPLAIN.fitMinis(main); stop = () => {}; document.title = 'Cheatsheet · Explained'; }
+    else if (h === 'which') { tab = 'which'; main.innerHTML = WHICH.html(); stop = () => {}; document.title = 'Which one? · Explained'; }
+    else if (EXPLAIN.TRACKS.some(t => t.id === h)) { tab = h; stop = EXPLAIN.mountIndex(main, h); document.title = EXPLAIN.TRACKS.find(t => t.id === h).name + ' · Explained'; }
+    else { stop = home(); document.title = 'Explained: tech interview basics'; }
+    document.querySelectorAll('.pill a[data-t]').forEach(a => a.classList.toggle('on', a.dataset.t === tab));
+    document.querySelector('.pill .brand').classList.toggle('on', !tab);
+  }
+  const themeKey = 'explained:theme';
+  try { const t = localStorage.getItem(themeKey); if (t) document.documentElement.dataset.theme = t; } catch (e) { /* storage blocked */ }
+  document.getElementById('theme').onclick = () => {
+    const dark = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.dataset.theme = dark ? 'light' : 'dark';
+    try { localStorage.setItem(themeKey, document.documentElement.dataset.theme); } catch (e) { /* storage blocked */ }
+  };
+  window.addEventListener('hashchange', route);
+  route();
+})();
+</script>
+</body>
+</html>

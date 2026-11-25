@@ -1,0 +1,1126 @@
+[
+ {
+  "id": "consensus-chain",
+  "title": "Design a chain of consensus system",
+  "source": "govtech",
+  "evidence_tag": "Reported",
+  "evidence": "One 2026 GovTech SWE interview account (a Glassdoor search snippet, unverified) names this one-line prompt, in the same process as the Roving on Mars live-coding round; no further spec was reported.",
+  "design": "consensus-chain",
+  "minutes": 45,
+  "prompt": "<p>\"Design a chain of consensus system.\"</p><p>That is the whole prompt. The interviewer stays quiet to see how you turn one vague line into a system you can defend.</p>",
+  "clarify": [
+   {
+    "q": "Can a node lie, or do nodes only crash?",
+    "a": "Assume the nodes are run by agencies we trust, so crashes are the main risk. Tell me what changes if one node is compromised."
+   },
+   {
+    "q": "Who are the participants? Anyone, or a known set?",
+    "a": "A known set: 5 to 7 agency nodes. Nobody joins without approval."
+   },
+   {
+    "q": "What throughput and commit latency do you need?",
+    "a": "Up to 2,000 transactions a second at peak. Commit within a second is fine."
+   },
+   {
+    "q": "What goes on the chain?",
+    "a": "Opaque records: audit events, certificate issuance. No balances or smart contracts."
+   },
+   {
+    "q": "One region or several?",
+    "a": "One region, several availability zones. A second region is a stretch goal."
+   }
+  ],
+  "steps": [
+   {
+    "title": "Requirements",
+    "minutes": "5 min",
+    "ask": "<p>Turn \"chain\" and \"consensus\" into concrete functional and non-functional requirements. Say your interpretation out loud.</p>",
+    "model": "<p>Interpretation: <b>a permissioned, replicated, append-only ledger</b>. \"Consensus\" means every healthy node holds the same transactions in the same order. \"Chain\" means blocks linked by hashes so tampering shows.</p><ul><li><b>Functional</b>: submit a transaction and get a receipt; read a transaction with its block height and an inclusion proof; read blocks by height; verify the chain from genesis.</li><li><b>Non-functional</b>: survive 2 crashed nodes; commit in under 1 s; never lose an acknowledged write (fsync on a majority before the ack); tamper-evident history; reads can be slightly stale unless the caller asks for fresh.</li><li><b>Out of scope</b>: open membership, mining, tokens, smart contracts.</li></ul><p>Say: \"I'll design for crash faults with Raft, then show what changes for Byzantine faults.\"</p>"
+   },
+   {
+    "title": "Estimates",
+    "minutes": "5 min",
+    "ask": "<p>Size the write rate, network, block size and storage growth. What do the numbers tell you?</p>",
+    "model": "<ul><li>Peak <b>2,000 tx/s × 1 KB = 2 MB/s</b> into the leader.</li><li>The leader sends each entry to 4 followers: <b>~8 MB/s (64 Mbps)</b> out. One NIC handles that easily.</li><li>Blocks sealed every 200 ms: 2,000 × 0.2 = <b>400 tx, ~400 KB per block</b>.</li><li>Average 200 tx/s × 1 KB × 86,400 × 365 = <b>~6.3 TB a year per node</b>.</li><li>Commit latency in one region: one round trip to the 2 fastest followers (~1 ms) + fsync (~2 ms) + batch wait: <b>~5-10 ms</b>.</li></ul><p>Conclusion: a single leader is not the bottleneck at this rate. Storage growth is the long-run cost, so plan snapshots and archiving from day one.</p>"
+   },
+   {
+    "title": "API & data model",
+    "minutes": "7 min",
+    "ask": "<p>Define the API and what each node stores.</p>",
+    "model": "<ul><li><code>POST /tx {payload, clientId, nonce, signature}</code> → 202 <code>{txId}</code>. <code>(clientId, nonce)</code> is the idempotency key, so a retried submit is not appended twice.</li><li><code>GET /tx/{id}</code> → <code>{status, height, index, merkleProof}</code>.</li><li><code>GET /blocks/{height}</code>, <code>GET /verify?from=</code>.</li></ul><p>Per node, on local disk (RocksDB or files):</p><ul><li><b>Raft log</b>: <code>(term, index, tx)</code>, fsynced.</li><li><b>Blocks</b>: <code>height, prev_hash, merkle_root, timestamp, leader_sig, tx_ids[]</code>.</li><li><b>Tx index</b>: <code>txId → (height, position)</code> plus the dedupe set of recent nonces.</li><li><b>Snapshots</b> of the index so a new node does not replay years of log.</li></ul>"
+   },
+   {
+    "title": "High-level design",
+    "minutes": "12 min",
+    "ask": "<p>Draw the components and walk one write from client to committed block.</p>",
+    "model": "<p>Five ledger nodes spread 2-2-1 over three availability zones, behind a load balancer.</p><ol><li>Client sends <code>POST /tx</code> to any node. A follower forwards it to the leader.</li><li>The leader checks the signature and dedupe set, then appends to its Raft log, batching entries that arrive within a few milliseconds.</li><li>It sends AppendEntries to all followers. Each writes to disk, fsyncs and replies.</li><li>Once <b>3 of 5</b> have the entry on disk it is <b>committed</b>. The leader replies to the client.</li><li>Every node applies committed entries in log order: the sealer builds a block with the previous block's hash and a Merkle root of the transactions, so all nodes produce identical blocks.</li></ol><p>Reads go to the leader (with a lease) when fresh data is required, or to any follower otherwise. Metrics: commit latency, follower lag, election count.</p>"
+   },
+   {
+    "title": "Deep dive",
+    "minutes": "10 min",
+    "ask": "<p>Go deep on one part. Suggested: how leader failure is handled safely, and what Byzantine faults would change.</p>",
+    "model": "<p><b>Leader failure.</b> Followers expect heartbeats every ~50 ms. If none arrive within a randomised 150-300 ms timeout, a follower becomes a candidate, increments the term and asks for votes. A node votes only for a candidate whose log is at least as up to date as its own, so a new leader always holds every committed entry. Any two majorities of 5 overlap in at least one node, so two leaders cannot win the same term, and a deposed leader cannot get a majority to commit.</p><p>With 2 nodes down, 3 remain: writes continue. With 3 down, writes <b>stop</b>. That is a deliberate CP choice: no split-brain ledger.</p><p><b>Byzantine faults.</b> If a node may lie, use PBFT or Tendermint: <b>3f+1 = 7 nodes</b> for f = 2, every vote signed, a block commits after 2f+1 matching signatures. Messages grow as n², so keep membership small.</p>"
+   },
+   {
+    "title": "Bottlenecks & trade-offs",
+    "minutes": "6 min",
+    "ask": "<p>Name the bottlenecks and the trade-offs you made.</p>",
+    "model": "<ul><li><b>Leader throughput</b>: batch entries and pipeline AppendEntries. Beyond ~20k tx/s, shard into several independent chains by agency or record type.</li><li><b>fsync cost</b>: group commit and NVMe disks. Skipping fsync breaks the durability promise.</li><li><b>Ledger growth</b> (~6 TB/year): snapshot the index, move old blocks to object storage, keep their hashes so verification still works.</li><li><b>Multi-region</b>: a majority must answer, so commit latency rises from ~5 ms to ~30-60 ms. Worth it only if a region loss must not stop writes.</li><li><b>Raft vs BFT</b>: Raft is simpler and faster but trusts nodes. BFT costs 2 extra nodes and more messages.</li><li><b>Why not a public blockchain</b>: unknown participants are not a requirement, and probabilistic finality and fees buy nothing here.</li></ul>"
+   }
+  ],
+  "rubric": [
+   "Asks whether faults are crash-only or Byzantine before choosing a protocol.",
+   "States the commit rule: an entry is acknowledged only after a majority (3 of 5) has it on disk.",
+   "Explains hash-linking (prev_hash) and how it makes tampering detectable.",
+   "Gives node counts from fault tolerance: 2f+1 for crash, 3f+1 for Byzantine.",
+   "Makes submits idempotent so a retry is not appended twice.",
+   "Explains leader election and why two leaders cannot both commit.",
+   "Says what happens when a majority is lost (writes stop) and calls it a CP choice.",
+   "Plans for ledger growth with snapshots or archiving."
+  ]
+ },
+ {
+  "id": "rate-limiter",
+  "title": "Design a rate limiter API",
+  "source": "govtech",
+  "evidence_tag": "Reported",
+  "evidence": "An anonymous GovTech interview listing on NodeFlair (a search snippet, unverified) names this prompt; it is also a standard industry question.",
+  "design": "rate-limiter",
+  "minutes": 45,
+  "prompt": "<p>\"Design a rate limiter API. Our public APIs and login endpoints sit behind several gateway instances. We want to cap how often each caller can hit them.\"</p>",
+  "clarify": [
+   {
+    "q": "Limit by what: user, IP, API key, endpoint?",
+    "a": "Per API key for the data APIs. Per IP and per phone number for the OTP endpoints."
+   },
+   {
+    "q": "Hard limit or soft?",
+    "a": "Hard. Blocked callers get an error they can act on."
+   },
+   {
+    "q": "How much traffic?",
+    "a": "About 50k requests a second at peak across 20 gateway instances."
+   },
+   {
+    "q": "One region or global limits?",
+    "a": "One region for now."
+   },
+   {
+    "q": "Must rules change without a deploy?",
+    "a": "Yes. Ops should be able to tighten a limit during an incident."
+   },
+   {
+    "q": "What if the limiter itself is down?",
+    "a": "Your call. Justify it."
+   }
+  ],
+  "steps": [
+   {
+    "title": "Requirements",
+    "minutes": "5 min",
+    "ask": "<p>List what the limiter must do and the qualities it must have.</p>",
+    "model": "<ul><li><b>Functional</b>: decide allow or deny per request for a key (API key, IP, phone) and a rule (e.g. 100 req/min per key, 5 OTP requests per phone per hour); return remaining quota; let ops create and change rules at runtime; blocked callers get <b>429</b> with <code>Retry-After</code>.</li><li><b>Non-functional</b>: adds <b>about 1 ms</b>; correct across 20 gateways (one shared count, not 20 separate ones); highly available; allows short bursts; memory bounded.</li><li><b>Out of scope</b>: billing, DDoS at the network layer (that is the CDN/WAF's job), global multi-region quotas.</li></ul><p>Note the two use cases differ: data APIs care about fairness, OTP endpoints care about abuse and SMS cost. That will matter for failure handling.</p>"
+   },
+   {
+    "title": "Estimates",
+    "minutes": "5 min",
+    "ask": "<p>Estimate request rate, store operations, memory and latency.</p>",
+    "model": "<ul><li>Peak <b>50k req/s</b>, one limiter check each: <b>50k Redis script calls/s</b>.</li><li>One Redis shard handles ~25k Lua calls/s with headroom, so <b>2 shards, run 3</b>.</li><li>10M active keys × ~100 B (key + tokens + timestamp + overhead) = <b>~1 GB</b> for token buckets.</li><li>A sliding log keeping 100 timestamps per key would be 10M × 100 × 8 B = <b>~8 GB</b>. This is why we avoid it.</li><li>1,000 rules × 200 B = 200 KB: every gateway can cache all rules in memory.</li><li>One in-zone Redis round trip: <b>~0.5-1 ms</b> added latency.</li></ul><p>Conclusion: a small Redis cluster is enough. The design is about correctness and failure modes, not raw scale.</p>"
+   },
+   {
+    "title": "API & data model",
+    "minutes": "7 min",
+    "ask": "<p>Define the check API, the admin API, the response contract and the stored state.</p>",
+    "model": "<ul><li>Check (in-process library or sidecar call): <code>check(key, ruleId, cost=1)</code> → <code>{allowed, remaining, resetAt, retryAfter}</code>.</li><li>Admin: <code>PUT /v1/rules/{id} {match, limit, windowSec, burst, failMode}</code>, <code>GET /v1/rules</code>.</li><li>Response headers on every call: <code>RateLimit-Limit</code>, <code>RateLimit-Remaining</code>, <code>RateLimit-Reset</code>; on block: <b>429</b> + <code>Retry-After</code>.</li></ul><p>State:</p><ul><li>Redis hash <code>rl:{ruleId}:{key}</code> → <code>tokens, lastRefillMs</code>, TTL = 2 × window so idle keys disappear.</li><li>Postgres <code>rules</code> table as the source of truth; gateways cache it and refresh on a pub/sub message or every 30 s.</li></ul><p>In Redis Cluster one script may only touch keys in one hash slot, so run one script per bucket, or give buckets checked together a shared hash tag such as <code>{apiKey}</code>.</p>"
+   },
+   {
+    "title": "High-level design",
+    "minutes": "12 min",
+    "ask": "<p>Draw the request path and the rules path.</p>",
+    "model": "<ol><li>Client → load balancer → one of 20 <b>gateway</b> instances.</li><li>Gateway middleware matches the request to rules from its in-memory cache (API key rule, IP rule, phone rule).</li><li>It calls <b>Redis</b> with one Lua script per matching bucket, pipelined in a single round trip; each script checks and updates its bucket atomically.</li><li>Allowed: forward to the upstream service with rate-limit headers. Denied: return 429 immediately; the upstream never sees it.</li><li>Every decision increments a metric; a dashboard shows 429 rate per rule and top blocked keys.</li></ol><p>Rules path: ops edits a rule in the admin UI → rules service writes Postgres → publishes \"rules changed\" → gateways reload within seconds. No deploy needed.</p><p>Enforce at the gateway so every service gets it for free; services can still add finer limits inside.</p>"
+   },
+   {
+    "title": "Deep dive",
+    "minutes": "10 min",
+    "ask": "<p>Go deep on the algorithm and how it stays correct with many gateways.</p>",
+    "model": "<p><b>Token bucket</b>: capacity B, refill rate r per second. On each request: <code>tokens = min(B, tokens + (now - last) × r)</code>; if <code>tokens ≥ cost</code>, subtract and allow, else deny. It allows bursts up to B and an average of r.</p><p><b>Atomic</b>: read-modify-write from 20 gateways would race and let extra requests through. Redis runs a Lua script to completion before the next command, so the whole check is atomic. Use Redis <code>TIME</code> inside the script so gateway clock skew does not matter.</p><p><b>Alternatives</b>: fixed window counters are simplest but allow 2× the limit across a window boundary. A sliding log is exact but costs ~8 GB here. A <b>sliding window counter</b> (current count + previous count × overlap) is a close approximation at two integers per key, a good choice when bursts must not exceed the limit.</p>"
+   },
+   {
+    "title": "Bottlenecks & trade-offs",
+    "minutes": "6 min",
+    "ask": "<p>What breaks first, and what did you trade?</p>",
+    "model": "<ul><li><b>Redis down</b>: decide per rule. Data APIs <b>fail open</b> (availability matters more than exact quotas). OTP endpoints <b>fail closed</b> or fall back to a coarse in-memory limit per gateway, because an open OTP endpoint costs money and enables brute force.</li><li><b>Latency</b>: if 1 ms is too much, each gateway can take 10 tokens at a time and spend them locally. Faster, but the limit is less exact.</li><li><b>Hot keys</b>: one big agency key at 5k req/s lands on one shard. Local pre-limiting absorbs most of it.</li><li><b>Shared IPs</b>: a whole office or mobile carrier NAT can share one IP. Limit by API key or user where possible, and keep IP limits generous.</li><li><b>Multi-region</b>: split the budget per region rather than synchronising counts across regions.</li></ul>"
+   }
+  ],
+  "rubric": [
+   "Clarifies what the limit is keyed on (user, IP, API key, phone) before designing.",
+   "Names an algorithm (token bucket or sliding window) and explains its burst behaviour.",
+   "Uses a shared store with an atomic check (Lua script or equivalent) so gateways do not race.",
+   "Returns 429 with Retry-After and rate-limit headers.",
+   "Sizes memory and store throughput with real numbers.",
+   "Chooses fail open or fail closed deliberately, and differently for login/OTP versus data APIs.",
+   "Lets rules change at runtime without a deploy.",
+   "Mentions hot keys or shared IPs (NAT) as a practical problem."
+  ]
+ },
+ {
+  "id": "llm-guardrails",
+  "title": "Multi-tier PoC for LLM guardrails, then move it to AWS",
+  "source": "govtech",
+  "evidence_tag": "Reported (role-specific)",
+  "evidence": "Reported for a GovTech AI Engineer role (a search snippet, unverified): build a multi-tier proof-of-concept web app for LLM guardrails and describe its AWS architecture.",
+  "design": "llm-guardrails",
+  "minutes": 45,
+  "prompt": "<p>\"Officers want to chat with an LLM, but we need guardrails on what goes in and what comes out. Sketch a multi-tier proof of concept, then tell me how you would run it on AWS for several agencies.\"</p>",
+  "clarify": [
+   {
+    "q": "Which risks matter most?",
+    "a": "Personal data (NRIC numbers, phone numbers) reaching the model or the logs, prompt injection and jailbreaks, toxic output, and off-topic use."
+   },
+   {
+    "q": "Which model, and where does it run?",
+    "a": "A hosted model through an API. We are not training or self-hosting one."
+   },
+   {
+    "q": "How many users?",
+    "a": "About 5,000 officers across a few agencies; maybe 50 chats at once at peak."
+   },
+   {
+    "q": "Do answers stream?",
+    "a": "Yes, users expect tokens to stream."
+   },
+   {
+    "q": "What must be audited?",
+    "a": "Every blocked or flagged message, kept for a year, without storing raw personal data."
+   }
+  ],
+  "steps": [
+   {
+    "title": "Requirements",
+    "minutes": "5 min",
+    "ask": "<p>Separate what the PoC must show from what production needs.</p>",
+    "model": "<ul><li><b>Functional</b>: chat UI; input checks before the model sees a message; output checks before the user sees a reply; per-agency policies (which checks, thresholds, blocked topics); an audit log of guard decisions; an admin page to review flagged events.</li><li><b>Non-functional</b>: input checks add <b>under 300 ms at p95</b>; streaming still works; <b>fail closed</b> on output personal-data checks; no raw personal data in logs; each agency's data isolated.</li><li><b>PoC scope</b>: one agency, one model, deterministic checks plus one classifier, deployed with infrastructure as code so the move to production is a config change, not a rewrite.</li><li><b>Out of scope</b>: fine-tuning, retrieval over agency documents (mention it as the next step).</li></ul>"
+   },
+   {
+    "title": "Estimates",
+    "minutes": "5 min",
+    "ask": "<p>Estimate traffic, tokens, guard latency budget and log volume.</p>",
+    "model": "<ul><li>5,000 officers × 20 messages a day = <b>100k messages/day</b>, ~1.2/s average, ~12/s at a 10× peak.</li><li>~1,500 tokens in and 500 out per message: <b>~200M tokens a day</b>. Model cost, not compute, dominates the budget.</li><li>Guard latency per check type: regex and checksum ~1 ms; a small classifier on CPU ~20-50 ms; an LLM-as-judge call ~500 ms or more.</li><li>So the 300 ms budget fits deterministic checks plus 2-3 small classifiers, and LLM judging only for borderline cases.</li><li>Audit log: 100k × ~4 KB = <b>~400 MB/day, ~150 GB/year</b>. Postgres for recent, S3 for the archive.</li></ul>"
+   },
+   {
+    "title": "API & data model",
+    "minutes": "7 min",
+    "ask": "<p>Define the API and the stored entities.</p>",
+    "model": "<ul><li><code>POST /api/chat {conversationId, message}</code> → server-sent events stream of tokens, ending with a guard summary.</li><li><code>GET /api/conversations/{id}</code>.</li><li><code>GET/PUT /api/policies/{appId}</code> (admin).</li><li><code>GET /api/guard-events?verdict=blocked&amp;from=</code> (admin).</li></ul><p>Data (Postgres):</p><ul><li><code>conversations</code>, <code>messages</code>: store <b>masked</b> text only.</li><li><code>policies</code>: JSON per app: enabled checks, thresholds, denied topics, fail mode.</li><li><code>guard_events</code>: <code>message_id, stage (input|output), check, score, verdict, latency_ms, policy_version</code>, append-only.</li></ul><p>Recording <code>policy_version</code> lets you explain later why a message was blocked. Streaming over server-sent events is simpler than WebSockets here: traffic is one-way after the request, it passes through load balancers as plain HTTP, and the browser reconnects on its own.</p>"
+   },
+   {
+    "title": "High-level design",
+    "minutes": "12 min",
+    "ask": "<p>Draw the tiers and walk one message through them.</p>",
+    "model": "<p>Three tiers: <b>web</b> (static React app), <b>application</b> (chat API + guardrail service), <b>data</b> (Postgres, Redis, object storage).</p><ol><li>Officer signs in through agency SSO (OIDC). The API checks the token and the agency's quota in Redis.</li><li>The API sends the message to the <b>guardrail service</b>: mask personal data, run the injection classifier, run the topic filter.</li><li>Blocked: return a refusal and write a guard event. Passed: send the masked prompt to the model.</li><li>Tokens stream back through the guardrail service, which scans each sentence for personal data and toxicity before releasing it to the user.</li><li>The API stores the masked conversation and guard events.</li></ol><p>Keeping guards in their own service means any agency app can reuse them, and they can scale apart from the chat API.</p>"
+   },
+   {
+    "title": "Deep dive",
+    "minutes": "10 min",
+    "ask": "<p>Go deep on the guard pipeline: ordering, streaming output, and how you know it works.</p>",
+    "model": "<p><b>Tiered checks, cheapest first.</b> Deterministic: NRIC/FIN pattern <code>[STFGM]\\d{7}[A-Z]</code> plus its checksum, 8-digit phone numbers starting with 8 or 9, emails. Then small classifiers for injection and toxicity. Only scores in a grey band (say 0.4-0.7) go to an LLM judge. This keeps p95 low and cost bounded.</p><p><b>Reversible masking.</b> Replace <code>S1234567D</code> with <code>&lt;NRIC_1&gt;</code>, keep the map in request memory only, and unmask in the reply only if policy allows.</p><p><b>Streaming output.</b> Buffer about one sentence (~30-50 tokens), check it, then release. If a later sentence fails, stop the stream and replace it with a notice. Larger buffers are safer but feel slower.</p><p><b>Evaluation.</b> Keep a red-team test set and track block rate and false-positive rate per check in CI.</p>"
+   },
+   {
+    "title": "Bottlenecks & trade-offs",
+    "minutes": "6 min",
+    "ask": "<p>What would hurt in production on AWS, and what did you trade?</p>",
+    "model": "<p><b>AWS layout</b>: CloudFront + S3 for the web tier; ALB → ECS Fargate for the chat API and guardrail service in private subnets across 2 AZs; RDS Postgres Multi-AZ; ElastiCache Redis; secrets in Secrets Manager; model access through Bedrock over a VPC endpoint so prompts do not cross the public internet; CloudWatch alarms; Terraform or CDK for everything.</p><ul><li><b>Model rate limits and latency</b>: per-agency quotas, retries with backoff, a fallback model.</li><li><b>False positives</b> annoy users: start new checks in shadow mode, log scores, tune thresholds per agency.</li><li><b>Fail closed vs open</b>: closed for output personal data, open (with logging) for off-topic.</li><li><b>Cost</b>: cache identical prompts; cap tokens per message.</li></ul>"
+   }
+  ],
+  "rubric": [
+   "Clarifies the concrete risks (personal data, injection, toxicity, off-topic) before designing.",
+   "Separates tiers clearly: web, application (with a distinct guardrail component), data.",
+   "Runs cheap deterministic checks before classifiers or LLM judges, with a latency budget.",
+   "Handles streamed output, not only the full reply.",
+   "Keeps raw personal data out of logs and storage (masking).",
+   "Records guard decisions with the policy version for audit.",
+   "Gives a concrete AWS layout: private subnets, managed database, secrets store, private model access.",
+   "Explains how guard quality is measured (test set, false-positive rate, shadow mode)."
+  ]
+ },
+ {
+  "id": "form-builder",
+  "title": "Backend for a government form submission system",
+  "source": "govtech",
+  "evidence_tag": "Domain practice",
+  "evidence": "Suggested by a prep guide (unverified) as a GovTech system design question; OGP runs FormSG, so interviewers may know the domain well.",
+  "design": "form-builder",
+  "minutes": 45,
+  "prompt": "<p>\"Design the backend for a government form submission system. Officers build forms; citizens fill them in, sometimes with attachments. Some forms get a huge spike when a scheme is announced on the news.\"</p>",
+  "clarify": [
+   {
+    "q": "How many submissions, and how spiky?",
+    "a": "About 1M a day normally. One announcement can bring 300k submissions in an hour."
+   },
+   {
+    "q": "Must the server be able to read the answers?",
+    "a": "Not necessarily. Some agencies want answers emailed; others want them stored and are nervous about us reading them."
+   },
+   {
+    "q": "How big are attachments?",
+    "a": "Up to 20 MB per submission. Mostly PDFs and photos."
+   },
+   {
+    "q": "Do some forms need login?",
+    "a": "Some need Singpass so we know who submitted."
+   },
+   {
+    "q": "Where do responses go?",
+    "a": "Email, a dashboard for officers, or a webhook into the agency's own system."
+   }
+  ],
+  "steps": [
+   {
+    "title": "Requirements",
+    "minutes": "5 min",
+    "ask": "<p>Split the two workloads and list requirements for each.</p>",
+    "model": "<ul><li><b>Form building</b> (officers, low volume): create and edit a form schema, choose delivery (email or stored), set who can access it, publish.</li><li><b>Submission intake</b> (citizens, bursty): load the form fast, validate answers, upload attachments, submit once even on double-click, get a reference number.</li><li><b>Delivery</b>: email the response, or store it for a dashboard and CSV export, and optionally call an agency webhook.</li><li><b>Non-functional</b>: survive 300k submissions in an hour; never lose an acknowledged submission; responses confidential, ideally unreadable by the platform; attachments virus-scanned; accessible on cheap phones.</li><li><b>Out of scope</b>: payments, workflow approvals.</li></ul><p>Say early: \"Officers and citizens have very different traffic, so I'll scale them separately.\"</p>"
+   },
+   {
+    "title": "Estimates",
+    "minutes": "5 min",
+    "ask": "<p>Size the spike, storage and webhook work.</p>",
+    "model": "<ul><li>Normal: 1M/day ÷ 86,400 = <b>~12 submissions/s</b>.</li><li>Spike: 300k in an hour = 83/s average, ~3× in the first minutes: <b>~250/s</b>.</li><li>Form page loads: ~10 opens per submit → <b>~2.5k/s</b>. Serve the form from a CDN.</li><li>Responses: 1M/day × 5 KB × 365 = <b>~1.8 TB/year</b>.</li><li>Attachments: 10% × 1M × 2 MB = <b>~200 GB/day</b>. Object storage, never the database.</li><li>Webhooks: 250/s × 0.2 s each = <b>~50 deliveries in flight</b>.</li></ul><p>Conclusion: 250 writes/s is easy for one database primary. The real risks are reads at the form page, large uploads through the API, and slow downstream systems.</p>"
+   },
+   {
+    "title": "API & data model",
+    "minutes": "7 min",
+    "ask": "<p>Define the API and data model.</p>",
+    "model": "<ul><li><code>POST /api/forms {title, fields[], mode, publicKey}</code>: officer only. In storage mode only the public key is sent.</li><li><code>GET /api/forms/{id}</code>: public schema, CDN-cached ~60 s.</li><li><code>POST /api/forms/{id}/attachments/presign {name, size, sha256}</code> → a 5-minute upload URL.</li><li><code>POST /api/forms/{id}/submissions {submissionId, encryptedContent, attachmentKeys[]}</code> → 201 <code>{referenceId}</code>; same <code>submissionId</code> again returns the same result.</li><li><code>GET /api/forms/{id}/submissions?after=</code>: officer, pages of ciphertext.</li></ul><p>Data: <code>forms</code> (document store; the schema is nested JSON that changes shape), <code>submissions</code> (form_id, submission_id unique, ciphertext, attachment keys, created_at), attachments in object storage, <code>webhook_deliveries</code> (status, attempts, next_try_at).</p>"
+   },
+   {
+    "title": "High-level design",
+    "minutes": "12 min",
+    "ask": "<p>Draw the system and walk one submission.</p>",
+    "model": "<ol><li>Citizen opens the link: the form page and schema come from the <b>CDN</b>, not the API.</li><li>If the form needs Singpass, the browser does the login redirect first.</li><li>For each file, the browser asks for a presigned URL and uploads <b>straight to object storage</b>. A scanner picks up new objects and tags them clean or infected.</li><li>In storage mode the browser <b>encrypts the answers with the form's public key</b>, then posts the ciphertext and file keys.</li><li>A stateless, autoscaled API validates size and captcha, writes the submission in one insert, returns the reference number.</li><li>It enqueues delivery jobs: email worker, webhook worker. Slow agencies never block the submit button.</li></ol><p>Officers read submissions through the admin API and decrypt them in their own browser.</p>"
+   },
+   {
+    "title": "Deep dive",
+    "minutes": "10 min",
+    "ask": "<p>Go deep on end-to-end encryption and reliable webhooks.</p>",
+    "model": "<p><b>Encryption.</b> When an officer creates a storage-mode form, the browser generates a key pair. The public key is stored with the form; the secret key is downloaded by the officer and <b>never sent to the server</b>. Citizens' browsers encrypt with the public key (FormSG uses tweetnacl for this). The platform stores only ciphertext, so a database leak exposes nothing readable. The cost: <b>lose the key and the responses are gone</b>, and the server cannot search or validate the content after encryption, so validate in the browser and again on structure only.</p><p><b>Webhooks.</b> Sign each delivery (FormSG uses ed25519) over the body plus a timestamp; receivers reject anything older than ~5 minutes to stop replays. Deliver from a queue with exponential backoff for ~24 hours, then park in a dead-letter list the officer can see.</p>"
+   },
+   {
+    "title": "Bottlenecks & trade-offs",
+    "minutes": "6 min",
+    "ask": "<p>What breaks first, and what did you trade?</p>",
+    "model": "<ul><li><b>Announcement spike</b>: CDN for page loads; autoscaling lags 1-3 minutes, so keep warm capacity before a known launch and add a waiting room for the worst cases.</li><li><b>Double submits</b>: client-generated <code>submissionId</code> with a unique index.</li><li><b>Scan backlog</b>: scanning after upload keeps submit fast but means an officer may briefly see \"scan pending\". Block download until clean.</li><li><b>Email limits</b>: email providers throttle; queue and spread sends.</li><li><b>Email vs storage mode</b>: email stores nothing (simplest, least liability) but responses are scattered in inboxes; storage mode gives a dashboard and webhooks but adds key management.</li><li><b>Document vs relational</b> for forms: documents fit nested, changing schemas; submissions are append-only either way.</li></ul>"
+   }
+  ],
+  "rubric": [
+   "Separates form building (low volume) from submission intake (bursty) and scales them differently.",
+   "Serves the form page and schema from a CDN.",
+   "Uploads attachments directly to object storage with presigned URLs, and scans them.",
+   "Makes submit idempotent so a double-click does not create two submissions.",
+   "Explains client-side encryption and the lost-key trade-off.",
+   "Puts email and webhook delivery behind a queue with retries.",
+   "Signs webhooks and protects against replay.",
+   "Uses real numbers for the spike and storage."
+  ]
+ },
+ {
+  "id": "url-shortener",
+  "title": "Design a government link shortener",
+  "source": "govtech",
+  "evidence_tag": "Domain practice",
+  "evidence": "A common GovTech TAP / intern and OGP intern take-home (public GitHub repos); a GovTech GDS blog post (search snippet, undated) says it was tried as an interview exercise and later dropped, and OGP's go.gov.sg is a real government shortener.",
+  "design": "url-shortener",
+  "minutes": 30,
+  "prompt": "<p>\"Design a link shortener for public officers, something like go.gov.sg. Officers create short links; the public clicks them in SMS messages and posters.\"</p>",
+  "clarify": [
+   {
+    "q": "Who can create links?",
+    "a": "Only public officers. They log in with their government email and a one-time code."
+   },
+   {
+    "q": "Custom aliases?",
+    "a": "Yes, officers usually want readable ones like go.gov.sg/vaccinate."
+   },
+   {
+    "q": "Scale?",
+    "a": "Use go.gov.sg's public figures: about 2.1M clicks a day and 8.7M links."
+   },
+   {
+    "q": "Can the destination change after printing?",
+    "a": "Yes. The owner can edit or deactivate a link. Posters are already printed."
+   },
+   {
+    "q": "Analytics?",
+    "a": "Click counts per day per link are enough."
+   }
+  ],
+  "steps": [
+   {
+    "title": "Requirements",
+    "minutes": "4 min",
+    "ask": "<p>List requirements. Call out what makes a government shortener different.</p>",
+    "model": "<ul><li><b>Functional</b>: officers log in by email OTP; create a link with a random or custom alias; edit the destination; deactivate; see daily clicks. The public visits <code>/{alias}</code> and is redirected.</li><li><b>Non-functional</b>: redirects fast (~10 ms server time) and highly available, because links sit in national SMS blasts and printed posters; links never expire; aliases not guessable for random links.</li><li><b>Government twist</b>: only officers create links, so citizens can trust the domain. Abuse means phishing targets, so destinations must be checkable and links quickly disabled.</li><li><b>Out of scope</b>: QR generation (mention as a batch job), link-in-bio pages.</li></ul><p>Reads dominate writes by thousands to one. Say so: it shapes the whole design.</p>"
+   },
+   {
+    "title": "Estimates",
+    "minutes": "3 min",
+    "ask": "<p>Quick numbers: redirect rate, storage, key space.</p>",
+    "model": "<ul><li>2.1M clicks/day ÷ 86,400 = <b>~25 redirects/s</b> average.</li><li>Peak ×20 when a link goes out in a national SMS: <b>~500/s</b>.</li><li>8.7M links × ~500 B = <b>~4.4 GB</b>. Fits in one Postgres instance, and the hot set fits in Redis.</li><li>7 base62 characters: 62^7 = <b>3.5 trillion</b> keys. With 8.7M used, a random key collides about 1 time in 400,000, so retry-on-conflict is fine.</li></ul><p>Conclusion: this is not a big-data problem. One primary database, a read replica and a cache handle it; spend the time on availability and abuse.</p>"
+   },
+   {
+    "title": "API & data model",
+    "minutes": "5 min",
+    "ask": "<p>API and tables.</p>",
+    "model": "<ul><li><code>POST /api/links {longUrl, alias?}</code>: auth required, returns <code>{shortUrl}</code>, 409 if alias taken.</li><li><code>GET /{alias}</code>: public, 302 to the destination, 404 if unknown or inactive.</li><li><code>PATCH /api/links/{alias} {longUrl?, active?}</code>: owner only.</li><li><code>GET /api/links/{alias}/stats</code>: daily counts.</li></ul><p>Tables (Postgres):</p><ul><li><code>links(short_id PK, long_url, owner_email, active, created_at, updated_at)</code></li><li><code>users(email PK, agency, created_at)</code></li><li><code>clicks_daily(short_id, day, count, PK(short_id, day))</code></li></ul><p>The primary key on <code>short_id</code> is what guarantees two officers cannot claim the same alias. Keep clicks in their own daily table so the hot <code>links</code> rows are only read on redirect, never updated per click.</p>"
+   },
+   {
+    "title": "High-level design",
+    "minutes": "8 min",
+    "ask": "<p>Draw the read path and the write path.</p>",
+    "model": "<p><b>Write path</b>: officer → load balancer → app → <b>Postgres primary</b>. The app generates a random 7-char key (or takes the custom alias) and inserts; on unique violation it retries with a new key or returns 409.</p><p><b>Read path</b>: citizen → load balancer → app → <b>Redis</b> for <code>alias → longUrl</code>. On a miss, read the <b>read replica</b> (go.gov.sg's public README describes a replica serving redirects), fill Redis, return <b>302</b>.</p><p><b>Clicks</b>: increment a Redis counter per link per day on each redirect; a job flushes counters into <code>clicks_daily</code> every minute. No database write per click.</p><p>Use 302, not 301: browsers may cache a 301 indefinitely, so edits and deactivation would not take effect and clicks would go uncounted.</p>"
+   },
+   {
+    "title": "Deep dive",
+    "minutes": "6 min",
+    "ask": "<p>Go deep: key generation and abuse.</p>",
+    "model": "<p><b>Keys.</b> Option 1: an auto-increment ID encoded in base62. Short and collision-free, but <b>enumerable</b>: anyone can walk every link, which may reveal unpublished announcements. Option 2: <b>random 7 base62 characters</b> with a unique constraint and retry. Not guessable; at 8.7M links collisions are rare. Pick option 2 for a government service.</p><p><b>Abuse.</b> Only officers can create links, which already removes most spam. Still: check destinations against a malicious-URL list on create and periodically; let a security team deactivate any link instantly (delete the Redis key on update); show an interstitial for destinations outside approved domains; log who created and edited each link.</p>"
+   },
+   {
+    "title": "Bottlenecks & trade-offs",
+    "minutes": "4 min",
+    "ask": "<p>What breaks, and what did you trade?</p>",
+    "model": "<ul><li><b>Replica lag</b>: an officer creates a link and tests it at once; the replica may not have it. On a replica miss, check the primary before returning 404.</li><li><b>Hot link</b> in a national SMS: one Redis key takes all reads. Add a small in-process cache (a few seconds TTL) in each app instance.</li><li><b>Cache staleness</b> after edits: delete the Redis key on every PATCH; keep TTLs short (~1 hour) as a backstop.</li><li><b>Redis down</b>: fall back to the replica; 500/s is easy for Postgres.</li><li><b>Trade-off</b>: 302 costs a server hit per click but keeps control and analytics.</li></ul>"
+   }
+  ],
+  "rubric": [
+   "Notes that reads dominate writes and designs a separate hot read path.",
+   "Estimates redirect QPS, storage and key space with real arithmetic.",
+   "Chooses 302 over 301 and explains why (editability, analytics).",
+   "Generates non-enumerable keys and handles collisions with a unique constraint.",
+   "Caches redirects and invalidates the cache on edit or deactivation.",
+   "Avoids a database write per click by batching counters.",
+   "Addresses phishing or abuse and who may create links."
+  ]
+ },
+ {
+  "id": "vaccination-booking",
+  "title": "Design a national vaccination booking system",
+  "source": "ogp",
+  "evidence_tag": "Domain practice",
+  "evidence": "OGP built Singapore's COVID-19 vaccination booking system and runs CalSG, whose public report notes a fix for overbooking when several people book one slot at once; a GovTech GDS blog snippet (undated) says a booking exercise was tried in interviews and dropped, so treat this as practice for contention and overload, not a current question.",
+  "design": "vaccination-booking",
+  "minutes": 45,
+  "prompt": "<p>\"Design a national vaccination booking system. Residents are invited in waves by SMS and book two doses at a clinic they choose. Expect a rush the moment each wave opens.\"</p>",
+  "clarify": [
+   {
+    "q": "How many people and how many slots?",
+    "a": "About 5M people, two doses each. Around 40 centres."
+   },
+   {
+    "q": "How sharp is the rush?",
+    "a": "A wave invites about 1M people. Many open the link in the first ten minutes."
+   },
+   {
+    "q": "Must the two doses be booked together?",
+    "a": "Yes. Dose 2 must be 3 to 4 weeks after dose 1 at the same centre."
+   },
+   {
+    "q": "Who may book?",
+    "a": "Only invited residents, once each. The invite link is personal."
+   },
+   {
+    "q": "Can people reschedule or cancel?",
+    "a": "Yes, and freed slots go back to the pool."
+   }
+  ],
+  "steps": [
+   {
+    "title": "Requirements",
+    "minutes": "5 min",
+    "ask": "<p>Requirements. Name the property that must never break.</p>",
+    "model": "<ul><li><b>Functional</b>: open a personal invite link; verify identity; browse centres and free slots; book dose 1 and dose 2 together; get an SMS confirmation; reschedule; cancel.</li><li><b>Non-functional</b>: <b>never overbook a slot and never give one person two bookings for the same dose</b>, even under retries and bugs; stay up during the rush (degrade to a queue, not to errors); browsing may be a few seconds stale; booking must be exact.</li><li><b>Out of scope</b>: clinic operations, vaccine stock, medical records.</li></ul><p>Say: \"Storage is tiny. The hard part is thousands of people fighting over the same few slots in the same minute.\"</p>"
+   },
+   {
+    "title": "Estimates",
+    "minutes": "5 min",
+    "ask": "<p>Estimate the rush and what the backend must handle.</p>",
+    "model": "<ul><li>Appointments: ~5M × 2 = <b>~10M</b>.</li><li>Rush: 1M invited, 30% open in 10 minutes → 300k ÷ 600 s = <b>~500 arrivals/s</b>, peaking near 2k/s.</li><li>A booking takes ~10 API calls. Size the API for ~3k req/s → admit <b>~300 people/s</b>.</li><li>Everyone in the rush is through in 300k ÷ 300 = <b>~17 minutes</b>. Acceptable with an honest queue screen.</li><li>Database: 300 bookings/s × 2 transactions = <b>~600 txn/s</b>. One Postgres primary is enough.</li><li>Slots: dose 2 is 3-4 weeks out, so open ~6 weeks: 40 centres × 42 days × 24 half-hour windows = <b>~40k rows</b>.</li><li>SMS: 1M invites ÷ 200 SMS/s = <b>~83 minutes</b> on one sender. Pacing the send caps arrivals near the send rate; the rush above assumes a fast blast or news coverage.</li></ul>"
+   },
+   {
+    "title": "API & data model",
+    "minutes": "7 min",
+    "ask": "<p>API and data model. Show where correctness is enforced.</p>",
+    "model": "<ul><li><code>GET /queue/status</code> → position, or a signed pass valid 10 minutes.</li><li><code>GET /api/centres/{id}/availability?date=</code>: cached, ~2 s stale.</li><li><code>POST /api/holds {slotIds[]}</code> → 201 <code>{holdId, expiresAt}</code> or 409.</li><li><code>POST /api/bookings {holdId}</code> + <code>Idempotency-Key</code> → 201, or 410 if the hold expired.</li><li><code>PATCH</code> / <code>DELETE /api/bookings/{id}</code>.</li></ul><p>Postgres:</p><ul><li><code>slots(id, centre_id, starts_at, capacity, taken, CHECK (taken &lt;= capacity))</code></li><li><code>holds(id, resident_id UNIQUE, slot_ids[], expires_at)</code></li><li><code>bookings(id, resident_id, dose_no, slot_id, status, idempotency_key UNIQUE)</code> with a partial unique index on <code>(resident_id, dose_no)</code> where active.</li><li><code>invites(token_hash, resident_id, wave, used_at)</code></li></ul>"
+   },
+   {
+    "title": "High-level design",
+    "minutes": "12 min",
+    "ask": "<p>Draw the system and walk one booking.</p>",
+    "model": "<ol><li>Resident taps the SMS link. The CDN serves the static app; the app calls <code>/queue/status</code>.</li><li>The <b>waiting room</b> (Redis: an arrival counter and an admitted-up-to pointer) returns a position until the pointer passes it, then a signed pass.</li><li>With the pass, the app checks the invite and shows availability from a Redis view rebuilt every 2 s.</li><li>The resident picks two slots. <code>POST /holds</code> runs one transaction: <code>UPDATE slots SET taken = taken + 1 WHERE id = ANY($1) AND taken &lt; capacity</code>; if fewer than 2 rows changed, roll back and return 409.</li><li>The resident confirms; the hold turns into two bookings in one transaction.</li><li>A queue sends the SMS confirmation. A sweeper deletes expired holds and gives the seats back.</li></ol>"
+   },
+   {
+    "title": "Deep dive",
+    "minutes": "10 min",
+    "ask": "<p>Go deep on concurrency: why can this design never overbook?</p>",
+    "model": "<p><b>Conditional UPDATE.</b> <code>taken &lt; capacity</code> is checked and changed in one statement. Postgres row locks serialise two transactions on the same slot; the second re-checks after the first commits, so it fails cleanly when the last seat is gone. No read-then-write race. Lock the two slots in id order (<code>SELECT ... ORDER BY id FOR UPDATE</code>) so two holds on the same pair cannot deadlock.</p><p><b>Belt and braces.</b> The <code>CHECK (taken &lt;= capacity)</code> constraint rejects overbooking even if someone writes buggy code later. The unique index on active <code>(resident_id, dose_no)</code> stops double bookings from two tabs.</p><p><b>Hold then confirm.</b> Holding for 5 minutes stops people losing a slot while they read the screen. Expiry is a column, not a timer, so a crashed sweeper only delays release.</p><p><b>Why not lock in Redis?</b> A second store means two sources of truth. At 600 txn/s, Postgres alone is simpler and exact.</p>"
+   },
+   {
+    "title": "Bottlenecks & trade-offs",
+    "minutes": "6 min",
+    "ask": "<p>Bottlenecks and trade-offs.</p>",
+    "model": "<ul><li><b>Hot slots</b>: everyone wants Saturday morning at the nearest centre. Row locks queue up on a few rows; keep transactions tiny (no network calls inside) so each holds a lock for about a millisecond.</li><li><b>Waiting room vs autoscaling</b>: autoscaling takes minutes and the database cannot scale out fast; a queue gives a fair, predictable wait.</li><li><b>Stale availability</b>: browsing shows ~2 s old data, so a slot may vanish on confirm. Handle 409 with a friendly \"just taken, here are the nearest free slots\".</li><li><b>Retries</b>: idempotency keys make a double-tap or a network retry return the same booking.</li><li><b>Fairness</b>: first come first served rewards fast connections; staggered invite waves spread the load and the luck.</li></ul>"
+   }
+  ],
+  "rubric": [
+   "Identifies contention on a few slots, not data size, as the core problem.",
+   "Estimates the arrival rush and derives an admit rate from backend capacity.",
+   "Uses an atomic conditional update (or equivalent) so a slot is never overbooked.",
+   "Adds database constraints (CHECK, unique index) as a second line of defence.",
+   "Uses hold-then-confirm with expiry and explains how seats come back.",
+   "Uses a waiting room or queue to degrade gracefully instead of failing.",
+   "Makes booking idempotent across retries.",
+   "Handles stale availability honestly in the UX."
+  ]
+ },
+ {
+  "id": "otp-login",
+  "title": "Design SMS OTP login at national scale",
+  "source": "govtech",
+  "evidence_tag": "Domain practice",
+  "evidence": "Scales up a reported GovTech/MOM pair-programming exercise (~2022, public GitHub repo) that asked for a small REST OTP server in one hour; no evidence this larger version is asked.",
+  "design": "otp-login",
+  "minutes": 45,
+  "prompt": "<p>\"You built a small OTP server earlier. Now design login with SMS one-time codes for a national identity service that dozens of agency apps rely on.\"</p>",
+  "clarify": [
+   {
+    "q": "How many users and logins?",
+    "a": "About 4.5M accounts, ~3M logins a day, with spikes when a payout or deadline opens."
+   },
+   {
+    "q": "Do agency apps see the code?",
+    "a": "No. They should get a verified identity without handling secrets."
+   },
+   {
+    "q": "How long is a code valid, and how many tries?",
+    "a": "Your call, but justify it."
+   },
+   {
+    "q": "What about phone numbers that are not registered?",
+    "a": "Don't let attackers find out which numbers are registered."
+   },
+   {
+    "q": "One SMS provider?",
+    "a": "We have one today; a second is possible."
+   }
+  ],
+  "steps": [
+   {
+    "title": "Requirements",
+    "minutes": "5 min",
+    "ask": "<p>Requirements, including security ones.</p>",
+    "model": "<ul><li><b>Functional</b>: request a 6-digit code by phone; verify it; resend with a cooldown; create a session; let agency apps sign users in by redirect and receive a signed identity token.</li><li><b>Security</b>: codes are random, single-use, expire in 5 minutes; at most 5 wrong attempts per code; no way to tell registered from unregistered numbers; codes never stored in plain text or logged; rate limits per phone, per IP and globally to stop SMS cost attacks.</li><li><b>Non-functional</b>: survive ~700 logins/s at peak; SMS delivered within ~10 s; the identity service is critical, so multi-AZ and no single provider dependency.</li><li><b>Out of scope</b>: account registration, biometric app login (mention as safer).</li></ul>"
+   },
+   {
+    "title": "Estimates",
+    "minutes": "5 min",
+    "ask": "<p>Estimate load, SMS volume, guess odds and memory.</p>",
+    "model": "<ul><li>4.5M accounts × ~0.7 logins/day = <b>~3M logins/day</b>, ~35/s average.</li><li>×20 at a payout opening: <b>~700/s</b>.</li><li>Half use SMS, 10% resend: 3M × 0.5 × 1.1 = <b>~1.65M SMS/day</b>. SMS cost is a real budget line, which is why abuse limits matter.</li><li>Guessing: 5 attempts against 10^6 codes = <b>1 in 200,000</b> per code. Per-phone request limits bound total tries.</li><li>Live codes in Redis: 700/s × 300 s × ~300 B = <b>~63 MB</b>.</li></ul><p>Conclusion: compute is easy. The design is about security limits, SMS reliability and the identity protocol.</p>"
+   },
+   {
+    "title": "API & data model",
+    "minutes": "7 min",
+    "ask": "<p>API and data model.</p>",
+    "model": "<ul><li><code>POST /otp {phone}</code> → always 202 <code>{txnId}</code> with the same message, registered or not; 429 when limited.</li><li><code>POST /otp/verify {txnId, code}</code> → 200 + HttpOnly session cookie; 401 wrong; 410 expired; 423 too many attempts.</li><li><code>GET /authorize?client_id&amp;redirect_uri&amp;state&amp;nonce&amp;code_challenge</code> (OIDC).</li><li><code>POST /token {code, code_verifier, client_assertion}</code> → signed ID token.</li><li><code>GET /.well-known/jwks.json</code>.</li></ul><p>Data: Redis <code>otp:{txnId}</code> → <code>{phone, hmac(code), attempts}</code> TTL 300 s; Redis rate counters per phone and IP; Postgres <code>users</code>, <code>clients</code> (agency apps, redirect URIs, public keys), <code>login_audit</code>; sessions in Redis with a 30-minute idle TTL.</p>"
+   },
+   {
+    "title": "High-level design",
+    "minutes": "12 min",
+    "ask": "<p>Draw it and walk one agency login.</p>",
+    "model": "<ol><li>User clicks \"Log in\" in an agency app. The app redirects to <code>/authorize</code> with a PKCE challenge.</li><li>The identity service shows the login page. User enters a phone; <code>POST /otp</code> checks rate limits, creates the code, stores its HMAC in Redis and puts an SMS job on a <b>queue</b>.</li><li>An SMS worker sends through the provider and records the delivery receipt.</li><li>User enters the code; <code>/otp/verify</code> compares HMACs in constant time, deletes the code, creates a session.</li><li>The service redirects back to the agency app with a one-time <code>code</code>.</li><li>The agency backend calls <code>/token</code> with the PKCE verifier and its signed client assertion, gets an ID token, verifies it with the JWKS keys.</li></ol><p>Agency apps never see the OTP or the user's password-equivalent.</p>"
+   },
+   {
+    "title": "Deep dive",
+    "minutes": "10 min",
+    "ask": "<p>Go deep on OTP safety.</p>",
+    "model": "<ul><li><b>Generation</b>: 6 digits from a cryptographically secure random generator, never <code>random.random()</code>.</li><li><b>Storage</b>: store <code>HMAC(server_key, txnId + code)</code>, not the code. A Redis dump is useless without the key, and a plain hash of 6 digits is brute-forced in milliseconds.</li><li><b>Single use</b>: delete on success with an atomic script so two parallel verifies cannot both win.</li><li><b>Attempts</b>: increment before comparing; at 5, kill the code (not the account), so an attacker cannot lock real users out.</li><li><b>Requests</b>: one resend per 30 s, 5 per phone per hour, per-IP and per-country limits; a global SMS budget alarm catches SMS pumping fraud.</li><li><b>Enumeration</b>: identical response and timing for unknown numbers.</li><li><b>Compare</b> in constant time.</li></ul>"
+   },
+   {
+    "title": "Bottlenecks & trade-offs",
+    "minutes": "6 min",
+    "ask": "<p>Bottlenecks, risks and trade-offs.</p>",
+    "model": "<ul><li><b>SMS provider outage</b>: the biggest single point of failure. Use two providers, fail over on error rate or delivery-receipt lag, and offer app-based login as an alternative.</li><li><b>SIM swap and phishing</b>: SMS OTP can be phished in real time by a fake site. Push approval in an app bound to the device is stronger; keep SMS as a fallback.</li><li><b>Lockout vs brute force</b>: locking accounts lets attackers lock out victims; limit per code and per source instead.</li><li><b>Sessions</b>: server-side session IDs can be revoked instantly; stateless JWTs scale without lookups but cannot be revoked before expiry. For a national identity service, prefer revocable sessions.</li><li><b>Redis</b>: replicate across AZs; losing it only forces users to request a new code.</li></ul>"
+   }
+  ],
+  "rubric": [
+   "Stores only a keyed hash (HMAC) of the code, with a short TTL.",
+   "Makes codes single-use and limits verify attempts per code.",
+   "Rate-limits code requests per phone and per IP, and mentions SMS cost abuse.",
+   "Prevents phone-number enumeration with identical responses.",
+   "Uses a standard federation protocol (OIDC authorization code with PKCE) for agency apps.",
+   "Sends SMS through a queue and plans for provider failure.",
+   "Discusses SMS weaknesses (SIM swap, real-time phishing) and a stronger alternative.",
+   "Chooses lockout behaviour that does not let attackers lock out real users."
+  ]
+ },
+ {
+  "id": "bulk-messaging",
+  "title": "Design a bulk messaging service for agencies",
+  "source": "govtech",
+  "evidence_tag": "Domain practice",
+  "evidence": "OGP runs Postman.gov.sg for agency mass messaging and publishes how its sender works; there is no evidence GovTech asks this as an interview question.",
+  "design": "bulk-messaging",
+  "minutes": 45,
+  "prompt": "<p>\"Agencies upload a CSV of recipients and a message template, then send a campaign by SMS or email. One campaign can have a million recipients. Design it.\"</p>",
+  "clarify": [
+   {
+    "q": "Personalisation?",
+    "a": "Yes. The template has fields like {{name}} filled from CSV columns."
+   },
+   {
+    "q": "Is a duplicate worse than a missed message?",
+    "a": "Yes. Sending a million citizens the same SMS twice is worse than missing a handful."
+   },
+   {
+    "q": "Provider limits?",
+    "a": "Assume one sender can push about 200 messages a second to a provider."
+   },
+   {
+    "q": "Do agencies need delivery status?",
+    "a": "Yes: sent, delivered, failed, per recipient, and campaign totals."
+   },
+   {
+    "q": "Can a campaign be stopped midway?",
+    "a": "Yes, quickly, if the message has a mistake."
+   }
+  ],
+  "steps": [
+   {
+    "title": "Requirements",
+    "minutes": "5 min",
+    "ask": "<p>Requirements. State the delivery guarantee you will aim for.</p>",
+    "model": "<ul><li><b>Functional</b>: create a campaign (channel, template, sender credentials); upload a CSV; validate it and preview a rendered message; send now or later; stop; see per-recipient status and totals; export failures.</li><li><b>Delivery guarantee</b>: <b>at most once per recipient</b> as the default. Under-sending is preferred to over-sending; failures are reported, not blindly retried.</li><li><b>Non-functional</b>: 1M messages in under ~30 minutes when providers allow; one agency's campaign must not starve another's; credentials encrypted; recipient data deleted after a retention period.</li><li><b>Out of scope</b>: two-way replies, marketing analytics.</li></ul>"
+   },
+   {
+    "title": "Estimates",
+    "minutes": "5 min",
+    "ask": "<p>Estimate send time, worker count, storage and callbacks.</p>",
+    "model": "<ul><li>One worker at <b>~200 msg/s</b>: 1M ÷ 200 = 5,000 s ≈ <b>83 minutes</b>. Too slow for urgent alerts.</li><li>5 workers sharing a campaign: <b>~17 minutes</b>, if the provider account allows 1,000/s. Postman reported sending 1M WhatsApp messages in 22 minutes during COVID, about 760/s.</li><li>CSV: 1M rows × ~100 B = <b>~100 MB</b>. Upload to object storage, not through the API.</li><li>Message rows: 1M × ~500 B = <b>~500 MB per campaign</b>. Partition or archive by campaign.</li><li>Delivery callbacks arrive at about the send rate: <b>~1k/s</b> bursts. Handle them with serverless functions behind a queue.</li></ul>"
+   },
+   {
+    "title": "API & data model",
+    "minutes": "7 min",
+    "ask": "<p>API and data model, including job states.</p>",
+    "model": "<ul><li><code>POST /campaigns {channel, template}</code></li><li><code>POST /campaigns/{id}/upload-url</code> → presigned URL; <code>POST /campaigns/{id}/process</code> validates the CSV.</li><li><code>POST /campaigns/{id}/send</code>, <code>POST /campaigns/{id}/stop</code></li><li><code>GET /campaigns/{id}/stats</code></li><li><code>POST /callbacks/{provider}</code>: signed provider callbacks.</li></ul><p>Postgres:</p><ul><li><code>campaigns(id, agency, channel, template, status, credential_ref)</code></li><li><code>messages(campaign_id, recipient, params, message_id, dequeued_at, sent_at, delivered_at, error)</code></li><li><code>job_queue(id, campaign_id, worker_id, status, send_rate)</code> with states <b>READY → ENQUEUED → SENDING → SENT or STOPPED → LOGGED</b> (the states Postman documents).</li></ul><p>Keeping one row per recipient is what makes status, stop and safe retries possible: every message has its own record of whether it left, when, and the provider's ID. Credentials live in a secrets store; the campaign holds only a reference.</p>"
+   },
+   {
+    "title": "High-level design",
+    "minutes": "12 min",
+    "ask": "<p>Draw the system and walk one campaign.</p>",
+    "model": "<ol><li>The agency uploads the CSV straight to <b>object storage</b>. A parser worker validates rows, renders a preview and bulk-inserts <code>messages</code>.</li><li>Pressing send inserts a <code>job_queue</code> row in READY.</li><li><b>Sender workers</b> poll the table. A worker claims a job inside a transaction (<code>SELECT ... FOR UPDATE SKIP LOCKED</code>), so only one worker takes it.</li><li>The worker takes batches of ~1,000 messages, marks <code>dequeued_at</code>, sends each through the provider at its rate, and saves the provider's <code>message_id</code>.</li><li>Providers post delivery results to callback functions, which update <code>delivered_at</code> or <code>error</code>.</li><li>When nothing is left, the job moves to SENT; a <b>logger</b> worker computes totals and moves it to LOGGED.</li></ol>"
+   },
+   {
+    "title": "Deep dive",
+    "minutes": "10 min",
+    "ask": "<p>Go deep on not sending duplicates when workers crash.</p>",
+    "model": "<p>Exactly-once is impossible over a provider API: a worker can crash after the provider accepted a message but before saving the <code>message_id</code>. So choose which way to fail.</p><ul><li>Before sending, mark the message <code>dequeued_at = now()</code> in the same batch claim, so no other worker picks it.</li><li>After the provider accepts, save <code>message_id</code>.</li><li>After a crash, do <b>not</b> resend dequeued messages automatically: the worker may already have sent them. They stay unsent, which under-sends.</li><li>When the agency retries, clear <code>dequeued_at</code> <b>only for messages with no message_id</b>, the rule Postman documents. Anything the provider confirmed is never resent.</li><li>The remaining risk is the tiny window between acceptance and saving the id: a retry can resend those few. Save each id right after its send to keep the window small.</li></ul><p><b>Stop</b>: workers re-read the job status between batches, so a stop takes effect within one batch (~5 s at 200/s).</p>"
+   },
+   {
+    "title": "Bottlenecks & trade-offs",
+    "minutes": "6 min",
+    "ask": "<p>Bottlenecks and trade-offs.</p>",
+    "model": "<ul><li><b>Provider rate limits</b>: a token bucket per provider credential, shared by all workers on that campaign. Exceeding it gets you throttled or blocked.</li><li><b>Database as queue</b>: simple, transactional and visible to ops; fine at a few thousand updates a second if you update in batches. Past that, move dispatch to a real queue (SQS, Kafka) and keep Postgres for state.</li><li><b>Fairness</b>: cap workers per agency so one million-recipient campaign does not block a small urgent one.</li><li><b>Callback storms</b>: serverless handlers absorb bursts; batch the database updates.</li><li><b>Bad CSVs</b>: reject on validation with row numbers, before anything is sent.</li><li><b>At-most-once vs at-least-once</b>: right for broadcast messages; wrong for, say, payment reminders where a miss is costly.</li></ul>"
+   }
+  ],
+  "rubric": [
+   "States a delivery guarantee (at most once, under-send preferred) and justifies it.",
+   "Computes send time from a per-worker rate and scales workers to meet a target.",
+   "Uploads the CSV to object storage and validates before sending.",
+   "Claims jobs atomically so two workers never send the same batch.",
+   "Explains crash recovery: resend only messages without a provider message ID.",
+   "Supports a fast stop that workers check between batches.",
+   "Rate-limits per provider credential and keeps agencies from starving each other.",
+   "Handles delivery callbacks asynchronously."
+  ]
+ },
+ {
+  "id": "uber",
+  "title": "Design a ride-hailing service like Uber",
+  "source": "classic",
+  "evidence_tag": "Classic",
+  "evidence": "A widely used industry system design question; no source ties it to GovTech or OGP, so practise it for the patterns it teaches (geospatial search, matching, live location).",
+  "design": "uber",
+  "minutes": 45,
+  "prompt": "<p>\"Design a ride-hailing app like Uber or Grab. A rider requests a ride, nearby drivers get an offer, and both see each other's live location until the trip ends.\"</p>",
+  "clarify": [
+   {
+    "q": "Scale?",
+    "a": "About 1M drivers online at peak worldwide and 10M rides a day."
+   },
+   {
+    "q": "How often do drivers send location?",
+    "a": "Every 4 seconds while online."
+   },
+   {
+    "q": "Include pricing and payments?",
+    "a": "Mention surge pricing briefly. Payments are out of scope."
+   },
+   {
+    "q": "Offer one driver at a time or many?",
+    "a": "Your call. Explain the trade-off."
+   },
+   {
+    "q": "Multiple cities?",
+    "a": "Yes. A ride never crosses cities."
+   }
+  ],
+  "steps": [
+   {
+    "title": "Requirements",
+    "minutes": "5 min",
+    "ask": "<p>Requirements for rider, driver and the system.</p>",
+    "model": "<ul><li><b>Rider</b>: see nearby cars and an ETA; request a ride from pickup to drop-off; get matched; watch the driver approach; trip history.</li><li><b>Driver</b>: go online; stream location; receive an offer and accept or decline within ~15 s; navigate; complete the trip.</li><li><b>Non-functional</b>: match within ~10 s; a driver is never assigned two rides at once; location shown within a few seconds; the location firehose must not overload durable storage; partition by city so one city's outage stays local.</li><li><b>Out of scope</b>: payments, ratings, driver onboarding.</li></ul><p>Two very different data types: <b>ephemeral, high-rate locations</b> and <b>durable, low-rate trips</b>. Say you will store them differently.</p>"
+   },
+   {
+    "title": "Estimates",
+    "minutes": "5 min",
+    "ask": "<p>Estimate location writes, ride rate, connections and storage.</p>",
+    "model": "<ul><li>Location: 1M drivers ÷ 4 s = <b>250k updates/s</b>. At ~100 B each, <b>~25 MB/s</b>.</li><li>Rides: 10M/day ÷ 86,400 = <b>~115/s</b>, ~350/s at a 3× peak.</li><li>Open connections: 1M drivers + ~2M riders in-app ≈ <b>3M WebSockets</b>; at ~50k per server, <b>~60 gateway servers</b>.</li><li>Trips: 10M × 2 KB = <b>~20 GB/day</b>.</li><li>Full GPS trails if kept: 250k/s × 100 B × 86,400 = <b>~2 TB/day</b>. Keep only trip-time points, sampled.</li></ul><p>Conclusion: locations must live in memory, not a database row per ping. Ride writes are modest and can use a relational store sharded by city.</p>"
+   },
+   {
+    "title": "API & data model",
+    "minutes": "7 min",
+    "ask": "<p>API and data model.</p>",
+    "model": "<ul><li>Driver WebSocket: <code>location {lat, lng, heading, ts}</code> every 4 s; server pushes <code>offer {rideId, pickup, expiresIn}</code>.</li><li><code>POST /rides {pickup, dropoff, product}</code> → <code>{rideId, status: MATCHING}</code>.</li><li><code>POST /rides/{id}/accept</code>, <code>/arrived</code>, <code>/start</code>, <code>/complete</code>.</li><li>Rider WebSocket: ride status and driver location.</li></ul><p>Data:</p><ul><li><b>Geo index</b> (in memory, per city): cell → set of available driver IDs; driver → last location and cell.</li><li><b>Rides</b> (Postgres or MySQL, sharded by city): <code>id, rider_id, driver_id, status, pickup, dropoff, fare, timestamps</code>.</li><li><b>Location stream</b> (Kafka) for ETA, surge and trip trails.</li></ul>"
+   },
+   {
+    "title": "High-level design",
+    "minutes": "12 min",
+    "ask": "<p>Draw the system and walk a ride request.</p>",
+    "model": "<ol><li>Drivers' apps hold a WebSocket to a <b>gateway</b>. Each location goes to the <b>location service</b>, which updates the in-memory <b>geo index</b> for that city and publishes to Kafka.</li><li>Rider posts a ride. The <b>ride service</b> writes it as MATCHING and calls <b>dispatch</b>.</li><li>Dispatch asks the geo index for available drivers within ~2 km, then asks the <b>maps/ETA service</b> for road ETAs and ranks them.</li><li>It locks the best driver and sends an offer through the gateway. Accept: ride becomes ACCEPTED. Decline or 15 s timeout: unlock, try the next.</li><li>During the trip, driver locations are forwarded to the rider's connection.</li><li>Consumers of the Kafka stream compute surge per area and store trip trails.</li></ol>"
+   },
+   {
+    "title": "Deep dive",
+    "minutes": "10 min",
+    "ask": "<p>Go deep on finding nearby drivers fast.</p>",
+    "model": "<p><b>Geohash.</b> Encode lat/lng as a string where a shared prefix means nearby. Pick a precision whose cell is at least the search radius: precision 5 cells are about 4.9 km × 4.9 km, precision 6 about 1.2 km × 0.6 km. For 2 km use precision 5 and look up the rider's cell and its 8 neighbours, because a driver 50 m away can sit across a cell border. Filter by exact distance, then rank by road ETA, not straight-line distance.</p><p><b>Updates.</b> Each ping, if the driver's cell changed, remove them from the old cell set and add to the new one. That is two O(1) set operations, so 250k/s is fine spread over a few dozen in-memory shards keyed by city and cell.</p><p><b>Alternatives.</b> H3 hexagons (all neighbours equidistant) or S2 cells; a quadtree adapts cell size to density.</p><p><b>No double dispatch.</b> Lock the driver with an atomic set-if-absent and a 15 s TTL before sending an offer.</p>"
+   },
+   {
+    "title": "Bottlenecks & trade-offs",
+    "minutes": "6 min",
+    "ask": "<p>Bottlenecks and trade-offs.</p>",
+    "model": "<ul><li><b>Location firehose</b>: never write each ping to a database. Memory for current state, Kafka for history, sampling for storage.</li><li><b>Hot cells</b>: airports and stadiums pack thousands of drivers in one cell. Use finer cells there or adaptive structures.</li><li><b>One offer at a time vs broadcast</b>: sequential offers are fair and avoid races but add up to 15 s per decline; broadcasting to 3 drivers matches faster but wastes drivers' attention. Many systems batch-match requests every few seconds for a better global result.</li><li><b>Geo index node dies</b>: state rebuilds within 4 s from the next pings; no durable copy needed.</li><li><b>Consistency</b>: ride state needs strong consistency (one driver per ride); locations can be eventually consistent.</li></ul>"
+   }
+  ],
+  "rubric": [
+   "Separates ephemeral high-rate location data from durable trip data.",
+   "Estimates location update rate and concludes it must stay in memory.",
+   "Uses a geospatial index (geohash, quadtree, H3 or S2) and searches neighbouring cells.",
+   "Ranks candidates by road ETA, not straight-line distance.",
+   "Prevents a driver from being offered two rides at once (lock with TTL).",
+   "Uses persistent connections (WebSocket) for driver offers and live tracking.",
+   "Partitions by city or region.",
+   "Discusses a matching trade-off (sequential offers vs broadcast or batch matching)."
+  ]
+ },
+ {
+  "id": "netflix",
+  "title": "Design a video streaming service like Netflix",
+  "source": "classic",
+  "evidence_tag": "Classic",
+  "evidence": "A widely used industry system design question; no source ties it to GovTech or OGP, so practise it for the patterns it teaches (CDNs, transcoding pipelines, adaptive bitrate).",
+  "design": "netflix",
+  "minutes": 45,
+  "prompt": "<p>\"Design a video streaming service like Netflix. Studios deliver films; members browse, press play, and watch on phones, laptops and TVs.\"</p>",
+  "clarify": [
+   {
+    "q": "Scale?",
+    "a": "About 200M members; peak evening concurrency around 30M streams."
+   },
+   {
+    "q": "User uploads like YouTube?",
+    "a": "No. A curated catalogue delivered by studios."
+   },
+   {
+    "q": "Live streaming?",
+    "a": "Out of scope. On demand only."
+   },
+   {
+    "q": "Which parts matter most?",
+    "a": "Playback start time and no rebuffering. Recommendations briefly."
+   },
+   {
+    "q": "DRM?",
+    "a": "Yes, studios require it."
+   }
+  ],
+  "steps": [
+   {
+    "title": "Requirements",
+    "minutes": "5 min",
+    "ask": "<p>Requirements. Separate the content pipeline from playback.</p>",
+    "model": "<ul><li><b>Content pipeline</b>: ingest a studio master file, transcode it into many resolutions and codecs, package for streaming, encrypt, and distribute before release day.</li><li><b>Member side</b>: browse personalised rows; search; press play and start in under ~2 s; adapt quality to bandwidth; resume where you left off on any device; DRM.</li><li><b>Non-functional</b>: rebuffering rare; video traffic is the giant, so egress cost dominates; control-plane APIs highly available (degrade to a generic home page rather than fail).</li><li><b>Out of scope</b>: live events, user uploads, billing.</li></ul><p>Point out early: the control plane (browse, play API) is ordinary microservices; the data plane (video bytes) is a CDN problem.</p>"
+   },
+   {
+    "title": "Estimates",
+    "minutes": "5 min",
+    "ask": "<p>Estimate bandwidth, storage and control-plane load.</p>",
+    "model": "<ul><li>Peak 30M streams × ~5 Mbps = <b>~150 Tbps</b>. No single data centre can serve that; it must come from edge caches near viewers.</li><li>Catalogue: assume 20k titles × ~1.5 hours. A full ladder (around 10 bitrates × 2-3 codecs) is roughly 30 GB per hour of content: 20k × 1.5 × 30 GB = <b>~900 TB</b>. Small enough to copy the popular part to every edge site.</li><li>Playback API: 30M streams start over ~3 evening hours: ~3k plays/s average, <b>~10k/s</b> at peaks.</li><li>Heartbeats every 30 s for resume: 30M ÷ 30 = <b>~1M writes/s</b>. Needs a write-optimised store.</li></ul>"
+   },
+   {
+    "title": "API & data model",
+    "minutes": "7 min",
+    "ask": "<p>API and data model.</p>",
+    "model": "<ul><li><code>GET /home?profile=</code> → personalised rows of title IDs.</li><li><code>GET /titles/{id}</code> → metadata, artwork.</li><li><code>POST /play {titleId, device, capabilities}</code> → manifest URL on the best edge, DRM licence URL, resume position.</li><li><code>POST /license</code> → decryption key for this device.</li><li><code>POST /events/progress {titleId, positionSec}</code> every 30 s.</li></ul><p>Data:</p><ul><li><b>Catalogue</b> (relational, cached heavily): titles, episodes, rights per country.</li><li><b>Viewing history</b> (Cassandra, partitioned by profile, newest first): fits ~1M writes/s.</li><li><b>Video assets</b> in object storage: segments of ~4 s per bitrate, plus manifests; copies on edge caches.</li><li><b>Recommendations</b>: precomputed rows per profile, refreshed offline.</li></ul>"
+   },
+   {
+    "title": "High-level design",
+    "minutes": "12 min",
+    "ask": "<p>Draw both paths: ingest and playback.</p>",
+    "model": "<p><b>Ingest</b>: studio master → object storage → split into chunks → hundreds of parallel <b>transcode workers</b> → package into DASH/HLS segments → encrypt → store → <b>push to edge caches</b> overnight, ahead of demand.</p><p><b>Playback</b>:</p><ol><li>The app calls the API gateway for the home page; services return cached rows.</li><li>Member presses play. The <b>playback service</b> checks entitlement and country rights, picks the healthiest nearby edge for this client, and returns a manifest and licence URL.</li><li>The player gets a DRM licence, then fetches segments <b>directly from the edge</b>, never from the origin.</li><li>The player measures throughput and buffer and switches bitrate segment by segment.</li><li>Progress events flow to the history store for resume and recommendations.</li></ol>"
+   },
+   {
+    "title": "Deep dive",
+    "minutes": "10 min",
+    "ask": "<p>Go deep on getting bytes to viewers without rebuffering.</p>",
+    "model": "<p><b>Edge placement.</b> Put cache servers inside ISPs and at internet exchanges (Netflix's version is called Open Connect). Video then crosses one short hop, which cuts cost and latency.</p><p><b>Pre-positioning.</b> Popularity is predictable: tomorrow's hits are known tonight. Fill edges during off-peak hours, so peak evening traffic is almost all cache hits. The long tail is fetched from regional caches on a miss.</p><p><b>Adaptive bitrate.</b> Each title is cut into ~4 s segments at many bitrates. The player starts at a low bitrate for a fast start, then picks the highest bitrate its buffer and measured throughput can sustain. If the buffer drains, it steps down instead of stalling.</p><p><b>Per-title encoding.</b> A cartoon needs far fewer bits than an action film at the same quality, so tune the ladder per title and save bandwidth.</p>"
+   },
+   {
+    "title": "Bottlenecks & trade-offs",
+    "minutes": "6 min",
+    "ask": "<p>Bottlenecks and trade-offs.</p>",
+    "model": "<ul><li><b>Egress cost</b>: solved by ISP-embedded caches, pre-positioning and efficient codecs (newer codecs need fewer bits but more encode time and device support).</li><li><b>New release spike</b>: pre-warm every edge before launch.</li><li><b>Transcode cost</b>: chunk-parallel encoding finishes a film in minutes; it is a one-off per title, so spend compute here to save bandwidth forever.</li><li><b>Control-plane failure</b>: if recommendations fail, serve a cached or generic home page; if history fails, play from the start. Fallbacks beat errors.</li><li><b>Heartbeat writes</b>: ~1M/s suits Cassandra's write path; strong consistency is not needed for resume points.</li><li><b>Segment length</b>: shorter segments adapt faster but mean more requests and less efficient compression.</li></ul>"
+   }
+  ],
+  "rubric": [
+   "Separates the control plane (APIs) from the data plane (video bytes on a CDN).",
+   "Estimates peak bandwidth and concludes it must be served from the edge.",
+   "Describes an ingest pipeline: chunked parallel transcoding, packaging, encryption.",
+   "Explains adaptive bitrate with segments at multiple bitrates.",
+   "Pre-positions popular content on edges before demand.",
+   "Stores viewing progress in a write-optimised store.",
+   "Plans graceful fallbacks for failing services.",
+   "Mentions DRM and licence issuance."
+  ]
+ },
+ {
+  "id": "news-feed",
+  "title": "Design a social news feed",
+  "source": "classic",
+  "evidence_tag": "Classic",
+  "evidence": "A widely used industry system design question; no source ties it to GovTech or OGP, so practise it for the patterns it teaches (fan-out on write versus read, caching, ranking).",
+  "design": "news-feed",
+  "minutes": 45,
+  "prompt": "<p>\"Design the home feed for a social network like Twitter or Facebook. Users follow others and see recent posts from them, newest or best first.\"</p>",
+  "clarify": [
+   {
+    "q": "Scale?",
+    "a": "300M daily active users, each opening the feed about 10 times a day."
+   },
+   {
+    "q": "How many follows?",
+    "a": "Average 200. Some accounts have 50M followers."
+   },
+   {
+    "q": "Chronological or ranked?",
+    "a": "Start chronological, then tell me how ranking fits."
+   },
+   {
+    "q": "Media?",
+    "a": "Posts can have images; assume they live in object storage and a CDN."
+   },
+   {
+    "q": "How fresh?",
+    "a": "A new post should appear in followers' feeds within a few seconds."
+   }
+  ],
+  "steps": [
+   {
+    "title": "Requirements",
+    "minutes": "5 min",
+    "ask": "<p>Requirements.</p>",
+    "model": "<ul><li><b>Functional</b>: create a post; follow and unfollow; load the home feed with pagination; feed contains posts from followed accounts.</li><li><b>Non-functional</b>: feed loads in ~200 ms at p99; posts appear within ~5 s; reads vastly outnumber writes; feed can be eventually consistent (a missing post for a few seconds is fine); celebrity posts must not melt the system.</li><li><b>Out of scope</b>: comments, likes counting, notifications, search, ads.</li></ul><p>The core question is when to build each user's feed: when a post is written (fan-out on write) or when a feed is read (fan-out on read). Say you will compare them with numbers.</p>"
+   },
+   {
+    "title": "Estimates",
+    "minutes": "5 min",
+    "ask": "<p>Estimate reads, writes, fan-out and cache size.</p>",
+    "model": "<ul><li>Feed reads: 300M × 10 = 3B/day ≈ <b>35k/s</b>, ~100k/s at peak.</li><li>Posts: 300M × 0.5 = 150M/day ≈ <b>1.7k/s</b>.</li><li>Fan-out on write: 1.7k posts/s × 200 followers = <b>~350k feed inserts/s</b>. High but spreadable across a cache cluster.</li><li>A celebrity post: 50M inserts for one post. At 350k/s that alone takes ~2.5 minutes. This breaks pure push.</li><li>Feed cache: 300M users × 500 post IDs × 8 B = <b>~1.2 TB</b> raw, more with Redis overhead, sharded across ~20-40 nodes.</li></ul><p>Conclusion: push for normal accounts, pull for celebrities.</p>"
+   },
+   {
+    "title": "API & data model",
+    "minutes": "7 min",
+    "ask": "<p>API and data model.</p>",
+    "model": "<ul><li><code>POST /posts {text, mediaIds[]}</code> → <code>{postId}</code></li><li><code>GET /feed?cursor=&amp;limit=20</code> → posts plus <code>nextCursor</code></li><li><code>POST /follow/{userId}</code>, <code>DELETE /follow/{userId}</code></li></ul><p>Data:</p><ul><li><b>posts</b>: sharded by <code>post_id</code>; ID is time-sortable (Snowflake-style: timestamp + machine + sequence) so ordering needs no extra column.</li><li><b>follows</b>: two tables, <code>followers(user_id → follower_id)</code> and <code>following(user_id → followee_id)</code>, each sharded by its first column.</li><li><b>feed cache</b>: Redis list per user of the latest ~500 post IDs.</li><li><b>post cache</b>: post ID → post object, so a feed page is one list read plus a multi-get.</li></ul><p>Use a cursor (last post ID seen), not an offset, so new posts do not shift pages.</p>"
+   },
+   {
+    "title": "High-level design",
+    "minutes": "12 min",
+    "ask": "<p>Draw the write path and the read path.</p>",
+    "model": "<p><b>Write</b>:</p><ol><li>Post service stores the post and returns at once.</li><li>It publishes a \"new post\" event to a queue.</li><li><b>Fan-out workers</b> look up the author's followers in pages and push the post ID onto each follower's Redis feed list, trimming to 500.</li><li>Authors with more than ~10k followers are flagged as celebrities and skipped.</li></ol><p><b>Read</b>:</p><ol><li>Feed service reads the user's precomputed list from Redis.</li><li>It fetches recent posts from the celebrities that user follows (usually a handful) and merges by ID.</li><li>It hydrates post objects from the post cache, filters deleted or blocked content, and returns 20 with a cursor.</li></ol><p>Inactive users (not seen in 30 days) are skipped in fan-out; their feed is built on demand when they return.</p>"
+   },
+   {
+    "title": "Deep dive",
+    "minutes": "10 min",
+    "ask": "<p>Go deep on the hybrid fan-out and on ranking.</p>",
+    "model": "<p><b>Why hybrid.</b> Pure push makes reads one cache lookup but a celebrity post costs 50M writes and minutes of lag. Pure pull makes writes free but every read must query 200 followees and merge, about 200 lookups at 100k reads/s. Hybrid pays push cost only for the ~99% of accounts with modest audiences and pull cost only for the few celebrities a user follows.</p><p><b>Threshold.</b> Pick it from numbers, e.g. 10k followers, and tune by measuring fan-out lag and read latency.</p><p><b>Ranking.</b> Stage 1, candidates: the ~500 IDs from the hybrid feed. Stage 2, score each with a light model (author affinity, recency, engagement so far, media type). Stage 3, re-rank for diversity (not five posts from one author in a row). Cache the ranked page briefly so scrolling is stable.</p>"
+   },
+   {
+    "title": "Bottlenecks & trade-offs",
+    "minutes": "6 min",
+    "ask": "<p>Bottlenecks and trade-offs.</p>",
+    "model": "<ul><li><b>Fan-out lag</b> during spikes: the queue absorbs it; feeds become a few seconds stale, which is acceptable.</li><li><b>Hot celebrity post</b> read by millions: post-object cache with replicas, plus a short in-process cache.</li><li><b>Cache loss</b>: a lost Redis shard means rebuilding feeds by pull on next read; slower, not broken.</li><li><b>Unfollow and deletes</b>: filter at read time rather than rewriting millions of lists.</li><li><b>Memory</b>: keep only IDs in feed lists and cap at 500; older pages fall back to pull.</li><li><b>Consistency</b>: eventual consistency for feeds; strong only for the post itself and follow edges.</li></ul>"
+   }
+  ],
+  "rubric": [
+   "Compares fan-out on write and fan-out on read with numbers.",
+   "Identifies the celebrity problem and proposes a hybrid.",
+   "Stores post IDs (not full posts) in per-user feed lists, capped in length.",
+   "Uses cursor-based pagination with time-sortable IDs.",
+   "Does fan-out asynchronously through a queue.",
+   "Skips or defers fan-out for inactive users.",
+   "Explains where ranking fits (candidates, scoring, re-ranking).",
+   "States which parts can be eventually consistent."
+  ]
+ },
+ {
+  "id": "chat",
+  "title": "Design a chat app like WhatsApp",
+  "source": "classic",
+  "evidence_tag": "Classic",
+  "evidence": "A widely used industry system design question; no source ties it to GovTech or OGP, so practise it for the patterns it teaches (persistent connections, ordering, delivery guarantees).",
+  "design": "chat",
+  "minutes": 45,
+  "prompt": "<p>\"Design a messaging app like WhatsApp or Telegram: one-to-one and group chats, delivered instantly when online and later when offline.\"</p>",
+  "clarify": [
+   {
+    "q": "Scale?",
+    "a": "500M daily users, about 40 messages each per day."
+   },
+   {
+    "q": "Group size?",
+    "a": "Up to 256 members."
+   },
+   {
+    "q": "Receipts and presence?",
+    "a": "Yes: sent, delivered, read, and online or last seen."
+   },
+   {
+    "q": "Message history on the server?",
+    "a": "Keep it until every device has it; assume history sync for new devices is out of scope."
+   },
+   {
+    "q": "End-to-end encryption?",
+    "a": "Yes, but don't design the cryptography. Tell me how it affects the server."
+   }
+  ],
+  "steps": [
+   {
+    "title": "Requirements",
+    "minutes": "5 min",
+    "ask": "<p>Requirements.</p>",
+    "model": "<ul><li><b>Functional</b>: send text (media via upload link) to a person or group; deliver in real time if the recipient is online, otherwise on reconnect plus a push notification; receipts (sent, delivered, read); presence; message order preserved within a chat.</li><li><b>Non-functional</b>: delivery in ~200 ms when both are online; <b>no message lost</b> once the server acknowledged it; no duplicates shown; works on flaky mobile networks; end-to-end encrypted, so the server routes ciphertext it cannot read.</li><li><b>Out of scope</b>: calls, stories, full history sync, search.</li></ul><p>Two hard parts to call out: keeping millions of connections open, and delivering exactly once from the user's point of view over an unreliable network.</p>"
+   },
+   {
+    "title": "Estimates",
+    "minutes": "5 min",
+    "ask": "<p>Estimate message rate, connections and storage.</p>",
+    "model": "<ul><li>500M × 40 = <b>20B messages/day</b> ≈ 230k/s average, <b>~700k/s</b> at peak.</li><li>Concurrent connections: assume 40% online at peak = <b>200M</b>. At ~100k per tuned gateway server, <b>~2,000 servers</b>.</li><li>Storage: 20B × ~100 B = <b>~2 TB/day</b> before replication. Delete after delivery to all devices, or keep ~30 days as a buffer.</li><li>Group fan-out: if 20% of messages go to groups of ~20, deliveries ≈ 20B × (0.8 + 0.2 × 20) = <b>~96B deliveries/day</b>.</li><li>Presence: each heartbeat every 30 s = 200M ÷ 30 ≈ <b>~7M/s</b> if done naively. That is why presence needs care.</li></ul>"
+   },
+   {
+    "title": "API & data model",
+    "minutes": "7 min",
+    "ask": "<p>Protocol and data model.</p>",
+    "model": "<ul><li>WebSocket (or MQTT) per device. Client → server: <code>send {clientMsgId, chatId, ciphertext}</code>; server → client: <code>ack {clientMsgId, seq}</code>; server → recipient: <code>msg {chatId, seq, sender, ciphertext}</code>; recipient → server: <code>delivered {chatId, upToSeq}</code>, <code>read {chatId, upToSeq}</code>.</li><li><code>GET /chats/{id}/messages?afterSeq=</code> for catch-up on reconnect.</li></ul><p>Data:</p><ul><li><b>messages</b> (Cassandra): partition key <code>chat_id</code>, clustering key <code>seq</code>. One chat's messages live together, already ordered.</li><li><b>chat members</b>: chat → member list.</li><li><b>delivery cursors</b>: (user, chat) → last delivered and read seq.</li><li><b>session registry</b> (Redis): user/device → gateway server, with a TTL.</li><li><b>presence</b> (Redis): user → last seen, TTL.</li></ul>"
+   },
+   {
+    "title": "High-level design",
+    "minutes": "12 min",
+    "ask": "<p>Draw it and walk a message from Alice to Bob.</p>",
+    "model": "<ol><li>Alice's phone holds a WebSocket to gateway G1. It sends the encrypted message with a random <code>clientMsgId</code>.</li><li>G1 forwards to the <b>chat service</b>, which assigns the next <code>seq</code> for the chat, writes it to the message store, and acks Alice: one tick.</li><li>The chat service looks up Bob in the <b>session registry</b>: he is on gateway G7. It sends the message to G7, which pushes it to Bob's phone.</li><li>Bob's phone acks <code>delivered upToSeq</code>; the receipt flows back to Alice: two ticks.</li><li>If Bob is offline, the message stays stored and a <b>push notification</b> goes through APNs/FCM. On reconnect, Bob's app asks for everything after its last seq.</li></ol><p>For groups, the chat service writes once and fans out delivery to each member's gateway through a queue.</p>"
+   },
+   {
+    "title": "Deep dive",
+    "minutes": "10 min",
+    "ask": "<p>Go deep on ordering and exactly-once delivery from the user's view.</p>",
+    "model": "<p><b>Ordering.</b> Wall clocks on phones disagree, so do not sort by timestamps. Give each chat a <b>monotonic sequence number</b> assigned by one owner: route all writes for a chat to the same chat-service shard (hash of chat ID), which increments a counter. Clients display by seq.</p><p><b>No loss.</b> The server acks only after the message is durably written. If Alice gets no ack, she resends.</p><p><b>No duplicates.</b> A resend carries the same <code>clientMsgId</code>; the server keeps recent IDs per chat and returns the original seq instead of writing again. Delivery to Bob is at least once (pushed, then fetched on reconnect); Bob's app drops any seq it already has. At-least-once transport plus idempotent receivers gives exactly-once display.</p><p><b>Encryption.</b> With end-to-end encryption, groups use sender keys so a message is encrypted once, not 256 times.</p>"
+   },
+   {
+    "title": "Bottlenecks & trade-offs",
+    "minutes": "6 min",
+    "ask": "<p>Bottlenecks and trade-offs.</p>",
+    "model": "<ul><li><b>Reconnect storms</b>: deploying a gateway drops 100k connections at once. Drain slowly and have clients reconnect with random jitter.</li><li><b>Presence chatter</b>: do not broadcast every status change to every contact. Fetch presence when a chat is opened and subscribe only while it is visible.</li><li><b>Large groups</b>: fan-out cost grows with members; cap groups or switch very large ones to pull on open.</li><li><b>Hot chat partition</b>: a very busy group lands on one partition; acceptable at 256 members, a problem for broadcast channels.</li><li><b>WebSocket vs polling</b>: long-lived connections cost memory per user but give instant delivery and save battery compared with frequent polling.</li><li><b>Storage</b>: deleting after delivery saves cost and limits exposure, at the price of no server-side history.</li></ul>"
+   }
+  ],
+  "rubric": [
+   "Uses persistent connections and a session registry to find the recipient's gateway.",
+   "Sizes connections and gateway servers with numbers.",
+   "Orders messages with a per-chat sequence number, not device clocks.",
+   "Acks only after a durable write; deduplicates retries with a client message ID.",
+   "Handles offline users with stored messages, catch-up by sequence, and push notifications.",
+   "Partitions message storage by chat ID.",
+   "Addresses group fan-out cost.",
+   "Mentions reconnect storms or presence traffic as a scaling problem."
+  ]
+ },
+ {
+  "id": "kv-store",
+  "title": "Design a distributed key-value store",
+  "source": "classic",
+  "evidence_tag": "Classic",
+  "evidence": "A widely used industry system design question; no source ties it to GovTech or OGP, so practise it for the patterns it teaches (partitioning, replication, quorums, conflict handling).",
+  "design": "kv-store",
+  "minutes": 45,
+  "prompt": "<p>\"Design a distributed key-value store like Amazon's Dynamo or Cassandra. <code>put(key, value)</code> and <code>get(key)</code>, across many machines, and it must keep working when machines fail.\"</p>",
+  "clarify": [
+   {
+    "q": "Data size and value size?",
+    "a": "About 10 TB of data, values around 1 KB, up to 1 MB."
+   },
+   {
+    "q": "Traffic?",
+    "a": "100k writes and 300k reads a second."
+   },
+   {
+    "q": "Consistency or availability during a network split?",
+    "a": "Writes should keep working; tunable consistency is a plus."
+   },
+   {
+    "q": "Range queries?",
+    "a": "No. Point lookups only."
+   },
+   {
+    "q": "One data centre?",
+    "a": "Yes, three availability zones."
+   }
+  ],
+  "steps": [
+   {
+    "title": "Requirements",
+    "minutes": "5 min",
+    "ask": "<p>Requirements, including the CAP position.</p>",
+    "model": "<ul><li><b>Functional</b>: <code>put</code>, <code>get</code>, <code>delete</code> by key; per-request consistency level; add and remove nodes without downtime.</li><li><b>Non-functional</b>: p99 under ~10 ms; survives a node or an availability zone failure; data replicated 3 times; scales linearly by adding nodes; <b>available under partition</b> (AP), with tunable consistency through quorums.</li><li><b>Out of scope</b>: transactions across keys, secondary indexes, range scans.</li></ul><p>Say the choice explicitly: \"Writes must keep working during a split, so I'll pick availability and handle conflicts, with quorum settings to get stronger reads when callers need them.\"</p>"
+   },
+   {
+    "title": "Estimates",
+    "minutes": "5 min",
+    "ask": "<p>Size the cluster.</p>",
+    "model": "<ul><li>10 TB × 3 replicas = <b>30 TB</b> stored.</li><li>At ~2 TB usable per node (leave half the disk for compaction and growth): <b>15 nodes</b>; run ~20 for headroom.</li><li>Traffic: 100k writes/s × 3 replicas = 300k replica writes/s; reads at quorum 2 = 600k replica reads/s. Over 20 nodes: <b>~15k writes and ~30k reads per node per second</b>. An LSM-tree node on SSD handles that.</li><li>Network: 100k × 1 KB × 3 = <b>~300 MB/s</b> cluster-wide replication traffic.</li><li>Adding one node moves about 1/20 of the data, ~1.5 TB, at a throttled ~100 MB/s: <b>~4 hours</b>.</li></ul>"
+   },
+   {
+    "title": "API & data model",
+    "minutes": "7 min",
+    "ask": "<p>API and on-node data layout.</p>",
+    "model": "<ul><li><code>PUT /kv/{key}</code> body = value, header <code>context</code> (version from a previous get); query <code>w=2</code>.</li><li><code>GET /kv/{key}?r=2</code> → value(s) + context. If replicas disagree, may return siblings.</li><li><code>DELETE /kv/{key}</code> writes a tombstone.</li></ul><p>On each node, an <b>LSM tree</b>:</p><ul><li>Writes append to a <b>write-ahead log</b> (durability) and go into an in-memory <b>memtable</b>.</li><li>When the memtable reaches ~64 MB it is flushed as an immutable sorted <b>SSTable</b>.</li><li>Background <b>compaction</b> merges SSTables, drops overwritten values and expired tombstones.</li><li>Each SSTable has a <b>Bloom filter</b>, so a read skips files that cannot hold the key.</li></ul><p>Cluster metadata: the ring (token → node), learned by gossip.</p>"
+   },
+   {
+    "title": "High-level design",
+    "minutes": "12 min",
+    "ask": "<p>Draw the cluster and walk a write and a read.</p>",
+    "model": "<p>Nodes sit on a <b>consistent-hash ring</b>; each owns many virtual nodes (e.g. 256) so load spreads evenly and a new node takes small slices from everyone.</p><p><b>Write</b>:</p><ol><li>Client sends to any node; it becomes the <b>coordinator</b>.</li><li>Hash the key; walk the ring clockwise to find the first 3 distinct physical nodes in different zones: the <b>preference list</b>.</li><li>Send the write to all 3; reply success after <b>W = 2</b> acks.</li></ol><p><b>Read</b>: ask the replicas, return after <b>R = 2</b> replies, pick the newest version. If a replica was stale, send it the newer value (<b>read repair</b>).</p><p>With N = 3, R + W = 4 &gt; N, so every read set overlaps the latest write set.</p>"
+   },
+   {
+    "title": "Deep dive",
+    "minutes": "10 min",
+    "ask": "<p>Go deep on failures and conflicts.</p>",
+    "model": "<p><b>Failure detection.</b> Nodes gossip heartbeats every second; a node not heard from for several seconds is marked down locally. No central master.</p><p><b>Hinted handoff.</b> If a replica is down, the coordinator writes to the next healthy node with a hint (\"this belongs to C\"). When C returns, the hint is replayed. Writes keep succeeding: that is the availability promise. It is a <b>sloppy quorum</b>, so until hints replay, R + W &gt; N no longer guarantees a fresh read.</p><p><b>Anti-entropy.</b> Replicas compare <b>Merkle trees</b> of their key ranges and sync only differing branches, so a node that missed hours of writes catches up without a full copy.</p><p><b>Conflicts.</b> During a split two clients may write the same key on different sides. <b>Last-write-wins</b> by timestamp is simple but silently drops one write and trusts clocks. <b>Vector clocks</b> detect concurrent writes and return both siblings so the application merges them (e.g. union a shopping cart). Use LWW where a lost write is harmless (caches, last-seen times); use vector clocks or CRDTs where it is not (counters, carts).</p>"
+   },
+   {
+    "title": "Bottlenecks & trade-offs",
+    "minutes": "6 min",
+    "ask": "<p>Bottlenecks and trade-offs.</p>",
+    "model": "<ul><li><b>Hot keys</b>: one key on 3 nodes can overload them. Cache it client-side or split it (key#1..key#10) for counters.</li><li><b>Compaction</b>: steals disk bandwidth and causes latency spikes; throttle it and leave disk headroom.</li><li><b>Tombstones</b>: deletes are writes; too many slow reads. Purge after a grace period longer than the longest node outage, or deleted data can come back.</li><li><b>Rebalancing</b> after adding a node: stream data in the background, throttled.</li><li><b>Quorum tuning</b>: R = 1, W = 1 is fastest but can read stale data; R = W = 2 balances; W = 3 is strongest but fails writes when any replica is down.</li><li><b>Leaderless vs leader-based</b>: leaderless (Dynamo) stays writable during failures; leader per shard (Raft) gives linearizable reads but stalls during elections.</li></ul>"
+   }
+  ],
+  "rubric": [
+   "States a CAP position and offers tunable consistency.",
+   "Partitions with consistent hashing and virtual nodes.",
+   "Replicates to N nodes across zones and explains R + W > N.",
+   "Describes a storage engine (WAL, memtable, SSTables, compaction, Bloom filters).",
+   "Handles temporary failures with hinted handoff.",
+   "Repairs divergence with read repair and Merkle-tree anti-entropy.",
+   "Compares conflict resolution: last-write-wins versus vector clocks.",
+   "Sizes the cluster from data size and traffic."
+  ]
+ },
+ {
+  "id": "payments",
+  "title": "Design a payment system",
+  "source": "classic",
+  "evidence_tag": "Classic",
+  "evidence": "A widely used industry system design question; no source ties it to GovTech or OGP, so practise it for the patterns it teaches (idempotency, double-entry ledgers, reconciliation).",
+  "design": "payments",
+  "minutes": 45,
+  "prompt": "<p>\"Design the payment backend for an online shop. Customers pay by card at checkout through an external payment processor. We must never charge twice and never lose track of money.\"</p>",
+  "clarify": [
+   {
+    "q": "Volume?",
+    "a": "10M payments a day, with 10× spikes during sales."
+   },
+   {
+    "q": "Do we handle card numbers ourselves?",
+    "a": "No. Use the processor's hosted fields so we only see tokens."
+   },
+   {
+    "q": "Refunds and payouts to sellers?",
+    "a": "Refunds yes. Seller payouts briefly."
+   },
+   {
+    "q": "Currencies?",
+    "a": "Several, but no conversion inside a payment."
+   },
+   {
+    "q": "What is worse: a slow payment or a wrong one?",
+    "a": "A wrong one. Correctness first."
+   }
+  ],
+  "steps": [
+   {
+    "title": "Requirements",
+    "minutes": "5 min",
+    "ask": "<p>Requirements. Say which properties are non-negotiable.</p>",
+    "model": "<ul><li><b>Functional</b>: create a payment for an order; authorise and capture through a processor; handle the processor's asynchronous results (webhooks); refund fully or partly; show payment status; daily reconciliation with the processor's settlement report.</li><li><b>Non-negotiable</b>: <b>never charge twice</b> for one order, even with retries and timeouts; <b>every cent accounted for</b> in an immutable ledger; strong consistency for money state; full audit trail.</li><li><b>Non-functional</b>: checkout p99 within a few seconds (processor-bound); highly available, but prefer refusing a payment to recording it wrongly; stay out of card-data compliance scope by never touching raw card numbers.</li><li><b>Out of scope</b>: fraud models, currency conversion, tax.</li></ul>"
+   },
+   {
+    "title": "Estimates",
+    "minutes": "5 min",
+    "ask": "<p>Estimate payment rate, ledger growth and processor calls.</p>",
+    "model": "<ul><li>10M/day ÷ 86,400 = <b>~115 payments/s</b>; sale peak ×10 = <b>~1.2k/s</b>.</li><li>Each payment makes 2-4 ledger entries (authorise, capture, fees): ~30M entries/day × ~200 B = <b>~6 GB/day</b>, ~2 TB/year. Fine for a relational database with partitioning by month.</li><li>Processor calls take ~1-3 s. At 1.2k/s that is <b>~3,600 requests in flight</b>: use async I/O and connection pools, not a thread per request.</li><li>Webhooks arrive at about the payment rate, ~1k/s peak.</li></ul><p>Conclusion: volume is moderate. The design is about correctness under retries, timeouts and partial failure.</p>"
+   },
+   {
+    "title": "API & data model",
+    "minutes": "7 min",
+    "ask": "<p>API and data model.</p>",
+    "model": "<ul><li><code>POST /payments {orderId, amountMinor, currency, paymentMethodToken}</code> + <code>Idempotency-Key</code> → 201 <code>{paymentId, status}</code>. Same key returns the same result.</li><li><code>GET /payments/{id}</code></li><li><code>POST /payments/{id}/refunds {amountMinor}</code> + <code>Idempotency-Key</code></li><li><code>POST /webhooks/processor</code>: signature verified.</li></ul><p>Data (Postgres, synchronous replica):</p><ul><li><code>payments(id, order_id UNIQUE, amount_minor BIGINT, currency, status, processor_ref, version)</code>. Status machine: CREATED → AUTHORISED → CAPTURED → SETTLED, or FAILED, or REFUNDED, plus PENDING_UNKNOWN while a processor result is unknown.</li><li><code>idempotency_keys(key PK, request_hash, response, created_at)</code></li><li><code>ledger_entries(id, txn_id, account_id, direction, amount_minor, created_at)</code>: append-only; each txn's debits equal its credits.</li><li><code>outbox(id, event, payload, published_at)</code></li></ul>"
+   },
+   {
+    "title": "High-level design",
+    "minutes": "12 min",
+    "ask": "<p>Draw it and walk one card payment.</p>",
+    "model": "<ol><li>Checkout page loads the processor's hosted card fields; the card number goes straight to the processor, which returns a token.</li><li>The shop calls <code>POST /payments</code> with the token and an idempotency key derived from the order.</li><li>The <b>payment service</b> inserts the idempotency row and a CREATED payment in one transaction. A duplicate key returns the stored response.</li><li>It calls the processor to authorise and capture, <b>passing the same idempotency key</b> so the processor also deduplicates.</li><li>On success it updates the payment to CAPTURED, writes balanced <b>ledger entries</b> and an <b>outbox</b> event in one transaction.</li><li>An outbox relay publishes \"payment captured\" to the order service.</li><li>Webhooks confirm or correct the final state; a nightly <b>reconciliation job</b> matches the processor's settlement file against the ledger.</li></ol>"
+   },
+   {
+    "title": "Deep dive",
+    "minutes": "10 min",
+    "ask": "<p>Go deep on timeouts and idempotency: the processor call timed out. Was the customer charged?</p>",
+    "model": "<p>A timeout means <b>unknown</b>, not failed. Never retry with a new key: that is how customers get charged twice.</p><ul><li>Mark the payment PENDING_UNKNOWN.</li><li>Retry with the <b>same idempotency key</b>; the processor returns the original result if the first call went through.</li><li>Or query the processor by your reference. A background job sweeps unknown payments every minute until resolved.</li><li>Webhooks are the processor's own answer; handle them idempotently (store processed event IDs) because they can arrive twice or out of order.</li></ul><p><b>State transitions</b> use optimistic locking: <code>UPDATE payments SET status = 'CAPTURED', version = version + 1 WHERE id = $1 AND version = $2</code>, so a late webhook cannot move a refunded payment back to captured.</p><p><b>Ledger</b>: amounts are integers in minor units (no floats); entries are never edited; a correction is a new reversing entry.</p>"
+   },
+   {
+    "title": "Bottlenecks & trade-offs",
+    "minutes": "6 min",
+    "ask": "<p>Bottlenecks and trade-offs.</p>",
+    "model": "<ul><li><b>Processor outage</b>: route to a second processor for new payments; never fail over a payment that is in an unknown state, or you may double-charge.</li><li><b>Hot ledger accounts</b>: the shop's own revenue account is touched by every payment. Derive balances from entries asynchronously, or split into sub-accounts and sum.</li><li><b>Database</b>: one primary with a synchronous replica; consistency over availability for money. Shard by merchant only when one primary is not enough.</li><li><b>Dual writes</b>: writing the database and then publishing to a queue can lose events; the outbox pattern makes both one transaction.</li><li><b>Reconciliation</b> catches what everything else misses: missing webhooks, processor bugs, fees. Treat mismatches as alerts, not logs.</li></ul>"
+   }
+  ],
+  "rubric": [
+   "Uses idempotency keys end to end, including on the processor call.",
+   "Treats a timeout as unknown and resolves it by retrying with the same key or querying.",
+   "Models payment status as a state machine with guarded transitions.",
+   "Keeps a double-entry, append-only ledger with integer minor units.",
+   "Avoids handling raw card data (tokens or hosted fields).",
+   "Uses an outbox (or equivalent) so state changes and events are not lost.",
+   "Handles duplicate and out-of-order webhooks.",
+   "Includes reconciliation against the processor's settlement report.",
+   "Prefers consistency over availability for money and says why."
+  ]
+ }
+]

@@ -1,0 +1,178 @@
+{
+ "id": "py-strings",
+ "track": "py",
+ "order": 4,
+ "title": "Strings",
+ "short": "Read, clean and build text without slow copying.",
+ "what": "A string is a row of characters you can index and slice like a list. Unlike a list, it can never change: every edit makes a new string. To build one piece by piece, collect parts in a list and join them once.",
+ "analogy": "A printed label. You cannot rub out one letter; you print a new label. So you write the words on cards first and print once at the end.",
+ "viz": {
+  "kind": "array",
+  "frames": [
+   {
+    "cells": [
+     "N",
+     "o",
+     ",",
+     "␣",
+     "o",
+     "n",
+     "!"
+    ],
+    "label": "s = \"No, on!\"",
+    "ptr": {
+     "s[0]": 0
+    },
+    "hi": [
+     0
+    ],
+    "say": "s = \"No, on!\" is 7 characters with indexes, like a list. s[0] is \"N\" and len(s) is 7. ␣ marks the space."
+   },
+   {
+    "cells": [
+     "N",
+     "o",
+     ",",
+     "␣",
+     "o",
+     "n",
+     "!"
+    ],
+    "label": "s[0] = \"n\"",
+    "bad": [
+     0
+    ],
+    "out": "TypeError",
+    "say": "s[0] = \"n\" fails: strings cannot change in place. Methods like s.lower() hand back a new string instead."
+   },
+   {
+    "cells": [
+     "N",
+     "o",
+     ",",
+     "␣",
+     "o",
+     "n",
+     "!"
+    ],
+    "label": "if c.isalnum()",
+    "ok": [
+     0,
+     1,
+     4,
+     5
+    ],
+    "dim": [
+     2,
+     3,
+     6
+    ],
+    "say": "c.isalnum() is true for letters and digits. The comma, the space and the ! fail it, so we drop them."
+   },
+   {
+    "cells": [
+     "n",
+     "o",
+     "o",
+     "n"
+    ],
+    "label": "chars.append(c.lower())",
+    "hi": [
+     0,
+     1,
+     2,
+     3
+    ],
+    "out": "['n', 'o', 'o', 'n']",
+    "say": "Append each kept letter, lowercased, to a list. Adding to a list is cheap, unlike adding to a string."
+   },
+   {
+    "cells": [
+     "n",
+     "o",
+     "o",
+     "n"
+    ],
+    "label": "t = \"\".join(chars)",
+    "ok": [
+     0,
+     1,
+     2,
+     3
+    ],
+    "out": "'noon' -> palindrome",
+    "say": "\"\".join(chars) glues the list into one string in a single pass. t == t[::-1], so it reads the same backwards."
+   },
+   {
+    "cells": [
+     "a",
+     "b",
+     "c",
+     "d",
+     "e"
+    ],
+    "label": "ord(c) - ord(\"a\")",
+    "hi": [
+     2
+    ],
+    "out": "ord(\"c\") - ord(\"a\") -> 2",
+    "say": "ord gives a character's number: ord(\"a\") is 97. ord(c) - ord(\"a\") turns \"a\" to \"z\" into 0 to 25."
+   },
+   {
+    "cells": [
+     "hi",
+     "bo"
+    ],
+    "label": "\"  hi  bo \".split()",
+    "ok": [
+     0,
+     1
+    ],
+    "out": "f\"{len(words)} words\" -> '2 words'",
+    "say": "split() cuts on any run of spaces and drops the empty bits. strip() trims the two ends. f\"{len(words)} words\" puts the value in the text."
+   }
+  ]
+ },
+ "when": [
+  "Ignore case, spaces or punctuation",
+  "Count letters a to z",
+  "Split a sentence into words",
+  "Build a new string from pieces"
+ ],
+ "python": "s = \"No, on!\"\nchars = []\nfor c in s:\n    if c.isalnum():\n        chars.append(c.lower())\nt = \"\".join(chars)\nprint(t, t == t[::-1])\nprint(ord(\"a\"), ord(\"c\") - ord(\"a\"), chr(ord(\"a\") + 1))\nwords = \"  hi  bo \".split()\nprint(words, \"-\".join(words), \"  x \".strip(), \"7\".isdigit())\ntry:\n    s[0] = \"n\"\nexcept TypeError:\n    print(\"strings are immutable\")\nprint(f\"{len(words)} words, first is {words[0]}\")",
+ "output": "noon True\n97 2 b\n['hi', 'bo'] hi-bo x True\nstrings are immutable\n2 words, first is hi",
+ "cost": [
+  [
+   "Read s[i] or len(s)",
+   "O(1)"
+  ],
+  [
+   "s.lower(), s[::-1], s.split()",
+   "O(n)"
+  ],
+  [
+   "\"\".join(parts)",
+   "O(total length)"
+  ],
+  [
+   "s += c inside a loop",
+   "O(n²) worst"
+  ]
+ ],
+ "watch": [
+  "s.lower() does not change s. Write s = s.lower() to keep it.",
+  "Building with s += c in a loop can copy the string each time. Append to a list, then join.",
+  "split(\" \") keeps empty pieces between double spaces; split() does not."
+ ],
+ "interview": [
+  "LC 125 Valid Palindrome",
+  "LC 242 Valid Anagram",
+  "LC 151 Reverse Words in a String"
+ ],
+ "related": [
+  "string",
+  "py-lists",
+  "two-pointers",
+  "py-gotchas"
+ ]
+}

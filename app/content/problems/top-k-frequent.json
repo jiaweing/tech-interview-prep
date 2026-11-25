@@ -1,0 +1,378 @@
+{
+ "id": "top-k-frequent",
+ "title": "Top K Trending Hashtags",
+ "pattern": "hashing",
+ "level": "easy",
+ "statement": "<p>Every post in the last hour is tagged, and the explore tab shows the trending hashtags. You get the raw list of tags as they were used, one entry per use.</p><p>Write <code>def solution(hashtags, k)</code> that returns the <code>k</code> most frequent hashtags, most frequent first. Break ties alphabetically (plain Python string order, so <code>\"#AI\"</code> sorts before <code>\"#ai\"</code>; tags are compared exactly as given). If there are fewer than <code>k</code> distinct tags, return them all.</p>",
+ "examples": [
+  {
+   "input": "hashtags = [\"#cats\", \"#ai\", \"#cats\", \"#food\", \"#ai\", \"#cats\"], k = 2",
+   "output": "[\"#cats\", \"#ai\"]",
+   "why": "<code>#cats</code> is used 3 times, <code>#ai</code> 2 times, <code>#food</code> once."
+  },
+  {
+   "input": "hashtags = [\"#b\", \"#a\", \"#c\", \"#b\", \"#a\"], k = 2",
+   "output": "[\"#a\", \"#b\"]",
+   "why": "<code>#a</code> and <code>#b</code> tie at 2 uses, so alphabetical order decides."
+  },
+  {
+   "input": "hashtags = [\"#x\"], k = 3",
+   "output": "[\"#x\"]",
+   "why": "Only one distinct tag exists, so return just that one."
+  }
+ ],
+ "constraints": [
+  "0 &le; len(hashtags) &le; 200,000",
+  "0 &le; k &le; 10,000",
+  "each tag is 2 to 30 characters"
+ ],
+ "starter": "def solution(hashtags, k):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "What two steps does the task really have?",
+   "a": "Count how often each tag appears, then pick the <code>k</code> best by (count high, name low). Counting is one pass; picking is a sort or a heap over the <b>distinct</b> tags, which is usually far fewer than the uses."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Example 2 by hand?",
+   "a": "Counts: <code>#b</code> 2, <code>#a</code> 2, <code>#c</code> 1. Sort by count descending, then name: <code>#a</code>, <code>#b</code>, <code>#c</code>. Keep 2: <code>[\"#a\", \"#b\"]</code>."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first idea that works?",
+   "a": "For each distinct tag, call <code>hashtags.count(tag)</code>. That rescans the whole list once per distinct tag: O(N &times; D)."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Which pattern?",
+   "a": "<b>Hashing</b>: a dict (or <code>collections.Counter</code>) counts in one pass. Then sort the distinct tags with the key <code>(-count, tag)</code>: the minus sign puts high counts first while the tag still sorts A to Z."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li><code>counts = Counter(hashtags)</code>.</li><li><code>ranked = sorted(counts, key=lambda tag: (-counts[tag], tag))</code>.</li><li>Return <code>ranked[:k]</code> (slicing past the end is safe).</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "Empty input, <code>k = 0</code>, <code>k</code> larger than the number of distinct tags. Ties (must be alphabetical, not first-seen order). Case: <code>#AI</code> and <code>#ai</code> are different tags here."
+  }
+ ],
+ "hints": [
+  "Count first. <code>from collections import Counter</code>; <code>Counter(hashtags)</code> maps each tag to its number of uses.",
+  "Sort the distinct tags with a two-part key: <code>key=lambda tag: (-counts[tag], tag)</code>.",
+  "<code>most_common(k)</code> breaks ties by first appearance, not alphabetically, so it fails the tie tests. Use your own key."
+ ],
+ "solution": "from collections import Counter\n\ndef solution(hashtags, k):\n    counts = Counter(hashtags)                 # one pass: tag -> uses\n    # Most uses first; on a tie, the alphabetically smaller tag first.\n    ranked = sorted(counts, key=lambda tag: (-counts[tag], tag))\n    return ranked[:k]\n",
+ "brute": "def solution(hashtags, k):\n    # Count each distinct tag by rescanning the list: O(N * D).\n    scored = []\n    for tag in set(hashtags):\n        scored.append((-hashtags.count(tag), tag))\n    scored.sort()\n    return [tag for _, tag in scored[:k]]\n",
+ "explain": "<p>Example 1: <code>Counter</code> gives <code>{\"#cats\": 3, \"#ai\": 2, \"#food\": 1}</code>. The sort keys are <code>(-3, \"#cats\")</code>, <code>(-2, \"#ai\")</code>, <code>(-1, \"#food\")</code>; ascending order of those keys is the trending order. Slice the first 2.</p><p>Counting is O(N). Sorting the D distinct tags is O(D log D). If D is huge and k is small, <code>heapq.nsmallest(k, counts, key=...)</code> is O(D log k), and a bucket sort by count (counts go from 1 to N) gets the ranking in O(N + D) before the tie-break.</p>",
+ "complexity": "O(N + D log D) time for N uses and D distinct tags, O(D) extra space",
+ "tests": [
+  {
+   "args": [
+    [
+     "#cats",
+     "#ai",
+     "#cats",
+     "#food",
+     "#ai",
+     "#cats"
+    ],
+    2
+   ],
+   "expected": [
+    "#cats",
+    "#ai"
+   ],
+   "label": "example 1",
+   "cat": "example",
+   "why": "clear counts of 3, 2, 1"
+  },
+  {
+   "args": [
+    [
+     "#b",
+     "#a",
+     "#c",
+     "#b",
+     "#a"
+    ],
+    2
+   ],
+   "expected": [
+    "#a",
+    "#b"
+   ],
+   "label": "example 2 (tie)",
+   "cat": "example",
+   "why": "equal counts break alphabetically"
+  },
+  {
+   "args": [
+    [
+     "#x"
+    ],
+    3
+   ],
+   "expected": [
+    "#x"
+   ],
+   "label": "example 3 (k too big)",
+   "cat": "example",
+   "why": "fewer distinct tags than k"
+  },
+  {
+   "args": [
+    [],
+    3
+   ],
+   "expected": [],
+   "label": "no tags",
+   "cat": "empty",
+   "why": "nothing is trending"
+  },
+  {
+   "args": [
+    [
+     "#solo",
+     "#solo",
+     "#solo"
+    ],
+    1
+   ],
+   "expected": [
+    "#solo"
+   ],
+   "label": "one tag",
+   "cat": "single",
+   "why": "one distinct tag used three times"
+  },
+  {
+   "args": [
+    [
+     "#a",
+     "#b"
+    ],
+    0
+   ],
+   "expected": [],
+   "label": "k = 0",
+   "cat": "zero",
+   "why": "return an empty list"
+  },
+  {
+   "args": [
+    [
+     "#zeta",
+     "#alpha",
+     "#mid",
+     "#beta"
+    ],
+    3
+   ],
+   "expected": [
+    "#alpha",
+    "#beta",
+    "#mid"
+   ],
+   "label": "all distinct",
+   "cat": "dupes",
+   "why": "every count is 1, so the order is alphabetical"
+  },
+  {
+   "args": [
+    [
+     "#d",
+     "#c",
+     "#b",
+     "#a",
+     "#c",
+     "#b",
+     "#a",
+     "#d",
+     "#e"
+    ],
+    3
+   ],
+   "expected": [
+    "#a",
+    "#b",
+    "#c"
+   ],
+   "label": "four-way tie at 2",
+   "cat": "dupes",
+   "why": "four tags tie; keep the three alphabetically first"
+  },
+  {
+   "args": [
+    [
+     "#zz",
+     "#aa",
+     "#zz",
+     "#aa",
+     "#mm"
+    ],
+    2
+   ],
+   "expected": [
+    "#aa",
+    "#zz"
+   ],
+   "label": "tie against first-seen order",
+   "cat": "edge",
+   "why": "#zz is seen first, but #aa wins the tie alphabetically"
+  },
+  {
+   "args": [
+    [
+     "#ai",
+     "#AI",
+     "#ai",
+     "#Ai"
+    ],
+    3
+   ],
+   "expected": [
+    "#ai",
+    "#AI",
+    "#Ai"
+   ],
+   "label": "case matters",
+   "cat": "edge",
+   "why": "tags are compared exactly; uppercase sorts before lowercase"
+  },
+  {
+   "args": [
+    [
+     "#a",
+     "#b",
+     "#c",
+     "#a",
+     "#b",
+     "#a"
+    ],
+    3
+   ],
+   "expected": [
+    "#a",
+    "#b",
+    "#c"
+   ],
+   "label": "k equals distinct",
+   "cat": "boundary",
+   "why": "every tag returned, in rank order"
+  },
+  {
+   "args": [
+    [
+     "#t0",
+     "#t7",
+     "#t3",
+     "#t10",
+     "#t6",
+     "#t2",
+     "#t9",
+     "#t5",
+     "#t1",
+     "#t8",
+     "#t4",
+     "#t0",
+     "#t7",
+     "#t3",
+     "#t10",
+     "#t6",
+     "#t2",
+     "#t9",
+     "#t5",
+     "#t1",
+     "#t8",
+     "#t4",
+     "#t0",
+     "#t7",
+     "#t3",
+     "#t10",
+     "#t6",
+     "#t2",
+     "#t9",
+     "#t5",
+     "#t1",
+     "#t8",
+     "#t4",
+     "#t0",
+     "#t7",
+     "#t3",
+     "#t10",
+     "#t6",
+     "#t2",
+     "#t9",
+     "#t5",
+     "#t1",
+     "#t8",
+     "#t4",
+     "#t0",
+     "#t7",
+     "#t3",
+     "#t10",
+     "#t6",
+     "#t2",
+     "#t9",
+     "#t5",
+     "#t1",
+     "#t8",
+     "#t4",
+     "#t0",
+     "#t7",
+     "#t3",
+     "#t10",
+     "#t6",
+     "#t3",
+     "#t3",
+     "#t3",
+     "#t3",
+     "#t9",
+     "#t9",
+     "#t9",
+     "#t9"
+    ],
+    4
+   ],
+   "expected": [
+    "#t3",
+    "#t9",
+    "#t0",
+    "#t10"
+   ],
+   "label": "sixty uses",
+   "cat": "medium",
+   "why": "two tags get a boost and tie, the rest tie lower"
+  }
+ ],
+ "perf": {
+  "label": "performance: 90,000 uses, 1,000 distinct tags",
+  "gen": "[['#tag' + str((i * 7919) % 1000 if i % 3 else i % 7) for i in range(90000)], 5]",
+  "expected": [
+   "#tag0",
+   "#tag2",
+   "#tag3",
+   "#tag5",
+   "#tag6"
+  ]
+ },
+ "al": {
+  "kind": "fundamentals",
+  "from": "LC 347 Top K Frequent Elements",
+  "talk": [
+   "Counting is O(N) with a hash map; ranking is O(D log D) by sorting the distinct tags, or O(D log k) with a size-k heap when D is much larger than k.",
+   "The key <code>(-count, tag)</code> encodes both rules in one comparison, so I never write a custom comparator.",
+   "<code>Counter.most_common</code> breaks ties by insertion order, which is not what the spec asks: I sort myself.",
+   "Edge cases: empty input, <code>k = 0</code>, <code>k</code> above the number of distinct tags, and tags that differ only by case."
+  ],
+  "extensions": [
+   "Bucket sort for O(N): index buckets by count (1..N), walk from the top, and sort only inside each bucket for the alphabetical tie-break.",
+   "Make it a sliding window: tags older than one hour drop out. Keep a deque of (time, tag) and decrement counts as you expire them.",
+   "The stream is too big for one machine: count per shard, then merge the partial counts. Why is merging each shard's local top-k not exact?",
+   "Memory is tight with millions of distinct tags: a Count-Min Sketch plus a small heap gives approximate heavy hitters in fixed memory."
+  ]
+ }
+}

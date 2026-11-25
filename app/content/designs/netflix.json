@@ -1,0 +1,690 @@
+{
+ "id": "netflix",
+ "title": "Video streaming (Netflix)",
+ "tagline": "Encode a film once into a thousand files, place them inside ISPs, and let the player choose a bitrate every few seconds.",
+ "govtech": false,
+ "featured": true,
+ "difficulty": "hard",
+ "summary": "<p>Split the system in two. A small <b>control plane</b> in the cloud handles login, browsing, recommendations and the decision of <i>what</i> to play and <i>from where</i>. A huge <b>data plane</b> of storage appliances placed inside ISPs serves the video bytes. Offline, an <b>encoding pipeline</b> turns each master file into many bitrates and resolutions cut into 2-6 s segments, and the player uses <b>adaptive bitrate streaming</b> (HLS/DASH) to switch between them as the network changes.</p><p>This is a classic interview prompt. No source ties it to GovTech or OGP interviews; use it to practise CDN, caching and async-pipeline reasoning. Lead with the control/data plane split and the numbers that force it.</p>",
+ "requirements": {
+  "functional": [
+   "Browse a personalised catalogue (home rows, search, title pages)",
+   "Press play and start video in about a second, on TVs, phones and browsers",
+   "Adapt quality to the network without stalling",
+   "Resume where you left off on any device",
+   "Studios upload masters; titles go live on a set date"
+  ],
+  "nonfunctional": [
+   "Peak egress in the hundreds of Tbps; video bytes must not cross the internet backbone per view",
+   "Startup under ~2 s, rebuffering under 1% of play time",
+   "Streams keep playing even if the control plane has an outage",
+   "Content is protected with DRM; plan limits on concurrent streams"
+  ],
+  "out_of_scope": [
+   "Live events and ultra-low-latency streaming",
+   "Billing and sign-up",
+   "How the recommendation models work internally"
+  ]
+ },
+ "estimates": [
+  {
+   "label": "Hours watched per day",
+   "calc": "~95B hours per half-year (Netflix 2024 engagement reports) ÷ 182 days",
+   "value": "~520M"
+  },
+  {
+   "label": "Peak concurrent streams",
+   "calc": "520M h ÷ 24 h ≈ 22M streams on average; × ~2 at evening peak",
+   "value": "~44M"
+  },
+  {
+   "label": "Peak egress",
+   "calc": "44M × ~5 Mbps average bitrate",
+   "value": "~220 Tbps"
+  },
+  {
+   "label": "Segment requests at peak",
+   "calc": "44M streams ÷ one 4 s segment each",
+   "value": "~11M/s"
+  },
+  {
+   "label": "Play starts (control plane)",
+   "calc": "assume ~500M a day (about one per hour watched) ÷ 86,400 s ≈ 5.8k/s; × 2 at peak",
+   "value": "~12k/s"
+  },
+  {
+   "label": "Storage per 2 h title",
+   "calc": "~10 rungs × 3 codecs ≈ 90 Mbps summed × 7,200 s ÷ 8 bits per byte = 81 GB (+ audio, subtitles)",
+   "value": "~80 GB"
+  },
+  {
+   "label": "Appliances for peak",
+   "calc": "220 Tbps ÷ ~100 Gbps per box; real fleets are several times larger for locality and spare capacity",
+   "value": "~2,200+"
+  }
+ ],
+ "api": [
+  {
+   "method": "GET",
+   "path": "/home",
+   "desc": "Personalised rows of title ids with artwork. Read-only, precomputed."
+  },
+  {
+   "method": "GET",
+   "path": "/titles/{id}",
+   "desc": "Metadata, seasons, episodes, audio and subtitle languages."
+  },
+  {
+   "method": "POST",
+   "path": "/playback/{titleId} {deviceCaps}",
+   "desc": "Returns manifest URL, 2-3 ranked appliance URLs with signed tokens, DRM info. 403 if the stream limit is reached."
+  },
+  {
+   "method": "POST",
+   "path": "/license {challenge}",
+   "desc": "DRM license (Widevine, PlayReady or FairPlay) for this session."
+  },
+  {
+   "method": "GET",
+   "path": "https://{appliance}/{file}?token=…",
+   "desc": "Byte range of one segment (HTTP <code>Range</code> header). Static, immutable, cacheable. Token is signed and expires."
+  },
+  {
+   "method": "POST",
+   "path": "/events {sessionId, position, bitrate, rebuffers}",
+   "desc": "Heartbeat every ~30 s or on events (seek, pause, rung change). Renews the concurrent-stream lease, then goes to Kafka."
+  },
+  {
+   "method": "POST",
+   "path": "/ingest/titles/{id}/assets",
+   "desc": "Studio only. Resumable multipart upload of the master."
+  }
+ ],
+ "data": [
+  {
+   "name": "titles",
+   "store": "Wide-column store + in-memory cache",
+   "fields": [
+    "title_id PK",
+    "name, synopsis",
+    "artwork_ids",
+    "episodes",
+    "available_from",
+    "encodes[]"
+   ],
+   "note": "Read-heavy and small (a few GB). Cached in memory in every region."
+  },
+  {
+   "name": "media files",
+   "store": "Object storage (origin)",
+   "fields": [
+    "title_id",
+    "profile (codec, res, bitrate)",
+    "segments",
+    "manifests (HLS, DASH)"
+   ],
+   "note": "Immutable. A re-encode writes new names, so no cache is ever invalidated."
+  },
+  {
+   "name": "appliance inventory",
+   "store": "In memory, steering service",
+   "fields": [
+    "appliance_id",
+    "files held",
+    "health, load",
+    "ISP prefixes (BGP)"
+   ],
+   "note": "Each box reports what it holds and how busy it is; steering ranks boxes from this."
+  },
+  {
+   "name": "viewing_history",
+   "store": "Wide-column store",
+   "fields": [
+    "member_id (partition)",
+    "title_id",
+    "position_s",
+    "updated_at"
+   ],
+   "note": "Write-heavy from heartbeats; one partition per member keeps resume a single read."
+  },
+  {
+   "name": "home_rows",
+   "store": "Key-value store",
+   "fields": [
+    "member_id",
+    "row_type",
+    "title_ids[]",
+    "computed_at"
+   ],
+   "note": "Written by the nightly batch, read once per page load."
+  },
+  {
+   "name": "encode_tasks",
+   "store": "Workflow DB",
+   "fields": [
+    "task_id",
+    "title_id, chunk, profile",
+    "state",
+    "attempts",
+    "output_path"
+   ],
+   "note": "DAG state. A task retries alone; the assemble step waits for all chunks."
+  }
+ ],
+ "diagram": {
+  "w": 960,
+  "h": 520,
+  "groups": [
+   {
+    "label": "Control plane (cloud)",
+    "x": 200,
+    "y": 12,
+    "w": 748,
+    "h": 196
+   },
+   {
+    "label": "Data plane (Open Connect CDN)",
+    "x": 200,
+    "y": 226,
+    "w": 748,
+    "h": 120
+   },
+   {
+    "label": "Ingest + encode (offline)",
+    "x": 4,
+    "y": 370,
+    "w": 944,
+    "h": 138
+   }
+  ],
+  "nodes": [
+   {
+    "id": "viewer",
+    "label": "Viewer device",
+    "sub": "TV, phone, browser",
+    "kind": "client",
+    "x": 86,
+    "y": 200
+   },
+   {
+    "id": "gw",
+    "label": "API gateway",
+    "sub": "auth, routing",
+    "kind": "gateway",
+    "x": 300,
+    "y": 110
+   },
+   {
+    "id": "play",
+    "label": "Playback service",
+    "sub": "steering + DRM license",
+    "kind": "service",
+    "x": 545,
+    "y": 66
+   },
+   {
+    "id": "meta",
+    "label": "Catalogue service",
+    "sub": "titles, home rows",
+    "kind": "service",
+    "x": 545,
+    "y": 160
+   },
+   {
+    "id": "ev",
+    "label": "Playback events",
+    "sub": "Kafka",
+    "kind": "stream",
+    "x": 830,
+    "y": 60
+   },
+   {
+    "id": "reco",
+    "label": "Recommendations",
+    "sub": "batch-built rows (KV)",
+    "kind": "ml",
+    "x": 830,
+    "y": 165
+   },
+   {
+    "id": "oca",
+    "label": "ISP appliance",
+    "sub": "OCA inside the ISP",
+    "kind": "cdn",
+    "x": 300,
+    "y": 290
+   },
+   {
+    "id": "ixp",
+    "label": "IXP appliance",
+    "sub": "fill tier at IXPs",
+    "kind": "cdn",
+    "x": 560,
+    "y": 290
+   },
+   {
+    "id": "origin",
+    "label": "Origin storage",
+    "sub": "S3, every encode",
+    "kind": "storage",
+    "x": 830,
+    "y": 290
+   },
+   {
+    "id": "studio",
+    "label": "Studio upload",
+    "sub": "mezzanine file",
+    "kind": "user",
+    "x": 84,
+    "y": 445
+   },
+   {
+    "id": "ingest",
+    "label": "Ingest service",
+    "sub": "validate, chunk",
+    "kind": "service",
+    "x": 312,
+    "y": 445
+   },
+   {
+    "id": "encq",
+    "label": "Encode tasks",
+    "sub": "DAG of chunk jobs",
+    "kind": "queue",
+    "x": 560,
+    "y": 445
+   },
+   {
+    "id": "enc",
+    "label": "Encode workers",
+    "sub": "1000s, encode + package",
+    "kind": "worker",
+    "x": 830,
+    "y": 445
+   }
+  ],
+  "edges": [
+   {
+    "id": "v-gw",
+    "from": "viewer",
+    "to": "gw",
+    "label": "HTTPS"
+   },
+   {
+    "id": "gw-play",
+    "from": "gw",
+    "to": "play",
+    "label": "/play"
+   },
+   {
+    "id": "gw-meta",
+    "from": "gw",
+    "to": "meta",
+    "label": "/home"
+   },
+   {
+    "id": "play-ev",
+    "from": "play",
+    "to": "ev",
+    "label": "heartbeats",
+    "dashed": true
+   },
+   {
+    "id": "ev-reco",
+    "from": "ev",
+    "to": "reco",
+    "label": "train",
+    "dashed": true
+   },
+   {
+    "id": "meta-reco",
+    "from": "meta",
+    "to": "reco",
+    "label": "read rows"
+   },
+   {
+    "id": "v-oca",
+    "from": "viewer",
+    "to": "oca",
+    "label": "video"
+   },
+   {
+    "id": "oca-ixp",
+    "from": "oca",
+    "to": "ixp",
+    "label": "fill"
+   },
+   {
+    "id": "ixp-or",
+    "from": "ixp",
+    "to": "origin",
+    "label": "fill"
+   },
+   {
+    "id": "st-ing",
+    "from": "studio",
+    "to": "ingest",
+    "label": "upload"
+   },
+   {
+    "id": "ing-q",
+    "from": "ingest",
+    "to": "encq",
+    "label": "tasks",
+    "dashed": true
+   },
+   {
+    "id": "q-enc",
+    "from": "encq",
+    "to": "enc",
+    "label": "pull",
+    "dashed": true
+   },
+   {
+    "id": "enc-or",
+    "from": "enc",
+    "to": "origin",
+    "label": "files"
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "play",
+   "name": "Press play",
+   "desc": "Control plane picks what and where; the bytes come from a box inside your ISP.",
+   "steps": [
+    {
+     "edge": "v-gw",
+     "note": "You press Play. The app sends the title id plus what the device can do: codecs (H.264, HEVC, AV1), HDR, DRM system, max resolution. This small request goes to the cloud control plane; no video byte ever comes from there."
+    },
+    {
+     "edge": "gw-play",
+     "note": "The gateway checks the session token and routes to the playback service. This tier handles roughly 12k play starts a second at peak, which ordinary stateless services scale to easily."
+    },
+    {
+     "node": "play",
+     "note": "Playback checks the plan and the concurrent-stream limit, then keeps only the encodes this device can decode. A 4K TV gets an HEVC or AV1 ladder; an old browser gets H.264 up to 1080p."
+    },
+    {
+     "node": "play",
+     "note": "<b>Steering</b>: from the appliances that report holding these files, rank 2-3 that are healthy, not overloaded and closest in network terms (the ISP's BGP routes, not distance on a map)."
+    },
+    {
+     "edge": "gw-play",
+     "rev": true,
+     "note": "Return the manifest (HLS or DASH), the ranked appliance URLs with signed tokens, and what is needed to fetch a DRM license. Every decision is made before the first segment is requested."
+    },
+    {
+     "edge": "v-gw",
+     "rev": true,
+     "note": "The player now has a plan. It fetches the license in parallel with the first segments so DRM does not add a serial round trip to startup."
+    },
+    {
+     "edge": "v-oca",
+     "note": "Segments of 2-6 s come from the appliance inside your ISP, often a few ms away. The player starts at a low bitrate so the first frame appears in about a second, then steps up as the buffer fills."
+    },
+    {
+     "edge": "v-oca",
+     "rev": true,
+     "note": "For each next segment the player picks a rung of the ladder from measured throughput and buffer level. If this box fails mid-stream, it moves to the next URL in the ranked list without a new play call."
+    },
+    {
+     "edge": "play-ev",
+     "note": "Every so often the player sends a heartbeat (position, bitrate, rebuffers). The events service renews the stream lease in a fast store, then puts the event on Kafka asynchronously: resume points, recommendations and quality dashboards read from there."
+    }
+   ]
+  },
+  {
+   "id": "upload",
+   "name": "Upload and transcode",
+   "desc": "One master file becomes over a thousand files, days before launch.",
+   "steps": [
+    {
+     "edge": "st-ing",
+     "note": "The studio delivers a <b>mezzanine</b> master: near-lossless, often hundreds of GB for a 2-hour film. Ingest hands out resumable multipart upload URLs, so a dropped link resumes from the last part instead of restarting."
+    },
+    {
+     "edge": "ing-q",
+     "note": "Ingest validates the file, then splits it into <b>chunks</b> of a few minutes at shot boundaries. Each (chunk, encode profile) becomes one task in a DAG: inspect, encode, quality check, assemble, package."
+    },
+    {
+     "edge": "q-enc",
+     "note": "Thousands of workers pull tasks in parallel. A 2-hour film encodes in hours instead of days, and a crashed worker costs one chunk retry, not the whole film. Output paths are keyed by (title, profile, chunk), so a retry is idempotent."
+    },
+    {
+     "node": "enc",
+     "note": "Each title gets its own <b>bitrate ladder</b>: a cartoon looks fine at a bitrate where an action film turns to blocks. A perceptual metric such as VMAF checks quality per rung. Segments are aligned on keyframes so the player can switch rung at any boundary."
+    },
+    {
+     "node": "enc",
+     "note": "Package the same segments for HLS and DASH (CMAF lets one set of media files serve both), encrypt them with Common Encryption so one copy works for Widevine, PlayReady and FairPlay, and write manifests. Add audio tracks and subtitles and one title is easily over a thousand files."
+    },
+    {
+     "edge": "enc-or",
+     "note": "Write everything to origin object storage. Files are immutable and versioned by name, so caches never need invalidation: a re-encode is a new file."
+    },
+    {
+     "edge": "ixp-or",
+     "rev": true,
+     "note": "During the nightly <b>fill window</b>, appliances pull new and predicted-popular files from origin. A big launch is on the boxes before anyone presses play, using bandwidth when it is cheap."
+    },
+    {
+     "edge": "oca-ixp",
+     "rev": true,
+     "note": "ISP appliances fill from the nearest IXP appliance, not from origin, so a file crosses the ocean once per region instead of once per ISP."
+    }
+   ]
+  },
+  {
+   "id": "miss",
+   "name": "A CDN miss (pull-through)",
+   "desc": "Open Connect avoids this path: steering only sends players to boxes that already hold the file. A generic CDN, or a cache you build at smaller scale, handles a miss like this.",
+   "steps": [
+    {
+     "edge": "v-oca",
+     "note": "The player asks an edge box for a segment of a long-tail title. A box of ~100-300 TB cannot hold the full catalogue, so it holds what this ISP's members are predicted to watch."
+    },
+    {
+     "node": "oca",
+     "note": "The box does not have the file. In Open Connect, steering would have sent the player to an IXP box that holds it. In a pull-through CDN, the box fetches upstream itself, as shown next."
+    },
+    {
+     "edge": "oca-ixp",
+     "note": "Fetch from the parent IXP appliance. <b>Request collapsing</b>: if 500 viewers miss the same segment in the same second, the box sends one upstream fetch and fans the answer out."
+    },
+    {
+     "edge": "ixp-or",
+     "note": "If the IXP tier misses too, go to origin across the backbone. This is the slowest and most expensive hop, which is why proactive fill exists."
+    },
+    {
+     "edge": "ixp-or",
+     "rev": true,
+     "note": "The IXP box stores the file and returns it. The next miss for it in this region stops here."
+    },
+    {
+     "edge": "oca-ixp",
+     "rev": true,
+     "note": "The ISP box streams the bytes through to the player while writing them to disk, so the miss costs one extra round trip on the first segment, not a full file copy."
+    },
+    {
+     "edge": "v-oca",
+     "rev": true,
+     "note": "The player sees a slower segment and may drop one rung. With 20-30 s of buffer, a single slow fetch never stalls playback."
+    }
+   ]
+  },
+  {
+   "id": "home",
+   "name": "Load the home page",
+   "desc": "Personalisation is precomputed; the request path only reads.",
+   "steps": [
+    {
+     "edge": "v-gw",
+     "note": "The app opens and asks for the home page: rows of titles, artwork and a resume row."
+    },
+    {
+     "edge": "gw-meta",
+     "note": "The gateway calls the catalogue service, which serves title metadata from an in-memory cache. Metadata changes a few times a day, so a cache hit rate above 99% is normal."
+    },
+    {
+     "edge": "meta-reco",
+     "note": "Read this member's <b>precomputed rows</b> by key, one lookup of a few ms. If the recommendation store is down, fall back to popular-in-your-country rows: a worse page beats an error page."
+    },
+    {
+     "edge": "ev-reco",
+     "note": "Offline, a nightly batch job trains on viewing events and writes fresh rows for every member. Recent events can nudge the ranking within minutes, but heavy model work never runs on the request path."
+    },
+    {
+     "edge": "gw-meta",
+     "rev": true,
+     "note": "Return the page. The home page is the busiest control-plane call, and it only reads from caches and key-value stores."
+    }
+   ]
+  }
+ ],
+ "deep": [
+  {
+   "title": "Adaptive bitrate streaming",
+   "html": "<p>The encoder produces a <b>ladder</b>: the same video at, say, 235 kbps 320p up to 15 Mbps 4K, every rendition cut into segments of 2-6 s with keyframes at the same timestamps. A <b>manifest</b> (HLS <code>.m3u8</code> or DASH <code>.mpd</code>) lists the renditions and their segment URLs.</p><p>The player, not the server, picks the rung for each next segment:</p><ul><li><b>Throughput-based</b>: last segment of 2 MB took 0.5 s, so ~32 Mbps; choose the highest rung under ~70% of that.</li><li><b>Buffer-based</b>: with 25 s buffered, risk a higher rung; under 5 s, drop fast. Real players mix both.</li></ul><p>Short segments switch faster and start sooner but mean more requests and slightly worse compression. Around 4 s is a common middle.</p>"
+  },
+  {
+   "title": "Open Connect: a CDN inside the ISPs",
+   "html": "<p>At ~220 Tbps, paying a commercial CDN or carrying bytes across transit links is the dominant cost. Netflix's <b>Open Connect</b> program instead gives storage appliances to ISPs and places others at internet exchange points (IXPs). Traffic stays inside the ISP, which saves both sides money.</p><ul><li><b>Proactive fill</b>: popularity is predictable (a new season, a top-10 title), so files are pushed during off-peak hours, days ahead.</li><li><b>Tiers</b>: ISP boxes hold the popular head; IXP boxes hold more of the catalogue and fill the ISP boxes. Steering sends a player to the IXP tier for files its ISP box lacks.</li><li><b>Inside a cluster</b>, files are spread across boxes with consistent hashing, so adding a box moves only ~1/N of the files.</li><li><b>Steering</b> lives in the cloud: it knows which box holds which file and hands the player 2-3 URLs.</li></ul><p>For an interview, say: \"At this scale I'd build a CDN; at almost any smaller scale I'd buy one.\"</p>",
+   "sim": "ring"
+  },
+  {
+   "title": "The encoding DAG",
+   "html": "<p>Encoding a 2-hour 4K master in one process takes many hours per profile, and a crash near the end wastes all of it. So split the work:</p><ol><li><b>Inspect</b> the master (format, frame rate, defects).</li><li><b>Chunk</b> at shot boundaries into pieces of a few minutes.</li><li><b>Encode</b> each (chunk, profile) as an independent task, in parallel across thousands of workers.</li><li><b>Assemble</b> chunks per profile; check quality with a metric such as VMAF.</li><li><b>Package</b> into segments, encrypt once with Common Encryption (CENC), write HLS and DASH manifests.</li></ol><p>A queue in front of the workers absorbs bursts: a studio drop of 50 titles waits its turn while launch-date titles get priority. Re-encoding the back catalogue with a new codec runs on idle capacity at night.</p>",
+   "sim": "queue"
+  },
+  {
+   "title": "Keep playing when the cloud has a bad day",
+   "html": "<p>Once playback starts, the player needs the control plane only for heartbeats and the occasional license renewal. If a cloud region fails, streams in progress keep pulling segments from appliances, and heartbeats buffer and retry.</p><ul><li>Run the control plane <b>active-active in several regions</b> and shift traffic away from a sick one.</li><li>Every dependency has a <b>fallback</b>: no recommendations → popular rows; no artwork service → default art.</li><li>Recommendations are computed <b>offline</b>, so a model bug produces a stale page, not an outage.</li><li>Inject failures on purpose in production (Netflix's Chaos Monkey) so the fallbacks are tested, not hoped for.</li></ul>"
+  }
+ ],
+ "tradeoffs": [
+  {
+   "choice": "Build your own CDN or rent one?",
+   "pick": "Build, only at Netflix scale",
+   "why": "At hundreds of Tbps, appliances inside ISPs cost far less than per-GB CDN fees and give lower latency. Below a few Tbps, a commercial CDN is cheaper and far less work."
+  },
+  {
+   "choice": "Push files to the edge or pull on demand?",
+   "pick": "Push the head, pull the tail",
+   "why": "Popularity is predictable days ahead, so fill boxes off-peak. Long-tail titles live on the larger IXP tier and steering sends players there. A generic CDN would pull the tail on a miss instead."
+  },
+  {
+   "choice": "Segment length",
+   "pick": "~4 s",
+   "why": "2 s gives faster start and switching but doubles request count and costs compression efficiency; 10 s reacts too slowly to a network drop."
+  },
+  {
+   "choice": "HLS or DASH?",
+   "pick": "Both, from one set of segments",
+   "why": "Apple devices need HLS; many others prefer DASH. CMAF segments let both manifests point at the same files, so you store the media once."
+  },
+  {
+   "choice": "Compute recommendations online or offline?",
+   "pick": "Offline batch + light online re-rank",
+   "why": "Heavy models run on yesterday's data in bulk; the request path only does a key lookup, so it stays fast and cannot be broken by a model job."
+  }
+ ],
+ "bottlenecks": [
+  {
+   "issue": "A huge season launches at 3 pm and 10M people press play in an hour",
+   "fix": "Files were filled to ISP boxes days before. Steering spreads players across boxes; the control plane only sees ~3k extra play starts a second."
+  },
+  {
+   "issue": "An ISP appliance dies at peak",
+   "fix": "Players fail over to the next URL in their ranked list within one segment. Steering drops the box from rankings after missed health reports."
+  },
+  {
+   "issue": "Encoding backlog after a big studio delivery",
+   "fix": "Priority queue by launch date, chunk-level parallelism, and burst onto idle or spot compute. Re-encodes of old titles wait."
+  }
+ ],
+ "followups": [
+  {
+   "q": "A viewer's bandwidth drops from 20 Mbps to 2 Mbps on a train. What happens?",
+   "a": "<p>The next segment downloads slowly, measured throughput falls and the buffer starts draining. The ABR logic drops to a rung under ~1.4 Mbps for the next segment. With 20-30 s of buffer the switch happens before playback stalls; the viewer sees softer video, not a spinner.</p>"
+  },
+  {
+   "q": "How do you enforce \"2 screens at a time\"?",
+   "a": "<p>On play, the playback service takes a <b>lease</b> per stream (member id, device, expiry ~2 min) in a fast store. Heartbeats renew it. A third play is refused if two live leases exist. A crashed device frees its slot when the lease expires, so you never need a reliable \"stop\" call. Trade-off: a shorter expiry frees slots faster but needs more frequent heartbeats.</p>"
+  },
+  {
+   "q": "Why not serve video straight from S3?",
+   "a": "<p>Cost and distance. Every view would cross the internet from a cloud region, paying egress per GB at hundreds of Tbps, with higher latency and more rebuffering. Object storage is the <b>origin</b>, touched mainly during fills.</p>"
+  },
+  {
+   "q": "How does resume on another device work?",
+   "a": "<p>Heartbeats write <code>position_s</code> into viewing history, partitioned by member. On play, the playback service reads it and the player seeks there. Losing the last few seconds of position is fine, so this write can be async and last-writer-wins.</p>"
+  },
+  {
+   "q": "How do you protect content?",
+   "a": "<p>Encrypt segments at packaging time; keys live only in a license service. The player gets a per-session DRM license tied to the device, and higher resolutions require stronger (hardware) DRM levels. Signed, expiring appliance URLs stop hot-linking.</p>"
+  },
+  {
+   "q": "What changes for a live event?",
+   "a": "<p>You cannot pre-fill, so the edge must pull and collapse requests hard, segments get shorter (1-2 s) to cut latency, and encoding runs in real time with redundant encoders. Spikes are synchronised: everyone presses play at the same minute.</p>"
+  }
+ ],
+ "quiz": [
+  {
+   "q": "Who decides which bitrate to fetch for the next segment?",
+   "options": [
+    "The origin server",
+    "The player, from throughput and buffer level",
+    "The API gateway",
+    "The encoding pipeline"
+   ],
+   "answer": 1,
+   "why": "ABR is client-driven. The server just serves static segments; the player measures its own network and picks a rung each segment."
+  },
+  {
+   "q": "Why split a master into chunks before encoding?",
+   "options": [
+    "To make the files smaller",
+    "Because HLS requires it",
+    "So thousands of workers encode in parallel and a failure retries one chunk",
+    "To add DRM"
+   ],
+   "answer": 2,
+   "why": "Chunking turns one long serial job into many independent tasks: faster wall-clock time and cheap retries."
+  },
+  {
+   "q": "Why can appliance caches skip invalidation entirely?",
+   "options": [
+    "Media files are immutable; a re-encode is written under a new name",
+    "They have short TTLs",
+    "The origin pushes deletes",
+    "Steering hides stale files"
+   ],
+   "answer": 0,
+   "why": "Immutable, versioned files mean a cached copy is never wrong. New manifests simply point at new files."
+  },
+  {
+   "q": "The control plane region goes down mid-movie. What does the viewer see?",
+   "options": [
+    "Playback stops immediately",
+    "The video drops to the lowest bitrate",
+    "The DRM license is revoked",
+    "Playback continues; segments still come from the appliance"
+   ],
+   "answer": 3,
+   "why": "Video bytes come from the data plane. Only new play starts, browsing and heartbeats depend on the control plane."
+  },
+  {
+   "q": "What lets the player switch to a different bitrate at any segment boundary?",
+   "options": [
+    "Every rendition uses the same codec",
+    "Keyframes are aligned at the same timestamps across renditions",
+    "Segments are encrypted",
+    "Audio is muxed into video"
+   ],
+   "answer": 1,
+   "why": "If each segment starts with a keyframe at the same time in every rendition, segment N of any rung decodes on its own and joins seamlessly."
+  }
+ ]
+}

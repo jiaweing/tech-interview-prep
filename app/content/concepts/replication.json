@@ -1,0 +1,107 @@
+{
+ "id": "replication",
+ "title": "Replication",
+ "group": "Data",
+ "tagline": "Keep copies of the same data on several machines for availability, read scale and lower latency.",
+ "why": "<p>A single database is one disk failure away from an outage, and one machine's read capacity is a ceiling. Replication keeps the same data on several nodes, so one can fail without losing data or taking the service down, and reads can be spread across the copies.</p><p>The catch is that copies take time to agree. With asynchronous replication a replica can be seconds behind, so a user saves a change and then reads the old value. With synchronous replication every write waits for another machine. Choosing between these, and saying what the user sees, is the interview content.</p><p>A real example: the go.gov.sg codebase has a feature flag to serve redirects from a Postgres read replica, keeping the read-heavy path off the primary that handles link creation.</p>",
+ "how": "<p><b>Leader-follower (single leader).</b> All writes go to the leader. It streams its change log to followers, which apply it in order. Reads can go to any follower. This is the default for Postgres, MySQL and managed services such as RDS.</p><ul><li><b>Synchronous</b>: the leader confirms a write only after a follower has it. No acknowledged write is lost on failover, but every write pays a network round trip, and a stuck follower blocks writes.</li><li><b>Asynchronous</b>: the leader confirms at once. Fast, but followers lag, and if the leader dies, its last writes can be lost.</li><li><b>Semi-synchronous</b>: one follower is synchronous, the rest async. A common middle ground: MySQL calls it semi-sync, and Postgres can run one synchronous standby beside async replicas.</li></ul><p><b>Failover.</b> Detect the dead leader, promote the most up-to-date follower, repoint clients. Risks: losing un-replicated writes, and <b>split brain</b> if the old leader comes back still thinking it is leader. Use fencing or a consensus system to pick exactly one leader.</p><p><b>Multi-leader.</b> Each region (or each offline device) accepts writes and syncs with the others. Good for multi-region writes and offline apps, but two leaders can change the same row at once, so you need a conflict rule: last-writer-wins (loses data), merge functions, or CRDTs.</p><p><b>Leaderless (Dynamo-style).</b> Clients write to N replicas and wait for W acknowledgements; reads ask R replicas and take the newest version. If <code>R + W &gt; N</code>, every read overlaps at least one replica that has the latest write. Read repair and anti-entropy fix replicas that missed writes.</p><p><b>Living with lag.</b> Read-your-writes: send a user's reads to the leader for a few seconds after they write, or wait until the replica has reached the write's log position. Monotonic reads: pin a session to one replica so time never goes backwards. Try it in the sim above: write, then read replica 1 at once. Raise the lag slider and the stale window grows; replica 2 lags twice as long.</p>",
+ "sim": "replica",
+ "tradeoffs": [
+  {
+   "option": "Synchronous replication",
+   "pro": "No acknowledged write is lost when the leader dies.",
+   "con": "Every write waits for a replica round trip; a slow or dead replica stalls writes unless you fall back."
+  },
+  {
+   "option": "Asynchronous replication",
+   "pro": "Fast writes; replicas can be far away or slow without hurting the leader.",
+   "con": "Stale reads, and the last writes are lost if the leader dies before they ship."
+  },
+  {
+   "option": "Multi-leader",
+   "pro": "Local writes in every region; keeps working when regions are cut off from each other.",
+   "con": "Write conflicts must be resolved; last-writer-wins silently drops updates."
+  },
+  {
+   "option": "Leaderless quorums",
+   "pro": "No failover step; tolerates node loss on reads and writes; tunable R and W per request.",
+   "con": "Concurrent writes need versioning (vector clocks or timestamps), and quorums alone do not give linearizable reads."
+  }
+ ],
+ "numbers": [
+  "Async lag inside one region is usually <b>milliseconds</b>, but can grow to <b>seconds or minutes</b> under heavy writes or long queries on the replica. Monitor it.",
+  "Quorum: N = 3, W = 2, R = 2 gives R + W = 4 &gt; 3, and survives <b>1</b> node down for both reads and writes.",
+  "A majority quorum of N nodes tolerates <b>floor((N-1)/2)</b> failures: 3 nodes tolerate 1, 5 tolerate 2.",
+  "AWS documents RDS Multi-AZ failover as typically <b>60 to 120 s</b>; Aurora supports up to <b>15</b> read replicas.",
+  "A synchronous replica in another AZ adds about <b>1 to 2 ms</b> per commit; one in another region adds tens of ms (Singapore to Tokyo is roughly <b>70 ms</b> round trip)."
+ ],
+ "say": [
+  "Writes go to the primary and reads go to async replicas. For read-your-writes, a user's reads go to the primary for a few seconds after they write.",
+  "I'd keep one synchronous standby in another AZ so a failover loses no acknowledged writes, and use async replicas for read scaling.",
+  "For the payments ledger I wouldn't read balances from a replica at all, because a stale balance can approve a double spend."
+ ],
+ "pitfalls": [
+  "Adding read replicas and forgetting lag: the user edits a form, the page reloads from a replica, and their change is missing.",
+  "Saying replicas scale writes. Every replica applies every write; to scale writes, shard.",
+  "Treating replication as a backup. A bad <code>DELETE</code> replicates in milliseconds; you still need point-in-time backups.",
+  "Automatic failover without fencing. Two leaders accept writes and the data diverges (split brain).",
+  "Last-writer-wins across regions for data that must not lose updates, such as stock counts or balances."
+ ],
+ "quiz": [
+  {
+   "q": "A user changes their phone number, the page reloads, and shows the old number. Reads go to async replicas. What is the cleanest fix?",
+   "options": [
+    "Turn off replication",
+    "Add more replicas",
+    "Increase the cache TTL",
+    "Route that user's reads to the leader for a short time after a write"
+   ],
+   "answer": 3,
+   "why": "This is a read-your-writes violation caused by replica lag. Reading from the leader briefly (or waiting for the replica to reach the write's log position) fixes it without losing read scaling."
+  },
+  {
+   "q": "With asynchronous replication, the leader crashes right after acknowledging a write. What can happen?",
+   "options": [
+    "The write is lost if no follower received it before promotion",
+    "Nothing; async replication never loses data",
+    "All followers crash too",
+    "The write is applied twice"
+   ],
+   "answer": 0,
+   "why": "The leader confirmed before shipping the change. A promoted follower that never got it does not have the write."
+  },
+  {
+   "q": "N = 5 replicas. Which setting guarantees each read overlaps the latest successful write?",
+   "options": [
+    "W = 2, R = 2",
+    "W = 1, R = 1",
+    "W = 3, R = 3",
+    "W = 2, R = 3"
+   ],
+   "answer": 2,
+   "why": "You need R + W &gt; N: 3 + 3 = 6 &gt; 5. The others sum to 4, 2 and 5, which can miss the latest write."
+  },
+  {
+   "q": "Why is multi-leader replication harder than single-leader?",
+   "options": [
+    "It cannot replicate across regions",
+    "Two leaders can accept conflicting writes to the same data, which must be resolved",
+    "Reads become slower",
+    "It needs synchronous replication"
+   ],
+   "answer": 1,
+   "why": "Each leader accepts writes independently, so concurrent updates conflict. You need a resolution rule such as LWW, merging, or CRDTs."
+  }
+ ],
+ "used_in": [
+  "url-shortener",
+  "kv-store",
+  "consensus-chain",
+  "payments",
+  "chat",
+  "form-builder",
+  "file-sync",
+  "news-feed",
+  "otp-login"
+ ]
+}

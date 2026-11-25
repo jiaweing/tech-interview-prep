@@ -1,0 +1,380 @@
+{
+ "id": "dp-2d",
+ "track": "algo",
+ "order": 20,
+ "title": "2D dynamic programming",
+ "short": "Fill a grid of answers, each cell built from its neighbors.",
+ "what": "When an answer depends on two things, like a row and a column, or a spot in each of two words, the saved answers form a table. Fill it row by row. Each cell is built from cells you already filled: usually the one above, the one to the left, or the one diagonally up-left.",
+ "analogy": "Counting routes through city blocks to a friend's house. The routes to any corner are the routes to the corner above plus the routes to the corner on the left.",
+ "viz": {
+  "kind": "table",
+  "frames": [
+   {
+    "cells": [
+     [
+      "start",
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      "end"
+     ]
+    ],
+    "rows": [
+     "row 0",
+     "row 1",
+     "row 2"
+    ],
+    "cols": [
+     "c0",
+     "c1",
+     "c2",
+     "c3"
+    ],
+    "label": "ways to reach each cell",
+    "hi": [
+     [
+      0,
+      0
+     ]
+    ],
+    "ok": [
+     [
+      2,
+      3
+     ]
+    ],
+    "say": "A robot starts top-left and can only move right or down. How many different routes reach the bottom-right of a 3 x 4 grid?"
+   },
+   {
+    "cells": [
+     [
+      1,
+      1,
+      1,
+      1
+     ],
+     [
+      1,
+      null,
+      null,
+      null
+     ],
+     [
+      1,
+      null,
+      null,
+      null
+     ]
+    ],
+    "rows": [
+     "row 0",
+     "row 1",
+     "row 2"
+    ],
+    "cols": [
+     "c0",
+     "c1",
+     "c2",
+     "c3"
+    ],
+    "label": "ways to reach each cell",
+    "hi": [
+     [
+      0,
+      0
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      0,
+      3
+     ],
+     [
+      1,
+      0
+     ],
+     [
+      2,
+      0
+     ]
+    ],
+    "say": "There is only one way to reach each cell in the top row: keep going right. Same for the left column: keep going down."
+   },
+   {
+    "cells": [
+     [
+      1,
+      1,
+      1,
+      1
+     ],
+     [
+      1,
+      2,
+      null,
+      null
+     ],
+     [
+      1,
+      null,
+      null,
+      null
+     ]
+    ],
+    "rows": [
+     "row 0",
+     "row 1",
+     "row 2"
+    ],
+    "cols": [
+     "c0",
+     "c1",
+     "c2",
+     "c3"
+    ],
+    "label": "ways to reach each cell",
+    "hi": [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      0
+     ]
+    ],
+    "ok": [
+     [
+      1,
+      1
+     ]
+    ],
+    "say": "You can enter a cell only from above or from the left. So ways = above + left. For row 1, c1: 1 + 1 = 2."
+   },
+   {
+    "cells": [
+     [
+      1,
+      1,
+      1,
+      1
+     ],
+     [
+      1,
+      2,
+      3,
+      4
+     ],
+     [
+      1,
+      null,
+      null,
+      null
+     ]
+    ],
+    "rows": [
+     "row 0",
+     "row 1",
+     "row 2"
+    ],
+    "cols": [
+     "c0",
+     "c1",
+     "c2",
+     "c3"
+    ],
+    "label": "ways to reach each cell",
+    "hi": [
+     [
+      0,
+      2
+     ],
+     [
+      1,
+      1
+     ],
+     [
+      0,
+      3
+     ]
+    ],
+    "ok": [
+     [
+      1,
+      2
+     ],
+     [
+      1,
+      3
+     ]
+    ],
+    "say": "Keep going left to right: 1 + 2 = 3, then 1 + 3 = 4. Each cell needs only cells that are already filled."
+   },
+   {
+    "cells": [
+     [
+      1,
+      1,
+      1,
+      1
+     ],
+     [
+      1,
+      2,
+      3,
+      4
+     ],
+     [
+      1,
+      3,
+      6,
+      null
+     ]
+    ],
+    "rows": [
+     "row 0",
+     "row 1",
+     "row 2"
+    ],
+    "cols": [
+     "c0",
+     "c1",
+     "c2",
+     "c3"
+    ],
+    "label": "ways to reach each cell",
+    "hi": [
+     [
+      1,
+      1
+     ],
+     [
+      2,
+      0
+     ],
+     [
+      1,
+      2
+     ]
+    ],
+    "ok": [
+     [
+      2,
+      1
+     ],
+     [
+      2,
+      2
+     ]
+    ],
+    "say": "Next row: 2 + 1 = 3, then 3 + 3 = 6."
+   },
+   {
+    "cells": [
+     [
+      1,
+      1,
+      1,
+      1
+     ],
+     [
+      1,
+      2,
+      3,
+      4
+     ],
+     [
+      1,
+      3,
+      6,
+      10
+     ]
+    ],
+    "rows": [
+     "row 0",
+     "row 1",
+     "row 2"
+    ],
+    "cols": [
+     "c0",
+     "c1",
+     "c2",
+     "c3"
+    ],
+    "label": "ways to reach each cell",
+    "hi": [
+     [
+      1,
+      3
+     ],
+     [
+      2,
+      2
+     ]
+    ],
+    "ok": [
+     [
+      2,
+      3
+     ]
+    ],
+    "out": "10 routes",
+    "say": "The last cell: 4 + 6 = 10 routes. 12 cells, each filled once with one addition, instead of tracing every route."
+   }
+  ]
+ },
+ "when": [
+  "Count paths in a grid",
+  "Compare two strings (common part, edit distance)",
+  "The state needs two numbers, like i and j",
+  "Knapsack: items and a capacity"
+ ],
+ "python": "def grid_paths(rows, cols):\n    ways = [[1] * cols for _ in range(rows)]  # top row, left column = 1\n    for r in range(1, rows):\n        for c in range(1, cols):\n            ways[r][c] = ways[r - 1][c] + ways[r][c - 1]\n    for row in ways:\n        print(row)\n    return ways[-1][-1]\nprint(grid_paths(3, 4))",
+ "output": "[1, 1, 1, 1]\n[1, 2, 3, 4]\n[1, 3, 6, 10]\n10",
+ "cost": [
+  [
+   "Fill an m x n table",
+   "O(m x n)"
+  ],
+  [
+   "Memory for the table",
+   "O(m x n)"
+  ],
+  [
+   "Keep only one row",
+   "O(n) memory"
+  ]
+ ],
+ "watch": [
+  "Build the table with a loop: [[0] * cols for _ in range(rows)]. [[0] * cols] * rows shares one row.",
+  "Fill the first row and column first; they have no cell above or to the left.",
+  "For two strings, add an extra row and column for the empty string."
+ ],
+ "interview": [
+  "LC 62 Unique Paths",
+  "LC 1143 Longest Common Subsequence",
+  "LC 72 Edit Distance"
+ ],
+ "related": [
+  "dp-1d",
+  "dynamic-programming",
+  "grid"
+ ]
+}

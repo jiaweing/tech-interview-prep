@@ -1,0 +1,2486 @@
+{
+ "id": "action-items",
+ "title": "Extract Action Items",
+ "pattern": "strings",
+ "level": "medium",
+ "statement": "<p>A meeting workspace lets people type notes during a call. Lines that start with <code>ACTION</code> or <code>TODO</code> should become tracked action items with owners and due dates. Everything else is ordinary notes.</p><p>Write <code>def solution(notes)</code>. <code>notes</code> is one string; lines are separated by <code>\\n</code>. Return a list with one dict per action item, in line order: <code>{\"owners\": [...], \"task\": \"...\", \"due\": \"YYYY-MM-DD\" or None}</code>.</p><p>A line is an action item when all of these hold:</p><ol><li>Strip the line. If it then starts with <code>\"- \"</code> or <code>\"* \"</code> (a bullet), remove those two characters.</li><li>It contains a <code>:</code>. The <i>head</i> is the text before the first <code>:</code>, the <i>body</i> is the text after it.</li><li>The first word of the head is <code>action</code> or <code>todo</code>, in any letter case.</li><li>The head has at least one more word, and every other word is an owner: <code>@</code> followed by at least one character, with no second <code>@</code>. Owner names are returned without the <code>@</code>, lower-cased, without duplicates, in first-mention order.</li><li>The task is the body's words joined by single spaces. If the body's last two words are <code>by</code> (any case) and a valid date, they are removed from the task and the date becomes <code>due</code>. A valid date is exactly <code>YYYY-MM-DD</code> in digits with month 01-12 and day 01-31. Otherwise <code>due</code> is <code>None</code> and the words stay in the task.</li><li>The task is not empty.</li></ol><p>Skip every line that fails a rule. Ordinary notes and malformed action lines are both skipped.</p>",
+ "examples": [
+  {
+   "input": "notes = \"Agenda: Q4 launch\\n- ACTION @alice: send the deck by 2026-12-01\\nBob said the pilot went well.\\ntodo @Bob @carol: book room\\nTODO: tidy up\"",
+   "output": "[{\"owners\": [\"alice\"], \"task\": \"send the deck\", \"due\": \"2026-12-01\"}, {\"owners\": [\"bob\", \"carol\"], \"task\": \"book room\", \"due\": None}]",
+   "why": "Two action items. The bullet is dropped and owners are lower-cased. \"TODO: tidy up\" has no owner, so it is skipped; the other lines are plain notes."
+  },
+  {
+   "input": "notes = \"ACTION @dan: call vendor by tomorrow\\nAction @eve: fix login by 2026-13-01\\nACTION @fay: by 2026-01-05\"",
+   "output": "[{\"owners\": [\"dan\"], \"task\": \"call vendor by tomorrow\", \"due\": None}, {\"owners\": [\"eve\"], \"task\": \"fix login by 2026-13-01\", \"due\": None}]",
+   "why": "\"tomorrow\" is not a date, so it stays in the task. Month 13 is invalid, so \"by 2026-13-01\" stays too. The last line's body is only a due date, which leaves an empty task: skipped."
+  },
+  {
+   "input": "notes = \"action @Alice @alice @ALICE: draft memo at 10:30 by 2027-01-15\\nnotes: action @gus: not a prefix\\nACTION @ : bad owner\\nACTION alice: missing at sign\"",
+   "output": "[{\"owners\": [\"alice\"], \"task\": \"draft memo at 10:30\", \"due\": \"2027-01-15\"}]",
+   "why": "Three spellings of Alice collapse to one owner, and only the first colon splits, so \"10:30\" stays in the task. The other three lines fail: wrong first word, a bare @, and an owner without @."
+  }
+ ],
+ "constraints": [
+  "0 &le; len(notes) &le; 200,000 characters",
+  "0 &le; number of lines &le; 10,000",
+  "dates are not checked against month lengths: <code>2026-02-31</code> counts as valid"
+ ],
+ "starter": "def solution(notes):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "What are the three parts of an action line?",
+   "a": "A head (prefix plus <code>@owners</code>), a colon, and a body (the task, maybe ending in <code>by YYYY-MM-DD</code>). Each part has its own rule, so each can fail on its own."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "<code>\"todo @Bob @carol: book room by 2026-12-01\"</code>?",
+   "a": "Head <code>todo @Bob @carol</code>: prefix ok, owners <code>[\"bob\", \"carol\"]</code>. Body words end in <code>by</code>, <code>2026-12-01</code>: a valid date. Result <code>{\"owners\": [\"bob\", \"carol\"], \"task\": \"book room\", \"due\": \"2026-12-01\"}</code>."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What would you reach for first?",
+   "a": "One big regular expression. It can work, but it is hard to read in a live round, hard to change when the interviewer adds a rule, and optional groups behave differently across regex engines. Splitting into small string steps is easier to test."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Clue words?",
+   "a": "\"parse\", \"prefix\", \"optional at the end\" &rarr; <b>string parsing with guard clauses</b>. Use <code>str.partition(\":\")</code>, <code>split()</code> and <code>lower()</code>, and return early as soon as a rule fails."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li>Write <code>parse_line(line)</code> that returns a dict or <code>None</code>.</li><li>Strip, drop a bullet, <code>partition(\":\")</code>.</li><li>Check the prefix word, then every owner word.</li><li>Split the body; peel off <code>by DATE</code> if the last two words match.</li><li>Reject an empty task. In <code>solution</code>, keep the non-<code>None</code> results.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "No colon. <code>ACTION:</code> with no owner. A bare <code>@</code>. A colon inside the task (<code>at 10:30</code>: only the first colon splits). <code>by</code> followed by a bad date (stays in the task). A task that is only <code>by 2026-01-01</code> (empty). <code>@Alice</code> and <code>@alice</code> on the same line. Windows line endings (<code>strip()</code> removes <code>\\r</code>)."
+  }
+ ],
+ "hints": [
+  "Write a helper that parses one line and returns <code>None</code> for \"not an action item\". It keeps <code>solution</code> to three lines and makes each rule a single <code>if</code>.",
+  "<code>head, colon, body = line.partition(\":\")</code> splits on the first colon only, and <code>colon</code> is <code>\"\"</code> when there is none.",
+  "For the due date, look only at the last two body words: <code>words[-2].lower() == \"by\"</code> and an <code>is_date(words[-1])</code> helper that checks length 10, dashes at index 4 and 7, digits elsewhere, and the month and day ranges.",
+  "Browser note: the in-browser Python here splits <code>' y'.split()</code> wrongly as <code>[' y']</code>. Call <code>.strip()</code> before <code>.split()</code>; real Python is fine either way."
+ ],
+ "solution": "PREFIXES = ('action', 'todo')\n\ndef is_date(word):\n    # YYYY-MM-DD with month 01-12 and day 01-31 (calendar lengths are not checked)\n    if len(word) != 10 or word[4] != '-' or word[7] != '-':\n        return False\n    y, m, d = word[:4], word[5:7], word[8:]\n    if not (y.isdigit() and m.isdigit() and d.isdigit()):\n        return False\n    return 1 <= int(m) <= 12 and 1 <= int(d) <= 31\n\ndef parse_line(line):\n    line = line.strip()\n    if line.startswith('- ') or line.startswith('* '):\n        line = line[2:]\n    head, colon, body = line.partition(':')\n    if not colon:\n        return None                          # no colon: not an action line\n    words = head.strip().split()\n    if not words or words[0].lower() not in PREFIXES:\n        return None\n    owners = []\n    for word in words[1:]:\n        name = word[1:].lower()\n        if not word.startswith('@') or not name or '@' in name:\n            return None                      # every word after the prefix must be @name\n        if name not in owners:\n            owners.append(name)              # dedupe, keep first mention order\n    if not owners:\n        return None\n    task_words = body.strip().split()   # strip first: the in-browser Python mis-splits ' y'\n    due = None\n    if len(task_words) >= 2 and task_words[-2].lower() == 'by' and is_date(task_words[-1]):\n        due = task_words[-1]\n        task_words = task_words[:-2]\n    if not task_words:\n        return None\n    return {'owners': owners, 'task': ' '.join(task_words), 'due': due}\n\ndef solution(notes):\n    items = []\n    for line in notes.split('\\n'):\n        item = parse_line(line)\n        if item is not None:\n            items.append(item)\n    return items\n",
+ "brute": "def solution(notes):\n    # Brute force: a character-by-character scan of each line, no helper functions\n    result = []\n    for raw in notes.split('\\n'):\n        s = raw.strip()\n        if s[:2] in ('- ', '* '):\n            s = s[2:]\n        cut = -1\n        for i in range(len(s)):\n            if s[i] == ':':\n                cut = i\n                break\n        if cut < 0:\n            continue\n        parts = s[:cut].split()\n        if len(parts) < 2 or parts[0].lower() not in ('action', 'todo'):\n            continue\n        ok = True\n        people = []\n        for p in parts[1:]:\n            if len(p) < 2 or p[0] != '@' or p[1:].count('@') > 0:\n                ok = False\n            elif p[1:].lower() not in people:\n                people.append(p[1:].lower())\n        if not ok:\n            continue\n        rest = s[cut + 1:].split()\n        due = None\n        if len(rest) >= 2 and rest[-2].lower() == 'by':\n            d = rest[-1]\n            digits_ok = len(d) == 10 and d[4] + d[7] == '--' and (d[:4] + d[5:7] + d[8:]).isdigit()\n            if digits_ok and 0 < int(d[5:7]) < 13 and 0 < int(d[8:]) < 32:\n                due = d\n                rest = rest[:-2]\n        if rest:\n            result.append({'owners': people, 'task': ' '.join(rest), 'due': due})\n    return result\n",
+ "explain": "<p>Split the job into \"parse one line\" and \"collect the results\". The line parser is a list of guard clauses, one per rule, so a new rule from the interviewer is one more <code>if</code>.</p><ul><li><code>- ACTION @alice: send the deck by 2026-12-01</code>: drop the bullet, partition on the colon, head words <code>[\"ACTION\", \"@alice\"]</code>.</li><li>Prefix <code>action</code> is allowed; owners <code>[\"alice\"]</code>.</li><li>Body words end with <code>by</code>, <code>2026-12-01</code>, a valid date: <code>due = \"2026-12-01\"</code>, task \"send the deck\".</li><li><code>TODO: tidy up</code> has a head of just <code>TODO</code>, so there is no owner and the line is skipped.</li></ul><p>In the round, say why you avoid a single regex: you can test <code>is_date</code> on its own, and each rejected line has an obvious reason.</p>",
+ "complexity": "O(total characters) time and O(number of items) extra space",
+ "tests": [
+  {
+   "args": [
+    "Agenda: Q4 launch\n- ACTION @alice: send the deck by 2026-12-01\nBob said the pilot went well.\ntodo @Bob @carol: book room\nTODO: tidy up"
+   ],
+   "expected": [
+    {
+     "owners": [
+      "alice"
+     ],
+     "task": "send the deck",
+     "due": "2026-12-01"
+    },
+    {
+     "owners": [
+      "bob",
+      "carol"
+     ],
+     "task": "book room",
+     "due": null
+    }
+   ],
+   "label": "example 1",
+   "cat": "example",
+   "why": "two items among plain notes; no-owner line skipped"
+  },
+  {
+   "args": [
+    "ACTION @dan: call vendor by tomorrow\nAction @eve: fix login by 2026-13-01\nACTION @fay: by 2026-01-05"
+   ],
+   "expected": [
+    {
+     "owners": [
+      "dan"
+     ],
+     "task": "call vendor by tomorrow",
+     "due": null
+    },
+    {
+     "owners": [
+      "eve"
+     ],
+     "task": "fix login by 2026-13-01",
+     "due": null
+    }
+   ],
+   "label": "example 2 (due dates)",
+   "cat": "example",
+   "why": "bad dates stay in the task; empty task skipped"
+  },
+  {
+   "args": [
+    "action @Alice @alice @ALICE: draft memo at 10:30 by 2027-01-15\nnotes: action @gus: not a prefix\nACTION @ : bad owner\nACTION alice: missing at sign"
+   ],
+   "expected": [
+    {
+     "owners": [
+      "alice"
+     ],
+     "task": "draft memo at 10:30",
+     "due": "2027-01-15"
+    }
+   ],
+   "label": "example 3 (owners)",
+   "cat": "example",
+   "why": "duplicate owners merged; malformed lines skipped"
+  },
+  {
+   "args": [
+    ""
+   ],
+   "expected": [],
+   "label": "empty notes",
+   "cat": "empty",
+   "why": "no lines, no items"
+  },
+  {
+   "args": [
+    "ACTION @x: y"
+   ],
+   "expected": [
+    {
+     "owners": [
+      "x"
+     ],
+     "task": "y",
+     "due": null
+    }
+   ],
+   "label": "shortest item",
+   "cat": "single",
+   "why": "one owner, one-word task, no due date"
+  },
+  {
+   "args": [
+    "Discussed budget.\nNo decisions yet."
+   ],
+   "expected": [],
+   "label": "no action lines",
+   "cat": "zero",
+   "why": "plain notes produce an empty list"
+  },
+  {
+   "args": [
+    "TODO @a: write tests BY 2026-12-31\r\n* todo @b: review PR by 2026-12-31"
+   ],
+   "expected": [
+    {
+     "owners": [
+      "a"
+     ],
+     "task": "write tests",
+     "due": "2026-12-31"
+    },
+    {
+     "owners": [
+      "b"
+     ],
+     "task": "review PR",
+     "due": "2026-12-31"
+    }
+   ],
+   "label": "case, CRLF, star bullet",
+   "cat": "small",
+   "why": "BY in caps counts; strip() removes \\r; \"* \" bullet dropped"
+  },
+  {
+   "args": [
+    "ACTION @a: x by 2026-00-10\nACTION @b: x by 2026-01-32\nACTION @c: x by 2026-12-31\nACTION @d: x by 26-12-31\nACTION @e: x by 2026/12/31"
+   ],
+   "expected": [
+    {
+     "owners": [
+      "a"
+     ],
+     "task": "x by 2026-00-10",
+     "due": null
+    },
+    {
+     "owners": [
+      "b"
+     ],
+     "task": "x by 2026-01-32",
+     "due": null
+    },
+    {
+     "owners": [
+      "c"
+     ],
+     "task": "x",
+     "due": "2026-12-31"
+    },
+    {
+     "owners": [
+      "d"
+     ],
+     "task": "x by 26-12-31",
+     "due": null
+    },
+    {
+     "owners": [
+      "e"
+     ],
+     "task": "x by 2026/12/31",
+     "due": null
+    }
+   ],
+   "label": "date validation",
+   "cat": "boundary",
+   "why": "month 00, day 32, short year and slashes all fail; 2026-12-31 is valid"
+  },
+  {
+   "args": [
+    "ACTION @a: book room by 2026-02-01 or by 2026-02-03"
+   ],
+   "expected": [
+    {
+     "owners": [
+      "a"
+     ],
+     "task": "book room by 2026-02-01 or",
+     "due": "2026-02-03"
+    }
+   ],
+   "label": "two by-dates",
+   "cat": "edge",
+   "why": "only the last two words are checked, so the first date stays in the task"
+  },
+  {
+   "args": [
+    "ACTION @a@b: merge\nACTION@a: no space\nACTIONS @a: plural\n  action   @a    :   spaced    out   "
+   ],
+   "expected": [
+    {
+     "owners": [
+      "a"
+     ],
+     "task": "spaced out",
+     "due": null
+    }
+   ],
+   "label": "tricky heads",
+   "cat": "edge",
+   "why": "a second @ fails, a glued prefix fails, ACTIONS fails, extra spaces are fine"
+  },
+  {
+   "args": [
+    "ACTION @a: ship\nACTION @a: ship\nACTION @a: ship"
+   ],
+   "expected": [
+    {
+     "owners": [
+      "a"
+     ],
+     "task": "ship",
+     "due": null
+    },
+    {
+     "owners": [
+      "a"
+     ],
+     "task": "ship",
+     "due": null
+    },
+    {
+     "owners": [
+      "a"
+     ],
+     "task": "ship",
+     "due": null
+    }
+   ],
+   "label": "repeated lines",
+   "cat": "dupes",
+   "why": "each line is its own item; only owners are deduped"
+  },
+  {
+   "args": [
+    "Standup 2026-11-19\n- ACTION @wei: update the risk register by 2026-11-26\n- ACTION @priya @wei: prepare demo for the director\n- Note: budget is fine\n- todo @sam: email the vendor about SLA by 2026-11-21\n- action: someone should check this\n- TODO @ops-team: rotate keys by 2026-12-01"
+   ],
+   "expected": [
+    {
+     "owners": [
+      "wei"
+     ],
+     "task": "update the risk register",
+     "due": "2026-11-26"
+    },
+    {
+     "owners": [
+      "priya",
+      "wei"
+     ],
+     "task": "prepare demo for the director",
+     "due": null
+    },
+    {
+     "owners": [
+      "sam"
+     ],
+     "task": "email the vendor about SLA",
+     "due": "2026-11-21"
+    },
+    {
+     "owners": [
+      "ops-team"
+     ],
+     "task": "rotate keys",
+     "due": "2026-12-01"
+    }
+   ],
+   "label": "realistic standup",
+   "cat": "medium",
+   "why": "bullets, mixed case, a Note: line and an owner-less action"
+  }
+ ],
+ "perf": {
+  "label": "performance: 400 lines of notes",
+  "gen": "['\\n'.join(('ACTION @u' + str(i % 50) + ' @U' + str(i % 7) + ': task ' + str(i) + ' by 2026-' + str(i % 12 + 1).zfill(2) + '-' + str(i % 28 + 1).zfill(2)) if i % 3 else 'plain note ' + str(i) for i in range(400))]",
+  "expected": [
+   {
+    "owners": [
+     "u1"
+    ],
+    "task": "task 1",
+    "due": "2026-02-02"
+   },
+   {
+    "owners": [
+     "u2"
+    ],
+    "task": "task 2",
+    "due": "2026-03-03"
+   },
+   {
+    "owners": [
+     "u4"
+    ],
+    "task": "task 4",
+    "due": "2026-05-05"
+   },
+   {
+    "owners": [
+     "u5"
+    ],
+    "task": "task 5",
+    "due": "2026-06-06"
+   },
+   {
+    "owners": [
+     "u7",
+     "u0"
+    ],
+    "task": "task 7",
+    "due": "2026-08-08"
+   },
+   {
+    "owners": [
+     "u8",
+     "u1"
+    ],
+    "task": "task 8",
+    "due": "2026-09-09"
+   },
+   {
+    "owners": [
+     "u10",
+     "u3"
+    ],
+    "task": "task 10",
+    "due": "2026-11-11"
+   },
+   {
+    "owners": [
+     "u11",
+     "u4"
+    ],
+    "task": "task 11",
+    "due": "2026-12-12"
+   },
+   {
+    "owners": [
+     "u13",
+     "u6"
+    ],
+    "task": "task 13",
+    "due": "2026-02-14"
+   },
+   {
+    "owners": [
+     "u14",
+     "u0"
+    ],
+    "task": "task 14",
+    "due": "2026-03-15"
+   },
+   {
+    "owners": [
+     "u16",
+     "u2"
+    ],
+    "task": "task 16",
+    "due": "2026-05-17"
+   },
+   {
+    "owners": [
+     "u17",
+     "u3"
+    ],
+    "task": "task 17",
+    "due": "2026-06-18"
+   },
+   {
+    "owners": [
+     "u19",
+     "u5"
+    ],
+    "task": "task 19",
+    "due": "2026-08-20"
+   },
+   {
+    "owners": [
+     "u20",
+     "u6"
+    ],
+    "task": "task 20",
+    "due": "2026-09-21"
+   },
+   {
+    "owners": [
+     "u22",
+     "u1"
+    ],
+    "task": "task 22",
+    "due": "2026-11-23"
+   },
+   {
+    "owners": [
+     "u23",
+     "u2"
+    ],
+    "task": "task 23",
+    "due": "2026-12-24"
+   },
+   {
+    "owners": [
+     "u25",
+     "u4"
+    ],
+    "task": "task 25",
+    "due": "2026-02-26"
+   },
+   {
+    "owners": [
+     "u26",
+     "u5"
+    ],
+    "task": "task 26",
+    "due": "2026-03-27"
+   },
+   {
+    "owners": [
+     "u28",
+     "u0"
+    ],
+    "task": "task 28",
+    "due": "2026-05-01"
+   },
+   {
+    "owners": [
+     "u29",
+     "u1"
+    ],
+    "task": "task 29",
+    "due": "2026-06-02"
+   },
+   {
+    "owners": [
+     "u31",
+     "u3"
+    ],
+    "task": "task 31",
+    "due": "2026-08-04"
+   },
+   {
+    "owners": [
+     "u32",
+     "u4"
+    ],
+    "task": "task 32",
+    "due": "2026-09-05"
+   },
+   {
+    "owners": [
+     "u34",
+     "u6"
+    ],
+    "task": "task 34",
+    "due": "2026-11-07"
+   },
+   {
+    "owners": [
+     "u35",
+     "u0"
+    ],
+    "task": "task 35",
+    "due": "2026-12-08"
+   },
+   {
+    "owners": [
+     "u37",
+     "u2"
+    ],
+    "task": "task 37",
+    "due": "2026-02-10"
+   },
+   {
+    "owners": [
+     "u38",
+     "u3"
+    ],
+    "task": "task 38",
+    "due": "2026-03-11"
+   },
+   {
+    "owners": [
+     "u40",
+     "u5"
+    ],
+    "task": "task 40",
+    "due": "2026-05-13"
+   },
+   {
+    "owners": [
+     "u41",
+     "u6"
+    ],
+    "task": "task 41",
+    "due": "2026-06-14"
+   },
+   {
+    "owners": [
+     "u43",
+     "u1"
+    ],
+    "task": "task 43",
+    "due": "2026-08-16"
+   },
+   {
+    "owners": [
+     "u44",
+     "u2"
+    ],
+    "task": "task 44",
+    "due": "2026-09-17"
+   },
+   {
+    "owners": [
+     "u46",
+     "u4"
+    ],
+    "task": "task 46",
+    "due": "2026-11-19"
+   },
+   {
+    "owners": [
+     "u47",
+     "u5"
+    ],
+    "task": "task 47",
+    "due": "2026-12-20"
+   },
+   {
+    "owners": [
+     "u49",
+     "u0"
+    ],
+    "task": "task 49",
+    "due": "2026-02-22"
+   },
+   {
+    "owners": [
+     "u0",
+     "u1"
+    ],
+    "task": "task 50",
+    "due": "2026-03-23"
+   },
+   {
+    "owners": [
+     "u2",
+     "u3"
+    ],
+    "task": "task 52",
+    "due": "2026-05-25"
+   },
+   {
+    "owners": [
+     "u3",
+     "u4"
+    ],
+    "task": "task 53",
+    "due": "2026-06-26"
+   },
+   {
+    "owners": [
+     "u5",
+     "u6"
+    ],
+    "task": "task 55",
+    "due": "2026-08-28"
+   },
+   {
+    "owners": [
+     "u6",
+     "u0"
+    ],
+    "task": "task 56",
+    "due": "2026-09-01"
+   },
+   {
+    "owners": [
+     "u8",
+     "u2"
+    ],
+    "task": "task 58",
+    "due": "2026-11-03"
+   },
+   {
+    "owners": [
+     "u9",
+     "u3"
+    ],
+    "task": "task 59",
+    "due": "2026-12-04"
+   },
+   {
+    "owners": [
+     "u11",
+     "u5"
+    ],
+    "task": "task 61",
+    "due": "2026-02-06"
+   },
+   {
+    "owners": [
+     "u12",
+     "u6"
+    ],
+    "task": "task 62",
+    "due": "2026-03-07"
+   },
+   {
+    "owners": [
+     "u14",
+     "u1"
+    ],
+    "task": "task 64",
+    "due": "2026-05-09"
+   },
+   {
+    "owners": [
+     "u15",
+     "u2"
+    ],
+    "task": "task 65",
+    "due": "2026-06-10"
+   },
+   {
+    "owners": [
+     "u17",
+     "u4"
+    ],
+    "task": "task 67",
+    "due": "2026-08-12"
+   },
+   {
+    "owners": [
+     "u18",
+     "u5"
+    ],
+    "task": "task 68",
+    "due": "2026-09-13"
+   },
+   {
+    "owners": [
+     "u20",
+     "u0"
+    ],
+    "task": "task 70",
+    "due": "2026-11-15"
+   },
+   {
+    "owners": [
+     "u21",
+     "u1"
+    ],
+    "task": "task 71",
+    "due": "2026-12-16"
+   },
+   {
+    "owners": [
+     "u23",
+     "u3"
+    ],
+    "task": "task 73",
+    "due": "2026-02-18"
+   },
+   {
+    "owners": [
+     "u24",
+     "u4"
+    ],
+    "task": "task 74",
+    "due": "2026-03-19"
+   },
+   {
+    "owners": [
+     "u26",
+     "u6"
+    ],
+    "task": "task 76",
+    "due": "2026-05-21"
+   },
+   {
+    "owners": [
+     "u27",
+     "u0"
+    ],
+    "task": "task 77",
+    "due": "2026-06-22"
+   },
+   {
+    "owners": [
+     "u29",
+     "u2"
+    ],
+    "task": "task 79",
+    "due": "2026-08-24"
+   },
+   {
+    "owners": [
+     "u30",
+     "u3"
+    ],
+    "task": "task 80",
+    "due": "2026-09-25"
+   },
+   {
+    "owners": [
+     "u32",
+     "u5"
+    ],
+    "task": "task 82",
+    "due": "2026-11-27"
+   },
+   {
+    "owners": [
+     "u33",
+     "u6"
+    ],
+    "task": "task 83",
+    "due": "2026-12-28"
+   },
+   {
+    "owners": [
+     "u35",
+     "u1"
+    ],
+    "task": "task 85",
+    "due": "2026-02-02"
+   },
+   {
+    "owners": [
+     "u36",
+     "u2"
+    ],
+    "task": "task 86",
+    "due": "2026-03-03"
+   },
+   {
+    "owners": [
+     "u38",
+     "u4"
+    ],
+    "task": "task 88",
+    "due": "2026-05-05"
+   },
+   {
+    "owners": [
+     "u39",
+     "u5"
+    ],
+    "task": "task 89",
+    "due": "2026-06-06"
+   },
+   {
+    "owners": [
+     "u41",
+     "u0"
+    ],
+    "task": "task 91",
+    "due": "2026-08-08"
+   },
+   {
+    "owners": [
+     "u42",
+     "u1"
+    ],
+    "task": "task 92",
+    "due": "2026-09-09"
+   },
+   {
+    "owners": [
+     "u44",
+     "u3"
+    ],
+    "task": "task 94",
+    "due": "2026-11-11"
+   },
+   {
+    "owners": [
+     "u45",
+     "u4"
+    ],
+    "task": "task 95",
+    "due": "2026-12-12"
+   },
+   {
+    "owners": [
+     "u47",
+     "u6"
+    ],
+    "task": "task 97",
+    "due": "2026-02-14"
+   },
+   {
+    "owners": [
+     "u48",
+     "u0"
+    ],
+    "task": "task 98",
+    "due": "2026-03-15"
+   },
+   {
+    "owners": [
+     "u0",
+     "u2"
+    ],
+    "task": "task 100",
+    "due": "2026-05-17"
+   },
+   {
+    "owners": [
+     "u1",
+     "u3"
+    ],
+    "task": "task 101",
+    "due": "2026-06-18"
+   },
+   {
+    "owners": [
+     "u3",
+     "u5"
+    ],
+    "task": "task 103",
+    "due": "2026-08-20"
+   },
+   {
+    "owners": [
+     "u4",
+     "u6"
+    ],
+    "task": "task 104",
+    "due": "2026-09-21"
+   },
+   {
+    "owners": [
+     "u6",
+     "u1"
+    ],
+    "task": "task 106",
+    "due": "2026-11-23"
+   },
+   {
+    "owners": [
+     "u7",
+     "u2"
+    ],
+    "task": "task 107",
+    "due": "2026-12-24"
+   },
+   {
+    "owners": [
+     "u9",
+     "u4"
+    ],
+    "task": "task 109",
+    "due": "2026-02-26"
+   },
+   {
+    "owners": [
+     "u10",
+     "u5"
+    ],
+    "task": "task 110",
+    "due": "2026-03-27"
+   },
+   {
+    "owners": [
+     "u12",
+     "u0"
+    ],
+    "task": "task 112",
+    "due": "2026-05-01"
+   },
+   {
+    "owners": [
+     "u13",
+     "u1"
+    ],
+    "task": "task 113",
+    "due": "2026-06-02"
+   },
+   {
+    "owners": [
+     "u15",
+     "u3"
+    ],
+    "task": "task 115",
+    "due": "2026-08-04"
+   },
+   {
+    "owners": [
+     "u16",
+     "u4"
+    ],
+    "task": "task 116",
+    "due": "2026-09-05"
+   },
+   {
+    "owners": [
+     "u18",
+     "u6"
+    ],
+    "task": "task 118",
+    "due": "2026-11-07"
+   },
+   {
+    "owners": [
+     "u19",
+     "u0"
+    ],
+    "task": "task 119",
+    "due": "2026-12-08"
+   },
+   {
+    "owners": [
+     "u21",
+     "u2"
+    ],
+    "task": "task 121",
+    "due": "2026-02-10"
+   },
+   {
+    "owners": [
+     "u22",
+     "u3"
+    ],
+    "task": "task 122",
+    "due": "2026-03-11"
+   },
+   {
+    "owners": [
+     "u24",
+     "u5"
+    ],
+    "task": "task 124",
+    "due": "2026-05-13"
+   },
+   {
+    "owners": [
+     "u25",
+     "u6"
+    ],
+    "task": "task 125",
+    "due": "2026-06-14"
+   },
+   {
+    "owners": [
+     "u27",
+     "u1"
+    ],
+    "task": "task 127",
+    "due": "2026-08-16"
+   },
+   {
+    "owners": [
+     "u28",
+     "u2"
+    ],
+    "task": "task 128",
+    "due": "2026-09-17"
+   },
+   {
+    "owners": [
+     "u30",
+     "u4"
+    ],
+    "task": "task 130",
+    "due": "2026-11-19"
+   },
+   {
+    "owners": [
+     "u31",
+     "u5"
+    ],
+    "task": "task 131",
+    "due": "2026-12-20"
+   },
+   {
+    "owners": [
+     "u33",
+     "u0"
+    ],
+    "task": "task 133",
+    "due": "2026-02-22"
+   },
+   {
+    "owners": [
+     "u34",
+     "u1"
+    ],
+    "task": "task 134",
+    "due": "2026-03-23"
+   },
+   {
+    "owners": [
+     "u36",
+     "u3"
+    ],
+    "task": "task 136",
+    "due": "2026-05-25"
+   },
+   {
+    "owners": [
+     "u37",
+     "u4"
+    ],
+    "task": "task 137",
+    "due": "2026-06-26"
+   },
+   {
+    "owners": [
+     "u39",
+     "u6"
+    ],
+    "task": "task 139",
+    "due": "2026-08-28"
+   },
+   {
+    "owners": [
+     "u40",
+     "u0"
+    ],
+    "task": "task 140",
+    "due": "2026-09-01"
+   },
+   {
+    "owners": [
+     "u42",
+     "u2"
+    ],
+    "task": "task 142",
+    "due": "2026-11-03"
+   },
+   {
+    "owners": [
+     "u43",
+     "u3"
+    ],
+    "task": "task 143",
+    "due": "2026-12-04"
+   },
+   {
+    "owners": [
+     "u45",
+     "u5"
+    ],
+    "task": "task 145",
+    "due": "2026-02-06"
+   },
+   {
+    "owners": [
+     "u46",
+     "u6"
+    ],
+    "task": "task 146",
+    "due": "2026-03-07"
+   },
+   {
+    "owners": [
+     "u48",
+     "u1"
+    ],
+    "task": "task 148",
+    "due": "2026-05-09"
+   },
+   {
+    "owners": [
+     "u49",
+     "u2"
+    ],
+    "task": "task 149",
+    "due": "2026-06-10"
+   },
+   {
+    "owners": [
+     "u1",
+     "u4"
+    ],
+    "task": "task 151",
+    "due": "2026-08-12"
+   },
+   {
+    "owners": [
+     "u2",
+     "u5"
+    ],
+    "task": "task 152",
+    "due": "2026-09-13"
+   },
+   {
+    "owners": [
+     "u4",
+     "u0"
+    ],
+    "task": "task 154",
+    "due": "2026-11-15"
+   },
+   {
+    "owners": [
+     "u5",
+     "u1"
+    ],
+    "task": "task 155",
+    "due": "2026-12-16"
+   },
+   {
+    "owners": [
+     "u7",
+     "u3"
+    ],
+    "task": "task 157",
+    "due": "2026-02-18"
+   },
+   {
+    "owners": [
+     "u8",
+     "u4"
+    ],
+    "task": "task 158",
+    "due": "2026-03-19"
+   },
+   {
+    "owners": [
+     "u10",
+     "u6"
+    ],
+    "task": "task 160",
+    "due": "2026-05-21"
+   },
+   {
+    "owners": [
+     "u11",
+     "u0"
+    ],
+    "task": "task 161",
+    "due": "2026-06-22"
+   },
+   {
+    "owners": [
+     "u13",
+     "u2"
+    ],
+    "task": "task 163",
+    "due": "2026-08-24"
+   },
+   {
+    "owners": [
+     "u14",
+     "u3"
+    ],
+    "task": "task 164",
+    "due": "2026-09-25"
+   },
+   {
+    "owners": [
+     "u16",
+     "u5"
+    ],
+    "task": "task 166",
+    "due": "2026-11-27"
+   },
+   {
+    "owners": [
+     "u17",
+     "u6"
+    ],
+    "task": "task 167",
+    "due": "2026-12-28"
+   },
+   {
+    "owners": [
+     "u19",
+     "u1"
+    ],
+    "task": "task 169",
+    "due": "2026-02-02"
+   },
+   {
+    "owners": [
+     "u20",
+     "u2"
+    ],
+    "task": "task 170",
+    "due": "2026-03-03"
+   },
+   {
+    "owners": [
+     "u22",
+     "u4"
+    ],
+    "task": "task 172",
+    "due": "2026-05-05"
+   },
+   {
+    "owners": [
+     "u23",
+     "u5"
+    ],
+    "task": "task 173",
+    "due": "2026-06-06"
+   },
+   {
+    "owners": [
+     "u25",
+     "u0"
+    ],
+    "task": "task 175",
+    "due": "2026-08-08"
+   },
+   {
+    "owners": [
+     "u26",
+     "u1"
+    ],
+    "task": "task 176",
+    "due": "2026-09-09"
+   },
+   {
+    "owners": [
+     "u28",
+     "u3"
+    ],
+    "task": "task 178",
+    "due": "2026-11-11"
+   },
+   {
+    "owners": [
+     "u29",
+     "u4"
+    ],
+    "task": "task 179",
+    "due": "2026-12-12"
+   },
+   {
+    "owners": [
+     "u31",
+     "u6"
+    ],
+    "task": "task 181",
+    "due": "2026-02-14"
+   },
+   {
+    "owners": [
+     "u32",
+     "u0"
+    ],
+    "task": "task 182",
+    "due": "2026-03-15"
+   },
+   {
+    "owners": [
+     "u34",
+     "u2"
+    ],
+    "task": "task 184",
+    "due": "2026-05-17"
+   },
+   {
+    "owners": [
+     "u35",
+     "u3"
+    ],
+    "task": "task 185",
+    "due": "2026-06-18"
+   },
+   {
+    "owners": [
+     "u37",
+     "u5"
+    ],
+    "task": "task 187",
+    "due": "2026-08-20"
+   },
+   {
+    "owners": [
+     "u38",
+     "u6"
+    ],
+    "task": "task 188",
+    "due": "2026-09-21"
+   },
+   {
+    "owners": [
+     "u40",
+     "u1"
+    ],
+    "task": "task 190",
+    "due": "2026-11-23"
+   },
+   {
+    "owners": [
+     "u41",
+     "u2"
+    ],
+    "task": "task 191",
+    "due": "2026-12-24"
+   },
+   {
+    "owners": [
+     "u43",
+     "u4"
+    ],
+    "task": "task 193",
+    "due": "2026-02-26"
+   },
+   {
+    "owners": [
+     "u44",
+     "u5"
+    ],
+    "task": "task 194",
+    "due": "2026-03-27"
+   },
+   {
+    "owners": [
+     "u46",
+     "u0"
+    ],
+    "task": "task 196",
+    "due": "2026-05-01"
+   },
+   {
+    "owners": [
+     "u47",
+     "u1"
+    ],
+    "task": "task 197",
+    "due": "2026-06-02"
+   },
+   {
+    "owners": [
+     "u49",
+     "u3"
+    ],
+    "task": "task 199",
+    "due": "2026-08-04"
+   },
+   {
+    "owners": [
+     "u0",
+     "u4"
+    ],
+    "task": "task 200",
+    "due": "2026-09-05"
+   },
+   {
+    "owners": [
+     "u2",
+     "u6"
+    ],
+    "task": "task 202",
+    "due": "2026-11-07"
+   },
+   {
+    "owners": [
+     "u3",
+     "u0"
+    ],
+    "task": "task 203",
+    "due": "2026-12-08"
+   },
+   {
+    "owners": [
+     "u5",
+     "u2"
+    ],
+    "task": "task 205",
+    "due": "2026-02-10"
+   },
+   {
+    "owners": [
+     "u6",
+     "u3"
+    ],
+    "task": "task 206",
+    "due": "2026-03-11"
+   },
+   {
+    "owners": [
+     "u8",
+     "u5"
+    ],
+    "task": "task 208",
+    "due": "2026-05-13"
+   },
+   {
+    "owners": [
+     "u9",
+     "u6"
+    ],
+    "task": "task 209",
+    "due": "2026-06-14"
+   },
+   {
+    "owners": [
+     "u11",
+     "u1"
+    ],
+    "task": "task 211",
+    "due": "2026-08-16"
+   },
+   {
+    "owners": [
+     "u12",
+     "u2"
+    ],
+    "task": "task 212",
+    "due": "2026-09-17"
+   },
+   {
+    "owners": [
+     "u14",
+     "u4"
+    ],
+    "task": "task 214",
+    "due": "2026-11-19"
+   },
+   {
+    "owners": [
+     "u15",
+     "u5"
+    ],
+    "task": "task 215",
+    "due": "2026-12-20"
+   },
+   {
+    "owners": [
+     "u17",
+     "u0"
+    ],
+    "task": "task 217",
+    "due": "2026-02-22"
+   },
+   {
+    "owners": [
+     "u18",
+     "u1"
+    ],
+    "task": "task 218",
+    "due": "2026-03-23"
+   },
+   {
+    "owners": [
+     "u20",
+     "u3"
+    ],
+    "task": "task 220",
+    "due": "2026-05-25"
+   },
+   {
+    "owners": [
+     "u21",
+     "u4"
+    ],
+    "task": "task 221",
+    "due": "2026-06-26"
+   },
+   {
+    "owners": [
+     "u23",
+     "u6"
+    ],
+    "task": "task 223",
+    "due": "2026-08-28"
+   },
+   {
+    "owners": [
+     "u24",
+     "u0"
+    ],
+    "task": "task 224",
+    "due": "2026-09-01"
+   },
+   {
+    "owners": [
+     "u26",
+     "u2"
+    ],
+    "task": "task 226",
+    "due": "2026-11-03"
+   },
+   {
+    "owners": [
+     "u27",
+     "u3"
+    ],
+    "task": "task 227",
+    "due": "2026-12-04"
+   },
+   {
+    "owners": [
+     "u29",
+     "u5"
+    ],
+    "task": "task 229",
+    "due": "2026-02-06"
+   },
+   {
+    "owners": [
+     "u30",
+     "u6"
+    ],
+    "task": "task 230",
+    "due": "2026-03-07"
+   },
+   {
+    "owners": [
+     "u32",
+     "u1"
+    ],
+    "task": "task 232",
+    "due": "2026-05-09"
+   },
+   {
+    "owners": [
+     "u33",
+     "u2"
+    ],
+    "task": "task 233",
+    "due": "2026-06-10"
+   },
+   {
+    "owners": [
+     "u35",
+     "u4"
+    ],
+    "task": "task 235",
+    "due": "2026-08-12"
+   },
+   {
+    "owners": [
+     "u36",
+     "u5"
+    ],
+    "task": "task 236",
+    "due": "2026-09-13"
+   },
+   {
+    "owners": [
+     "u38",
+     "u0"
+    ],
+    "task": "task 238",
+    "due": "2026-11-15"
+   },
+   {
+    "owners": [
+     "u39",
+     "u1"
+    ],
+    "task": "task 239",
+    "due": "2026-12-16"
+   },
+   {
+    "owners": [
+     "u41",
+     "u3"
+    ],
+    "task": "task 241",
+    "due": "2026-02-18"
+   },
+   {
+    "owners": [
+     "u42",
+     "u4"
+    ],
+    "task": "task 242",
+    "due": "2026-03-19"
+   },
+   {
+    "owners": [
+     "u44",
+     "u6"
+    ],
+    "task": "task 244",
+    "due": "2026-05-21"
+   },
+   {
+    "owners": [
+     "u45",
+     "u0"
+    ],
+    "task": "task 245",
+    "due": "2026-06-22"
+   },
+   {
+    "owners": [
+     "u47",
+     "u2"
+    ],
+    "task": "task 247",
+    "due": "2026-08-24"
+   },
+   {
+    "owners": [
+     "u48",
+     "u3"
+    ],
+    "task": "task 248",
+    "due": "2026-09-25"
+   },
+   {
+    "owners": [
+     "u0",
+     "u5"
+    ],
+    "task": "task 250",
+    "due": "2026-11-27"
+   },
+   {
+    "owners": [
+     "u1",
+     "u6"
+    ],
+    "task": "task 251",
+    "due": "2026-12-28"
+   },
+   {
+    "owners": [
+     "u3",
+     "u1"
+    ],
+    "task": "task 253",
+    "due": "2026-02-02"
+   },
+   {
+    "owners": [
+     "u4",
+     "u2"
+    ],
+    "task": "task 254",
+    "due": "2026-03-03"
+   },
+   {
+    "owners": [
+     "u6",
+     "u4"
+    ],
+    "task": "task 256",
+    "due": "2026-05-05"
+   },
+   {
+    "owners": [
+     "u7",
+     "u5"
+    ],
+    "task": "task 257",
+    "due": "2026-06-06"
+   },
+   {
+    "owners": [
+     "u9",
+     "u0"
+    ],
+    "task": "task 259",
+    "due": "2026-08-08"
+   },
+   {
+    "owners": [
+     "u10",
+     "u1"
+    ],
+    "task": "task 260",
+    "due": "2026-09-09"
+   },
+   {
+    "owners": [
+     "u12",
+     "u3"
+    ],
+    "task": "task 262",
+    "due": "2026-11-11"
+   },
+   {
+    "owners": [
+     "u13",
+     "u4"
+    ],
+    "task": "task 263",
+    "due": "2026-12-12"
+   },
+   {
+    "owners": [
+     "u15",
+     "u6"
+    ],
+    "task": "task 265",
+    "due": "2026-02-14"
+   },
+   {
+    "owners": [
+     "u16",
+     "u0"
+    ],
+    "task": "task 266",
+    "due": "2026-03-15"
+   },
+   {
+    "owners": [
+     "u18",
+     "u2"
+    ],
+    "task": "task 268",
+    "due": "2026-05-17"
+   },
+   {
+    "owners": [
+     "u19",
+     "u3"
+    ],
+    "task": "task 269",
+    "due": "2026-06-18"
+   },
+   {
+    "owners": [
+     "u21",
+     "u5"
+    ],
+    "task": "task 271",
+    "due": "2026-08-20"
+   },
+   {
+    "owners": [
+     "u22",
+     "u6"
+    ],
+    "task": "task 272",
+    "due": "2026-09-21"
+   },
+   {
+    "owners": [
+     "u24",
+     "u1"
+    ],
+    "task": "task 274",
+    "due": "2026-11-23"
+   },
+   {
+    "owners": [
+     "u25",
+     "u2"
+    ],
+    "task": "task 275",
+    "due": "2026-12-24"
+   },
+   {
+    "owners": [
+     "u27",
+     "u4"
+    ],
+    "task": "task 277",
+    "due": "2026-02-26"
+   },
+   {
+    "owners": [
+     "u28",
+     "u5"
+    ],
+    "task": "task 278",
+    "due": "2026-03-27"
+   },
+   {
+    "owners": [
+     "u30",
+     "u0"
+    ],
+    "task": "task 280",
+    "due": "2026-05-01"
+   },
+   {
+    "owners": [
+     "u31",
+     "u1"
+    ],
+    "task": "task 281",
+    "due": "2026-06-02"
+   },
+   {
+    "owners": [
+     "u33",
+     "u3"
+    ],
+    "task": "task 283",
+    "due": "2026-08-04"
+   },
+   {
+    "owners": [
+     "u34",
+     "u4"
+    ],
+    "task": "task 284",
+    "due": "2026-09-05"
+   },
+   {
+    "owners": [
+     "u36",
+     "u6"
+    ],
+    "task": "task 286",
+    "due": "2026-11-07"
+   },
+   {
+    "owners": [
+     "u37",
+     "u0"
+    ],
+    "task": "task 287",
+    "due": "2026-12-08"
+   },
+   {
+    "owners": [
+     "u39",
+     "u2"
+    ],
+    "task": "task 289",
+    "due": "2026-02-10"
+   },
+   {
+    "owners": [
+     "u40",
+     "u3"
+    ],
+    "task": "task 290",
+    "due": "2026-03-11"
+   },
+   {
+    "owners": [
+     "u42",
+     "u5"
+    ],
+    "task": "task 292",
+    "due": "2026-05-13"
+   },
+   {
+    "owners": [
+     "u43",
+     "u6"
+    ],
+    "task": "task 293",
+    "due": "2026-06-14"
+   },
+   {
+    "owners": [
+     "u45",
+     "u1"
+    ],
+    "task": "task 295",
+    "due": "2026-08-16"
+   },
+   {
+    "owners": [
+     "u46",
+     "u2"
+    ],
+    "task": "task 296",
+    "due": "2026-09-17"
+   },
+   {
+    "owners": [
+     "u48",
+     "u4"
+    ],
+    "task": "task 298",
+    "due": "2026-11-19"
+   },
+   {
+    "owners": [
+     "u49",
+     "u5"
+    ],
+    "task": "task 299",
+    "due": "2026-12-20"
+   },
+   {
+    "owners": [
+     "u1",
+     "u0"
+    ],
+    "task": "task 301",
+    "due": "2026-02-22"
+   },
+   {
+    "owners": [
+     "u2",
+     "u1"
+    ],
+    "task": "task 302",
+    "due": "2026-03-23"
+   },
+   {
+    "owners": [
+     "u4",
+     "u3"
+    ],
+    "task": "task 304",
+    "due": "2026-05-25"
+   },
+   {
+    "owners": [
+     "u5",
+     "u4"
+    ],
+    "task": "task 305",
+    "due": "2026-06-26"
+   },
+   {
+    "owners": [
+     "u7",
+     "u6"
+    ],
+    "task": "task 307",
+    "due": "2026-08-28"
+   },
+   {
+    "owners": [
+     "u8",
+     "u0"
+    ],
+    "task": "task 308",
+    "due": "2026-09-01"
+   },
+   {
+    "owners": [
+     "u10",
+     "u2"
+    ],
+    "task": "task 310",
+    "due": "2026-11-03"
+   },
+   {
+    "owners": [
+     "u11",
+     "u3"
+    ],
+    "task": "task 311",
+    "due": "2026-12-04"
+   },
+   {
+    "owners": [
+     "u13",
+     "u5"
+    ],
+    "task": "task 313",
+    "due": "2026-02-06"
+   },
+   {
+    "owners": [
+     "u14",
+     "u6"
+    ],
+    "task": "task 314",
+    "due": "2026-03-07"
+   },
+   {
+    "owners": [
+     "u16",
+     "u1"
+    ],
+    "task": "task 316",
+    "due": "2026-05-09"
+   },
+   {
+    "owners": [
+     "u17",
+     "u2"
+    ],
+    "task": "task 317",
+    "due": "2026-06-10"
+   },
+   {
+    "owners": [
+     "u19",
+     "u4"
+    ],
+    "task": "task 319",
+    "due": "2026-08-12"
+   },
+   {
+    "owners": [
+     "u20",
+     "u5"
+    ],
+    "task": "task 320",
+    "due": "2026-09-13"
+   },
+   {
+    "owners": [
+     "u22",
+     "u0"
+    ],
+    "task": "task 322",
+    "due": "2026-11-15"
+   },
+   {
+    "owners": [
+     "u23",
+     "u1"
+    ],
+    "task": "task 323",
+    "due": "2026-12-16"
+   },
+   {
+    "owners": [
+     "u25",
+     "u3"
+    ],
+    "task": "task 325",
+    "due": "2026-02-18"
+   },
+   {
+    "owners": [
+     "u26",
+     "u4"
+    ],
+    "task": "task 326",
+    "due": "2026-03-19"
+   },
+   {
+    "owners": [
+     "u28",
+     "u6"
+    ],
+    "task": "task 328",
+    "due": "2026-05-21"
+   },
+   {
+    "owners": [
+     "u29",
+     "u0"
+    ],
+    "task": "task 329",
+    "due": "2026-06-22"
+   },
+   {
+    "owners": [
+     "u31",
+     "u2"
+    ],
+    "task": "task 331",
+    "due": "2026-08-24"
+   },
+   {
+    "owners": [
+     "u32",
+     "u3"
+    ],
+    "task": "task 332",
+    "due": "2026-09-25"
+   },
+   {
+    "owners": [
+     "u34",
+     "u5"
+    ],
+    "task": "task 334",
+    "due": "2026-11-27"
+   },
+   {
+    "owners": [
+     "u35",
+     "u6"
+    ],
+    "task": "task 335",
+    "due": "2026-12-28"
+   },
+   {
+    "owners": [
+     "u37",
+     "u1"
+    ],
+    "task": "task 337",
+    "due": "2026-02-02"
+   },
+   {
+    "owners": [
+     "u38",
+     "u2"
+    ],
+    "task": "task 338",
+    "due": "2026-03-03"
+   },
+   {
+    "owners": [
+     "u40",
+     "u4"
+    ],
+    "task": "task 340",
+    "due": "2026-05-05"
+   },
+   {
+    "owners": [
+     "u41",
+     "u5"
+    ],
+    "task": "task 341",
+    "due": "2026-06-06"
+   },
+   {
+    "owners": [
+     "u43",
+     "u0"
+    ],
+    "task": "task 343",
+    "due": "2026-08-08"
+   },
+   {
+    "owners": [
+     "u44",
+     "u1"
+    ],
+    "task": "task 344",
+    "due": "2026-09-09"
+   },
+   {
+    "owners": [
+     "u46",
+     "u3"
+    ],
+    "task": "task 346",
+    "due": "2026-11-11"
+   },
+   {
+    "owners": [
+     "u47",
+     "u4"
+    ],
+    "task": "task 347",
+    "due": "2026-12-12"
+   },
+   {
+    "owners": [
+     "u49",
+     "u6"
+    ],
+    "task": "task 349",
+    "due": "2026-02-14"
+   },
+   {
+    "owners": [
+     "u0"
+    ],
+    "task": "task 350",
+    "due": "2026-03-15"
+   },
+   {
+    "owners": [
+     "u2"
+    ],
+    "task": "task 352",
+    "due": "2026-05-17"
+   },
+   {
+    "owners": [
+     "u3"
+    ],
+    "task": "task 353",
+    "due": "2026-06-18"
+   },
+   {
+    "owners": [
+     "u5"
+    ],
+    "task": "task 355",
+    "due": "2026-08-20"
+   },
+   {
+    "owners": [
+     "u6"
+    ],
+    "task": "task 356",
+    "due": "2026-09-21"
+   },
+   {
+    "owners": [
+     "u8",
+     "u1"
+    ],
+    "task": "task 358",
+    "due": "2026-11-23"
+   },
+   {
+    "owners": [
+     "u9",
+     "u2"
+    ],
+    "task": "task 359",
+    "due": "2026-12-24"
+   },
+   {
+    "owners": [
+     "u11",
+     "u4"
+    ],
+    "task": "task 361",
+    "due": "2026-02-26"
+   },
+   {
+    "owners": [
+     "u12",
+     "u5"
+    ],
+    "task": "task 362",
+    "due": "2026-03-27"
+   },
+   {
+    "owners": [
+     "u14",
+     "u0"
+    ],
+    "task": "task 364",
+    "due": "2026-05-01"
+   },
+   {
+    "owners": [
+     "u15",
+     "u1"
+    ],
+    "task": "task 365",
+    "due": "2026-06-02"
+   },
+   {
+    "owners": [
+     "u17",
+     "u3"
+    ],
+    "task": "task 367",
+    "due": "2026-08-04"
+   },
+   {
+    "owners": [
+     "u18",
+     "u4"
+    ],
+    "task": "task 368",
+    "due": "2026-09-05"
+   },
+   {
+    "owners": [
+     "u20",
+     "u6"
+    ],
+    "task": "task 370",
+    "due": "2026-11-07"
+   },
+   {
+    "owners": [
+     "u21",
+     "u0"
+    ],
+    "task": "task 371",
+    "due": "2026-12-08"
+   },
+   {
+    "owners": [
+     "u23",
+     "u2"
+    ],
+    "task": "task 373",
+    "due": "2026-02-10"
+   },
+   {
+    "owners": [
+     "u24",
+     "u3"
+    ],
+    "task": "task 374",
+    "due": "2026-03-11"
+   },
+   {
+    "owners": [
+     "u26",
+     "u5"
+    ],
+    "task": "task 376",
+    "due": "2026-05-13"
+   },
+   {
+    "owners": [
+     "u27",
+     "u6"
+    ],
+    "task": "task 377",
+    "due": "2026-06-14"
+   },
+   {
+    "owners": [
+     "u29",
+     "u1"
+    ],
+    "task": "task 379",
+    "due": "2026-08-16"
+   },
+   {
+    "owners": [
+     "u30",
+     "u2"
+    ],
+    "task": "task 380",
+    "due": "2026-09-17"
+   },
+   {
+    "owners": [
+     "u32",
+     "u4"
+    ],
+    "task": "task 382",
+    "due": "2026-11-19"
+   },
+   {
+    "owners": [
+     "u33",
+     "u5"
+    ],
+    "task": "task 383",
+    "due": "2026-12-20"
+   },
+   {
+    "owners": [
+     "u35",
+     "u0"
+    ],
+    "task": "task 385",
+    "due": "2026-02-22"
+   },
+   {
+    "owners": [
+     "u36",
+     "u1"
+    ],
+    "task": "task 386",
+    "due": "2026-03-23"
+   },
+   {
+    "owners": [
+     "u38",
+     "u3"
+    ],
+    "task": "task 388",
+    "due": "2026-05-25"
+   },
+   {
+    "owners": [
+     "u39",
+     "u4"
+    ],
+    "task": "task 389",
+    "due": "2026-06-26"
+   },
+   {
+    "owners": [
+     "u41",
+     "u6"
+    ],
+    "task": "task 391",
+    "due": "2026-08-28"
+   },
+   {
+    "owners": [
+     "u42",
+     "u0"
+    ],
+    "task": "task 392",
+    "due": "2026-09-01"
+   },
+   {
+    "owners": [
+     "u44",
+     "u2"
+    ],
+    "task": "task 394",
+    "due": "2026-11-03"
+   },
+   {
+    "owners": [
+     "u45",
+     "u3"
+    ],
+    "task": "task 395",
+    "due": "2026-12-04"
+   },
+   {
+    "owners": [
+     "u47",
+     "u5"
+    ],
+    "task": "task 397",
+    "due": "2026-02-06"
+   },
+   {
+    "owners": [
+     "u48",
+     "u6"
+    ],
+    "task": "task 398",
+    "due": "2026-03-07"
+   }
+  ]
+ },
+ "govtech": {
+  "round": "live",
+  "tag": "domain",
+  "source": "Giant Robots Labs-style practice",
+  "evidence": "Practice shaped like the lab's public products (Transcribe X); not a reported interview question.",
+  "extensions": [
+   "Return the skipped action-looking lines too, each with a reason (<code>\"no owner\"</code>, <code>\"empty task\"</code>), so the UI can show \"2 lines could not be read\" next to the notes.",
+   "Validate real calendar dates with <code>datetime.date.fromisoformat</code>, and accept relative dates like <code>by Friday</code> given the meeting date as a second argument.",
+   "Owners must match the meeting's attendee list. Take a dict of handle to user id, map each owner, and decide what to do with an unknown handle.",
+   "The same action item appears in two meetings' notes. Write a function that merges two lists of items and keeps one entry per (owners, normalised task), with the earliest due date."
+  ]
+ },
+ "grl": true
+}

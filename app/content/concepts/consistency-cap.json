@@ -1,0 +1,263 @@
+{
+ "id": "consistency-cap",
+ "title": "Consistency, CAP and PACELC",
+ "group": "Reliability & correctness",
+ "tagline": "When replicas cannot talk, you choose between a correct answer and any answer. When they can, you choose between correct and fast.",
+ "why": "<p>As soon as data lives on more than one machine, a read can hit a copy that has not seen the latest write. Every replicated store makes a choice about what you see in that case, and interviewers want you to make that choice on purpose, per piece of data.</p><p><b>CAP</b> says: during a network <b>P</b>artition, a replica that cannot reach the others must either refuse (keep <b>C</b>onsistency) or answer with what it has (keep <b>A</b>vailability). You cannot have both while the partition lasts. Partitions are not optional in a distributed system, so the real choice is C or A when one happens.</p><p><b>PACELC</b> adds the everyday case: <b>E</b>lse, with no partition, you trade <b>L</b>atency against <b>C</b>onsistency, because waiting for other replicas to confirm a write or read costs a round trip. Most of the time this is the trade-off you actually feel. In the sim below, write to the leader and read from a replica before it catches up.</p>",
+ "how": "<p><b>Consistency levels, strongest first.</b></p><ul><li><b>Linearizable (strong)</b>: every read sees the latest committed write, as if there were one copy. Needs a leader or a quorum on every operation. Use for balances, bookings, voucher redemption, unique usernames.</li><li><b>Read-your-writes</b>: you always see your own writes; others may see them a little later. Use for profile edits, \"my submissions\".</li><li><b>Monotonic reads</b>: you never see data go backwards (newer, then older) between two reads. Pin a session to one replica.</li><li><b>Eventual</b>: if writes stop, all replicas converge. Reads may be stale meanwhile. Use for like counts, feeds, analytics.</li></ul><p><b>Quorums.</b> With N replicas, write to W and read from R. If <b>R + W &gt; N</b>, every read set overlaps every write set, so at least one replica in the read set has the latest write, and a version number tells you which one (N=3, W=2, R=2). R=1, W=1 is fast and eventually consistent.</p><p><b>Real systems.</b> A single Postgres primary gives strong reads; if you cannot reach it, you get an error, not stale data. Its async read replicas give eventual reads, so read from the primary when it matters. DynamoDB reads are eventually consistent by default; a strongly consistent read costs twice the read capacity. Cassandra lets you choose per query (<code>ONE</code>, <code>QUORUM</code>, <code>ALL</code>). Raft-based stores (etcd, CockroachDB) are CP. How a quorum agrees on one log is covered in <a href=\"#sd-c-consensus-raft\">Consensus and Raft</a>.</p><p>The sim above shows replication lag breaking read-your-writes; the diagram below plays a partition and the same lag step by step.</p>",
+ "diagram": {
+  "w": 960,
+  "h": 410,
+  "groups": [
+   {
+    "label": "Majority side",
+    "x": 20,
+    "y": 22,
+    "w": 920,
+    "h": 160
+   },
+   {
+    "label": "Minority side (cut off)",
+    "x": 20,
+    "y": 246,
+    "w": 600,
+    "h": 150
+   }
+  ],
+  "nodes": [
+   {
+    "id": "c1",
+    "label": "Client 1",
+    "sub": "writes x=2",
+    "kind": "client",
+    "x": 120,
+    "y": 108
+   },
+   {
+    "id": "a",
+    "label": "Replica A",
+    "sub": "leader",
+    "kind": "db",
+    "x": 450,
+    "y": 108
+   },
+   {
+    "id": "c",
+    "label": "Replica C",
+    "sub": "follower",
+    "kind": "db",
+    "x": 800,
+    "y": 108
+   },
+   {
+    "id": "c2",
+    "label": "Client 2",
+    "sub": "reads x",
+    "kind": "client",
+    "x": 120,
+    "y": 326
+   },
+   {
+    "id": "b",
+    "label": "Replica B",
+    "sub": "still has x=1",
+    "kind": "db",
+    "x": 450,
+    "y": 326
+   }
+  ],
+  "edges": [
+   {
+    "id": "c1-a",
+    "from": "c1",
+    "to": "a",
+    "label": "write x=2"
+   },
+   {
+    "id": "a-c",
+    "from": "a",
+    "to": "c",
+    "label": "replicate + ack"
+   },
+   {
+    "id": "a-b",
+    "from": "a",
+    "to": "b",
+    "label": "replicate (lags)",
+    "dashed": true
+   },
+   {
+    "id": "c2-b",
+    "from": "c2",
+    "to": "b",
+    "label": "read x"
+   },
+   {
+    "id": "c1-b",
+    "from": "c1",
+    "to": "b",
+    "label": "read own write"
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "partition",
+   "name": "Partition: choose C or A",
+   "desc": "B is cut off. What should it answer?",
+   "steps": [
+    {
+     "edge": "c1-a",
+     "note": "Client 1 writes <code>x=2</code> to leader A. Before this, every replica had <code>x=1</code>."
+    },
+    {
+     "edge": "a-c",
+     "note": "A replicates to C. A + C are 2 of 3 replicas, a majority, so the write commits and Client 1 gets OK."
+    },
+    {
+     "edge": "a-b",
+     "note": "Now the link from A to B is cut: a network partition. B cannot tell whether A crashed or is just unreachable, and it still holds <code>x=1</code>."
+    },
+    {
+     "edge": "c2-b",
+     "note": "Client 2, on B's side of the partition, reads <code>x</code>."
+    },
+    {
+     "node": "b",
+     "note": "<b>CP</b>: B knows it cannot reach a majority, so it returns an error or times out. Correct, but unavailable to Client 2. <b>AP</b>: B answers <code>x=1</code>. Available, but stale."
+    },
+    {
+     "edge": "c2-b",
+     "rev": true,
+     "note": "Pick per data type. A voucher balance or a vaccination slot must refuse (CP); a like count or a news feed can be a few seconds stale (AP)."
+    },
+    {
+     "node": "a",
+     "note": "When the partition heals, B catches up from A. In an AP store that took writes on both sides, you now need a merge rule: last-write-wins (loses data), version vectors, or CRDTs."
+    }
+   ]
+  },
+  {
+   "id": "ryw",
+   "name": "Read-your-writes",
+   "desc": "No partition, just replication lag.",
+   "steps": [
+    {
+     "edge": "c1-a",
+     "note": "No partition now. Client 1 renames their profile; A commits and answers OK."
+    },
+    {
+     "edge": "a-b",
+     "note": "Replication to B is <b>asynchronous</b>: usually milliseconds, but seconds under heavy load or a long transaction."
+    },
+    {
+     "edge": "c1-b",
+     "note": "Client 1's next page load is routed to replica B to spread read load. B has not applied the rename yet."
+    },
+    {
+     "edge": "c1-b",
+     "rev": true,
+     "note": "The user sees the old name and thinks the save failed. The system is eventually consistent, but <b>read-your-writes</b> is broken."
+    },
+    {
+     "node": "c1",
+     "note": "Fixes: read your own data from the leader for a few seconds after a write; or pass the write's log position (LSN) and let the replica wait until it has caught up; or pin the session to one replica."
+    }
+   ]
+  }
+ ],
+ "tradeoffs": [
+  {
+   "option": "CP (refuse when cut off)",
+   "pro": "Never returns a stale or conflicting answer; no merge logic. Right for money, bookings, inventory, uniqueness.",
+   "con": "The minority side is down during a partition, and every write waits for a quorum."
+  },
+  {
+   "option": "AP (answer anyway)",
+   "pro": "Always responds, even in a partition; low latency from the nearest replica.",
+   "con": "Stale reads and conflicting writes; you need a conflict-resolution rule and users may see data go back and forth."
+  },
+  {
+   "option": "Quorum reads and writes (R + W > N)",
+   "pro": "Tunable per query: QUORUM for important reads, ONE for cheap ones.",
+   "con": "Each quorum operation waits for the slower replicas; tail latency rises."
+  },
+  {
+   "option": "Leader + async read replicas",
+   "pro": "Cheap read scaling; writes stay simple on one primary.",
+   "con": "Replica reads lag; you must route read-after-write to the leader or track the LSN."
+  }
+ ],
+ "numbers": [
+  "Quorum overlap: <b>R + W &gt; N</b>. N=3, W=2, R=2 tolerates 1 replica down for both reads and writes.",
+  "Round trip within an AZ <b>&lt; 1 ms</b>, across AZs <b>~1-2 ms</b>, Singapore to Tokyo <b>~70 ms</b>, Singapore to US West <b>~170 ms</b>.",
+  "DynamoDB: strongly consistent reads cost <b>2&times;</b> the read capacity of eventually consistent ones.",
+  "Async replica lag: normally <b>milliseconds</b>, but can reach <b>seconds to minutes</b> under write bursts or long-running queries.",
+  "PACELC was proposed by Daniel Abadi in <b>2010</b>; CAP by Eric Brewer in <b>2000</b>, proved by Gilbert and Lynch in 2002."
+ ],
+ "say": [
+  "I'll choose consistency per data type: redemptions and slot bookings are strongly consistent on the primary, while counters and feeds read from replicas and can be a few seconds stale.",
+  "During a partition the minority side should refuse redemptions rather than risk a double spend; that's a CP choice, and I'd show the user a retry message.",
+  "For read-your-writes I'll route a user's reads to the primary for a few seconds after they write, so they never see their own change disappear."
+ ],
+ "pitfalls": [
+  "Saying \"I'll pick CA\". In a distributed system you cannot opt out of partitions; CA only describes a single node.",
+  "Treating eventual consistency as \"a bit stale\" without a bound. Replica lag can grow to minutes under load; monitor it.",
+  "Using last-write-wins for counters or balances. Two concurrent increments become one.",
+  "Choosing one consistency level for the whole system. Most designs need strong consistency for a few tables and eventual for the rest.",
+  "Forgetting read-your-writes. Users who edit and then see the old value file bugs, even if the data is fine."
+ ],
+ "quiz": [
+  {
+   "q": "Replicas: N = 3. Which setting guarantees a read sees the latest acknowledged write?",
+   "options": [
+    "W = 1, R = 1",
+    "W = 1, R = 2",
+    "W = 2, R = 2",
+    "W = 2, R = 1"
+   ],
+   "answer": 2,
+   "why": "R + W must exceed N so the read set overlaps the write set: 2 + 2 = 4 &gt; 3."
+  },
+  {
+   "q": "During a partition, a cut-off replica of a voucher store gets a redemption. What should it do?",
+   "options": [
+    "Refuse or time out, because it cannot confirm the voucher is unspent",
+    "Accept it and merge later with last-write-wins",
+    "Accept it and email the user"
+   ],
+   "answer": 0,
+   "why": "Double redemption is the bug you cannot undo. Choose consistency (CP) for money-like data."
+  },
+  {
+   "q": "A user saves their profile and the reload shows the old value. The data is correct on the primary. What broke?",
+   "options": [
+    "Durability",
+    "Linearizability of writes",
+    "Partition tolerance",
+    "Read-your-writes: the reload hit a lagging replica"
+   ],
+   "answer": 3,
+   "why": "The write is safe; the read went to an async replica. Route the user's reads to the primary briefly, or wait for the replica to reach the write's LSN."
+  },
+  {
+   "q": "What does PACELC add to CAP?",
+   "options": [
+    "A fourth guarantee called latency",
+    "Even with no partition, you trade latency against consistency",
+    "Partitions can be avoided with better networks"
+   ],
+   "answer": 1,
+   "why": "Waiting for other replicas costs a round trip on every operation, not just during failures."
+  }
+ ],
+ "used_in": [
+  "kv-store",
+  "consensus-chain",
+  "voucher-redemption",
+  "vaccination-booking",
+  "news-feed",
+  "chat"
+ ],
+ "sim": "replica"
+}

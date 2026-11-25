@@ -1,0 +1,656 @@
+{
+ "id": "file-sync",
+ "title": "File sync (Dropbox / Google Drive)",
+ "tagline": "Keep a folder identical on every device, moving only the 4 MB chunks that changed.",
+ "govtech": false,
+ "featured": false,
+ "difficulty": "medium",
+ "summary": "<p>Split the problem in two. <b>Bytes</b>: the client cuts each file into 4 MB chunks named by their SHA-256 hash and uploads only chunks the server has never seen, straight to object storage with <b>presigned URLs</b>. <b>Metadata</b>: a file version is just an ordered list of chunk hashes, committed in a SQL transaction that checks the version it was based on. Other devices hear 'something changed' through a <b>long-poll</b>, ask for changes since their cursor, and download only the chunks they lack. Conflicts are not merged: the loser becomes a <i>conflicted copy</i>.</p>",
+ "requirements": {
+  "functional": [
+   "A folder stays in sync across a user's laptop, phone and the web",
+   "Upload and download files of any size; resume after a dropped connection",
+   "Edits made offline sync when the device reconnects",
+   "Version history: restore any version from the last 30 days",
+   "Two devices editing the same file never silently lose either edit"
+  ],
+  "nonfunctional": [
+   "Never lose or corrupt a file (object storage gives ~11 nines durability; you must not break it with bad metadata)",
+   "A change shows up on other online devices within a few seconds",
+   "Move as few bytes as possible: a 1-byte edit to a 1 GB file must not re-upload 1 GB",
+   "Scale to hundreds of petabytes and tens of millions of devices"
+  ],
+  "out_of_scope": [
+   "Sharing links and permission models",
+   "Real-time co-editing (that is a Google Docs design, with OT/CRDTs)",
+   "Full-text search and previews"
+  ]
+ },
+ "estimates": [
+  {
+   "label": "Users / daily active",
+   "calc": "assumption",
+   "value": "50M / 10M"
+  },
+  {
+   "label": "Commits per second",
+   "calc": "10M × 5 file changes/day ÷ 86,400 s (peak ×3)",
+   "value": "~580/s (~1.7k peak)"
+  },
+  {
+   "label": "Upload bandwidth",
+   "calc": "50M changes × ~1 MB of new chunks per day",
+   "value": "~50 TB/day ≈ 4.6 Gbps"
+  },
+  {
+   "label": "Logical storage",
+   "calc": "50M users × 5 GB average",
+   "value": "~250 PB before dedupe"
+  },
+  {
+   "label": "Number of chunks",
+   "calc": "250 PB ÷ 4 MB",
+   "value": "~62B"
+  },
+  {
+   "label": "Chunk index size",
+   "calc": "62B × ~64 B (hash + refcount + state)",
+   "value": "~4 TB, sharded KV"
+  },
+  {
+   "label": "Open long-polls",
+   "calc": "assume 15M devices online at peak",
+   "value": "15M idle requests"
+  }
+ ],
+ "api": [
+  {
+   "method": "POST",
+   "path": "/v1/blocks/check {hashes[]}",
+   "desc": "Returns {missing[], upload_urls{hash: presigned PUT}}."
+  },
+  {
+   "method": "PUT",
+   "path": "<presigned object URL> (4 MB, checksum header)",
+   "desc": "Straight to object storage. Storage rejects bytes whose SHA-256 does not match."
+  },
+  {
+   "method": "POST",
+   "path": "/v1/commit {ns, path, parent_rev, chunks[]}",
+   "desc": "200 {rev} on success; 409 {head_rev} if someone else committed first."
+  },
+  {
+   "method": "GET",
+   "path": "/v1/changes?ns=&cursor=",
+   "desc": "Journal entries after the cursor, paged: {entries[], cursor, has_more}."
+  },
+  {
+   "method": "GET",
+   "path": "/v1/notify?cursor= (long-poll, ~60 s)",
+   "desc": "Returns {changed: true} as soon as the namespace moves past the cursor, else times out."
+  },
+  {
+   "method": "GET",
+   "path": "/v1/blocks/{hash}",
+   "desc": "302 to a short-lived presigned GET (or a CDN URL)."
+  }
+ ],
+ "data": [
+  {
+   "name": "file_versions",
+   "store": "SQL, sharded by namespace",
+   "fields": [
+    "ns_id",
+    "path",
+    "rev",
+    "chunk_hashes[]",
+    "size",
+    "device_id",
+    "deleted",
+    "created_at"
+   ],
+   "note": "A version is a list of hashes, so a new version of a 1 GB file is a few KB of metadata plus the changed chunks."
+  },
+  {
+   "name": "journal",
+   "store": "SQL, same shard",
+   "fields": [
+    "ns_id",
+    "cursor (monotonic)",
+    "path",
+    "rev"
+   ],
+   "note": "Append-only change log per namespace. A device's whole sync state is one number: its cursor."
+  },
+  {
+   "name": "chunk_index",
+   "store": "Sharded KV",
+   "fields": [
+    "sha256 PK",
+    "size",
+    "refcount",
+    "state: pending|present"
+   ],
+   "note": "Answers 'do we have this chunk?' for dedupe, and drives garbage collection when refcount reaches 0."
+  },
+  {
+   "name": "chunks",
+   "store": "Object storage",
+   "fields": [
+    "key: sha256",
+    "value: ≤ 4 MB bytes",
+    "encrypted at rest"
+   ],
+   "note": "Immutable. Same content, same key, so a chunk is never overwritten."
+  }
+ ],
+ "diagram": {
+  "w": 960,
+  "h": 460,
+  "groups": [
+   {
+    "label": "Metadata plane",
+    "x": 440,
+    "y": 56,
+    "w": 476,
+    "h": 236
+   }
+  ],
+  "nodes": [
+   {
+    "id": "laptop",
+    "label": "Laptop",
+    "sub": "watcher + chunker",
+    "kind": "client",
+    "x": 85,
+    "y": 70
+   },
+   {
+    "id": "phone",
+    "label": "Phone",
+    "sub": "second device",
+    "kind": "mobile",
+    "x": 85,
+    "y": 410
+   },
+   {
+    "id": "s3",
+    "label": "Object storage",
+    "sub": "4 MB chunks by hash",
+    "kind": "storage",
+    "x": 92,
+    "y": 240
+   },
+   {
+    "id": "gw",
+    "label": "API gateway",
+    "sub": "auth, routing",
+    "kind": "gateway",
+    "x": 330,
+    "y": 240
+   },
+   {
+    "id": "block",
+    "label": "Block service",
+    "sub": "dedupe, presign",
+    "kind": "service",
+    "x": 540,
+    "y": 110
+   },
+   {
+    "id": "meta",
+    "label": "Metadata service",
+    "sub": "versions, commits",
+    "kind": "service",
+    "x": 540,
+    "y": 250
+   },
+   {
+    "id": "notify",
+    "label": "Notify service",
+    "sub": "long-poll, 1M+ conns",
+    "kind": "ws",
+    "x": 540,
+    "y": 410
+   },
+   {
+    "id": "ci",
+    "label": "Chunk index",
+    "sub": "SHA-256 → refcount",
+    "kind": "nosql",
+    "x": 810,
+    "y": 110
+   },
+   {
+    "id": "db",
+    "label": "Metadata DB",
+    "sub": "SQL, sharded by ns",
+    "kind": "db",
+    "x": 810,
+    "y": 250
+   }
+  ],
+  "edges": [
+   {
+    "id": "l-s3",
+    "from": "laptop",
+    "to": "s3",
+    "label": "PUT chunk"
+   },
+   {
+    "id": "p-s3",
+    "from": "phone",
+    "to": "s3",
+    "label": "GET chunk"
+   },
+   {
+    "id": "l-gw",
+    "from": "laptop",
+    "to": "gw",
+    "label": "commit"
+   },
+   {
+    "id": "p-gw",
+    "from": "phone",
+    "to": "gw",
+    "label": "list changes"
+   },
+   {
+    "id": "p-n",
+    "from": "phone",
+    "to": "notify",
+    "label": "long-poll"
+   },
+   {
+    "id": "gw-b",
+    "from": "gw",
+    "to": "block",
+    "label": "which are new?"
+   },
+   {
+    "id": "gw-m",
+    "from": "gw",
+    "to": "meta"
+   },
+   {
+    "id": "b-ci",
+    "from": "block",
+    "to": "ci",
+    "label": "lookup hashes"
+   },
+   {
+    "id": "b-s3",
+    "from": "block",
+    "to": "s3",
+    "label": "verify"
+   },
+   {
+    "id": "m-ci",
+    "from": "meta",
+    "to": "ci",
+    "label": "refcount++"
+   },
+   {
+    "id": "m-db",
+    "from": "meta",
+    "to": "db",
+    "label": "new version"
+   },
+   {
+    "id": "m-n",
+    "from": "meta",
+    "to": "notify",
+    "label": "ns changed",
+    "dashed": true
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "upload",
+   "name": "Upload a changed file",
+   "desc": "Only the changed chunk moves.",
+   "steps": [
+    {
+     "edge": "l-gw",
+     "note": "You save a 40 MB spreadsheet. The client's file watcher sees it, cuts it into ten <b>4 MB chunks</b> and hashes each with SHA-256. Only chunk 7 differs from rev 17. It sends all ten hashes."
+    },
+    {
+     "edge": "gw-b",
+     "note": "<code>POST /blocks/check</code>: which of these hashes are new to you?"
+    },
+    {
+     "edge": "b-ci",
+     "note": "One batched lookup in the chunk index: 9 known, 1 new. Mark the new one <code>pending</code> and return a <b>presigned PUT URL</b>, valid ~15 min. Signing is a local HMAC; no call to storage."
+    },
+    {
+     "edge": "l-s3",
+     "note": "The client PUTs 4 MB straight to object storage. Your servers never carry file bytes, so they scale with metadata, not bandwidth. A failed chunk is retried alone."
+    },
+    {
+     "edge": "b-s3",
+     "note": "The block service confirms the object exists and its SHA-256 matches (the presigned PUT can require a checksum header). Only then is the chunk <code>present</code>. Never trust a client that says 'uploaded'."
+    },
+    {
+     "edge": "gw-m",
+     "note": "<code>POST /commit {path, parent_rev: 17, chunks[10]}</code>."
+    },
+    {
+     "edge": "m-ci",
+     "note": "Every listed chunk must be present; increment each one's refcount so garbage collection never deletes a chunk a version still uses."
+    },
+    {
+     "edge": "m-db",
+     "note": "One SQL transaction: check the file's head is still rev 17 (optimistic concurrency), insert rev 18 with its chunk list, append a journal row (cursor 9,001). If head moved, return 409: a conflict."
+    },
+    {
+     "edge": "l-gw",
+     "rev": true,
+     "note": "The client stores rev 18 as the base for its next edit. Bytes moved: 4 MB, not 40 MB."
+    }
+   ]
+  },
+  {
+   "id": "sync",
+   "name": "Another device syncs",
+   "desc": "Signal, then pull by cursor.",
+   "steps": [
+    {
+     "edge": "p-n",
+     "note": "The phone holds <code>GET /notify?cursor=9000</code> open for up to ~60 s. Idle long-polls cost almost nothing, so one notify box holds a million. Dropbox's public API has the same shape (<code>list_folder/longpoll</code>)."
+    },
+    {
+     "edge": "m-n",
+     "note": "After the commit, the metadata service publishes 'namespace 42 is at cursor 9,001'. It is only a signal, never file data, so it is tiny and safe to drop."
+    },
+    {
+     "edge": "p-n",
+     "rev": true,
+     "note": "The long-poll returns <code>{changed: true}</code> at once. If the signal were lost, the poll times out and the phone checks anyway: the cursor makes it self-healing."
+    },
+    {
+     "edge": "p-gw",
+     "note": "<code>GET /changes?cursor=9000</code>."
+    },
+    {
+     "edge": "gw-m",
+     "note": "Routed to the metadata service for namespace 42's shard."
+    },
+    {
+     "edge": "m-db",
+     "note": "Read journal rows after 9000: 'spreadsheet.xlsx is now rev 18' with its chunk list. Paged, so a device that was offline for a month catches up in batches."
+    },
+    {
+     "edge": "gw-m",
+     "rev": true,
+     "note": "Return the entries and the new cursor 9,001. The phone compares the chunk list with what it already has: it lacks only chunk 7."
+    },
+    {
+     "edge": "p-s3",
+     "note": "Download 4 MB through a presigned GET or CDN, verify the hash, write to a temp file and atomically rename. Phones often fetch lazily, only when the user opens the file."
+    }
+   ]
+  },
+  {
+   "id": "dedupe",
+   "name": "Dedupe hit",
+   "desc": "A 200 MB upload that moves zero bytes.",
+   "steps": [
+    {
+     "edge": "l-gw",
+     "note": "You copy a 200 MB installer into the folder; 50 chunks, all hashed locally."
+    },
+    {
+     "edge": "gw-b",
+     "note": "Ask which of the 50 hashes are new."
+    },
+    {
+     "edge": "b-ci",
+     "note": "All 50 are already <code>present</code> (you uploaded the same file last month, in another folder). Nothing to upload."
+    },
+    {
+     "edge": "gw-m",
+     "note": "Commit immediately with the 50 hashes."
+    },
+    {
+     "edge": "m-ci",
+     "note": "Refcount +1 on each of the 50 chunks."
+    },
+    {
+     "edge": "m-db",
+     "note": "Insert the new file version pointing at existing chunks. The 'upload' finishes in under a second."
+    },
+    {
+     "edge": "m-n",
+     "note": "Other devices are notified as usual; they may already have those chunks locally too."
+    }
+   ]
+  }
+ ],
+ "deep": [
+  {
+   "title": "Why 4 MB chunks, named by hash",
+   "html": "<ul><li><b>Resume</b>: a dropped connection loses at most one chunk, not a 5 GB upload.</li><li><b>Parallel</b>: upload 4-8 chunks at once to fill the pipe.</li><li><b>Delta</b>: an edit re-uploads only the chunks whose hash changed.</li><li><b>Dedupe</b>: the hash is the name, so identical content is stored once.</li></ul><p>Fixed-size chunks have one weakness: insert one byte at the start of a file and every chunk boundary shifts, so every hash changes. <b>Content-defined chunking</b> (a rolling hash such as Rabin cuts where the content matches a pattern) keeps most boundaries in place. Use fixed 4 MB for simplicity and mention CDC as the upgrade. Smaller chunks dedupe better but mean more metadata: 62B chunks at 4 MB would be 250B at 1 MB.</p>"
+  },
+  {
+   "title": "Conflicts: compare-and-set on the parent revision",
+   "html": "<p>Every commit says which revision it was based on. The database accepts it only if that is still the head, in one transaction. The second writer gets <b>409</b>. Its client does not merge (you cannot merge two edits of a spreadsheet blindly); it saves its version as <code>report (Bob's conflicted copy 2026-11-19).xlsx</code> and syncs that as a new file. Nothing is lost, and the person decides. Last-writer-wins would be simpler and would silently drop someone's work.</p>",
+   "diagram": {
+    "w": 960,
+    "h": 300,
+    "nodes": [
+     {
+      "id": "a",
+      "label": "Laptop",
+      "sub": "edits rev 17 offline",
+      "kind": "client",
+      "x": 100,
+      "y": 70
+     },
+     {
+      "id": "b",
+      "label": "Phone",
+      "sub": "edits rev 17 offline",
+      "kind": "mobile",
+      "x": 100,
+      "y": 230
+     },
+     {
+      "id": "m",
+      "label": "Metadata service",
+      "sub": "commit = compare-and-set",
+      "kind": "service",
+      "x": 470,
+      "y": 150
+     },
+     {
+      "id": "d",
+      "label": "Metadata DB",
+      "sub": "head of file: rev 17",
+      "kind": "db",
+      "x": 820,
+      "y": 150
+     }
+    ],
+    "edges": [
+     {
+      "id": "a-m",
+      "from": "a",
+      "to": "m",
+      "label": "parent_rev 17"
+     },
+     {
+      "id": "b-m",
+      "from": "b",
+      "to": "m",
+      "label": "parent_rev 17"
+     },
+     {
+      "id": "m-d",
+      "from": "m",
+      "to": "d",
+      "label": "UPDATE if rev = 17"
+     }
+    ]
+   },
+   "flows": [
+    {
+     "id": "race",
+     "name": "Two offline edits",
+     "steps": [
+      {
+       "edge": "a-m",
+       "note": "The laptop reconnects first and commits with <code>parent_rev 17</code>."
+      },
+      {
+       "edge": "m-d",
+       "note": "Head is 17, so the update succeeds: head becomes rev 18."
+      },
+      {
+       "edge": "a-m",
+       "rev": true,
+       "note": "Laptop gets 200 rev 18."
+      },
+      {
+       "edge": "b-m",
+       "note": "The phone commits its own edit, also based on 17."
+      },
+      {
+       "edge": "m-d",
+       "note": "<code>WHERE rev = 17</code> matches zero rows: head is already 18."
+      },
+      {
+       "edge": "b-m",
+       "rev": true,
+       "note": "409. The phone renames its version to a conflicted copy, commits that as a new file, then downloads rev 18. Both edits survive."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Dedupe scope and garbage collection",
+   "html": "<p><b>Cross-user dedupe</b> saves the most storage, but leaks information: if your 'upload' finishes instantly, you learn someone else already has that exact file. Many services dedupe only within a user or team, and dedupe is impossible across users if files are end-to-end encrypted with per-user keys.</p><p><b>Garbage collection</b>: deleting a file only writes a new version. After the 30-day history window, an async job drops old versions and decrements chunk refcounts. A chunk at refcount 0 is deleted only after a grace period, because a client may be committing a version that reuses it right now.</p>"
+  },
+  {
+   "title": "Notifications at scale",
+   "html": "<p>Long-poll works through every corporate proxy and needs no special infrastructure; a WebSocket saves a reconnect per change. Either way, send only <i>'namespace N changed'</i>, never data, and let the device pull by cursor. The hard case is a team folder shared by 10,000 devices: one commit wakes all of them at once. Add 0-5 s of random jitter before they fetch, and cache the journal tail so 10,000 identical reads hit memory, not the database.</p>"
+  }
+ ],
+ "tradeoffs": [
+  {
+   "choice": "Send bytes through your servers or presigned URLs?",
+   "pick": "Presigned URLs to object storage",
+   "why": "At ~50 TB/day your app tier would be a bandwidth business. Presigned URLs let storage carry the bytes while your servers only sign and verify."
+  },
+  {
+   "choice": "Fixed or content-defined chunks?",
+   "pick": "Fixed 4 MB to start",
+   "why": "Simple and good for most edits that rewrite in place. CDC is better for inserts in big files and costs more CPU on the client."
+  },
+  {
+   "choice": "Conflict policy",
+   "pick": "Conflicted copy",
+   "why": "Binary files cannot be merged safely and last-writer-wins loses work silently. A visible extra file is annoying but never destructive."
+  },
+  {
+   "choice": "Where does metadata live?",
+   "pick": "SQL, sharded by namespace",
+   "why": "A commit must check the head revision, insert a version and append to the journal atomically. One namespace per shard keeps that a single-shard transaction."
+  },
+  {
+   "choice": "Long-poll or WebSocket for change signals?",
+   "pick": "Long-poll",
+   "why": "Works everywhere, stateless to load-balance, and changes are infrequent per device. Switch to WebSocket if you add live collaboration."
+  }
+ ],
+ "bottlenecks": [
+  {
+   "issue": "A 10,000-device team folder: one change triggers 10,000 fetches",
+   "fix": "Jitter the fetch, cache the journal tail in memory, and page the changes response."
+  },
+  {
+   "issue": "A new laptop syncs a 500,000-file account",
+   "fix": "Page the journal from cursor 0, download metadata first and file contents lazily or by priority (recent and small files first)."
+  },
+  {
+   "issue": "One huge namespace outgrows its shard",
+   "fix": "Give very large namespaces a dedicated shard; the journal cursor stays per namespace, so devices do not notice."
+  }
+ ],
+ "followups": [
+  {
+   "q": "How do you restore a file deleted two weeks ago?",
+   "a": "<p>Deleting wrote a new version with <code>deleted = true</code>. The old version row still lists its chunk hashes, and their refcounts kept the chunks alive. Restore = commit a new version with that old chunk list.</p>"
+  },
+  {
+   "q": "How do you upload a 50 GB video over a flaky connection?",
+   "a": "<p>12,500 chunks, uploaded 4-8 in parallel, each retried on its own. Progress is just 'which hashes are present', so after a crash the client asks <code>/blocks/check</code> again and continues. Commit once at the end.</p>"
+  },
+  {
+   "q": "Someone inserts one byte at the start of a 1 GB file. What happens?",
+   "a": "<p>With fixed chunks, every boundary shifts and all 250 chunks re-upload. Content-defined chunking cuts at content patterns, so only the first chunk changes. That is the main argument for CDC.</p>"
+  },
+  {
+   "q": "How do you keep chunks safe from other users?",
+   "a": "<p>Chunks are only reachable through short-lived presigned URLs, which the server signs only for chunks in versions you can read. Storage is encrypted at rest, and the block service must check access before handing out a GET URL.</p>"
+  }
+ ],
+ "quiz": [
+  {
+   "q": "Why upload chunks with presigned URLs instead of through the API servers?",
+   "options": [
+    "Presigned URLs are encrypted and the API isn't",
+    "Object storage carries the bytes, so the API tier only handles small metadata requests",
+    "It avoids needing a database",
+    "It makes dedupe possible"
+   ],
+   "answer": 1,
+   "why": "At tens of TB a day, keeping bytes off the app tier is what lets it scale."
+  },
+  {
+   "q": "Two devices both commit edits based on rev 17. What does the second one get?",
+   "options": [
+    "Its edit silently overwrites the first",
+    "A 409, and its client saves a conflicted copy",
+    "A merged file",
+    "Nothing; it is queued forever"
+   ],
+   "answer": 1,
+   "why": "Compare-and-set on the parent revision detects the conflict; the conflicted copy keeps both edits."
+  },
+  {
+   "q": "What is a device's entire sync state on the server side?",
+   "options": [
+    "A full list of its files",
+    "Its cursor into the namespace's change journal",
+    "Its IP address",
+    "A WebSocket"
+   ],
+   "answer": 1,
+   "why": "Ask for 'changes after cursor N' and you get everything you missed, in order."
+  },
+  {
+   "q": "Why must garbage collection wait before deleting a chunk whose refcount hit 0?",
+   "options": [
+    "Object storage deletes are slow",
+    "A client may be committing a new version that reuses that chunk right now",
+    "Refcounts are always wrong",
+    "To save money"
+   ],
+   "answer": 1,
+   "why": "Dedupe means a chunk can gain a new reference at any moment; the grace period closes that race."
+  },
+  {
+   "q": "Which change makes fixed-size chunking re-upload almost the whole file?",
+   "options": [
+    "Appending bytes at the end",
+    "Inserting bytes near the start",
+    "Renaming the file",
+    "Changing one byte in the middle"
+   ],
+   "answer": 1,
+   "why": "An insert shifts every later chunk boundary. Content-defined chunking avoids this."
+  }
+ ]
+}

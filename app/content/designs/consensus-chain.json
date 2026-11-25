@@ -1,0 +1,762 @@
+{
+ "id": "consensus-chain",
+ "title": "Chain of consensus (replicated ledger)",
+ "tagline": "N nodes agree on one ordered, tamper-evident log of transactions, and keep working when some of them die.",
+ "govtech": true,
+ "govtech_label": "Reported at GovTech",
+ "featured": true,
+ "difficulty": "hard",
+ "govtech_note": "<p>A 2026 GovTech interview account reports the system design prompt as one line: <b>\"Design a chain of consensus system\"</b> (the same process had the Roving on Mars live-coding round). No spec was given, so the first 5 minutes are yours to shape it. Ask:</p><ul><li><b>Crash or Byzantine faults?</b> Are the nodes run by one team (machines can crash, nobody lies) or by parties that do not trust each other (a node may lie)? This picks Raft (2f+1 nodes) or a BFT protocol (3f+1 nodes).</li><li><b>Who are the participants?</b> A handful of known agencies (permissioned) or anyone (public)? Known members means no mining and instant finality.</li><li><b>Throughput and latency?</b> Hundreds or tens of thousands of transactions a second? One data centre or several regions?</li><li><b>What is on the chain?</b> Opaque records (audit log, certificates, land titles) or a state machine with rules (balances)?</li></ul><p>State your interpretation out loud: \"I'll design a permissioned, replicated, append-only ledger with Raft and a hash chain, then say what changes if nodes can be malicious.\"</p>",
+ "summary": "<p>Two separate problems hide in the prompt. <b>Agreement</b>: five nodes must append the same transactions in the same order even when two of them crash. A leader-based protocol (Raft) solves this: the leader appends, replicates to followers, and an entry is <b>committed once a majority (3 of 5) has it on disk</b>. <b>Tamper evidence</b>: committed transactions are sealed into blocks where each block stores the hash of the previous one, so editing any old record changes every hash after it. Raft assumes nodes crash but never lie; if participants are mutually distrusting, you need a BFT protocol (PBFT, Tendermint) with 3f+1 nodes and signed votes.</p>",
+ "requirements": {
+  "functional": [
+   "Clients submit signed transactions; the system returns once the transaction is committed",
+   "Every node holds the same transactions in the same order",
+   "Transactions are grouped into blocks; each block links to the hash of the previous block",
+   "Anyone with read access can fetch blocks and verify the chain end to end",
+   "Subscribers get committed blocks as a stream"
+  ],
+  "nonfunctional": [
+   "Safety first: a committed transaction is never lost or reordered, even across leader changes",
+   "Tolerate f = 2 crashed nodes out of 5 with no data loss",
+   "Commit latency p99 under ~50 ms in one region; ~2,000 tx/s peak",
+   "Tamper evident: changing history must be detectable by an outside auditor",
+   "Recovers on its own: a restarted node catches up without manual repair"
+  ],
+  "out_of_scope": [
+   "Smart contracts and a token or currency",
+   "Public, permissionless membership (proof of work or stake)",
+   "Cross-chain bridges"
+  ]
+ },
+ "estimates": [
+  {
+   "label": "Peak write rate",
+   "calc": "assume 2,000 tx/s across all agencies",
+   "value": "2k tx/s"
+  },
+  {
+   "label": "Leader ingress",
+   "calc": "2,000 × 1 KB per tx",
+   "value": "~2 MB/s"
+  },
+  {
+   "label": "Leader egress",
+   "calc": "2 MB/s × 4 followers",
+   "value": "~8 MB/s (64 Mbps)"
+  },
+  {
+   "label": "Block size at 200 ms batching",
+   "calc": "2,000 × 0.2 s = 400 tx × 1 KB",
+   "value": "~400 KB/block"
+  },
+  {
+   "label": "Ledger growth per node",
+   "calc": "200 tx/s avg × 1 KB × 86,400 × 365",
+   "value": "~6.3 TB/year"
+  },
+  {
+   "label": "Commit latency (one region)",
+   "calc": "1 RTT to fastest 2 followers (~1 ms) + fsync (~2 ms) + batch wait",
+   "value": "~5-10 ms"
+  },
+  {
+   "label": "Nodes needed for f = 2",
+   "calc": "crash: 2f+1 = 5; Byzantine: 3f+1 = 7",
+   "value": "5 or 7"
+  }
+ ],
+ "api": [
+  {
+   "method": "POST",
+   "path": "/v1/tx {payload, client_id, nonce, sig}",
+   "desc": "Returns {tx_id, index, block_height} after commit. Same (client_id, nonce) twice returns the original result, not a second entry."
+  },
+  {
+   "method": "GET",
+   "path": "/v1/tx/{tx_id}",
+   "desc": "Status (pending, committed) plus block height and a Merkle inclusion proof."
+  },
+  {
+   "method": "GET",
+   "path": "/v1/blocks?from={h}&limit=100",
+   "desc": "Block headers and bodies: height, prev_hash, merkle_root, hash, leader signature."
+  },
+  {
+   "method": "GET",
+   "path": "/v1/head",
+   "desc": "Latest committed height and hash, signed. Auditors publish or pin this."
+  },
+  {
+   "method": "WS",
+   "path": "/v1/blocks/stream",
+   "desc": "Push each committed block to subscribers."
+  },
+  {
+   "method": "POST",
+   "path": "/raft/append, /raft/vote (internal)",
+   "desc": "AppendEntries and RequestVote RPCs between nodes over mTLS. Never exposed to clients."
+  }
+ ],
+ "data": [
+  {
+   "name": "raft_log",
+   "store": "Local disk per node (RocksDB or a segment file)",
+   "fields": [
+    "index (monotonic)",
+    "term",
+    "entry: tx batch",
+    "crc32"
+   ],
+   "note": "Append-only. A node fsyncs an entry before it acks. Old prefixes are compacted after a snapshot."
+  },
+  {
+   "name": "raft_meta",
+   "store": "Local disk per node",
+   "fields": [
+    "current_term",
+    "voted_for"
+   ],
+   "note": "Must be persisted before answering a vote, or a restarted node could vote twice in one term."
+  },
+  {
+   "name": "blocks",
+   "store": "Per-node ledger (RocksDB or PostgreSQL)",
+   "fields": [
+    "height PK",
+    "prev_hash",
+    "merkle_root",
+    "tx_ids[]",
+    "hash = SHA-256(header)",
+    "leader_sig"
+   ],
+   "note": "Built deterministically by the state machine from committed entries, so every node produces the same hashes."
+  },
+  {
+   "name": "tx_index",
+   "store": "Per-node ledger",
+   "fields": [
+    "tx_id PK",
+    "block_height",
+    "client_id + nonce (unique)"
+   ],
+   "note": "Dedupes client retries after a leader change."
+  },
+  {
+   "name": "snapshots",
+   "store": "Object storage",
+   "fields": [
+    "last_included_index",
+    "last_included_term",
+    "state blob"
+   ],
+   "note": "Lets a node that is far behind install state in one go instead of replaying millions of entries."
+  }
+ ],
+ "diagram": {
+  "w": 960,
+  "h": 500,
+  "groups": [
+   {
+    "label": "Raft cluster: 5 nodes, majority = 3",
+    "x": 420,
+    "y": 10,
+    "w": 445,
+    "h": 356
+   }
+  ],
+  "nodes": [
+   {
+    "id": "client",
+    "label": "Agency client",
+    "sub": "signs each tx",
+    "kind": "client",
+    "x": 80,
+    "y": 110
+   },
+   {
+    "id": "gw",
+    "label": "Gateway",
+    "sub": "routes to leader",
+    "kind": "gateway",
+    "x": 300,
+    "y": 110
+   },
+   {
+    "id": "a",
+    "label": "Node A (leader)",
+    "sub": "term 7",
+    "kind": "service",
+    "x": 535,
+    "y": 190
+   },
+   {
+    "id": "b",
+    "label": "Node B",
+    "sub": "follower",
+    "kind": "service",
+    "x": 770,
+    "y": 48
+   },
+   {
+    "id": "c",
+    "label": "Node C",
+    "sub": "follower",
+    "kind": "service",
+    "x": 770,
+    "y": 140
+   },
+   {
+    "id": "d",
+    "label": "Node D",
+    "sub": "follower",
+    "kind": "service",
+    "x": 770,
+    "y": 232
+   },
+   {
+    "id": "e",
+    "label": "Node E",
+    "sub": "follower, lagging",
+    "kind": "service",
+    "x": 770,
+    "y": 324
+   },
+   {
+    "id": "log",
+    "label": "Log + ledger",
+    "sub": "fsync per batch",
+    "kind": "db",
+    "x": 535,
+    "y": 324
+   },
+   {
+    "id": "stream",
+    "label": "Block stream",
+    "sub": "committed blocks",
+    "kind": "stream",
+    "x": 290,
+    "y": 324
+   },
+   {
+    "id": "auditor",
+    "label": "Auditor",
+    "sub": "re-hashes the chain",
+    "kind": "user",
+    "x": 95,
+    "y": 450
+   },
+   {
+    "id": "query",
+    "label": "Read API",
+    "sub": "follower reads",
+    "kind": "service",
+    "x": 350,
+    "y": 450
+   }
+  ],
+  "edges": [
+   {
+    "id": "c-gw",
+    "from": "client",
+    "to": "gw",
+    "label": "submit"
+   },
+   {
+    "id": "gw-a",
+    "from": "gw",
+    "to": "a",
+    "label": "leader"
+   },
+   {
+    "id": "gw-b",
+    "from": "gw",
+    "to": "b",
+    "label": "after failover"
+   },
+   {
+    "id": "a-b",
+    "from": "a",
+    "to": "b",
+    "label": "AppendEntries"
+   },
+   {
+    "id": "a-c",
+    "from": "a",
+    "to": "c"
+   },
+   {
+    "id": "a-d",
+    "from": "a",
+    "to": "d"
+   },
+   {
+    "id": "a-e",
+    "from": "a",
+    "to": "e",
+    "label": "resend from 950"
+   },
+   {
+    "id": "b-c",
+    "from": "b",
+    "to": "c",
+    "label": "RequestVote",
+    "bi": true
+   },
+   {
+    "id": "b-d",
+    "from": "b",
+    "to": "d",
+    "label": "vote",
+    "curve": 70,
+    "bi": true
+   },
+   {
+    "id": "a-log",
+    "from": "a",
+    "to": "log",
+    "label": "apply committed"
+   },
+   {
+    "id": "l-s",
+    "from": "log",
+    "to": "stream",
+    "label": "new block",
+    "dashed": true
+   },
+   {
+    "id": "au-q",
+    "from": "auditor",
+    "to": "query",
+    "label": "GET /blocks"
+   },
+   {
+    "id": "q-e",
+    "from": "query",
+    "to": "e",
+    "label": "read ledger"
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "commit",
+   "name": "Commit a write",
+   "desc": "The normal case: one round trip to a majority.",
+   "steps": [
+    {
+     "edge": "c-gw",
+     "note": "Agency client sends a transaction signed with its own key, plus <code>(client_id, nonce)</code> so a retry can be recognised later."
+    },
+    {
+     "edge": "gw-a",
+     "note": "Gateway forwards to the current leader. Followers that receive a write just reply with the leader's address, so any node can be the entry point."
+    },
+    {
+     "node": "a",
+     "note": "Leader appends entry <b>index 1001, term 7</b> to its own log and fsyncs. It batches: every few ms all waiting transactions go in one entry, so one fsync covers hundreds of them."
+    },
+    {
+     "edge": "a-b",
+     "note": "AppendEntries to all four followers in parallel. Each carries <code>prevIndex=1000, prevTerm=7</code>; a follower only accepts if its log matches at 1000, which keeps all logs identical."
+    },
+    {
+     "edge": "a-c",
+     "note": "Same entry to C (and D, E). B and C fsync and ack first. With the leader's own copy that is <b>3 of 5</b>, a majority, so index 1001 is <b>committed</b>. The leader does not wait for D and E."
+    },
+    {
+     "edge": "a-d",
+     "note": "D acks a few ms later and E is still catching up. Their acks no longer matter for this entry: waiting only for the <b>fastest majority</b> is why one slow node does not slow commits."
+    },
+    {
+     "edge": "a-log",
+     "note": "Leader applies 1001 to its state machine: verify signatures, dedupe by nonce, add to the open block. Every 200 ms it seals a block: <code>hash = SHA-256(height, prev_hash, merkle_root)</code>."
+    },
+    {
+     "edge": "l-s",
+     "note": "The sealed block is published to subscribers (agency systems that react to new records). Followers learn the new commit index in the next AppendEntries and apply the same entries, producing the same block hash."
+    },
+    {
+     "edge": "c-gw",
+     "rev": true,
+     "note": "Client gets <code>{tx_id, index 1001, block 5123}</code>. Total about 5-10 ms in one region: one network round trip plus one fsync."
+    }
+   ]
+  },
+  {
+   "id": "election",
+   "name": "Leader crashes: election",
+   "desc": "Failover in roughly a second, no committed data lost.",
+   "steps": [
+    {
+     "node": "a",
+     "note": "Leader A crashes. Followers stop receiving heartbeats, which A sent every 50 ms."
+    },
+    {
+     "node": "b",
+     "note": "B's randomised election timeout (150-300 ms) fires first. B increments to <b>term 8</b>, votes for itself and persists that before asking anyone. Random timeouts stop all followers starting elections at once and splitting the vote."
+    },
+    {
+     "edge": "b-c",
+     "note": "B sends RequestVote(term 8, lastIndex 1001, lastTerm 7). C grants the vote only if B's log is <b>at least as up to date</b> as its own. That rule guarantees the new leader already holds every committed entry."
+    },
+    {
+     "edge": "b-d",
+     "note": "D also votes yes. B has 3 of 5 votes (itself, C, D) and becomes leader for term 8. A node votes once per term, so two leaders in one term are impossible."
+    },
+    {
+     "node": "e",
+     "note": "E is behind (last index 950). Had E timed out first, nobody with a newer log would vote for it, and the election would simply retry."
+    },
+    {
+     "edge": "gw-b",
+     "note": "Gateway learns the new leader (a node redirects it, or it watches a leader key) and routes writes to B. Clients whose request timed out retry with the same nonce; the dedupe index stops a double entry."
+    }
+   ]
+  },
+  {
+   "id": "partition",
+   "name": "Partition and catch-up",
+   "desc": "The minority side cannot commit; a lagging node repairs itself.",
+   "steps": [
+    {
+     "node": "a",
+     "note": "A network split leaves leader A with only B on its side. C, D and E are on the other side."
+    },
+    {
+     "edge": "a-b",
+     "note": "A keeps accepting writes and replicates to B, but 2 of 5 is not a majority. The entries stay <b>uncommitted</b> and clients time out. This is the CP choice: refuse writes rather than fork the ledger."
+    },
+    {
+     "node": "c",
+     "note": "Meanwhile C, D, E (3 of 5) elect C as leader in term 8 and keep committing. Only one side can ever hold a majority."
+    },
+    {
+     "node": "b",
+     "note": "When the network heals, A and B see term 8 is higher than their term 7. A steps down. Their uncommitted term-7 entries conflict with C's log and are overwritten. No client was ever told those succeeded."
+    },
+    {
+     "edge": "a-e",
+     "note": "Catch-up: a follower rejects AppendEntries when its log does not match at <code>prevIndex</code>. The leader steps <code>nextIndex</code> back (or jumps using the follower's hint) until they match at 950, then streams everything after it."
+    },
+    {
+     "node": "e",
+     "note": "If E is so far behind that the leader already compacted those entries, the leader sends a <b>snapshot</b> (InstallSnapshot) instead, then resumes normal appends."
+    }
+   ]
+  },
+  {
+   "id": "verify",
+   "name": "Verify the chain",
+   "desc": "How an outsider checks nothing was edited.",
+   "steps": [
+    {
+     "edge": "au-q",
+     "note": "Auditor asks for blocks from height 0 (or from its last verified checkpoint)."
+    },
+    {
+     "edge": "q-e",
+     "note": "Reads can come from any follower: the chain is immutable, so a slightly stale follower is fine for history. For \"what is the latest head\" use the leader or a ReadIndex read."
+    },
+    {
+     "edge": "q-e",
+     "rev": true,
+     "note": "Follower returns block headers, transactions and the signed head <code>{height, hash, sig}</code>."
+    },
+    {
+     "edge": "au-q",
+     "rev": true,
+     "note": "Read API passes them through. It cannot forge anything: the auditor checks every hash and signature itself."
+    },
+    {
+     "node": "auditor",
+     "note": "For each block: recompute the Merkle root from its transactions, then <code>SHA-256(header)</code>, and check it equals the next block's <code>prev_hash</code>. Editing one old record breaks every hash after it."
+    },
+    {
+     "node": "auditor",
+     "note": "Compare the final hash with a head hash published elsewhere (signed by several agencies, or posted daily). Without that outside anchor, an operator could rewrite the whole chain and recompute every hash."
+    }
+   ]
+  }
+ ],
+ "deep": [
+  {
+   "title": "Raft log replication, step by step",
+   "html": "<p>Raft keeps one rule: <b>the leader's log is the truth, and an entry is safe once a majority stores it</b>. Two checks make logs converge:</p><ul><li><b>Consistency check.</b> Each AppendEntries names the entry just before the new ones (<code>prevIndex, prevTerm</code>). A follower rejects if it does not hold that exact entry, so logs that match at one index match at every earlier index.</li><li><b>Commit rule.</b> The leader advances <code>commitIndex</code> when a majority holds an entry from its <b>current term</b>. It then tells followers through <code>leaderCommit</code> on the next message, and every node applies entries up to that index in order.</li></ul><p>With 3 nodes, majority is 2, so the leader needs one follower ack. Throughput comes from <b>batching</b> (many transactions per entry) and <b>pipelining</b> (sending entry 43 before 42 is acked).</p>",
+   "diagram": {
+    "w": 960,
+    "h": 400,
+    "nodes": [
+     {
+      "id": "cl",
+      "label": "Client",
+      "sub": "tx #42",
+      "kind": "client",
+      "x": 95,
+      "y": 200
+     },
+     {
+      "id": "ld",
+      "label": "Leader",
+      "sub": "log ..41, 42 (new)",
+      "kind": "service",
+      "x": 320,
+      "y": 200
+     },
+     {
+      "id": "wal",
+      "label": "Leader disk",
+      "sub": "append + fsync",
+      "kind": "db",
+      "x": 320,
+      "y": 70
+     },
+     {
+      "id": "f1",
+      "label": "Follower 1",
+      "sub": "log ..41",
+      "kind": "service",
+      "x": 620,
+      "y": 110
+     },
+     {
+      "id": "f2",
+      "label": "Follower 2",
+      "sub": "log ..39 (behind)",
+      "kind": "service",
+      "x": 620,
+      "y": 290
+     },
+     {
+      "id": "sm",
+      "label": "State machine",
+      "sub": "seal block, hash",
+      "kind": "db",
+      "x": 320,
+      "y": 330
+     }
+    ],
+    "edges": [
+     {
+      "id": "cl-ld",
+      "from": "cl",
+      "to": "ld",
+      "label": "submit"
+     },
+     {
+      "id": "ld-wal",
+      "from": "ld",
+      "to": "wal",
+      "label": "append 42"
+     },
+     {
+      "id": "ld-f1",
+      "from": "ld",
+      "to": "f1",
+      "label": "prev=41, [42]"
+     },
+     {
+      "id": "ld-f2",
+      "from": "ld",
+      "to": "f2",
+      "label": "prev=41, [42]"
+     },
+     {
+      "id": "ld-sm",
+      "from": "ld",
+      "to": "sm",
+      "label": "apply up to 42"
+     }
+    ]
+   },
+   "flows": [
+    {
+     "id": "rep",
+     "name": "Replicate and commit #42",
+     "steps": [
+      {
+       "edge": "cl-ld",
+       "note": "Client sends the transaction to the leader."
+      },
+      {
+       "edge": "ld-wal",
+       "note": "Leader appends index 42 (term 7) to its own log and fsyncs. Its copy counts toward the majority."
+      },
+      {
+       "edge": "ld-f1",
+       "note": "AppendEntries(prevIndex 41, prevTerm 7, entries [42], leaderCommit 41) to Follower 1. It holds 41 in term 7, so it appends 42, fsyncs and replies success."
+      },
+      {
+       "edge": "ld-f1",
+       "rev": true,
+       "note": "Ack. Leader + Follower 1 = 2 of 3: <b>42 is committed</b>. The leader does not wait for Follower 2."
+      },
+      {
+       "edge": "ld-sm",
+       "note": "Leader applies 42 to its state machine and answers the client. On the next heartbeat <code>leaderCommit=42</code> tells followers to apply it too."
+      }
+     ]
+    },
+    {
+     "id": "repair",
+     "name": "Repair a lagging follower",
+     "steps": [
+      {
+       "edge": "ld-f2",
+       "note": "Same AppendEntries to Follower 2, which only has up to 39."
+      },
+      {
+       "edge": "ld-f2",
+       "rev": true,
+       "note": "Rejected: no entry at index 41. The reply includes its last index (39) as a hint."
+      },
+      {
+       "node": "ld",
+       "note": "Leader sets <code>nextIndex[f2] = 40</code> and resends with <code>prevIndex 39</code> and entries [40, 41, 42]."
+      },
+      {
+       "edge": "ld-f2",
+       "note": "Now the check passes. Follower 2 appends 40-42 and is identical to the leader again. If an entry had conflicted, the follower would have deleted it and everything after it."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Why a hash chain on top of Raft?",
+   "html": "<p>Raft gives <b>agreement</b>: all nodes hold the same order. It says nothing about someone with database access editing a row next year. The hash chain gives <b>tamper evidence</b>: block <i>n</i> stores <code>SHA-256</code> of block <i>n-1</i>'s header, and the header holds a <b>Merkle root</b> of its transactions.</p><ul><li>Change one transaction and its block's Merkle root changes, so its hash changes, so the next block's <code>prev_hash</code> no longer matches.</li><li>A Merkle tree lets you prove one transaction is in a block with about log2(400) ≈ 9 hashes, not the whole block.</li><li>A chain only detects tampering if the head hash is anchored outside the operator's control: signed by several agencies, published daily, or held by auditors.</li></ul><p>Blocks must be built <b>deterministically</b> from committed entries (no local clocks or random IDs inside the hashed part), or nodes produce different hashes for the same data.</p>"
+  },
+  {
+   "title": "When you need BFT instead",
+   "html": "<p>Raft tolerates <b>crashes</b>: a node stops or is slow. It does not tolerate a node that <b>lies</b>, for example a leader sending different entries to different followers. If participants are separate organisations that do not trust each other's servers, use a Byzantine fault tolerant protocol:</p><ul><li><b>PBFT / Tendermint / HotStuff</b>: need <b>3f+1</b> nodes to survive f liars (7 nodes for f = 2) and a quorum of <b>2f+1</b> signed votes per block.</li><li>Two voting phases (prepare, commit) instead of one, and messages grow with N, so latency is higher and practical clusters stay small (tens of nodes).</li><li>Votes are signed, so a lying node leaves cryptographic evidence.</li></ul><p>A common middle ground for a government consortium: Raft run by one trusted operator, plus hash chain, signed heads and independent auditors. Say the trade-off out loud; the interviewer mostly wants to hear that you know the difference.</p>"
+  },
+  {
+   "title": "Reads, snapshots and growth",
+   "html": "<p><b>Reads.</b> History is immutable, so any follower can serve old blocks. \"What is the latest state\" needs a <b>linearizable</b> read: the leader confirms it is still leader with a heartbeat round (ReadIndex) before answering, or uses a time lease.</p><p><b>Snapshots.</b> The Raft log is only the replication buffer. Once entries are applied into blocks, the node snapshots its state and truncates the log prefix. The ledger itself is never truncated.</p><p><b>Growth.</b> ~6 TB/year per node: keep recent blocks on SSD and move old segments to object storage, verified by hash on read.</p>"
+  }
+ ],
+ "tradeoffs": [
+  {
+   "choice": "Raft (crash faults) or PBFT/Tendermint (Byzantine faults)?",
+   "pick": "Raft, unless participants distrust each other",
+   "why": "Raft needs 2f+1 nodes and one round trip per commit. BFT needs 3f+1 nodes, signed votes and two phases. Pay that cost only when a node might actively lie."
+  },
+  {
+   "choice": "Permissioned consensus or a public blockchain?",
+   "pick": "Permissioned",
+   "why": "Members are known agencies, so there is no need for proof of work. You get immediate finality (committed means final) and thousands of tx/s instead of minutes per block."
+  },
+  {
+   "choice": "How many nodes?",
+   "pick": "5 (odd)",
+   "why": "5 survives 2 failures. 4 nodes also need a majority of 3, so they survive only 1, the same as 3 nodes but with more traffic. Spread across 3 zones so one zone outage cannot take a majority."
+  },
+  {
+   "choice": "Batch size",
+   "pick": "Batch every ~5 ms, seal blocks every 200 ms",
+   "why": "Bigger batches mean fewer fsyncs and higher throughput but more waiting. Separate the replication batch from the block interval so each can be tuned."
+  },
+  {
+   "choice": "Reads from followers or leader?",
+   "pick": "Followers for history, leader (ReadIndex) for latest state",
+   "why": "Follower reads scale out and are safe for immutable blocks; they may be a few ms stale for the head."
+  }
+ ],
+ "bottlenecks": [
+  {
+   "issue": "Every write goes through one leader",
+   "fix": "Batch and pipeline AppendEntries. If one log still is not enough, split into several Raft groups (one per ledger or per agency) and anchor each group's head in a shared chain."
+  },
+  {
+   "issue": "Nodes in different regions add tens of ms per commit",
+   "fix": "Commit needs only the fastest majority: place 3 of 5 nodes within one metro (three zones) and the others further away for disaster recovery."
+  },
+  {
+   "issue": "fsync latency dominates commit time",
+   "fix": "Group commit (one fsync per batch), NVMe disks, and a dedicated log disk."
+  },
+  {
+   "issue": "A slow follower drags memory on the leader",
+   "fix": "Cap the in-flight window per follower; past it, switch the follower to snapshot install."
+  }
+ ],
+ "followups": [
+  {
+   "q": "What happens to a write the leader accepted just before it crashed?",
+   "a": "<p>If it reached a majority, it is committed and the new leader has it (the vote rule guarantees that). If not, it may be lost, but the client was never told it succeeded. The client retries with the same <code>(client_id, nonce)</code> and the dedupe index makes the retry safe whether or not the first attempt survived.</p>"
+  },
+  {
+   "q": "Why not 4 or 6 nodes?",
+   "a": "<p>A majority of 4 is 3, so 4 nodes survive only 1 failure, the same as 3 nodes. A majority of 6 is 4, so 6 survives 2, the same as 5. Even numbers add cost and traffic for no extra fault tolerance.</p>"
+  },
+  {
+   "q": "A malicious insider edits a transaction in one node's database. What happens?",
+   "a": "<p>That node's block hashes no longer match its peers or the published head. Any auditor re-hashing from that node sees the mismatch. Repair by replacing its data from a snapshot of a healthy node. Raft would not have stopped the edit; the hash chain is what makes it visible.</p>"
+  },
+  {
+   "q": "How do you prove to a citizen that their record is on the ledger?",
+   "a": "<p>Return a <b>Merkle inclusion proof</b>: the sibling hashes from the transaction up to the block's Merkle root (about 9 hashes for 400 transactions), plus the block header and a signed head that chains to it.</p>"
+  },
+  {
+   "q": "How do you add a sixth agency as a node?",
+   "a": "<p>Membership change goes through the log itself (Raft joint consensus, or one-node-at-a-time changes) so old and new configurations never both think they have a majority. The new node first catches up as a non-voting learner, then is promoted.</p>"
+  }
+ ],
+ "quiz": [
+  {
+   "q": "A 5-node Raft cluster has 3 nodes down. What happens?",
+   "options": [
+    "It keeps committing with 2 nodes",
+    "It stops committing writes until a majority is back",
+    "It elects two leaders",
+    "It switches to eventual consistency"
+   ],
+   "answer": 1,
+   "why": "Commit needs 3 of 5. With only 2 alive, no entry can reach a majority, so the cluster refuses writes rather than risk divergence."
+  },
+  {
+   "q": "Why does a node refuse to vote for a candidate with a shorter or older log?",
+   "options": [
+    "To save bandwidth",
+    "So the new leader is guaranteed to hold every committed entry",
+    "Because older logs are corrupted",
+    "To make elections faster"
+   ],
+   "answer": 1,
+   "why": "Any committed entry is on a majority; any winning candidate needs votes from a majority; the two majorities overlap, and the overlapping voter refuses a candidate missing the entry."
+  },
+  {
+   "q": "How many nodes does a BFT protocol need to survive 2 malicious nodes?",
+   "options": [
+    "3",
+    "5",
+    "7",
+    "10"
+   ],
+   "answer": 2,
+   "why": "BFT needs n = 3f+1, so 7. Crash-fault Raft needs only 2f+1 = 5 for two crashes."
+  },
+  {
+   "q": "What does the hash chain add that Raft does not?",
+   "options": [
+    "Faster commits",
+    "Leader election",
+    "Detection of later edits to history",
+    "Fewer nodes"
+   ],
+   "answer": 2,
+   "why": "Raft makes nodes agree on order. Hashing each block into the next makes any later change to an old record visible to an auditor."
+  },
+  {
+   "q": "A network partition puts the leader with 1 follower and 3 followers on the other side. Which side can commit?",
+   "options": [
+    "The old leader's side, because it has the leader",
+    "The side with 3 nodes, after electing a new leader",
+    "Both sides, then merge",
+    "Neither"
+   ],
+   "answer": 1,
+   "why": "Only the 3-node side can form a majority. The old leader's writes stay uncommitted and are discarded when it rejoins and sees the higher term."
+  }
+ ]
+}

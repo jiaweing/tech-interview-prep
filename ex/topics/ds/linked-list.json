@@ -1,0 +1,201 @@
+{
+ "id": "linked-list",
+ "track": "ds",
+ "order": 3,
+ "title": "Linked list",
+ "short": "Nodes joined by arrows. Cheap to relink, slow to search.",
+ "what": "A linked list is a chain of nodes. Each node holds a value and an arrow (a reference) to the next node, and the last one points to None. You only keep the first node, called head. To reach anything else you follow the arrows.",
+ "analogy": "A treasure hunt. Each clue tells you where the next clue is. To get to clue 4 you have to read clues 1, 2 and 3.",
+ "viz": {
+  "kind": "list",
+  "frames": [
+   {
+    "nodes": [
+     1,
+     2,
+     3,
+     4
+    ],
+    "ptr": {
+     "head": 0
+    },
+    "say": "Four nodes: 1, 2, 3, 4. Each points to the next, and 4 points to None. All you hold is head, the first node."
+   },
+   {
+    "nodes": [
+     1,
+     2,
+     3,
+     4
+    ],
+    "ptr": {
+     "head": 0,
+     "cur": 2
+    },
+    "hi": [
+     0,
+     1,
+     2
+    ],
+    "say": "There is no index. To reach the 3rd node you follow arrows from head: 1, then 2, then 3. That walk is O(n)."
+   },
+   {
+    "nodes": [
+     1,
+     2,
+     3,
+     4
+    ],
+    "ptr": {
+     "cur": 0
+    },
+    "hi": [
+     0
+    ],
+    "say": "Classic task: reverse the list. Keep prev = None and cur = head, and flip one arrow per step."
+   },
+   {
+    "nodes": [
+     1,
+     2,
+     3,
+     4
+    ],
+    "ptr": {
+     "prev": 0,
+     "cur": 1
+    },
+    "dir": [
+     "x",
+     "f",
+     "f"
+    ],
+    "ok": [
+     0
+    ],
+    "hi": [
+     1
+    ],
+    "say": "Save cur.next first, then point node 1 at prev (None). Move prev to 1 and cur to 2. Node 1 is now the tail."
+   },
+   {
+    "nodes": [
+     1,
+     2,
+     3,
+     4
+    ],
+    "ptr": {
+     "prev": 1,
+     "cur": 2
+    },
+    "dir": [
+     "b",
+     "x",
+     "f"
+    ],
+    "ok": [
+     0,
+     1
+    ],
+    "hi": [
+     2
+    ],
+    "say": "Point 2 back at 1. Move both pointers one step right. Because we saved cur.next, 3 and 4 are not lost."
+   },
+   {
+    "nodes": [
+     1,
+     2,
+     3,
+     4
+    ],
+    "ptr": {
+     "prev": 2,
+     "cur": 3
+    },
+    "dir": [
+     "b",
+     "b",
+     "x"
+    ],
+    "ok": [
+     0,
+     1,
+     2
+    ],
+    "hi": [
+     3
+    ],
+    "say": "Point 3 back at 2, then step again. One arrow left to flip."
+   },
+   {
+    "nodes": [
+     1,
+     2,
+     3,
+     4
+    ],
+    "ptr": {
+     "head": 3
+    },
+    "dir": [
+     "b",
+     "b",
+     "b"
+    ],
+    "ok": [
+     0,
+     1,
+     2,
+     3
+    ],
+    "noNull": true,
+    "out": "4 -> 3 -> 2 -> 1",
+    "say": "Point 4 at 3. cur falls off the end, so prev, node 4, is the new head: 4, 3, 2, 1, None. Each node was touched once."
+   }
+  ]
+ },
+ "when": [
+  "The input is a ListNode head",
+  "Reverse, merge or reorder nodes",
+  "Insert or remove without shifting everything",
+  "Detect a cycle or find the middle"
+ ],
+ "python": "class Node:\n    def __init__(self, val, next=None):\n        self.val, self.next = val, next\ndef show(node):\n    return f\"{node.val} -> {show(node.next)}\" if node else \"None\"\ndef reverse(head):\n    prev = None\n    while head:\n        nxt = head.next      # remember the rest\n        head.next = prev     # flip this arrow\n        prev, head = head, nxt\n    return prev\nhead = Node(1, Node(2, Node(3, Node(4))))\nprint(show(head))\nprint(show(reverse(head)))",
+ "output": "1 -> 2 -> 3 -> 4 -> None\n4 -> 3 -> 2 -> 1 -> None",
+ "cost": [
+  [
+   "Add or remove at the front",
+   "O(1)"
+  ],
+  [
+   "Insert after a node you already hold",
+   "O(1)"
+  ],
+  [
+   "Find a value or the k-th node",
+   "O(n)"
+  ],
+  [
+   "Reverse the whole list",
+   "O(n)"
+  ]
+ ],
+ "watch": [
+  "Save node.next before you overwrite it, or the rest of the list is gone.",
+  "Check for None before reading node.next, or you get AttributeError.",
+  "A dummy node in front of head saves special cases when the head itself changes."
+ ],
+ "interview": [
+  "LC 206 Reverse Linked List",
+  "LC 21 Merge Two Sorted Lists",
+  "LC 141 Linked List Cycle"
+ ],
+ "related": [
+  "array",
+  "fast-slow-pointers",
+  "lru-cache",
+  "deque"
+ ]
+}

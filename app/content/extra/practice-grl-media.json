@@ -1,0 +1,87 @@
+[
+ {
+  "id": "grl-genmedia",
+  "title": "Design a platform that turns a brief into slides, audio and infographics",
+  "source": "govtech",
+  "evidence_tag": "Role-specific practice",
+  "evidence": "<p>This mirrors a product Giant Robots Labs lists publicly (Prism, \"a generative media platform for creating presentations, audio, diagrams, infographics, and other media\"); it is practice, not a reported interview question.</p>",
+  "design": "genmedia",
+  "minutes": 45,
+  "prompt": "<p>\"Public officers spend hours making slide decks, explainer audio and infographics. Design a platform where an officer types a short brief, picks their agency's template, and gets a deck, a narrated version or an infographic back. It should use models from more than one provider. Walk me through how you would build it, and how you would keep it reliable and keep costs under control.\"</p>",
+  "clarify": [
+   {
+    "q": "How many users, and how much do they generate?",
+    "a": "Assume 20,000 active officers; about 2,000 decks a day, 12 slides each, mostly during office hours."
+   },
+   {
+    "q": "How fast must a deck come back?",
+    "a": "The request must be accepted at once; a full deck within about 90 seconds is fine, as long as the officer sees progress."
+   },
+   {
+    "q": "Can officers change one slide after generation?",
+    "a": "Yes. \"Redo slide 3\" and manual edits are expected and must not redo the whole deck."
+   },
+   {
+    "q": "Which models can we use?",
+    "a": "Several external providers for text, images and speech. Assume any one of them can be slow, rate-limited or down."
+   },
+   {
+    "q": "Is there sensitive data in briefs?",
+    "a": "Sometimes. Personal data such as NRIC numbers must not be sent to external models, and nothing is shared until a person approves it."
+   },
+   {
+    "q": "Who pays?",
+    "a": "Each agency has a monthly budget. You must be able to show spend per agency and stop one agency using everyone's capacity."
+   }
+  ],
+  "steps": [
+   {
+    "title": "Requirements",
+    "minutes": "5 min",
+    "ask": "<p>Restate what the platform does and the qualities that matter most.</p>",
+    "model": "<p>Functional: deck, infographic, diagram or narrated audio from a brief and a template; progress while it runs; regenerate or edit one slide; brand applied automatically; human approval before sharing. Non-functional: accept in under ~200 ms, deck in ~90 s, survive one provider failing, per-agency quotas and cost per job, no PII sent out or shared, files only behind short-lived signed URLs.</p>"
+   },
+   {
+    "title": "Estimates",
+    "minutes": "5 min",
+    "ask": "<p>Size the load on the models and on storage.</p>",
+    "model": "<p>2,000 decks ÷ 28,800 s ≈ 0.07/s, ~0.35/s (21/min) at peak. Tokens: ~7k outline + 12 × 2k per slide ≈ 31k per deck, ~62M a day. Images: 21 decks/min × 4 × 10 s ÷ 60 ≈ <b>14 concurrent calls</b>, which is the number to compare with the provider's limit. Storage: ~13 MB per deck ≈ 26 GB/day, ~9.5 TB/year. The model calls, not the servers, are the bottleneck and the cost.</p>"
+   },
+   {
+    "title": "API & data model",
+    "minutes": "7 min",
+    "ask": "<p>What does the API look like when work takes a minute? What do you store?</p>",
+    "model": "<p><code>POST /jobs {type, brief, templateId}</code> with an <code>Idempotency-Key</code> → <b>202 {jobId}</b>; <code>GET /jobs/{id}</code> to poll and <code>GET /jobs/{id}/events</code> for SSE; <code>POST /decks/{id}/slides/{slideId}/regenerate</code>; <code>PATCH /decks/{id}/spec</code> with If-Match; <code>GET /artefacts/{id}</code> → 302 to a signed URL. Tables: <code>jobs</code> (status, agency, tokens, cost), <code>specs</code> (deck_id, version, JSONB, append-only), <code>assets</code> (slide_id, content_hash, s3_key, provider, model), <code>templates</code> (brand tokens, layouts). Redis for the prompt cache and quota buckets.</p>"
+   },
+   {
+    "title": "High-level design",
+    "minutes": "10 min",
+    "ask": "<p>Draw the path from brief to downloadable deck.</p>",
+    "model": "<p>Officer → Jobs API (safety and PII check on the brief, job row) → orchestrator agent asks the LLM, through the <b>gateway</b>, for an outline as <b>JSON matching a schema</b> → validated and saved as spec v1 → one task per asset on queues → image and TTS worker pools call providers through the gateway and write to object storage → a <b>sandboxed renderer</b> builds PPTX, PDF and PNG from spec + template tokens → officer reviews and approves → downloads through the CDN with a signed URL. The gateway routes, retries, falls back, enforces quotas, caches identical prompts and logs tokens per job.</p>"
+   },
+   {
+    "title": "Deep dive",
+    "minutes": "12 min",
+    "ask": "<p>Pick one: partial regeneration, or what happens when a provider fails. Go deep.</p>",
+    "model": "<p><b>Partial regeneration</b>: the spec is the source of truth with stable slide ids. \"Redo slide 3\" sends only that slide plus neighbours (~2k tokens, not 31k), writes spec v5 with <code>WHERE version = 4</code>, and re-renders; the other slides keep assets because their content hashes match. Undo is pointing back at v4.</p><p><b>Provider failure</b>: workers call the gateway by task type, never a vendor. The gateway retries 5xx and timeouts with backoff and jitter inside a time budget, opens a circuit breaker when the error rate passes a threshold, and routes to the next approved provider, recording which model made the asset. Queues absorb the backlog; worker pools are capped below provider limits so a spike queues instead of drawing 429s.</p>"
+   },
+   {
+    "title": "Bottlenecks & trade-offs",
+    "minutes": "6 min",
+    "ask": "<p>What breaks first, and what did you trade away?</p>",
+    "model": "<p>Breaks first: provider rate limits at peak (cap pools, prioritise interactive over bulk, second provider); runaway agent loops (per-job token budget and max steps in the gateway); hung renders (timeout and memory limit per slide). Trade-offs: jobs over synchronous calls (more moving parts, but no timeouts); structured spec over model-written files (less freedom, but editable and on-brand); exact-hash cache over semantic cache (fewer hits, never wrong). Quality is guarded by a regression set of briefs graded against a rubric on every prompt or model change, with human spot checks.</p>"
+   }
+  ],
+  "rubric": [
+   "Turns generation into an async job: 202 with a job id, progress by polling or SSE, idempotent submit",
+   "Has the model produce a schema-validated structured spec, and renders files from it deterministically",
+   "Keeps the spec versioned as the source of truth so one slide can be regenerated or edited alone",
+   "Puts every model call behind a gateway that routes, retries with backoff, and falls back on provider failure",
+   "Enforces per-agency quotas and records token and call cost per job",
+   "Runs image, TTS and render work as separate worker pools on queues, capped below provider limits",
+   "Applies brand through template tokens rather than prompts, and renders in a sandbox with limits",
+   "Checks inputs and outputs for unsafe content and PII, and requires human approval before sharing",
+   "Names a way to measure quality: a regression set graded against a rubric before model or prompt changes"
+  ]
+ }
+]

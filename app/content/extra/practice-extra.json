@@ -1,0 +1,167 @@
+[
+ {
+  "id": "scale-csv-upload",
+  "title": "Scale the CSV upload API to millions of files",
+  "source": "govtech",
+  "evidence_tag": "Reported",
+  "evidence": "<p>The three follow-up questions in the GovTech ACE take-home README (2025, verified from public GitHub submissions of the task): testing beyond unit tests, scaling to millions of files, and handling long-running POST uploads.</p>",
+  "design": "csv-ingest",
+  "minutes": 45,
+  "prompt": "<p>\"Your take-home has <code>POST /upload</code> taking a CSV of NAME,SALARY, all-or-nothing, and <code>GET /users</code> with min, max, offset, limit and sort. Now suppose agencies send you <b>millions of files a day</b>, and some files are around 100 MB. Walk me through how you would change it. How do you handle uploads that take minutes, and how would you test it beyond unit tests?\"</p>",
+  "clarify": [
+   {
+    "q": "How big are files, and how many a day?",
+    "a": "Assume 1M files a day, most around 1,000 rows, the largest around 100 MB (about 4M rows)."
+   },
+   {
+    "q": "Do the take-home rules still hold?",
+    "a": "Yes: any malformed row rejects the whole file, negative salaries are skipped, and a name that already exists is overwritten."
+   },
+   {
+    "q": "Must the client get the result in the same request?",
+    "a": "No. The client can poll or receive a callback, as long as it can see progress and the final result."
+   },
+   {
+    "q": "If two files change the same name, which wins?",
+    "a": "The file that was accepted later should win."
+   },
+   {
+    "q": "How fresh must reads be after an upload finishes?",
+    "a": "A few seconds of lag is fine, but readers must never see half a file."
+   },
+   {
+    "q": "Can we use managed cloud services?",
+    "a": "Yes, assume AWS: S3, SQS and RDS Postgres are all available."
+   }
+  ],
+  "steps": [
+   {
+    "title": "Requirements",
+    "minutes": "5 min",
+    "ask": "<p>Restate the take-home rules and add the scale. What must never happen?</p>",
+    "model": "<p>Functional: upload a CSV, all-or-nothing per file, skip negatives, overwrite by unique name, per-file status, list users by salary range with sort and pagination. Non-functional: 1M files a day, files up to 100 MB, <b>no partial file visible</b>, a retried upload never creates a second job, reads under ~100 ms at any page depth.</p>"
+   },
+   {
+    "title": "Estimates",
+    "minutes": "5 min",
+    "ask": "<p>Turn \"millions of files\" into rows per second and workers.</p>",
+    "model": "<p>1M files ÷ 86,400 s ≈ 12 files/s, ~60/s at peak. 1M × 1,000 rows = 1B rows/day ≈ 12k rows/s, ~60k/s at peak. At ~5k rows/s per worker, about 12 workers at peak; run 25. The biggest file: 4M rows ÷ 5k/s ≈ <b>13 minutes</b>, far past a 60 s load-balancer timeout. Raw files ≈ 25 GB/day.</p>"
+   },
+   {
+    "title": "API & data model",
+    "minutes": "7 min",
+    "ask": "<p>What does the upload API look like when processing takes minutes? What tables do you need?</p>",
+    "model": "<p><code>POST /uploads {sha256, size}</code> with an <code>Idempotency-Key</code> header → <b>202 Accepted</b> with <code>jobId</code> and a presigned PUT URL; <code>GET /jobs/{id}</code> for status and progress; optional signed webhook. <code>GET /users</code> gets a <code>cursor</code>. Tables: <code>upload_jobs</code> with <code>UNIQUE (tenant_id, idempotency_key)</code> (not the file hash, so a deliberate re-upload still applies) and a lease; <code>staging_users (job_id, line_no, name, salary)</code>; <code>users (name PK, salary, last_job_seq)</code> with an index on <code>(salary, name)</code>.</p>"
+   },
+   {
+    "title": "High-level design",
+    "minutes": "10 min",
+    "ask": "<p>Draw the path of one file from client to readable rows.</p>",
+    "model": "<p>Client → Upload API (creates job) → client PUTs the file <b>straight to S3</b> → S3 event → SQS → a worker pool claims the job with a conditional UPDATE, <b>stream-parses</b> the file, COPYs valid rows into staging in 10k batches and updates <code>rows_done</code> → at end of file, one transaction merges staging into <code>users</code> (one row per name via <code>DISTINCT ON</code>) with <code>ON CONFLICT (name) DO UPDATE</code> and marks the job SUCCEEDED → webhook. Reads go to a replica through the (salary, name) index with keyset pagination.</p>"
+   },
+   {
+    "title": "Deep dive",
+    "minutes": "12 min",
+    "ask": "<p>Pick one: all-or-nothing at scale, or testing beyond unit tests. Go deep.</p>",
+    "model": "<p><b>All-or-nothing</b>: a long transaction over the live table holds locks for minutes, so validate into staging first and run one short merge, sorted by name so concurrent merges do not deadlock, with <code>WHERE users.last_job_seq &lt;= EXCLUDED.last_job_seq</code> so the later file wins. A crash before the merge leaves nothing visible; the lease expires and the job retries from S3.</p><p><b>Testing</b>: unit tests for the parser (BOM, CRLF, quoted commas), property-based tests, <b>integration tests against a real Postgres</b> (bad row on line 9,999 leaves <code>users</code> unchanged; killed worker leaves no partial rows), contract tests from the OpenAPI spec, and load tests at 60 files/s with one 100 MB file while reads run.</p>"
+   },
+   {
+    "title": "Bottlenecks & trade-offs",
+    "minutes": "6 min",
+    "ask": "<p>What breaks first, and what did you give up?</p>",
+    "model": "<p>The Postgres primary's upsert rate breaks first: cap worker concurrency, batch with COPY, then hash-partition <code>users</code>. Backpressure: scale workers on queue age and return 429 per tenant when the queue is too old. Trade-offs: presigned upload adds a round trip but frees API servers; polling plus optional webhook; keyset pagination loses \"jump to page 500\" but stays fast.</p>"
+   }
+  ],
+  "rubric": [
+   "Returns 202 Accepted with a job id instead of processing inside the POST",
+   "Sends file bytes to object storage (presigned upload), not through the API servers",
+   "Uses a queue and a bounded worker pool that stream-parses files in constant memory",
+   "Keeps all-or-nothing with a staging table and one short merge transaction (or an equivalent batch flip)",
+   "Makes retried uploads idempotent with a per-upload idempotency key, and does not dedupe on the file hash alone (a deliberate re-upload must still apply)",
+   "Handles at-least-once delivery with a job lease or conditional status update",
+   "Reports per-file progress and errors with line numbers",
+   "Indexes salary for the range query and uses keyset pagination",
+   "Names test layers beyond unit tests: integration with a real database, contract and load tests"
+  ]
+ },
+ {
+  "id": "voucher-redemption-practice",
+  "title": "Design a digital voucher redemption system",
+  "source": "ogp",
+  "evidence_tag": "Domain practice",
+  "evidence": "<p>Modelled on OGP's public RedeemSG / CDC voucher scheme; no source reports it as a GovTech or OGP interview question.</p>",
+  "design": "voucher-redemption",
+  "minutes": 45,
+  "prompt": "<p>\"The government is giving every household a few hundred dollars of digital vouchers to spend at heartland shops. Residents get a link by SMS or log in with Singpass and show a QR code; shopkeepers scan it with an app. Design the system. How do you make sure a voucher cannot be spent twice?\"</p>",
+  "clarify": [
+   {
+    "q": "How many households and redemptions?",
+    "a": "Assume about 1.3M households and about 20M redemptions over a six-month tranche."
+   },
+   {
+    "q": "Does one QR code cover all of a household's vouchers?",
+    "a": "Yes, one QR per household; the merchant chooses how many vouchers to take."
+   },
+   {
+    "q": "Do merchants have reliable internet?",
+    "a": "Mostly, but many are small stalls on mobile data, so expect timeouts and retries."
+   },
+   {
+    "q": "When are merchants paid?",
+    "a": "The next working day, by bank transfer."
+   },
+   {
+    "q": "What happens at launch?",
+    "a": "SMS links go out to everyone, and many open them in the first minutes."
+   }
+  ],
+  "steps": [
+   {
+    "title": "Requirements",
+    "minutes": "5 min",
+    "ask": "<p>List the functional needs and the one thing that must never happen.</p>",
+    "model": "<p>Claim vouchers (SMS link or Singpass), show one QR, merchant scans and redeems, resident sees the balance update, merchants paid next day, ops can freeze a merchant. Must never happen: <b>a voucher redeemed twice</b>, or money paid that does not trace back to a redemption.</p>"
+   },
+   {
+    "title": "Estimates",
+    "minutes": "5 min",
+    "ask": "<p>Average and peak redemptions per second, and the launch spike.</p>",
+    "model": "<p>20M ÷ (180 days × 12 h × 3,600 s) ≈ 2.6/s average; ×50 at a weekend lunch peak ≈ 130/s. Launch: 1.3M SMS, 20% open in 5 minutes ≈ 870 page loads/s. Voucher rows: 1.3M × ~30 ≈ 39M, about 4 GB. A single Postgres primary handles this; the spike is a read problem.</p>"
+   },
+   {
+    "title": "API & data model",
+    "minutes": "7 min",
+    "ask": "<p>Define the redeem call and the tables. Where does voucher status live?</p>",
+    "model": "<p><code>POST /redemptions {qrToken, voucherIds[]}</code> with an <b>Idempotency-Key</b> header; 200 receipt or 409. <code>WS /households/me/events</code> for live status. Tables: <code>vouchers (status, redemption_id)</code>, <code>redemptions</code> with <code>UNIQUE (merchant_id, idempotency_key)</code>, <code>qr_tokens</code> (random, opaque), <code>payouts</code> with <code>UNIQUE (merchant_id, business_date)</code>, and an outbox. Status lives <b>only on the server</b>; the QR is a pointer.</p>"
+   },
+   {
+    "title": "High-level design",
+    "minutes": "10 min",
+    "ask": "<p>Draw the claim path, the redeem path and the payout path.</p>",
+    "model": "<p>Claim: SMS link → CDN static page (with waiting room) → Voucher API → Postgres; Singpass OIDC for the login path. Redeem: merchant app → Redemption API → one Postgres transaction (redemption row + conditional UPDATE of vouchers + outbox row) → receipt; push the new balance to the resident over WebSocket. Async: outbox → event stream → fraud rules. Nightly: payout job sums by merchant, reconciles, pays T+1.</p>"
+   },
+   {
+    "title": "Deep dive",
+    "minutes": "12 min",
+    "ask": "<p>Two shops scan a screenshot of the same QR at the same moment, and one app times out and retries. Walk through what happens.</p>",
+    "model": "<p><code>UPDATE vouchers SET status='REDEEMED' WHERE id = ANY($ids) AND status='UNREDEEMED'</code>: the second shop waits on the row lock, re-checks after the first commits, matches 0 rows, rolls back and gets 409. The retry from the first shop hits <code>UNIQUE (merchant_id, idempotency_key)</code> and gets the original receipt. Compare the publicly given reason paper QRs were rejected: a redeemed voucher's printed code could be scanned again; here every scan checks one live record. Offline: say clearly that offline redemption cannot prevent double spending; default to online with retries, or a small capped offline amount with a loss policy.</p>"
+   },
+   {
+    "title": "Bottlenecks & trade-offs",
+    "minutes": "6 min",
+    "ask": "<p>What fails at launch and at payout time? What did you choose not to do?</p>",
+    "model": "<p>Launch: static page on the CDN, staggered SMS batches, waiting room. Payout crash: unique (merchant, date) rows make re-runs safe. Fraud: collusion signals hold a payout rather than block redemptions. Trade-offs: online-only over offline; T+1 batch over per-scan payout (fraud window, one reconciliation point, but merchants wait a day); Postgres conditional update over a Redis lock.</p>"
+   }
+  ],
+  "rubric": [
+   "Keeps voucher status on the server; the QR is an opaque pointer",
+   "Prevents double redemption with an atomic conditional update (not read-then-write)",
+   "Uses an idempotency key from the merchant app so retries return the first result",
+   "Explains why offline redemption cannot fully prevent double spending and picks a policy",
+   "Handles the launch spike with a static CDN page, staggered SMS or a waiting room",
+   "Pays merchants with an idempotent nightly batch that reconciles before paying",
+   "Uses an outbox (or equivalent) so events match committed redemptions",
+   "Names at least one fraud pattern (e.g. merchant collusion) and a response"
+  ]
+ }
+]

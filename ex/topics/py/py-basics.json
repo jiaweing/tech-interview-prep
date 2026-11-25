@@ -1,0 +1,335 @@
+{
+ "id": "py-basics",
+ "track": "py",
+ "order": 1,
+ "title": "Python basics",
+ "short": "Names, the few value types, and what counts as true.",
+ "what": "A variable is a name that points at a value: x = 7. You never declare a type; the value carries it. Interviews use only a handful: int, float, str, bool and None.",
+ "analogy": "A sticky note with a name on it. x = 7 sticks the note \"x\" on the number 7. Stick it on \"hi\" later and x now means \"hi\".",
+ "viz": {
+  "kind": "table",
+  "frames": [
+   {
+    "cells": [
+     [
+      "int",
+      "float",
+      "str",
+      "bool"
+     ]
+    ],
+    "cols": [
+     "7",
+     "3.5",
+     "\"hi\"",
+     "True"
+    ],
+    "rows": [
+     "type"
+    ],
+    "label": "x = ...",
+    "hi": [
+     [
+      0,
+      0
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      0,
+      3
+     ]
+    ],
+    "say": "x = 7 makes an int. No type is written: the value decides it. 3.5 is a float, \"hi\" a str, True a bool."
+   },
+   {
+    "cells": [
+     [
+      "NoneType",
+      "int",
+      "str",
+      "list"
+     ]
+    ],
+    "cols": [
+     "None",
+     "0",
+     "\"\"",
+     "[]"
+    ],
+    "rows": [
+     "type"
+    ],
+    "label": "x = ...",
+    "hi": [
+     [
+      0,
+      0
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      0,
+      3
+     ]
+    ],
+    "say": "None means \"no value yet\" and has its own type. 0, the empty string and the empty list are real values too."
+   },
+   {
+    "cells": [
+     [
+      "true",
+      "true",
+      "true",
+      "true",
+      null,
+      null,
+      null,
+      null
+     ]
+    ],
+    "cols": [
+     "7",
+     "3.5",
+     "\"hi\"",
+     "True",
+     "None",
+     "0",
+     "\"\"",
+     "[]"
+    ],
+    "rows": [
+     "if x:"
+    ],
+    "label": "if x: ... runs?",
+    "ok": [
+     [
+      0,
+      0
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      0,
+      3
+     ]
+    ],
+    "say": "Inside an if, every value counts as true or false. Non-zero numbers, non-empty strings and True count as true."
+   },
+   {
+    "cells": [
+     [
+      "true",
+      "true",
+      "true",
+      "true",
+      "false",
+      "false",
+      "false",
+      "false"
+     ]
+    ],
+    "cols": [
+     "7",
+     "3.5",
+     "\"hi\"",
+     "True",
+     "None",
+     "0",
+     "\"\"",
+     "[]"
+    ],
+    "rows": [
+     "if x:"
+    ],
+    "label": "if x: ... runs?",
+    "ok": [
+     [
+      0,
+      0
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      0,
+      3
+     ]
+    ],
+    "bad": [
+     [
+      0,
+      4
+     ],
+     [
+      0,
+      5
+     ],
+     [
+      0,
+      6
+     ],
+     [
+      0,
+      7
+     ]
+    ],
+    "say": "None, 0, \"\" and [] count as false. So \"if nums:\" reads as \"if the list is not empty\"."
+   },
+   {
+    "cells": [
+     [
+      "True",
+      null,
+      null
+     ]
+    ],
+    "cols": [
+     "a == b",
+     "a is b",
+     "c is a"
+    ],
+    "rows": [
+     "result"
+    ],
+    "label": "a = [1, 2]; b = [1, 2]; c = a",
+    "ok": [
+     [
+      0,
+      0
+     ]
+    ],
+    "say": "a = [1, 2] and b = [1, 2] hold equal lists, so a == b is True. == compares the values inside."
+   },
+   {
+    "cells": [
+     [
+      "True",
+      "False",
+      "True"
+     ]
+    ],
+    "cols": [
+     "a == b",
+     "a is b",
+     "c is a"
+    ],
+    "rows": [
+     "result"
+    ],
+    "label": "a = [1, 2]; b = [1, 2]; c = a",
+    "ok": [
+     [
+      0,
+      0
+     ],
+     [
+      0,
+      2
+     ]
+    ],
+    "bad": [
+     [
+      0,
+      1
+     ]
+    ],
+    "say": "But they are two separate lists, so a is b is False. is asks \"the very same object?\". c = a shares the object."
+   },
+   {
+    "cells": [
+     [
+      "runs!",
+      "skipped"
+     ]
+    ],
+    "cols": [
+     "if not best:",
+     "if best is None:"
+    ],
+    "rows": [
+     "best = 0"
+    ],
+    "label": "best = 0 is a real answer",
+    "bad": [
+     [
+      0,
+      0
+     ]
+    ],
+    "ok": [
+     [
+      0,
+      1
+     ]
+    ],
+    "say": "Use is only for None: if best is None. Then a real answer of 0 is not mistaken for \"no answer yet\"."
+   }
+  ]
+ },
+ "when": [
+  "Check if a list or string is empty",
+  "Mark \"no answer yet\" with None",
+  "Compare two values, or ask if two names share one object",
+  "Numbers that get very large"
+ ],
+ "python": "x = 7\ny = 3.5\nname = \"hi\"\nprint(type(x), type(y), type(name), type(True))\nfor v in [7, 0, \"hi\", \"\", [1], [], None]:\n    print(repr(v), bool(v))\na = [1, 2]\nb = [1, 2]\nc = a\nprint(a == b, a is b, c is a)\nbest = 0\nif best is not None:\n    print(\"answer:\", best)\nprint(2 ** 100)",
+ "output": "<class 'int'> <class 'float'> <class 'str'> <class 'bool'>\n7 True\n0 False\n'hi' True\n'' False\n[1] True\n[] False\nNone False\nTrue False True\nanswer: 0\n1267650600228229401496703205376",
+ "cost": [
+  [
+   "Assign a name",
+   "O(1)"
+  ],
+  [
+   "if nums: (empty check)",
+   "O(1)"
+  ],
+  [
+   "a == b on two lists",
+   "O(n)"
+  ],
+  [
+   "a is b",
+   "O(1)"
+  ]
+ ],
+ "watch": [
+  "if x: also skips x = 0. When 0 is a valid answer, write if x is not None.",
+  "Use == to compare values. Save is for None.",
+  "True, False and None start with a capital letter."
+ ],
+ "interview": [
+  "LC 104 Maximum Depth of Binary Tree",
+  "LC 7 Reverse Integer",
+  "LC 53 Maximum Subarray"
+ ],
+ "related": [
+  "py-loops",
+  "py-math",
+  "py-gotchas",
+  "big-o"
+ ]
+}

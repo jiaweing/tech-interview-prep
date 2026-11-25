@@ -1,0 +1,170 @@
+{
+ "id": "hash-set",
+ "track": "ds",
+ "order": 5,
+ "title": "Hash set",
+ "short": "Answer \"have I seen this?\" in one step.",
+ "what": "A hash set is a bag of unique values. Adding a value, removing it, or asking whether it is there each take one step on average, however many values you store. It is a hash map with keys and no values. In Python it is the set.",
+ "analogy": "A guest list at the door. The bouncer checks your name against the list at a glance, and the same name can't be on it twice.",
+ "viz": {
+  "kind": "array",
+  "frames": [
+   {
+    "cells": [
+     3,
+     1,
+     4,
+     1,
+     5,
+     9
+    ],
+    "label": "nums",
+    "out": "seen = {}",
+    "say": "Task: find the first number that appears twice. We walk the list once and keep a set called seen."
+   },
+   {
+    "cells": [
+     3,
+     1,
+     4,
+     1,
+     5,
+     9
+    ],
+    "label": "nums",
+    "ptr": {
+     "i": 0
+    },
+    "hi": [
+     0
+    ],
+    "out": "seen = {3}",
+    "say": "3: is 3 in seen? No, so add it."
+   },
+   {
+    "cells": [
+     3,
+     1,
+     4,
+     1,
+     5,
+     9
+    ],
+    "label": "nums",
+    "ptr": {
+     "i": 1
+    },
+    "hi": [
+     1
+    ],
+    "dim": [
+     0
+    ],
+    "out": "seen = {3, 1}",
+    "say": "1: not in seen. Add it. The check is one step, not a loop over everything before it."
+   },
+   {
+    "cells": [
+     3,
+     1,
+     4,
+     1,
+     5,
+     9
+    ],
+    "label": "nums",
+    "ptr": {
+     "i": 2
+    },
+    "hi": [
+     2
+    ],
+    "dim": [
+     0,
+     1
+    ],
+    "out": "seen = {3, 1, 4}",
+    "say": "4: not in seen either. Add it."
+   },
+   {
+    "cells": [
+     3,
+     1,
+     4,
+     1,
+     5,
+     9
+    ],
+    "label": "nums",
+    "ptr": {
+     "i": 3
+    },
+    "ok": [
+     3
+    ],
+    "hi": [
+     1
+    ],
+    "out": "1 in seen -> True",
+    "say": "1 again. 1 in seen is True, so 1 is the first repeat. 4 cheap checks instead of comparing every pair."
+   },
+   {
+    "cells": [
+     3,
+     1,
+     4,
+     1,
+     5,
+     9
+    ],
+    "label": "nums",
+    "dim": [
+     3
+    ],
+    "out": "set(nums) -> {1, 3, 4, 5, 9}",
+    "say": "set(nums) keeps one copy of each value: 6 numbers in, 5 out. Fewer means the list had a repeat."
+   }
+  ]
+ },
+ "when": [
+  "Have I seen this value before?",
+  "Remove duplicates",
+  "Does the list contain a duplicate?",
+  "What do two lists have in common?"
+ ],
+ "python": "nums = [3, 1, 4, 1, 5, 9]\nseen = set()\nfor x in nums:\n    if x in seen:\n        print(\"first repeat:\", x)\n        break\n    seen.add(x)\nprint(sorted(set(nums)))\nprint(len(set(nums)) < len(nums))\na, b = {1, 2, 3}, {2, 3, 4}\nprint(a & b, a | b, a - b)",
+ "output": "first repeat: 1\n[1, 3, 4, 5, 9]\nTrue\n{2, 3} {1, 2, 3, 4} {1}",
+ "cost": [
+  [
+   "Add a value",
+   "O(1)"
+  ],
+  [
+   "Check if a value is in it",
+   "O(1)"
+  ],
+  [
+   "Remove a value",
+   "O(1)"
+  ],
+  [
+   "Same check on a list",
+   "O(n)"
+  ]
+ ],
+ "watch": [
+  "{} is an empty dict, not a set. Write set().",
+  "A set has no order and no index. Sort it if you need order.",
+  "Values must be unchangeable: numbers, strings, tuples. A list can't go in a set."
+ ],
+ "interview": [
+  "LC 217 Contains Duplicate",
+  "LC 128 Longest Consecutive Sequence",
+  "LC 349 Intersection of Two Arrays"
+ ],
+ "related": [
+  "hash-map",
+  "array",
+  "sliding-window"
+ ]
+}

@@ -1,0 +1,174 @@
+{
+ "id": "fast-slow-pointers",
+ "track": "algo",
+ "order": 22,
+ "title": "Fast and slow pointers",
+ "short": "Two pointers at different speeds find loops and middles.",
+ "what": "Walk a linked list with two pointers: slow moves one node per step, fast moves two. If the list ends, fast reaches the end first. If the list loops back on itself, fast laps slow and they land on the same node. The same trick finds the middle: when fast reaches the end, slow is halfway.",
+ "analogy": "Two runners on a track. If the track is a loop, the faster runner always catches the slower one from behind. On a straight road, it never happens.",
+ "viz": {
+  "kind": "list",
+  "frames": [
+   {
+    "nodes": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "cycleTo": 2,
+    "ptr": {
+     "slow": 0,
+     "fast": 0
+    },
+    "label": "6 points back to 3",
+    "hi": [
+     0
+    ],
+    "say": "The last node points back to 3, so the list never ends. Walking it alone, you'd never know. Start slow and fast at the head."
+   },
+   {
+    "nodes": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "cycleTo": 2,
+    "ptr": {
+     "slow": 1,
+     "fast": 2
+    },
+    "label": "6 points back to 3",
+    "hi": [
+     1,
+     2
+    ],
+    "say": "Step 1: slow moves one node, to 2. fast moves two, to 3."
+   },
+   {
+    "nodes": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "cycleTo": 2,
+    "ptr": {
+     "slow": 2,
+     "fast": 4
+    },
+    "label": "6 points back to 3",
+    "hi": [
+     2,
+     4
+    ],
+    "say": "Step 2: slow is on 3, fast is on 5. fast is pulling ahead."
+   },
+   {
+    "nodes": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "cycleTo": 2,
+    "ptr": {
+     "slow": 3,
+     "fast": 2
+    },
+    "label": "6 points back to 3",
+    "hi": [
+     3,
+     2
+    ],
+    "say": "Step 3: fast moves from 5 to 6, then follows the loop back to 3. Now it is behind slow (on 4), inside the loop."
+   },
+   {
+    "nodes": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "cycleTo": 2,
+    "ptr": {
+     "slow": 4,
+     "fast": 4
+    },
+    "label": "6 points back to 3",
+    "ok": [
+     4
+    ],
+    "out": "they meet: loop found",
+    "say": "Step 4: slow moves to 5, fast moves 3, 4, 5. Same node! In a loop fast gains one node per step, so it must land on slow."
+   },
+   {
+    "nodes": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "ptr": {
+     "slow": 3
+    },
+    "label": "same list, no loop",
+    "out": "fast hit None: no loop",
+    "ok": [
+     3
+    ],
+    "say": "Without the loop, fast goes 3, 5, then off the end to None. Stop: no loop. slow stopped on 4, the middle. Memory used: O(1)."
+   }
+  ]
+ },
+ "when": [
+  "Does this linked list have a cycle?",
+  "Find the middle of a linked list in one pass",
+  "Find where a cycle starts",
+  "No extra memory allowed (no set of seen nodes)"
+ ],
+ "python": "class Node:\n    def __init__(self, val):\n        self.val, self.next = val, None\ndef has_cycle(head):\n    slow = fast = head\n    while fast and fast.next:\n        slow, fast = slow.next, fast.next.next\n        if slow is fast:\n            return True\n    return False\nnodes = [Node(v) for v in range(1, 7)]\nfor a, b in zip(nodes, nodes[1:]):\n    a.next = b\nprint(has_cycle(nodes[0]))\nnodes[-1].next = nodes[2]  # 6 points back to 3\nprint(has_cycle(nodes[0]))",
+ "output": "False\nTrue",
+ "cost": [
+  [
+   "Detect a cycle",
+   "O(n)"
+  ],
+  [
+   "Find the middle",
+   "O(n)"
+  ],
+  [
+   "Memory",
+   "O(1)"
+  ]
+ ],
+ "watch": [
+  "Check fast and fast.next before moving fast two steps, or you read past the end.",
+  "Compare nodes with 'is', not values: two nodes can hold the same value.",
+  "A set of seen nodes also works, but it costs O(n) memory."
+ ],
+ "interview": [
+  "LC 141 Linked List Cycle",
+  "LC 876 Middle of the Linked List",
+  "LC 142 Linked List Cycle II",
+  "LC 202 Happy Number"
+ ],
+ "related": [
+  "linked-list",
+  "two-pointers"
+ ]
+}

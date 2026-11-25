@@ -1,0 +1,226 @@
+{
+ "id": "min-window-substring",
+ "title": "Minimum Window Substring",
+ "pattern": "two-pointers",
+ "level": "hard",
+ "statement": "<p>A feed analytics job stores each user's activity as a string <code>s</code>, one character per event, in time order. Each character is an event type (for example <code>v</code> = view, <code>c</code> = click, <code>s</code> = share). Upper- and lowercase letters are different types.</p><p>A funnel report needs the <b>shortest contiguous stretch</b> of the log that contains every event in <code>t</code>, counting repeats: if <code>t = \"cca\"</code>, the stretch must hold at least two <code>c</code> and at least one <code>a</code>. Order inside the stretch does not matter, and extra events are allowed.</p><p>Write <code>def solution(s, t)</code> that returns that stretch as a substring of <code>s</code>. If no stretch covers <code>t</code>, return <code>\"\"</code>. If several stretches have the same shortest length, return the <b>leftmost</b> one (smallest start index).</p>",
+ "examples": [
+  {
+   "input": "s = \"ADOBECODEBANC\", t = \"ABC\"",
+   "output": "\"BANC\"",
+   "why": "The LeetCode 76 example. <code>\"ADOBEC\"</code> also covers A, B, C but has length 6; <code>\"BANC\"</code> has length 4."
+  },
+  {
+   "input": "s = \"a\", t = \"aa\"",
+   "output": "\"\"",
+   "why": "<code>t</code> needs two <code>a</code> events and the log has one, so no stretch works."
+  },
+  {
+   "input": "s = \"xbaxab\", t = \"ab\"",
+   "output": "\"ba\"",
+   "why": "<code>\"ba\"</code> (start 1) and <code>\"ab\"</code> (start 4) both have length 2. Order inside does not matter, and the leftmost wins."
+  }
+ ],
+ "constraints": [
+  "1 &le; len(s) &le; 10^5",
+  "1 &le; len(t) &le; 10^5",
+  "<code>s</code> and <code>t</code> contain only English letters; case matters"
+ ],
+ "starter": "def solution(s, t):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "What exactly counts as \"covering\" <code>t</code>?",
+   "a": "A window covers <code>t</code> when, for every character, the window has <b>at least</b> as many copies as <code>t</code> does. Order and extra characters do not matter. Return the substring itself, <code>\"\"</code> if none exists, and the smallest start index on a tie."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Walk <code>s = \"ADOBECODEBANC\"</code>, <code>t = \"ABC\"</code>.",
+   "a": "Grow the right end until the window first covers: <code>\"ADOBEC\"</code> (0..5). Shrink the left: dropping A breaks it. Grow again until another A arrives at index 10: <code>\"ADOBECODEBA\"</code>, now shrink past A, D, O, B, E to <code>\"CODEBA\"</code>. Grow to C at 12, shrink to <code>\"BANC\"</code>. Best length goes 6, 6, 4."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first idea that works?",
+   "a": "For each start <code>i</code>, extend <code>j</code> until the window covers <code>t</code>, keeping a running count. That is O(n^2): 10^10 steps at the limit. Checking every substring from scratch would be O(n^3)."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Which pattern?",
+   "a": "<b>Variable-size sliding window</b> (two pointers that only move right) with a <b>count map</b> of what is still needed. The key is one integer, <code>missing</code>, so checking \"does the window cover t?\" is O(1), not a loop over 52 letters."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li><code>need = Counter(t)</code>, <code>missing = len(t)</code>, <code>left = 0</code>.</li><li>For each <code>right</code>: if <code>need[ch] &gt; 0</code>, decrement <code>missing</code>; always decrement <code>need[ch]</code>.</li><li>While <code>missing == 0</code>: record the window if strictly shorter, then give back <code>s[left]</code> (<code>need += 1</code>; if it goes above 0, <code>missing += 1</code>) and move <code>left</code>.</li><li>Return the best slice or <code>\"\"</code>.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "<code>t</code> longer than <code>s</code>. Repeats in <code>t</code> (<code>\"aa\"</code> needs two). Case (<code>\"A\"</code> is not <code>\"a\"</code>). The answer is the whole string. The answer sits at the very end. Ties between equal-length windows. Characters in <code>s</code> that are not in <code>t</code> (their count goes negative, which is fine)."
+  }
+ ],
+ "hints": [
+  "Keep two indices, <code>left</code> and <code>right</code>, that only move forward. Grow <code>right</code> until the window covers <code>t</code>, then shrink <code>left</code> as far as it stays valid.",
+  "Store <code>need = Counter(t)</code> and decrement it as characters enter. Track <code>missing</code>, the number of required characters still owed, so the \"is it valid?\" check is just <code>missing == 0</code>.",
+  "When a character leaves on the left, add it back to <code>need</code>. Only if its count becomes positive did you lose a required copy, so only then <code>missing += 1</code>. Record the window before you shrink it, and use <code>&lt;</code> so the first shortest window stays."
+ ],
+ "solution": "from collections import Counter\n\ndef solution(s, t):\n    need = Counter(t)        # how many of each type the window still owes (negative = surplus)\n    missing = len(t)         # total events still owed; 0 means the window covers t\n    best_start = 0\n    best_len = len(s) + 1    # longer than any real window, so \"none found yet\"\n    left = 0\n    for right, ch in enumerate(s):\n        if need[ch] > 0:     # this event pays off something t still needs\n            missing -= 1\n        need[ch] -= 1\n        while missing == 0:  # valid window: record it, then shrink from the left\n            if right - left + 1 < best_len:   # strict: keep the leftmost on ties\n                best_start = left\n                best_len = right - left + 1\n            drop = s[left]\n            need[drop] += 1\n            if need[drop] > 0:                # we just gave up a required event\n                missing += 1\n            left += 1\n    if best_len > len(s):\n        return \"\"\n    return s[best_start:best_start + best_len]\n",
+ "brute": "from collections import Counter\n\ndef solution(s, t):\n    # Try every start; extend the end until the window covers t. O(n^2).\n    best = None\n    for i in range(len(s)):\n        need = Counter(t)\n        missing = len(t)\n        for j in range(i, len(s)):\n            if need[s[j]] > 0:\n                missing -= 1\n            need[s[j]] -= 1\n            if missing == 0:\n                if best is None or j - i + 1 < len(best):   # strict: leftmost wins ties\n                    best = s[i:j + 1]\n                break\n    return best if best is not None else \"\"\n",
+ "explain": "<p>Example 3, <code>s = \"xbaxab\"</code>, <code>t = \"ab\"</code>, <code>missing = 2</code>:</p><ul><li>right 0 <code>x</code>: not needed, <code>need[x] = -1</code>.</li><li>right 1 <code>b</code>: needed, <code>missing = 1</code>.</li><li>right 2 <code>a</code>: needed, <code>missing = 0</code>. Window 0..2 <code>\"xba\"</code>, best = 3. Drop <code>x</code>: <code>need[x]</code> back to 0, still valid. Window 1..2 <code>\"ba\"</code>, best = 2. Drop <code>b</code>: <code>need[b] = 1</code>, <code>missing = 1</code>, left = 3.</li><li>right 3 <code>x</code>, right 4 <code>a</code>: <code>need[a]</code> goes to -1 (a surplus), nothing owed changes.</li><li>right 5 <code>b</code>: <code>missing = 0</code>. Window 3..5 length 3, not better. Shrink to 4..5 <code>\"ab\"</code>: length 2, not <b>strictly</b> shorter, so <code>\"ba\"</code> stays.</li></ul><p>Each index enters the window once and leaves at most once, so the total work is O(n + m) even though there is a <code>while</code> inside the <code>for</code>. Storing a start and a length instead of slicing every candidate keeps each record O(1).</p>",
+ "complexity": "O(n + m) time, O(k) extra space for the counts (k = distinct letters, at most 52)",
+ "al": {
+  "kind": "fundamentals",
+  "from": "LC 76 Minimum Window Substring",
+  "talk": [
+   "O(n + m) time: <code>right</code> moves n times and <code>left</code> moves at most n times in total, so the inner <code>while</code> is amortised O(1).",
+   "One <code>Counter</code> does double duty: positive means still needed, negative means surplus. <code>missing</code> is the sum of the positive parts, so validity is <code>missing == 0</code> instead of comparing two dicts each step.",
+   "I store <code>best_start</code> and <code>best_len</code> and slice once at the end. Slicing every candidate would copy up to n characters each time.",
+   "Tie-break: I record before shrinking and only replace on a strictly shorter window, so the first (leftmost) shortest window wins.",
+   "Edge cases: repeats in <code>t</code>, case-sensitive letters, <code>t</code> longer than <code>s</code> (return <code>\"\"</code>), and the answer being the whole log."
+  ],
+  "extensions": [
+   "Order matters now: the stretch must contain <code>t</code> as a <b>subsequence</b> (LC 727). Why does the count map no longer work, and what replaces it?",
+   "Return the length only, but <code>s</code> is a stream of events too large to keep: what do you need to store, and when can you drop old events?",
+   "Each event also has a timestamp: find the shortest <b>time span</b> that covers <code>t</code> instead of the fewest events.",
+   "Return all shortest windows, not just the leftmost. What changes in the comparison?",
+   "Fixed-size version: does any window of exactly <code>len(t)</code> events match <code>t</code> as a multiset (LC 567)?"
+  ]
+ },
+ "tests": [
+  {
+   "args": [
+    "ADOBECODEBANC",
+    "ABC"
+   ],
+   "expected": "BANC",
+   "label": "example 1 (LeetCode 76)",
+   "cat": "example",
+   "why": "the classic case: shortest is BANC"
+  },
+  {
+   "args": [
+    "a",
+    "aa"
+   ],
+   "expected": "",
+   "label": "example 2 (not enough copies)",
+   "cat": "example",
+   "why": "t needs two a events, s has one"
+  },
+  {
+   "args": [
+    "xbaxab",
+    "ab"
+   ],
+   "expected": "ba",
+   "label": "example 3 (tie, leftmost wins)",
+   "cat": "example",
+   "why": "ba and ab tie at length 2; ba starts first"
+  },
+  {
+   "args": [
+    "a",
+    "a"
+   ],
+   "expected": "a",
+   "label": "one event, one needed",
+   "cat": "single",
+   "why": "the whole log is the answer"
+  },
+  {
+   "args": [
+    "ab",
+    "abc"
+   ],
+   "expected": "",
+   "label": "t longer than s",
+   "cat": "edge",
+   "why": "impossible, return the empty string"
+  },
+  {
+   "args": [
+    "aa",
+    "A"
+   ],
+   "expected": "",
+   "label": "case matters",
+   "cat": "edge",
+   "why": "A and a are different event types"
+  },
+  {
+   "args": [
+    "bca",
+    "abc"
+   ],
+   "expected": "bca",
+   "label": "whole log is the answer",
+   "cat": "boundary",
+   "why": "no shorter window covers all three"
+  },
+  {
+   "args": [
+    "zzzzzzab",
+    "ba"
+   ],
+   "expected": "ab",
+   "label": "answer at the very end",
+   "cat": "boundary",
+   "why": "the window only forms on the last character"
+  },
+  {
+   "args": [
+    "aaflslflsldkalskaaa",
+    "aaa"
+   ],
+   "expected": "aaa",
+   "label": "repeats in t",
+   "cat": "dupes",
+   "why": "needs three a events in a row at the end"
+  },
+  {
+   "args": [
+    "abcabdebac",
+    "cda"
+   ],
+   "expected": "cabd",
+   "label": "repeats in s, surplus counts",
+   "cat": "dupes",
+   "why": "surplus a and b must not confuse the count"
+  },
+  {
+   "args": [
+    "cabwefgewcwaefgcf",
+    "cae"
+   ],
+   "expected": "cwae",
+   "label": "medium log",
+   "cat": "medium",
+   "why": "several valid windows; the shortest is cwae"
+  },
+  {
+   "args": [
+    "bba",
+    "ab"
+   ],
+   "expected": "ba",
+   "label": "shrink past a surplus",
+   "cat": "small",
+   "why": "the first b is surplus and must be dropped"
+  },
+  {
+   "args": [
+    "PccvccvccvccvccvccvccvccvccvccvccvccvPcvccvccvccvccvccvccvccvccvccvccvccvcPvccvccvccvccvccvccvccvccvccvccvccvccPccvccvccvccvccvccvccvccvccvccvccvccvPcvccvccvccvccvccvccvccvccvccvccvccvcPvccvccvccvccvccvccvccvccvccvccvccvccPccvccvccvccvccvccvccvccvccvccvccvccvPcvccvccvccvccvccvccvccvccvccvccvccvcPvccvccvccvccvccvccvccvccvccvccvccvccPccvccvccvccvccvccvccvccvccvccvccvccvPcvccvccvccvccvccvccvccvccvccvccvccvcPvccvccvccvccvccvccvccvccvccvccvccvccPccvccvccvccvccvccvccvccvccvccvccvccvPcvccvccvccvccvccvccvccvccvccvccvccvcPvccvccvccvccvccvccvccvccvccvccvccvccPccvccvccvccvccvccvccvccvccvccvccvccvPcvccvccvccvccvccvccvccvccvccvccvccvcPvccvccvccvccvccvccvccvccvccvccvccvccPccvccvccvccvccvccvccvccvccvccvccvccvPcvccvccvccvccvccvccvccvccvccvccvccvcPvccvccvccvccvccvccvccvccvccvccvccvccPccvccvccvccvccvccvccvccvccvccvccvccvPcvccvccvccvccvccvccvccvccvccvccvccvcPvccvccvccvccvccvccvccvccvccvccvccvccPccvccvccvccvccvccvccvccvccvccvccvccvPcvccvccvccvccvccvccvccvccvccvccvccvcPvccvccvccvccvccvccvccvccvccvccvccvccPccvccvccvccvccvccvccvccvccvccvccvccvPcvccvccvccvccvccvccvccvccvccvccvccvcPvccvccvccvccvccvccvccvccvccvccvccvccPccvccvccvccvccvccvccvccvccvccvccvccvPcvccvccvccvccvccvccvccvccvccvccvccvcPvccvccvccvccvccvccvccvccvccvccvccvccPccvccvccvccvccvccvccvccvccvccvccvccvPcvccvccvccvccvccvccvccvccvccvccvccvcPvccvccvccvccvccvccvccvccvccvccvccvccPccvccvccvccvccvccvccvccvccvccvccvccvPcvccvccvccvccvccvccvccvccvccvccvccvcPvccvccvccvccvccvccvccvccvccvccvccvccPccvccvccvccvccvccvccvccvccvccvccvccvPcvccvccvccvccvccvccvccvccvccvccvccvcPvccvccvccvccvccvccvccvccvccvccvccvccPccvccvccvccvccvccvccvccvccvccvccvccvPcvccvccvccvccvccvccvccvccvccvccvccvcPvccvccvccvccvccvccvccvccvccvccvccvccPccvccvccvccvccvccvccvccvccvccvccvccvPcvccvccvccvccvccvccvccvccvccvccvccvcPvccvccvccvccvccvccvccvccvccvccvccvccPccvccvccvccvccvccvccvccvccvccvccvccvPcvccvccvccvccvccvccvccvccvccvccvccvcPvccvccvccvccvccvccvccvccvccvccvccvccPccvccvccvccvccvccvccvccvccvccvccvccvPcvccvccvccvccvccvccvccvccvccvccvccvcPvccvccvccvccvccvccvccvccvccvccvccvccPc",
+    "PPv"
+   ],
+   "expected": "PccvccvccvccvccvccvccvccvccvccvccvccvP",
+   "label": "long log, rare event",
+   "cat": "large",
+   "why": "2,000 events, the rare type appears every 37"
+  }
+ ],
+ "perf": {
+  "label": "performance: a 40,003-event log whose only covering windows end at the last event",
+  "gen": "[\"\".join(chr(97 + (i * 7) % 23) for i in range(40000)) + \"zyx\", \"abzyx\"]",
+  "expected": "bipwgnuelscjqahozyx"
+ }
+}

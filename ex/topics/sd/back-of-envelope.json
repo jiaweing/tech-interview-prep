@@ -1,0 +1,364 @@
+{
+ "id": "back-of-envelope",
+ "track": "sd",
+ "order": 27,
+ "title": "Back-of-envelope math",
+ "short": "Estimate traffic and storage in a minute with rounded numbers.",
+ "what": "Before drawing boxes, estimate how big the system is: requests per second, storage per year. Start from a few stated guesses, round hard, and multiply. The answer tells you if one server is enough or if you need caches and shards.",
+ "analogy": "Ordering pizza for a party: 30 guests, 3 slices each, 8 slices a pizza, so about 12 pizzas. Nobody counts crumbs.",
+ "viz": {
+  "kind": "map",
+  "frames": [
+   {
+    "rows": [
+     [
+      "Daily users",
+      "200M (guess)"
+     ],
+     [
+      "Posts per user",
+      "?"
+     ],
+     [
+      "Posts per day",
+      "?"
+     ],
+     [
+      "Posts per sec",
+      "?"
+     ],
+     [
+      "Size of a post",
+      "?"
+     ],
+     [
+      "New data a day",
+      "?"
+     ],
+     [
+      "Data in 5 yrs",
+      "?"
+     ]
+    ],
+    "label": "Twitter-like app: estimate",
+    "hi": [
+     0
+    ],
+    "ok": [],
+    "dim": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "say": "Estimate for a Twitter-like app. Start from one guess you can defend out loud: 200 million people use it each day."
+   },
+   {
+    "rows": [
+     [
+      "Daily users",
+      "200M (guess)"
+     ],
+     [
+      "Posts per user",
+      "2 a day (guess)"
+     ],
+     [
+      "Posts per day",
+      "?"
+     ],
+     [
+      "Posts per sec",
+      "?"
+     ],
+     [
+      "Size of a post",
+      "?"
+     ],
+     [
+      "New data a day",
+      "?"
+     ],
+     [
+      "Data in 5 yrs",
+      "?"
+     ]
+    ],
+    "label": "Twitter-like app: estimate",
+    "hi": [
+     1
+    ],
+    "ok": [],
+    "dim": [
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "say": "Guess that each one posts 2 times a day on average. Most people only read; a few post a lot."
+   },
+   {
+    "rows": [
+     [
+      "Daily users",
+      "200M (guess)"
+     ],
+     [
+      "Posts per user",
+      "2 a day (guess)"
+     ],
+     [
+      "Posts per day",
+      "400M"
+     ],
+     [
+      "Posts per sec",
+      "?"
+     ],
+     [
+      "Size of a post",
+      "?"
+     ],
+     [
+      "New data a day",
+      "?"
+     ],
+     [
+      "Data in 5 yrs",
+      "?"
+     ]
+    ],
+    "label": "Twitter-like app: estimate",
+    "hi": [],
+    "ok": [
+     2
+    ],
+    "dim": [
+     3,
+     4,
+     5,
+     6
+    ],
+    "out": "200M x 2 = 400M",
+    "say": "Multiply: 400 million new posts a day. Round freely. You want the size of the number, not its last digit."
+   },
+   {
+    "rows": [
+     [
+      "Daily users",
+      "200M (guess)"
+     ],
+     [
+      "Posts per user",
+      "2 a day (guess)"
+     ],
+     [
+      "Posts per day",
+      "400M"
+     ],
+     [
+      "Posts per sec",
+      "4.6K"
+     ],
+     [
+      "Size of a post",
+      "?"
+     ],
+     [
+      "New data a day",
+      "?"
+     ],
+     [
+      "Data in 5 yrs",
+      "?"
+     ]
+    ],
+    "label": "Twitter-like app: estimate",
+    "hi": [],
+    "ok": [
+     3
+    ],
+    "dim": [
+     4,
+     5,
+     6
+    ],
+    "out": "400M / 86,400 ≈ 4.6K",
+    "say": "A day has 86,400 seconds (call it 100K for mental math). 400M / 86,400 is about 4,600 posts every second."
+   },
+   {
+    "rows": [
+     [
+      "Daily users",
+      "200M (guess)"
+     ],
+     [
+      "Posts per user",
+      "2 a day (guess)"
+     ],
+     [
+      "Posts per day",
+      "400M"
+     ],
+     [
+      "Posts per sec",
+      "4.6K, peak 14K"
+     ],
+     [
+      "Size of a post",
+      "?"
+     ],
+     [
+      "New data a day",
+      "?"
+     ],
+     [
+      "Data in 5 yrs",
+      "?"
+     ]
+    ],
+    "label": "Twitter-like app: estimate",
+    "hi": [],
+    "ok": [
+     3
+    ],
+    "dim": [
+     4,
+     5,
+     6
+    ],
+    "out": "4.6K x 3 ≈ 14K",
+    "say": "Traffic isn't flat over the day. Plan for peaks about 3x the average: roughly 14K writes a second."
+   },
+   {
+    "rows": [
+     [
+      "Daily users",
+      "200M (guess)"
+     ],
+     [
+      "Posts per user",
+      "2 a day (guess)"
+     ],
+     [
+      "Posts per day",
+      "400M"
+     ],
+     [
+      "Posts per sec",
+      "4.6K, peak 14K"
+     ],
+     [
+      "Size of a post",
+      "1 KB (guess)"
+     ],
+     [
+      "New data a day",
+      "400 GB"
+     ],
+     [
+      "Data in 5 yrs",
+      "?"
+     ]
+    ],
+    "label": "Twitter-like app: estimate",
+    "hi": [
+     4
+    ],
+    "ok": [
+     5
+    ],
+    "dim": [
+     6
+    ],
+    "out": "400M x 1 KB = 400 GB",
+    "say": "Each post is about 1 KB with its metadata, so 400M posts make 400 GB of new data every day."
+   },
+   {
+    "rows": [
+     [
+      "Daily users",
+      "200M (guess)"
+     ],
+     [
+      "Posts per user",
+      "2 a day (guess)"
+     ],
+     [
+      "Posts per day",
+      "400M"
+     ],
+     [
+      "Posts per sec",
+      "4.6K, peak 14K"
+     ],
+     [
+      "Size of a post",
+      "1 KB (guess)"
+     ],
+     [
+      "New data a day",
+      "400 GB"
+     ],
+     [
+      "Data in 5 yrs",
+      "730 TB"
+     ]
+    ],
+    "label": "Twitter-like app: estimate",
+    "hi": [],
+    "ok": [
+     6
+    ],
+    "dim": [],
+    "out": "400 GB x 365 x 5 ≈ 730 TB",
+    "say": "Over 5 years: 400 GB x 365 x 5 is about 730 TB. Far too much for one machine, so plan for sharding."
+   }
+  ]
+ },
+ "when": [
+  "How many requests per second?",
+  "How much storage over 5 years?",
+  "Will one database machine be enough?",
+  "The first 5 minutes of any design question"
+ ],
+ "python": "daily_users = 200_000_000\nposts_per_user = 2\nbytes_per_post = 1_000\n\nposts_per_day = daily_users * posts_per_user\nwrites_per_sec = posts_per_day / 86_400\npeak = writes_per_sec * 3\nstorage_day = posts_per_day * bytes_per_post\nstorage_5y = storage_day * 365 * 5\n\nprint(f\"posts/day:   {posts_per_day / 1e6:,.0f} M\")\nprint(f\"writes/sec:  {writes_per_sec:,.0f} (peak {peak:,.0f})\")\nprint(f\"storage/day: {storage_day / 1e9:,.0f} GB\")\nprint(f\"5 years:     {storage_5y / 1e12:,.0f} TB\")",
+ "output": "posts/day:   400 M\nwrites/sec:  4,630 (peak 13,889)\nstorage/day: 400 GB\n5 years:     730 TB",
+ "cost": [
+  [
+   "Seconds in a day",
+   "86,400, call it 100K"
+  ],
+  [
+   "1 million requests a day",
+   "about 12 a second"
+  ],
+  [
+   "Memory / SSD / network hop",
+   "100 ns / 100 µs / 0.5 ms"
+  ],
+  [
+   "One server handles",
+   "1K-10K simple requests a second"
+  ]
+ ],
+ "watch": [
+  "Say your guesses out loud and round hard. The interviewer grades the reasoning, not the digits.",
+  "Count reads and writes separately. Reads are often 10-100x more.",
+  "Don't forget peaks (x2-3) and copies for safety (x3 replicas)."
+ ],
+ "interview": [
+  "Design Twitter",
+  "Design a URL shortener: how many ids in 10 years?",
+  "Design YouTube: how much storage a day?"
+ ],
+ "related": [
+  "sharding",
+  "caching",
+  "horizontal-scaling",
+  "blob-storage"
+ ]
+}

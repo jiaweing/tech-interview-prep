@@ -1,0 +1,684 @@
+{
+ "id": "consistent-hashing",
+ "track": "sd",
+ "order": 11,
+ "title": "Consistent hashing",
+ "short": "Spread keys over servers so adding one moves only a few keys.",
+ "what": "Servers and keys are both hashed onto the same ring of numbers. Each key belongs to the first server you meet walking clockwise from it. When a server joins or leaves, only the keys in its own arc move, about 1/N of them, instead of almost all of them with hash % N.",
+ "analogy": "Bus stops on a circular road. Each house walks clockwise to the next stop. Add a new stop and only the houses just before it change stops; everyone else keeps theirs.",
+ "viz": {
+  "kind": "graph",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "x": 24.2,
+      "y": 45.9
+     },
+     {
+      "id": "B",
+      "x": 41.2,
+      "y": 93.9
+     },
+     {
+      "id": "C",
+      "x": 31.7,
+      "y": 17.0
+     }
+    ],
+    "edges": [
+     [
+      "B",
+      "A"
+     ],
+     [
+      "A",
+      "C"
+     ],
+     [
+      "C",
+      "B"
+     ]
+    ],
+    "directed": true,
+    "dist": {
+     "A": "265",
+     "B": "193",
+     "C": "295"
+    },
+    "hi": [
+     "A",
+     "B",
+     "C"
+    ],
+    "say": "Bend the hash range 0-359 into a ring. Each cache server's name is hashed to a spot on it: B at 193, A at 265, C at 295."
+   },
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "x": 24.2,
+      "y": 45.9
+     },
+     {
+      "id": "B",
+      "x": 41.2,
+      "y": 93.9
+     },
+     {
+      "id": "C",
+      "x": 31.7,
+      "y": 17.0
+     },
+     {
+      "id": "kim",
+      "x": 75.9,
+      "y": 50.0
+     },
+     {
+      "id": "bob",
+      "x": 56.7,
+      "y": 95.1
+     },
+     {
+      "id": "dan",
+      "x": 27.6,
+      "y": 73.3
+     },
+     {
+      "id": "ivy",
+      "x": 45.5,
+      "y": 4.0
+     }
+    ],
+    "edges": [
+     [
+      "kim",
+      "bob"
+     ],
+     [
+      "bob",
+      "B"
+     ],
+     [
+      "B",
+      "dan"
+     ],
+     [
+      "dan",
+      "A"
+     ],
+     [
+      "A",
+      "C"
+     ],
+     [
+      "C",
+      "ivy"
+     ],
+     [
+      "ivy",
+      "kim"
+     ]
+    ],
+    "directed": true,
+    "dist": {
+     "A": "265",
+     "B": "193",
+     "C": "295",
+     "kim": "98",
+     "bob": "152",
+     "dan": "222",
+     "ivy": "324"
+    },
+    "hi": [
+     "kim",
+     "bob",
+     "dan",
+     "ivy"
+    ],
+    "say": "Keys are hashed onto the same ring: kim 98, bob 152, dan 222, ivy 324. The rule: from a key, walk clockwise to the first server."
+   },
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "x": 24.2,
+      "y": 45.9
+     },
+     {
+      "id": "B",
+      "x": 41.2,
+      "y": 93.9
+     },
+     {
+      "id": "C",
+      "x": 31.7,
+      "y": 17.0
+     },
+     {
+      "id": "kim",
+      "x": 75.9,
+      "y": 50.0
+     },
+     {
+      "id": "bob",
+      "x": 56.7,
+      "y": 95.1
+     },
+     {
+      "id": "dan",
+      "x": 27.6,
+      "y": 73.3
+     },
+     {
+      "id": "ivy",
+      "x": 45.5,
+      "y": 4.0
+     }
+    ],
+    "edges": [
+     [
+      "kim",
+      "bob"
+     ],
+     [
+      "bob",
+      "B"
+     ],
+     [
+      "B",
+      "dan"
+     ],
+     [
+      "dan",
+      "A"
+     ],
+     [
+      "A",
+      "C"
+     ],
+     [
+      "C",
+      "ivy"
+     ],
+     [
+      "ivy",
+      "kim"
+     ]
+    ],
+    "directed": true,
+    "dist": {
+     "A": "265",
+     "B": "193",
+     "C": "295",
+     "kim": "98",
+     "bob": "152",
+     "dan": "222",
+     "ivy": "324"
+    },
+    "hi": [
+     "kim",
+     "bob"
+    ],
+    "ok": [
+     "B"
+    ],
+    "edgeHi": [
+     [
+      "kim",
+      "bob"
+     ],
+     [
+      "bob",
+      "B"
+     ]
+    ],
+    "say": "kim (98) walks clockwise past bob and stops at B (193). bob (152) stops at B too. Both live on server B."
+   },
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "x": 24.2,
+      "y": 45.9
+     },
+     {
+      "id": "B",
+      "x": 41.2,
+      "y": 93.9
+     },
+     {
+      "id": "C",
+      "x": 31.7,
+      "y": 17.0
+     },
+     {
+      "id": "kim",
+      "x": 75.9,
+      "y": 50.0
+     },
+     {
+      "id": "bob",
+      "x": 56.7,
+      "y": 95.1
+     },
+     {
+      "id": "dan",
+      "x": 27.6,
+      "y": 73.3
+     },
+     {
+      "id": "ivy",
+      "x": 45.5,
+      "y": 4.0
+     }
+    ],
+    "edges": [
+     [
+      "kim",
+      "bob"
+     ],
+     [
+      "bob",
+      "B"
+     ],
+     [
+      "B",
+      "dan"
+     ],
+     [
+      "dan",
+      "A"
+     ],
+     [
+      "A",
+      "C"
+     ],
+     [
+      "C",
+      "ivy"
+     ],
+     [
+      "ivy",
+      "kim"
+     ]
+    ],
+    "directed": true,
+    "dist": {
+     "A": "265",
+     "B": "193",
+     "C": "295",
+     "kim": "98",
+     "bob": "152",
+     "dan": "222",
+     "ivy": "324"
+    },
+    "hi": [
+     "dan",
+     "ivy"
+    ],
+    "ok": [
+     "A",
+     "B"
+    ],
+    "dim": [
+     "C"
+    ],
+    "edgeHi": [
+     [
+      "dan",
+      "A"
+     ],
+     [
+      "ivy",
+      "kim"
+     ],
+     [
+      "kim",
+      "bob"
+     ],
+     [
+      "bob",
+      "B"
+     ]
+    ],
+    "say": "dan stops at A. ivy (324) passes 359, wraps to 0 and goes on to B. C gets nothing: one spot per server makes uneven arcs."
+   },
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "x": 24.2,
+      "y": 45.9
+     },
+     {
+      "id": "B",
+      "x": 41.2,
+      "y": 93.9
+     },
+     {
+      "id": "C",
+      "x": 31.7,
+      "y": 17.0
+     },
+     {
+      "id": "kim",
+      "x": 75.9,
+      "y": 50.0
+     },
+     {
+      "id": "bob",
+      "x": 56.7,
+      "y": 95.1
+     },
+     {
+      "id": "dan",
+      "x": 27.6,
+      "y": 73.3
+     },
+     {
+      "id": "ivy",
+      "x": 45.5,
+      "y": 4.0
+     },
+     {
+      "id": "D",
+      "x": 69.8,
+      "y": 80.0
+     }
+    ],
+    "edges": [
+     [
+      "kim",
+      "D"
+     ],
+     [
+      "D",
+      "bob"
+     ],
+     [
+      "bob",
+      "B"
+     ],
+     [
+      "B",
+      "dan"
+     ],
+     [
+      "dan",
+      "A"
+     ],
+     [
+      "A",
+      "C"
+     ],
+     [
+      "C",
+      "ivy"
+     ],
+     [
+      "ivy",
+      "kim"
+     ]
+    ],
+    "directed": true,
+    "dist": {
+     "A": "265",
+     "B": "193",
+     "C": "295",
+     "kim": "98",
+     "bob": "152",
+     "dan": "222",
+     "ivy": "324",
+     "D": "125"
+    },
+    "hi": [
+     "D"
+    ],
+    "say": "Traffic grows, so you add server D. Its name hashes to 125, between kim and bob."
+   },
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "x": 24.2,
+      "y": 45.9
+     },
+     {
+      "id": "B",
+      "x": 41.2,
+      "y": 93.9
+     },
+     {
+      "id": "C",
+      "x": 31.7,
+      "y": 17.0
+     },
+     {
+      "id": "kim",
+      "x": 75.9,
+      "y": 50.0
+     },
+     {
+      "id": "bob",
+      "x": 56.7,
+      "y": 95.1
+     },
+     {
+      "id": "dan",
+      "x": 27.6,
+      "y": 73.3
+     },
+     {
+      "id": "ivy",
+      "x": 45.5,
+      "y": 4.0
+     },
+     {
+      "id": "D",
+      "x": 69.8,
+      "y": 80.0
+     }
+    ],
+    "edges": [
+     [
+      "kim",
+      "D"
+     ],
+     [
+      "D",
+      "bob"
+     ],
+     [
+      "bob",
+      "B"
+     ],
+     [
+      "B",
+      "dan"
+     ],
+     [
+      "dan",
+      "A"
+     ],
+     [
+      "A",
+      "C"
+     ],
+     [
+      "C",
+      "ivy"
+     ],
+     [
+      "ivy",
+      "kim"
+     ]
+    ],
+    "directed": true,
+    "dist": {
+     "A": "265",
+     "B": "193",
+     "C": "295",
+     "kim": "98",
+     "bob": "152",
+     "dan": "222",
+     "ivy": "324",
+     "D": "125"
+    },
+    "ok": [
+     "D"
+    ],
+    "hi": [
+     "kim",
+     "ivy"
+    ],
+    "edgeHi": [
+     [
+      "ivy",
+      "kim"
+     ],
+     [
+      "kim",
+      "D"
+     ]
+    ],
+    "say": "kim and ivy now meet D first, so they move to D. bob and dan stay put. Only keys in D's new arc moved, and all came from B."
+   },
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "x": 24.2,
+      "y": 45.9
+     },
+     {
+      "id": "B",
+      "x": 41.2,
+      "y": 93.9
+     },
+     {
+      "id": "C",
+      "x": 31.7,
+      "y": 17.0
+     },
+     {
+      "id": "kim",
+      "x": 75.9,
+      "y": 50.0
+     },
+     {
+      "id": "bob",
+      "x": 56.7,
+      "y": 95.1
+     },
+     {
+      "id": "dan",
+      "x": 27.6,
+      "y": 73.3
+     },
+     {
+      "id": "ivy",
+      "x": 45.5,
+      "y": 4.0
+     },
+     {
+      "id": "D",
+      "x": 69.8,
+      "y": 80.0
+     }
+    ],
+    "edges": [
+     [
+      "kim",
+      "D"
+     ],
+     [
+      "D",
+      "bob"
+     ],
+     [
+      "bob",
+      "B"
+     ],
+     [
+      "B",
+      "dan"
+     ],
+     [
+      "dan",
+      "A"
+     ],
+     [
+      "A",
+      "C"
+     ],
+     [
+      "C",
+      "ivy"
+     ],
+     [
+      "ivy",
+      "kim"
+     ]
+    ],
+    "directed": true,
+    "dist": {
+     "kim": "-> D",
+     "ivy": "-> D",
+     "bob": "-> B",
+     "dan": "-> A",
+     "A": "265",
+     "B": "193",
+     "C": "295",
+     "D": "125"
+    },
+    "ok": [
+     "A",
+     "B",
+     "D"
+    ],
+    "say": "With hash % N, adding a server moves most keys. Here 2 of 4 moved, about 1/N in big systems. Real rings give each server ~100 spots."
+   }
+  ]
+ },
+ "when": [
+  "Keys are spread over cache or database servers that come and go",
+  "hash % N would reshuffle everything when N changes",
+  "Someone says distributed cache or Dynamo",
+  "Sharding needs to grow without a big migration"
+ ],
+ "python": "import bisect, hashlib\n\ndef h(key):                                   # a stable hash -> a spot on a 0-359 ring\n    return int(hashlib.md5(key.encode()).hexdigest(), 16) % 360\n\ndef owner(key, servers):\n    ring = sorted((h(s), s) for s in servers)\n    i = bisect.bisect(ring, (h(key), \"\"))     # first server clockwise from the key\n    return ring[i % len(ring)][1]             # past the end? wrap around to the start\n\nkeys = [\"kim\", \"bob\", \"dan\", \"ivy\"]\nprint(\"spots:\", {name: h(name) for name in keys + [\"A\", \"B\", \"C\", \"D\"]})\nprint(\"3 servers:\", {k: owner(k, [\"A\", \"B\", \"C\"]) for k in keys})\nprint(\"add D:    \", {k: owner(k, [\"A\", \"B\", \"C\", \"D\"]) for k in keys})",
+ "output": "spots: {'kim': 98, 'bob': 152, 'dan': 222, 'ivy': 324, 'A': 265, 'B': 193, 'C': 295, 'D': 125}\n3 servers: {'kim': 'B', 'bob': 'B', 'dan': 'A', 'ivy': 'B'}\nadd D:     {'kim': 'D', 'bob': 'B', 'dan': 'A', 'ivy': 'D'}",
+ "cost": [
+  [
+   "Find a key's server",
+   "O(log n), binary search on the ring"
+  ],
+  [
+   "Keys moved when a server joins",
+   "about 1/N"
+  ],
+  [
+   "Keys moved with hash % N",
+   "almost all"
+  ]
+ ],
+ "watch": [
+  "One spot per server gives uneven arcs; give each server 100+ virtual spots.",
+  "Use a stable hash like md5; Python's hash() of a string changes every run.",
+  "Moved keys still need their data copied to the new server."
+ ],
+ "interview": [
+  "Design a distributed cache",
+  "Design a distributed key-value store (Dynamo)",
+  "Design a sharded database that can grow"
+ ],
+ "related": [
+  "sharding",
+  "hash-map",
+  "caching",
+  "binary-search"
+ ]
+}

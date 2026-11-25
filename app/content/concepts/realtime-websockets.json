@@ -1,0 +1,349 @@
+{
+ "id": "realtime-websockets",
+ "title": "Realtime: WebSockets, SSE and polling",
+ "group": "Async & realtime",
+ "tagline": "Push updates to clients the moment they happen, and know which server holds which connection.",
+ "why": "<p>HTTP is request and response: the server cannot speak until the client asks. Chat messages, a driver's location, a voucher turning \"redeemed\" on the merchant's screen, or tokens streaming from an LLM all need the server to push.</p><p>There are four ways to do it, and they trade simplicity for latency and cost. The interesting part is not the protocol but the fleet: a long-lived connection pins a user to one gateway server, so when a message for user B arrives somewhere else, you need to know where B is connected and get the message there.</p>",
+ "how": "<p><b>The four options.</b></p><ul><li><b>Short polling.</b> The client asks every few seconds. Trivial and works through any proxy, but most requests return nothing, and the delay is up to the interval. 1M clients polling every 5 s is 200,000 requests a second.</li><li><b>Long polling.</b> The server holds the request open until there is news or ~30 s pass, then the client asks again. Near-instant delivery over plain HTTP, but every message costs a new request.</li><li><b>Server-Sent Events (SSE).</b> One HTTP response that never ends (<code>text/event-stream</code>). Server to client only; the browser reconnects automatically and sends <code>Last-Event-ID</code> so you can resume. Great for feeds, notifications and LLM token streams.</li><li><b>WebSockets.</b> An HTTP request with <code>Upgrade: websocket</code> is answered with <code>101 Switching Protocols</code>, and the same TCP connection then carries WebSocket frames in both directions. Small frames both ways; best for chat, games, collaborative editing and live location.</li></ul><p><b>The gateway fleet.</b> Clients connect through a load balancer to <b>stateless-ish gateway servers</b> whose only job is holding sockets. Business logic lives in normal services behind them. Each gateway handles tens of thousands of mostly idle connections.</p><p><b>Connection registry.</b> When a socket opens, the gateway writes <code>user:B → gw2</code> to Redis with a TTL it refreshes on every heartbeat. To reach B, a service looks B up.</p><p><b>Pub/sub fan-out.</b> Services publish to a channel (per gateway, per user or per room) on Redis pub/sub, NATS or Kafka. Each gateway subscribes to the channels for the users it holds and writes the message to their sockets. Pub/sub is usually fire-and-forget, so <b>persist the message first</b>; a client that reconnects asks for everything after the last id it saw.</p><p><b>Keepalives and reconnects.</b> Send a ping every 20 to 30 s so load balancers and NATs do not drop idle connections. Clients reconnect with exponential backoff and jitter, because a gateway deploy or crash drops thousands of sockets at once.</p>",
+ "diagram": {
+  "w": 960,
+  "h": 420,
+  "nodes": [
+   {
+    "id": "a",
+    "label": "Client A",
+    "kind": "mobile",
+    "x": 90,
+    "y": 110,
+    "sub": "sender"
+   },
+   {
+    "id": "b",
+    "label": "Client B",
+    "kind": "client",
+    "x": 90,
+    "y": 330,
+    "sub": "receiver"
+   },
+   {
+    "id": "lb",
+    "label": "Load balancer",
+    "kind": "lb",
+    "x": 300,
+    "y": 220,
+    "sub": "passes Upgrade through"
+   },
+   {
+    "id": "g1",
+    "label": "WS gateway 1",
+    "kind": "ws",
+    "x": 540,
+    "y": 90,
+    "sub": "~50k sockets each"
+   },
+   {
+    "id": "g2",
+    "label": "WS gateway 2",
+    "kind": "ws",
+    "x": 540,
+    "y": 350,
+    "sub": "~50k sockets each"
+   },
+   {
+    "id": "svc",
+    "label": "Chat service",
+    "kind": "service",
+    "x": 830,
+    "y": 200,
+    "sub": "persist, then publish"
+   },
+   {
+    "id": "bus",
+    "label": "Pub/sub",
+    "kind": "stream",
+    "x": 830,
+    "y": 350,
+    "sub": "Redis / NATS / Kafka"
+   },
+   {
+    "id": "reg",
+    "label": "Conn registry",
+    "kind": "cache",
+    "x": 540,
+    "y": 220,
+    "sub": "Redis: user → gateway"
+   }
+  ],
+  "edges": [
+   {
+    "id": "a-lb",
+    "from": "a",
+    "to": "lb",
+    "label": "wss:// upgrade"
+   },
+   {
+    "id": "b-lb",
+    "from": "b",
+    "to": "lb",
+    "label": "wss:// upgrade"
+   },
+   {
+    "id": "lb-g1",
+    "from": "lb",
+    "to": "g1",
+    "label": "socket"
+   },
+   {
+    "id": "lb-g2",
+    "from": "lb",
+    "to": "g2",
+    "label": "socket"
+   },
+   {
+    "id": "g1-reg",
+    "from": "g1",
+    "to": "reg",
+    "label": "SET user:A"
+   },
+   {
+    "id": "g2-reg",
+    "from": "g2",
+    "to": "reg",
+    "label": "SET user:B"
+   },
+   {
+    "id": "g1-svc",
+    "from": "g1",
+    "to": "svc",
+    "label": "send msg"
+   },
+   {
+    "id": "svc-reg",
+    "from": "svc",
+    "to": "reg",
+    "label": "where is B?"
+   },
+   {
+    "id": "svc-bus",
+    "from": "svc",
+    "to": "bus",
+    "label": "publish"
+   },
+   {
+    "id": "bus-g1",
+    "from": "bus",
+    "to": "g1",
+    "dashed": true
+   },
+   {
+    "id": "bus-g2",
+    "from": "bus",
+    "to": "g2",
+    "label": "deliver",
+    "dashed": true
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "connect",
+   "name": "Connect",
+   "desc": "Opening sockets and registering them.",
+   "steps": [
+    {
+     "edge": "a-lb",
+     "note": "Client A sends an HTTP request with <code>Upgrade: websocket</code> and its auth token. The load balancer must allow upgrades and an idle timeout longer than the heartbeat interval."
+    },
+    {
+     "edge": "lb-g1",
+     "note": "The gateway checks the token and answers <code>101 Switching Protocols</code>. From now on this TCP connection is pinned to gateway 1."
+    },
+    {
+     "edge": "g1-reg",
+     "note": "Gateway 1 registers <code>user:A → gw1</code> in Redis with a TTL of about 60 s, refreshed on each 25 s heartbeat. If the gateway dies, the entry expires by itself."
+    },
+    {
+     "edge": "b-lb",
+     "note": "Client B connects the same way, and the load balancer happens to pick gateway 2."
+    },
+    {
+     "edge": "lb-g2",
+     "note": "Gateway 2 accepts. Most of its sockets are idle most of the time: memory per connection, not CPU, sets how many fit on one box."
+    },
+    {
+     "edge": "g2-reg",
+     "note": "<code>user:B → gw2</code>. A user on two devices has two entries."
+    }
+   ]
+  },
+  {
+   "id": "send",
+   "name": "Send A → B",
+   "desc": "The message crosses gateways.",
+   "steps": [
+    {
+     "edge": "a-lb",
+     "note": "A sends a frame on its open socket with a client-generated message id, so a retry after a dropped connection is not stored twice."
+    },
+    {
+     "edge": "lb-g1",
+     "note": "It arrives at gateway 1, which only holds sockets and forwards to the service."
+    },
+    {
+     "edge": "g1-svc",
+     "note": "The chat service validates the message and <b>stores it first</b>. Pub/sub may drop messages; the database is how B catches up later."
+    },
+    {
+     "edge": "svc-reg",
+     "note": "Look up B: connected to gw2. If there is no entry, B is offline: send a push notification instead."
+    },
+    {
+     "edge": "svc-bus",
+     "note": "Publish to the channel for gateway 2 (or for user B)."
+    },
+    {
+     "edge": "bus-g2",
+     "note": "Gateway 2 is subscribed to its channel and receives the message in a millisecond or two."
+    },
+    {
+     "edge": "lb-g2",
+     "rev": true,
+     "note": "Gateway 2 writes the frame to B's socket."
+    },
+    {
+     "edge": "b-lb",
+     "rev": true,
+     "note": "B sees it, end to end typically under 100 ms. B acks the message id so the server can mark it delivered."
+    }
+   ]
+  },
+  {
+   "id": "room",
+   "name": "Room fan-out",
+   "desc": "One message, members on many gateways.",
+   "steps": [
+    {
+     "edge": "g1-svc",
+     "note": "A posts to room 42, which has members connected to many gateways."
+    },
+    {
+     "edge": "svc-bus",
+     "note": "Publish once to channel <code>room:42</code>. The service does not need to know who is online where."
+    },
+    {
+     "edge": "bus-g1",
+     "note": "Every gateway that holds a member of room 42 is subscribed to that channel, including gateway 1 for A's other devices."
+    },
+    {
+     "edge": "bus-g2",
+     "note": "Gateway 2 gets it too and writes it to each local member's socket. For a room with 100k members, this fan-out is the expensive part: batch it and rate limit it."
+    },
+    {
+     "edge": "lb-g2",
+     "rev": true,
+     "note": "Delivered down the existing socket."
+    },
+    {
+     "edge": "b-lb",
+     "rev": true,
+     "note": "If B was offline, B fetches everything after its last seen message id on reconnect."
+    }
+   ]
+  }
+ ],
+ "tradeoffs": [
+  {
+   "option": "Short polling",
+   "pro": "Simplest; works through every proxy and caches; no connection state on the server.",
+   "con": "Wasteful (most responses are empty) and latency is up to the polling interval."
+  },
+  {
+   "option": "Long polling",
+   "pro": "Near-instant delivery over plain HTTP; good fallback when WebSockets are blocked.",
+   "con": "A new request per message or timeout; holding many requests open still needs an async server."
+  },
+  {
+   "option": "Server-Sent Events",
+   "pro": "Plain HTTP, built-in reconnect and resume with <code>Last-Event-ID</code>; ideal for one-way streams like feeds and LLM tokens.",
+   "con": "Server to client only (client sends with normal requests); text only; on HTTP/1.1 counts against the browser's ~6 connections per host."
+  },
+  {
+   "option": "WebSockets",
+   "pro": "Full duplex with tiny per-message overhead; best for chat, live location and collaboration.",
+   "con": "Stateful connections: needs a gateway fleet, a registry, heartbeats, reconnect logic and careful deploys."
+  }
+ ],
+ "numbers": [
+  "Polling cost: 1M clients every 5 s = <b>200,000 req/s</b>, almost all returning nothing.",
+  "One tuned gateway holds roughly <b>50k to 100k</b> mostly idle sockets; memory per connection is in the tens of KB. 1M concurrent users ≈ <b>10 to 20</b> gateways.",
+  "Heartbeat every <b>20 to 30 s</b>. AWS ALB's default idle timeout is <b>60 s</b>; an idle socket with no pings is silently cut.",
+  "WebSocket frame header: <b>2 to 14 bytes</b>, versus hundreds of bytes of headers for each polling request.",
+  "Redis pub/sub delivery inside one region: about <b>1 ms</b>. A gateway restart with 50k sockets means 50k reconnects: spread them with jittered backoff over <b>10 to 30 s</b>."
+ ],
+ "say": [
+  "For two-way realtime I'll use WebSockets through a gateway fleet that only holds connections; business logic stays in stateless services behind it.",
+  "Each gateway registers user-to-gateway in Redis with a TTL refreshed by heartbeats, and services publish to the right gateway's channel over pub/sub.",
+  "Messages are persisted before they are published, so a client that reconnects asks for everything after its last seen id and nothing is lost if pub/sub drops one."
+ ],
+ "pitfalls": [
+  "Treating pub/sub as durable. Redis pub/sub drops messages for subscribers that are not connected. Persist first, and let clients resync by last seen id.",
+  "Keeping business logic and state in the gateway. Then a deploy or crash loses work, and you cannot scale sockets and logic separately.",
+  "No heartbeats. Load balancers and mobile NATs cut idle connections; the server keeps writing into a dead socket and thinks the user is online.",
+  "Clients that reconnect immediately on failure. One gateway restart becomes a reconnect storm that knocks over the next gateway. Use exponential backoff with jitter.",
+  "Reaching for WebSockets when SSE or polling would do. A dashboard that refreshes every 30 s does not need a stateful connection fleet."
+ ],
+ "quiz": [
+  {
+   "q": "You need to stream LLM tokens to a browser. The client sends one prompt and then only receives. What is the simplest good fit?",
+   "options": [
+    "Short polling every 200 ms",
+    "Server-Sent Events",
+    "A WebSocket per user",
+    "Long polling with a new request per token"
+   ],
+   "answer": 1,
+   "why": "SSE is one-way server push over plain HTTP, with automatic reconnect. The prompt goes in a normal POST. WebSockets work but add state you do not need, and long polling pays a new request for every token."
+  },
+  {
+   "q": "User B is connected to gateway 7. A message for B is handled by a service instance that has no socket for B. How does it reach B?",
+   "options": [
+    "Broadcast to every client",
+    "The load balancer forwards it to B",
+    "Look up B in the connection registry and publish to gateway 7's channel",
+    "Wait for B to poll"
+   ],
+   "answer": 2,
+   "why": "The registry maps users to gateways; pub/sub carries the message to the gateway that owns the socket. The load balancer has no idea which socket belongs to B."
+  },
+  {
+   "q": "After a gateway crash, 50,000 clients reconnect within one second and overload the remaining gateways. What fixes it?",
+   "options": [
+    "Exponential backoff with random jitter on the client",
+    "A longer heartbeat interval",
+    "Switching to Redis Streams",
+    "Bigger WebSocket frames"
+   ],
+   "answer": 0,
+   "why": "Jitter spreads reconnects over many seconds so the fleet absorbs them. Without it, every client retries at the same moment."
+  },
+  {
+   "q": "Why persist a chat message before publishing it to pub/sub?",
+   "options": [
+    "Pub/sub is slower than the database",
+    "It is required by the WebSocket protocol",
+    "To reduce memory on the gateway",
+    "Pub/sub may drop it, and an offline receiver needs a durable copy"
+   ],
+   "answer": 3,
+   "why": "Redis pub/sub does not keep messages for absent subscribers. The database is the source of truth; the push is only a fast path."
+  }
+ ],
+ "used_in": [
+  "chat",
+  "uber",
+  "voucher-redemption",
+  "news-feed",
+  "llm-guardrails",
+  "file-sync"
+ ]
+}

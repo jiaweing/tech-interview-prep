@@ -1,0 +1,131 @@
+{
+ "id": "greedy",
+ "track": "algo",
+ "order": 17,
+ "title": "Greedy",
+ "short": "Make the best-looking choice at each step and never look back.",
+ "what": "A greedy algorithm builds the answer one step at a time and always takes the option that looks best right now. It never undoes a choice, so it is fast. The catch: it only gives the right answer when the problem has a rule that makes the local best also the global best.",
+ "analogy": "Paying cash at a shop: you hand over the biggest note that fits, then the next biggest, without planning ahead.",
+ "viz": {
+  "kind": "stack",
+  "frames": [
+   {
+    "items": [],
+    "label": "make 68 cents",
+    "out": "left = 68",
+    "say": "Make 68 cents with as few coins as possible. Coins: 25, 10, 5, 1. The greedy rule: always take the biggest coin that fits."
+   },
+   {
+    "items": [
+     "25"
+    ],
+    "label": "make 68 cents",
+    "out": "left = 43",
+    "hi": [
+     0
+    ],
+    "say": "25 fits in 68. Take it: 43 left. You never come back to rethink this choice."
+   },
+   {
+    "items": [
+     "25",
+     "25"
+    ],
+    "label": "make 68 cents",
+    "out": "left = 18",
+    "hi": [
+     1
+    ],
+    "say": "25 still fits in 43. Take another: 18 left."
+   },
+   {
+    "items": [
+     "25",
+     "25",
+     "10"
+    ],
+    "label": "make 68 cents",
+    "out": "left = 8",
+    "hi": [
+     2
+    ],
+    "say": "25 is too big for 18, so move down to 10. It fits: 8 left."
+   },
+   {
+    "items": [
+     "25",
+     "25",
+     "10",
+     "5"
+    ],
+    "label": "make 68 cents",
+    "out": "left = 3",
+    "hi": [
+     3
+    ],
+    "say": "10 is too big for 8. 5 fits: 3 left."
+   },
+   {
+    "items": [
+     "25",
+     "25",
+     "10",
+     "5",
+     "1",
+     "1",
+     "1"
+    ],
+    "label": "make 68 cents",
+    "out": "left = 0",
+    "ok": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "hi": [],
+    "say": "Three 1s finish it. 7 coins. With these coins greedy always gives the fewest. With coins 1, 3, 4 it does not (see the code)."
+   }
+  ]
+ },
+ "when": [
+  "Pick the most, the least or the earliest at each step",
+  "Sort first, then sweep once",
+  "Scheduling: fit the most meetings or jobs",
+  "You can argue a local choice never hurts later"
+ ],
+ "python": "def make_change(amount, coins):\n    picked = []\n    for c in sorted(coins, reverse=True):  # biggest first\n        while amount >= c:\n            amount -= c\n            picked.append(c)\n    return picked\nprint(make_change(68, [25, 10, 5, 1]))\nprint(make_change(6, [1, 3, 4]))  # greedy: 3 coins, best is 3 + 3",
+ "output": "[25, 25, 10, 5, 1, 1, 1]\n[4, 1, 1]",
+ "cost": [
+  [
+   "One pass after sorting",
+   "O(n log n)"
+  ],
+  [
+   "The greedy steps alone",
+   "O(n)"
+  ],
+  [
+   "Memory",
+   "O(1) extra"
+  ]
+ ],
+ "watch": [
+  "Greedy can be wrong. Test a tricky case, like coins 1, 3, 4 for 6, before trusting it.",
+  "If a choice can ruin later options, you probably need dynamic programming.",
+  "Most greedy solutions start with a sort; pick the sort key carefully."
+ ],
+ "interview": [
+  "LC 55 Jump Game",
+  "LC 435 Non-overlapping Intervals",
+  "LC 134 Gas Station"
+ ],
+ "related": [
+  "dynamic-programming",
+  "merge-intervals",
+  "sorting-overview"
+ ]
+}

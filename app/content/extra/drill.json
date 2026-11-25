@@ -1,0 +1,769 @@
+[
+ {
+  "q": "Users, payments and the links between them, with multi-row transactions. Default store?",
+  "options": [
+   "A document store such as MongoDB",
+   "A wide-column store such as Cassandra",
+   "A relational database such as Postgres",
+   "Redis with AOF persistence"
+  ],
+  "answer": 2,
+  "why": "Joins, foreign keys and ACID transactions are what relational databases are for. Pick something else only when you can name the access pattern Postgres cannot serve.",
+  "topic": "Data stores"
+ },
+ {
+  "q": "500k sensor writes per second, always read back by device and time range. Best fit?",
+  "options": [
+   "One Postgres primary with a B-tree index on timestamp",
+   "A wide-column store (Cassandra, DynamoDB) keyed by (device_id, day)",
+   "Elasticsearch",
+   "A Redis list per device"
+  ],
+  "answer": 1,
+  "why": "Partitioning by device and day spreads writes across nodes and keeps each range query on one partition. A single relational primary cannot absorb 500k writes/s.",
+  "topic": "Data stores"
+ },
+ {
+  "q": "Officers need fuzzy, ranked search across 50M documents. What do you add?",
+  "options": [
+   "A search index (OpenSearch / Elasticsearch) fed from the primary DB",
+   "<code>LIKE '%term%'</code> on the main table",
+   "A bigger read replica",
+   "A Redis cache of every document"
+  ],
+  "answer": 0,
+  "why": "An inverted index makes term lookups fast and supports ranking. <code>LIKE '%term%'</code> cannot use a B-tree index, so it scans the whole table.",
+  "topic": "Data stores"
+ },
+ {
+  "q": "Citizens upload 5 MB PDFs with their applications. Where do the bytes go?",
+  "options": [
+   "A BYTEA/BLOB column in Postgres",
+   "On the API server's local disk",
+   "In Redis",
+   "Object storage (S3); the DB keeps the key, size, owner and scan status"
+  ],
+  "answer": 3,
+  "why": "Object storage is cheap, durable and serves large files without tying up DB connections or memory. Local disk is lost when the instance is replaced.",
+  "topic": "Data stores"
+ },
+ {
+  "q": "Cache-aside. You just updated a row in the DB. What do you do with the cache?",
+  "options": [
+   "Write the new value into the cache before the DB",
+   "Nothing, the TTL will handle it",
+   "Delete the key, so the next read loads the fresh row",
+   "Flush the whole cache"
+  ],
+  "answer": 2,
+  "why": "Deleting after the DB commit is simple and avoids a race where two writers set the cache in the wrong order. Keep a TTL as a safety net for any delete that is lost.",
+  "topic": "Caching"
+ },
+ {
+  "q": "A hot key expires and 5,000 requests miss at once, all hitting the DB. Fix?",
+  "options": [
+   "Shorten the TTL",
+   "Request coalescing: one request rebuilds the value while the others wait or get the stale copy",
+   "Add another read replica and hope",
+   "Switch eviction from LRU to LFU"
+  ],
+  "answer": 1,
+  "why": "This is a cache stampede. Single-flight locking, serving stale while refreshing, or refreshing early before expiry all keep the DB to one rebuild.",
+  "topic": "Caching"
+ },
+ {
+  "q": "Which write policy can lose writes the client was told succeeded if the cache node dies?",
+  "options": [
+   "Write-back (write-behind)",
+   "Write-through",
+   "Cache-aside",
+   "Read-through"
+  ],
+  "answer": 0,
+  "why": "Write-back acknowledges after writing only to the cache and flushes to the DB later. Anything not yet flushed is lost with the node.",
+  "topic": "Caching"
+ },
+ {
+  "q": "Why add random jitter to cache TTLs?",
+  "options": [
+   "To make the cache harder to attack",
+   "To improve the LRU hit rate",
+   "Because TTLs must be prime numbers",
+   "So keys loaded together do not all expire in the same second"
+  ],
+  "answer": 3,
+  "why": "Keys warmed together expire together and stampede the DB together. A TTL of 600 s plus or minus 60 s spreads the reloads out.",
+  "topic": "Caching"
+ },
+ {
+  "q": "A link shortener must count every click. Which redirect status?",
+  "options": [
+   "301, it is faster",
+   "200 with a meta refresh",
+   "302 (or 307), so every click comes back to your server",
+   "404 with a Location header"
+  ],
+  "answer": 2,
+  "why": "Browsers cache a 301 permanently, so repeat clicks never reach you and your counts go low. You also cannot re-point a link once it is cached.",
+  "topic": "HTTP & APIs"
+ },
+ {
+  "q": "Which set of methods is idempotent by the HTTP spec?",
+  "options": [
+   "GET, POST, PUT",
+   "GET, PUT, DELETE",
+   "POST, PATCH, DELETE",
+   "Only GET"
+  ],
+  "answer": 1,
+  "why": "Repeating a PUT or DELETE leaves the same state. POST is not idempotent, which is why it needs an idempotency key when clients retry.",
+  "topic": "HTTP & APIs"
+ },
+ {
+  "q": "A payment POST times out and the client retries. How do you avoid charging twice?",
+  "options": [
+   "The client sends an <code>Idempotency-Key</code>; the server stores it with the result under a unique constraint and replays that result on retry",
+   "Retry only on GET requests",
+   "Check whether a payment with the same amount arrived in the last minute",
+   "Use a longer timeout"
+  ],
+  "answer": 0,
+  "why": "The key turns a retry into a lookup. Matching on amount and time blocks real repeat payments and still misses slow retries.",
+  "topic": "Idempotency"
+ },
+ {
+  "q": "Processing an uploaded CSV takes 3 minutes. What should <code>POST /upload</code> return?",
+  "options": [
+   "Hold the connection open for 3 minutes and return 200",
+   "<code>201 Created</code> before parsing anything",
+   "<code>504</code> and ask the user to retry",
+   "<code>202 Accepted</code> with a job id; the client polls <code>GET /jobs/{id}</code> or gets a callback"
+  ],
+  "answer": 3,
+  "why": "Long requests hit load balancer and gateway timeouts and tie up workers. This is the long-running-upload follow-up in GovTech's ACE take-home.",
+  "topic": "HTTP & APIs"
+ },
+ {
+  "q": "A client is over its rate limit. What do you return?",
+  "options": [
+   "<code>403 Forbidden</code>",
+   "<code>503 Service Unavailable</code>",
+   "<code>429 Too Many Requests</code> with a <code>Retry-After</code> header",
+   "<code>400 Bad Request</code>"
+  ],
+  "answer": 2,
+  "why": "429 tells the client it is being throttled, not refused, and <code>Retry-After</code> tells well-behaved clients when to come back.",
+  "topic": "HTTP & APIs"
+ },
+ {
+  "q": "Your queue delivers at least once. What must the consumer do?",
+  "options": [
+   "Nothing, at least once means no duplicates",
+   "Be idempotent, for example dedupe on a message id or use an upsert",
+   "Ack before processing",
+   "Process each message twice to be safe"
+  ],
+  "answer": 1,
+  "why": "At least once means a message can arrive again after a crash or visibility timeout. Acking before processing turns it into at most once and loses messages.",
+  "topic": "Messaging"
+ },
+ {
+  "q": "A vendor promises exactly-once delivery end to end. What is actually achievable?",
+  "options": [
+   "At-least-once delivery plus idempotent processing, which gives an effectively-once result",
+   "True exactly-once over any network with the right broker",
+   "At-most-once with retries",
+   "Exactly-once only if you use TCP"
+  ],
+  "answer": 0,
+  "why": "A sender cannot tell a lost message from a lost ack, so it must resend. Kafka's exactly-once covers read-process-write inside Kafka; side effects such as emails still need dedupe.",
+  "topic": "Messaging"
+ },
+ {
+  "q": "Events for one user must be processed in order, using Kafka with 24 partitions. How?",
+  "options": [
+   "Use one partition for the whole topic",
+   "Use a random key",
+   "Sort events by timestamp in the consumer",
+   "Use <code>user_id</code> as the partition key"
+  ],
+  "answer": 3,
+  "why": "Kafka orders messages only within a partition. Keying by user keeps each user's events in order and still spreads users across 24 partitions.",
+  "topic": "Messaging"
+ },
+ {
+  "q": "A service saves an order and must publish <code>OrderCreated</code>. The DB commit succeeds, then the publish fails. Fix?",
+  "options": [
+   "Publish first, then write to the DB",
+   "Wrap the DB and the broker in a two-phase commit",
+   "Transactional outbox: write the event to an outbox table in the same transaction; a relay publishes it",
+   "Retry the publish in the request thread until it works"
+  ],
+  "answer": 2,
+  "why": "One local transaction makes the order and its event commit or fail together. The relay may publish twice, so consumers stay idempotent.",
+  "topic": "Messaging"
+ },
+ {
+  "q": "A booking spans payment, slot reservation and notification services, each with its own DB. How do you keep them consistent?",
+  "options": [
+   "One distributed ACID transaction across all three",
+   "A saga: local steps with compensating actions (refund, release slot) on failure",
+   "Let each service retry forever",
+   "Put all three tables in one shared DB"
+  ],
+  "answer": 1,
+  "why": "Sagas give eventual consistency without holding locks across services. Each step must have an undo that is safe to run more than once.",
+  "topic": "Messaging"
+ },
+ {
+  "q": "One malformed message fails 5 times and blocks the consumer. What do you do?",
+  "options": [
+   "Move it to a dead-letter queue, alert, and keep processing the rest",
+   "Retry it forever",
+   "Drop it silently",
+   "Restart the consumer"
+  ],
+  "answer": 0,
+  "why": "A poison message must not stall the queue. The DLQ keeps it for inspection and replay once the bug is fixed.",
+  "topic": "Messaging"
+ },
+ {
+  "q": "Audit, analytics and notifications must each see every event, and you want to replay last week. What do you use?",
+  "options": [
+   "One SQS queue shared by all three",
+   "Direct HTTP calls from the producer",
+   "A Redis list",
+   "A log/stream (Kafka, Kinesis) with one consumer group per service"
+  ],
+  "answer": 3,
+  "why": "A shared queue hands each message to only one consumer and deletes it on ack. A log keeps events for a retention period, and each group tracks its own offset.",
+  "topic": "Messaging"
+ },
+ {
+  "q": "Producers send 5k msg/s and consumers handle 2k msg/s for a 10-minute spike. Backlog at the end?",
+  "options": [
+   "180,000 messages",
+   "3 million messages",
+   "1.8 million messages",
+   "300,000 messages"
+  ],
+  "answer": 2,
+  "why": "(5,000 - 2,000) &times; 600 s = 1.8M. At 2k/s with no new load that is 15 minutes to drain, so add consumers or accept the delay.",
+  "topic": "Back-of-envelope"
+ },
+ {
+  "q": "An account with 50M followers posts. Fan-out on write would mean 50M inserts. What do big feed systems do?",
+  "options": [
+   "Fan out to all 50M anyway",
+   "A hybrid: push for normal accounts, pull celebrity posts at read time",
+   "Pull everything at read time for everyone",
+   "Only show the post to online followers"
+  ],
+  "answer": 1,
+  "why": "Fan-out on write makes reads cheap but explodes for huge accounts. Merging a few celebrity posts in at read time caps the write cost.",
+  "topic": "Feeds"
+ },
+ {
+  "q": "Searching nearby drivers by geohash prefix, why also query the 8 neighbouring cells?",
+  "options": [
+   "A driver 50 m away can sit across a cell edge with a different prefix",
+   "Geohash cells overlap",
+   "To get more results for ranking",
+   "Because geohash is not deterministic"
+  ],
+  "answer": 0,
+  "why": "Points close together can have different prefixes at a boundary. Query the cell plus its 8 neighbours, then filter by real distance.",
+  "topic": "Geo"
+ },
+ {
+  "q": "Roughly how big is a geohash cell of length 6?",
+  "options": [
+   "About 5 km &times; 5 km",
+   "About 150 m &times; 150 m",
+   "About 40 km &times; 20 km",
+   "About 1.2 km &times; 0.6 km"
+  ],
+  "answer": 3,
+  "why": "Length 5 is about 4.9 km square, 6 is about 1.2 &times; 0.6 km and 7 is about 153 m square. Pick the length whose cell matches your search radius.",
+  "topic": "Geo"
+ },
+ {
+  "q": "100k drivers each send a location every 4 seconds. Where do the live positions go?",
+  "options": [
+   "One INSERT per update into Postgres",
+   "Object storage",
+   "An in-memory geo index (Redis GEO) that keeps only the latest point per driver",
+   "A search index rebuilt every minute"
+  ],
+  "answer": 2,
+  "why": "That is 25k writes/s of data that is stale in 4 seconds. Keep the latest point in memory, and stream history to cheap storage if you need it.",
+  "topic": "Geo"
+ },
+ {
+  "q": "N = 3 replicas. Which (W, R) guarantees a read sees the latest acknowledged write?",
+  "options": [
+   "W = 1, R = 1",
+   "W = 2, R = 2",
+   "W = 2, R = 1",
+   "W = 1, R = 2"
+  ],
+  "answer": 1,
+  "why": "You need R + W &gt; N, so every read set overlaps every write set. 2 + 2 = 4 &gt; 3; the other options sum to 3 or less.",
+  "topic": "Consistency"
+ },
+ {
+  "q": "How many Raft nodes do you need to survive 2 crashed nodes?",
+  "options": [
+   "5",
+   "3",
+   "4",
+   "6"
+  ],
+  "answer": 0,
+  "why": "Raft needs a majority, so tolerating f crash failures takes 2f + 1 nodes. With 5 nodes, 3 survivors still form a majority.",
+  "topic": "Consensus"
+ },
+ {
+  "q": "Nodes may lie, not just crash (Byzantine faults). How many nodes does PBFT need to tolerate f of them?",
+  "options": [
+   "2f + 1",
+   "f + 1",
+   "4f",
+   "3f + 1"
+  ],
+  "answer": 3,
+  "why": "Byzantine agreement needs 3f + 1 nodes; crash-only consensus such as Raft needs 2f + 1. Worth naming if the \"chain of consensus\" prompt (reported, unverified, one line with no spec) turns to untrusted parties.",
+  "topic": "Consensus"
+ },
+ {
+  "q": "How does Raft stop an old leader from committing writes after a new one is elected?",
+  "options": [
+   "Synchronised wall clocks",
+   "The load balancer routes away from it",
+   "Terms and majorities: the old leader cannot get a majority to ack, and higher terms make it step down",
+   "Clients pick the leader with the newest timestamp"
+  ],
+  "answer": 2,
+  "why": "An entry commits only when a majority stores it in the current term. A partitioned old leader can accept writes but never commit them.",
+  "topic": "Consensus"
+ },
+ {
+  "q": "A client holding a lock pauses for 30 s during GC, the lock expires, and then it writes. How do you stop the stale write?",
+  "options": [
+   "A longer lock TTL",
+   "Fencing tokens: the lock service hands out an increasing number and storage rejects lower ones",
+   "Check the clock before writing",
+   "Retry the lock acquisition"
+  ],
+  "answer": 1,
+  "why": "A pause can always outlast a TTL. Only the storage side can reject the stale writer, by comparing tokens.",
+  "topic": "Consensus"
+ },
+ {
+  "q": "A partition splits the cluster. Account balances must never be shown stale. What do you choose?",
+  "options": [
+   "Consistency: the minority side refuses or errors until the partition heals (CP)",
+   "Availability: serve the last known balance (AP)",
+   "Both, with enough replicas",
+   "Neither: shut the whole system down"
+  ],
+  "answer": 0,
+  "why": "During a partition you can either answer with possibly stale data or refuse. For money, refusing is safer than a wrong balance.",
+  "topic": "CAP & PACELC"
+ },
+ {
+  "q": "What does PACELC add to CAP?",
+  "options": [
+   "A third choice besides C and A during a partition",
+   "That partitions never happen in one region",
+   "That consistency is always free",
+   "Even with no partition, you trade latency against consistency"
+  ],
+  "answer": 3,
+  "why": "Synchronous replication to a quorum costs round trips on every write. Many systems pick lower latency (EL) in normal operation.",
+  "topic": "CAP & PACELC"
+ },
+ {
+  "q": "A user updates their profile, reloads, and sees the old value. Reads go to replicas. Fix?",
+  "options": [
+   "Add more replicas",
+   "Raise the cache TTL",
+   "Read-your-writes: send that user's reads to the primary for a short window, or wait until the replica reaches their write's position",
+   "Ask the user to wait and refresh"
+  ],
+  "answer": 2,
+  "why": "Async replicas lag by milliseconds to seconds. Route only the writer's own reads to the primary; everyone else can read slightly stale data.",
+  "topic": "Replication"
+ },
+ {
+  "q": "The primary fails under async replication. What can you lose?",
+  "options": [
+   "Nothing, async replication is lossless",
+   "Writes that were acknowledged but not yet copied to the promoted replica",
+   "Only reads",
+   "The whole database"
+  ],
+  "answer": 1,
+  "why": "Async replication acks before the replica has the write. Semi-sync, or a quorum, bounds the loss at the cost of write latency.",
+  "topic": "Replication"
+ },
+ {
+  "q": "The DB is CPU-bound on writes. Will read replicas help?",
+  "options": [
+   "No. Every replica replays every write; you need batching, a write-optimised store or sharding",
+   "Yes, replicas share the write load",
+   "Yes, if you add at least three",
+   "Only with synchronous replication"
+  ],
+  "answer": 0,
+  "why": "Replicas scale reads. Write throughput is capped by the primary, and every replica does the same writes again.",
+  "topic": "Replication"
+ },
+ {
+  "q": "A multi-agency SaaS where almost every query is within one agency. Shard key?",
+  "options": [
+   "<code>created_at</code>",
+   "A random UUID per row",
+   "The user's surname",
+   "<code>agency_id</code>, with a plan to split very large agencies"
+  ],
+  "answer": 3,
+  "why": "Sharding on the tenant keeps each query on one shard. Watch for one huge tenant becoming a hot shard.",
+  "topic": "Sharding"
+ },
+ {
+  "q": "One short link gets 50k requests/s and its shard is overloaded. Fix?",
+  "options": [
+   "Re-shard the whole cluster",
+   "Add a column index",
+   "Cache the hot key in front of its shard (an in-process cache on each app server, or Redis replicas)",
+   "Rate limit the people clicking the link"
+  ],
+  "answer": 2,
+  "why": "A hot key is skew that re-sharding cannot fix: the key still lands on one shard. Serve it from caches in front of the shard. A CDN can also cache the redirect, but then you must count clicks from edge logs. For a hot counter, split it into N sub-counters and sum them.",
+  "topic": "Sharding"
+ },
+ {
+  "q": "You shard by <code>created_at</code> ranges. What goes wrong?",
+  "options": [
+   "Range queries become impossible",
+   "All new writes land on the newest shard",
+   "Rows get lost at shard boundaries",
+   "Nothing, it is ideal"
+  ],
+  "answer": 1,
+  "why": "Time is monotonic, so the latest range takes all the inserts. Hash on a key, or combine a key with time.",
+  "topic": "Sharding"
+ },
+ {
+  "q": "With <code>hash(key) % N</code>, N goes from 4 to 5. About what fraction of keys move?",
+  "options": [
+   "About 80%",
+   "About 20%",
+   "About 25%",
+   "None"
+  ],
+  "answer": 0,
+  "why": "A key stays put only if hash % 4 equals hash % 5, which is about 1 key in 5. That mass move is why consistent hashing exists.",
+  "topic": "Sharding"
+ },
+ {
+  "q": "A consistent hash ring has 4 nodes with vnodes. You add a 5th. About what fraction of keys move?",
+  "options": [
+   "About 4/5",
+   "About 1/2",
+   "All of them",
+   "About 1/5"
+  ],
+  "answer": 3,
+  "why": "The new node takes an equal share from the others, so only about 1/N of keys move. Virtual nodes keep that share even.",
+  "topic": "Sharding"
+ },
+ {
+  "q": "You want to allow short bursts but cap the sustained rate. Which algorithm?",
+  "options": [
+   "Fixed window counter",
+   "Leaky bucket with no buffer",
+   "Token bucket",
+   "Sliding window log"
+  ],
+  "answer": 2,
+  "why": "Bucket capacity sets the burst and refill rate sets the sustained limit. Leaky bucket smooths output to a constant rate instead.",
+  "topic": "Rate limiting"
+ },
+ {
+  "q": "Fixed window, limit 100 per minute. What is the worst case?",
+  "options": [
+   "Exactly 100 per minute, always",
+   "About 200 requests in 2 seconds around a window boundary",
+   "The counter never resets",
+   "It blocks everyone at the boundary"
+  ],
+  "answer": 1,
+  "why": "100 at 0:59 and 100 at 1:00 both pass. A sliding window counter weights the previous window to smooth this out.",
+  "topic": "Rate limiting"
+ },
+ {
+  "q": "Ten API servers must share one limit per user. Where do the counters live?",
+  "options": [
+   "In Redis, updated atomically (INCR with expiry, or a Lua script)",
+   "In each server's memory",
+   "In the Postgres primary, one UPDATE per request",
+   "In the client's cookie"
+  ],
+  "answer": 0,
+  "why": "Per-server memory gives each user 10&times; the limit. Redis adds well under a millisecond in the same AZ, and atomic ops avoid races.",
+  "topic": "Rate limiting"
+ },
+ {
+  "q": "A dashboard that only receives server updates every few seconds and must pass through corporate proxies. Transport?",
+  "options": [
+   "WebSockets",
+   "Long polling every 100 ms",
+   "WebRTC",
+   "Server-Sent Events"
+  ],
+  "answer": 3,
+  "why": "SSE is one-way, runs over plain HTTP, reconnects automatically and passes proxies easily. Use WebSockets when the client also streams to the server.",
+  "topic": "Real-time"
+ },
+ {
+  "q": "A chat with low-latency messages in both directions. Transport?",
+  "options": [
+   "Server-Sent Events",
+   "Short polling every 5 s",
+   "WebSockets"
+  ],
+  "answer": 2,
+  "why": "One long-lived, full-duplex connection per client. Plan for sticky connections and for routing a message to whichever server holds the recipient's socket.",
+  "topic": "Real-time"
+ },
+ {
+  "q": "A few hundred users check a job's status, which changes about once a minute. Simplest correct choice?",
+  "options": [
+   "WebSockets with a message broker",
+   "Short polling every 10-30 s",
+   "SSE through a dedicated push service",
+   "gRPC streaming"
+  ],
+  "answer": 1,
+  "why": "Hundreds of cheap GETs per minute is nothing. Do not add stateful connections you have to scale and monitor.",
+  "topic": "Real-time"
+ },
+ {
+  "q": "User A's socket is on server 1 and user B's is on server 7. How does A's message reach B?",
+  "options": [
+   "Servers publish to a shared pub/sub channel (or look up B's server in a registry) and server 7 pushes to B",
+   "Server 1 opens a socket straight to B",
+   "The load balancer copies every message to every server",
+   "B polls server 1"
+  ],
+  "answer": 0,
+  "why": "Socket servers are stateful. Redis pub/sub, or a user-to-server registry plus internal RPC, connects them.",
+  "topic": "Real-time"
+ },
+ {
+  "q": "Users upload 200 MB files. How do you keep the API servers out of the data path?",
+  "options": [
+   "Stream the file through the API server",
+   "Base64 it into a JSON body",
+   "Raise the API's body size limit to 500 MB",
+   "Issue a short-lived presigned PUT URL; the client uploads straight to object storage"
+  ],
+  "answer": 3,
+  "why": "The API only signs a URL valid for a few minutes for one key. Confirm afterwards with an upload event, then virus-scan before marking the file usable.",
+  "topic": "Storage & CDN"
+ },
+ {
+  "q": "Which of these is a poor fit for CDN caching?",
+  "options": [
+   "JS and CSS bundles",
+   "Public form images",
+   "A signed-in user's account page with their balance",
+   "A public FAQ page"
+  ],
+  "answer": 2,
+  "why": "Per-user responses must not be shared from an edge cache. Send <code>Cache-Control: private, no-store</code> on them.",
+  "topic": "Storage & CDN"
+ },
+ {
+  "q": "You deploy a new <code>app.js</code>. How do users get it without waiting for CDN TTLs?",
+  "options": [
+   "Purge the whole CDN on every deploy",
+   "Put a content hash in the filename (<code>app.3f9a1c.js</code>) and cache it for a year",
+   "Set TTL to 0 on all assets",
+   "Ask users to hard-refresh"
+  ],
+  "answer": 1,
+  "why": "A new hash is a new URL, so there is nothing to invalidate. Only the small HTML file that references it needs a short TTL.",
+  "topic": "Storage & CDN"
+ },
+ {
+  "q": "1M daily users &times; 10 requests each. Average requests per second?",
+  "options": [
+   "About 120/s",
+   "About 1,200/s",
+   "About 12/s",
+   "About 10,000/s"
+  ],
+  "answer": 0,
+  "why": "10M / 86,400 s &asymp; 116/s. Quote peak as 2-3&times; that. A day is about 10^5 seconds; that shortcut is enough.",
+  "topic": "Back-of-envelope"
+ },
+ {
+  "q": "100M new rows a day at 500 bytes each, kept 5 years. Raw storage?",
+  "options": [
+   "About 9 TB",
+   "About 900 TB",
+   "About 900 GB",
+   "About 90 TB"
+  ],
+  "answer": 3,
+  "why": "100M &times; 500 B = 50 GB/day; &times; 365 &times; 5 &asymp; 91 TB, before indexes and replicas (often 2-3&times; more).",
+  "topic": "Back-of-envelope"
+ },
+ {
+  "q": "go.gov.sg reported 190M clicks in Q3 2026, about 2.1M a day. Rough peak redirect rate at 3&times; average?",
+  "options": [
+   "About 750/s",
+   "About 7,500/s",
+   "About 75/s",
+   "About 7.5/s"
+  ],
+  "answer": 2,
+  "why": "190M / 92 days &asymp; 2.1M/day; 2.1M / 86,400 &asymp; 24/s; &times; 3 &asymp; 73/s. Its public README describes a Postgres primary, a read replica for redirects and Redis for hot links, which handles that easily, so do not open with sharding.",
+  "topic": "Back-of-envelope"
+ },
+ {
+  "q": "How many 7-character base62 codes are there?",
+  "options": [
+   "About 35 million",
+   "About 3.5 trillion",
+   "About 78 billion",
+   "About 62 million"
+  ],
+  "answer": 1,
+  "why": "62^7 &asymp; 3.52 &times; 10^12. Even at 10M new links a day that lasts about 1,000 years.",
+  "topic": "Back-of-envelope"
+ },
+ {
+  "q": "A downstream call fails intermittently. How should clients retry?",
+  "options": [
+   "Exponential backoff with jitter and a retry cap",
+   "Immediately, in a tight loop",
+   "Fixed 1 s delay forever",
+   "Never retry"
+  ],
+  "answer": 0,
+  "why": "Jitter stops every client retrying in lockstep and making the outage worse. Only retry idempotent calls, or calls sent with an idempotency key.",
+  "topic": "Reliability"
+ },
+ {
+  "q": "A dependency is down and every call waits 30 s to time out, using up your threads. What helps?",
+  "options": [
+   "A longer timeout",
+   "More threads",
+   "More retries",
+   "A circuit breaker that fails fast, plus a short timeout"
+  ],
+  "answer": 3,
+  "why": "After N failures the breaker opens and fails calls at once, then lets a trial request through to test recovery. That stops one dead dependency from taking down your service.",
+  "topic": "Reliability"
+ },
+ {
+  "q": "Two services in series, each 99.9% available. Combined availability?",
+  "options": [
+   "99.9%",
+   "99.99%",
+   "About 99.8%",
+   "99.0%"
+  ],
+  "answer": 2,
+  "why": "0.999 &times; 0.999 &asymp; 0.998. Serial dependencies multiply; redundant parallel copies are how you claw availability back.",
+  "topic": "Reliability"
+ },
+ {
+  "q": "How much downtime does a 99.9% monthly SLO allow?",
+  "options": [
+   "About 4 minutes",
+   "About 43 minutes",
+   "About 7 hours",
+   "About 43 seconds"
+  ],
+  "answer": 1,
+  "why": "0.1% of 30 days &asymp; 43.2 minutes. 99.99% allows about 4.3 minutes, which in practice means no manual steps in recovery.",
+  "topic": "Reliability"
+ },
+ {
+  "q": "Your app needs a signed statement of who the user is after login. Which standard gives you that?",
+  "options": [
+   "OpenID Connect, via its ID token",
+   "OAuth 2.0 access tokens alone",
+   "Basic auth",
+   "An API key"
+  ],
+  "answer": 0,
+  "why": "OAuth 2.0 is for authorization: a token to call an API on the user's behalf. OIDC adds an ID token (a signed JWT) about the authenticated user.",
+  "topic": "Security & identity"
+ },
+ {
+  "q": "Stateless JWTs cannot be revoked server-side. What is the usual fix?",
+  "options": [
+   "Make tokens valid for 30 days",
+   "Put the password hash in the token",
+   "Rotate the signing key on every logout",
+   "Short-lived access tokens (5-15 min) plus refresh tokens checked against a store you can revoke"
+  ],
+  "answer": 3,
+  "why": "A short expiry bounds the damage. A refresh-token store, or a denylist of <code>jti</code> values for urgent cases, gives you a revoke button.",
+  "topic": "Security & identity"
+ },
+ {
+  "q": "You store NRIC numbers and must look them up by exact match. Best approach?",
+  "options": [
+   "Store a plain SHA-256 hash only",
+   "Store it in plaintext behind a firewall",
+   "Encrypt the field (KMS envelope encryption) and store a keyed HMAC of it as a lookup index",
+   "Base64-encode it"
+  ],
+  "answer": 2,
+  "why": "The NRIC space is tiny: a few prefix letters &times; 10^7 digits, and the check letter is computed from them. That is under 10^8 values, so an unkeyed hash falls to brute force in seconds. A keyed HMAC resists that, and encryption keeps the value recoverable for people with the key.",
+  "topic": "Security & identity"
+ },
+ {
+  "q": "Why must an OTP verify endpoint cap attempts?",
+  "options": [
+   "To save database writes",
+   "A 6-digit code has only 10^6 values; without a cap it can be brute-forced",
+   "Because OTPs are case-sensitive",
+   "So the SMS bill stays low"
+  ],
+  "answer": 1,
+  "why": "With 5 attempts per code the guess chance is 5 in a million. Also expire codes in a few minutes, store them hashed, and rate limit per phone number and IP.",
+  "topic": "Security & identity"
+ },
+ {
+  "q": "How does a receiver check that a webhook really came from you and is not a replay?",
+  "options": [
+   "Sign the body plus a timestamp (HMAC or ed25519) and reject old timestamps",
+   "Send it over HTTPS, that is enough",
+   "Include a static shared secret in the URL",
+   "Allowlist the sender's IP only"
+  ],
+  "answer": 0,
+  "why": "The signature proves origin and integrity; the timestamp window stops replays. FormSG's webhooks, for example, are signed with ed25519 and allow 5 minutes of clock tolerance.",
+  "topic": "Security & identity"
+ },
+ {
+  "q": "An officer from agency A calls <code>GET /forms/123</code>, which belongs to agency B. The ID is valid. What happens?",
+  "options": [
+   "Return the form, the user is logged in",
+   "Rely on the UI hiding the link",
+   "Return it but log a warning",
+   "The server checks ownership on every request and returns 403 or 404"
+  ],
+  "answer": 3,
+  "why": "This is an IDOR (broken object-level authorization). Authentication says who you are; each object access still needs an authorization check.",
+  "topic": "Security & identity"
+ }
+]

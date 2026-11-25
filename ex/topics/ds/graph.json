@@ -1,0 +1,499 @@
+{
+ "id": "graph",
+ "track": "ds",
+ "order": 13,
+ "title": "Graph",
+ "short": "Things and the connections between them.",
+ "what": "A graph is a set of nodes (the things) joined by edges (the connections). Edges can go both ways, like friendships, or one way, like following someone. In code you usually store it as an adjacency list: a dict from each node to the list of its neighbors.",
+ "analogy": "A subway map. Stations are nodes, the tracks between them are edges, and \"can I get there from here?\" is a graph question.",
+ "viz": {
+  "kind": "graph",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "x": 0,
+      "y": 45
+     },
+     {
+      "id": "B",
+      "x": 30,
+      "y": 0
+     },
+     {
+      "id": "C",
+      "x": 30,
+      "y": 90
+     },
+     {
+      "id": "D",
+      "x": 60,
+      "y": 45
+     },
+     {
+      "id": "E",
+      "x": 95,
+      "y": 45
+     },
+     {
+      "id": "F",
+      "x": 65,
+      "y": 95
+     }
+    ],
+    "edges": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "A",
+      "C"
+     ],
+     [
+      "B",
+      "D"
+     ],
+     [
+      "C",
+      "D"
+     ],
+     [
+      "D",
+      "E"
+     ]
+    ],
+    "say": "Six people. A line means two of them are friends. Friendship goes both ways, so this graph is undirected."
+   },
+   {
+    "hi": [
+     "A"
+    ],
+    "ok": [
+     "B",
+     "C"
+    ],
+    "edgeHi": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "A",
+      "C"
+     ]
+    ],
+    "out": "adj[\"A\"] = [B, C]",
+    "nodes": [
+     {
+      "id": "A",
+      "x": 0,
+      "y": 45
+     },
+     {
+      "id": "B",
+      "x": 30,
+      "y": 0
+     },
+     {
+      "id": "C",
+      "x": 30,
+      "y": 90
+     },
+     {
+      "id": "D",
+      "x": 60,
+      "y": 45
+     },
+     {
+      "id": "E",
+      "x": 95,
+      "y": 45
+     },
+     {
+      "id": "F",
+      "x": 65,
+      "y": 95
+     }
+    ],
+    "edges": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "A",
+      "C"
+     ],
+     [
+      "B",
+      "D"
+     ],
+     [
+      "C",
+      "D"
+     ],
+     [
+      "D",
+      "E"
+     ]
+    ],
+    "say": "A's neighbors are B and C. Store them in a dict: adj[\"A\"] = [\"B\", \"C\"]."
+   },
+   {
+    "hi": [
+     "D"
+    ],
+    "ok": [
+     "B",
+     "C",
+     "E"
+    ],
+    "edgeHi": [
+     [
+      "B",
+      "D"
+     ],
+     [
+      "C",
+      "D"
+     ],
+     [
+      "D",
+      "E"
+     ]
+    ],
+    "out": "adj[\"D\"] = [B, C, E]",
+    "nodes": [
+     {
+      "id": "A",
+      "x": 0,
+      "y": 45
+     },
+     {
+      "id": "B",
+      "x": 30,
+      "y": 0
+     },
+     {
+      "id": "C",
+      "x": 30,
+      "y": 90
+     },
+     {
+      "id": "D",
+      "x": 60,
+      "y": 45
+     },
+     {
+      "id": "E",
+      "x": 95,
+      "y": 45
+     },
+     {
+      "id": "F",
+      "x": 65,
+      "y": 95
+     }
+    ],
+    "edges": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "A",
+      "C"
+     ],
+     [
+      "B",
+      "D"
+     ],
+     [
+      "C",
+      "D"
+     ],
+     [
+      "D",
+      "E"
+     ]
+    ],
+    "say": "D has 3 neighbors. Each edge is stored twice: B-D is in adj[\"B\"] and in adj[\"D\"]."
+   },
+   {
+    "ok": [
+     "A",
+     "B",
+     "D",
+     "E"
+    ],
+    "edgeHi": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "B",
+      "D"
+     ],
+     [
+      "D",
+      "E"
+     ]
+    ],
+    "out": "path A-B-D-E",
+    "nodes": [
+     {
+      "id": "A",
+      "x": 0,
+      "y": 45
+     },
+     {
+      "id": "B",
+      "x": 30,
+      "y": 0
+     },
+     {
+      "id": "C",
+      "x": 30,
+      "y": 90
+     },
+     {
+      "id": "D",
+      "x": 60,
+      "y": 45
+     },
+     {
+      "id": "E",
+      "x": 95,
+      "y": 45
+     },
+     {
+      "id": "F",
+      "x": 65,
+      "y": 95
+     }
+    ],
+    "edges": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "A",
+      "C"
+     ],
+     [
+      "B",
+      "D"
+     ],
+     [
+      "C",
+      "D"
+     ],
+     [
+      "D",
+      "E"
+     ]
+    ],
+    "say": "Can A reach E? Yes, by following edges: A, B, D, E. Walking edges like this is what BFS and DFS do."
+   },
+   {
+    "hi": [
+     "A",
+     "B",
+     "C",
+     "D"
+    ],
+    "edgeHi": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "B",
+      "D"
+     ],
+     [
+      "C",
+      "D"
+     ],
+     [
+      "A",
+      "C"
+     ]
+    ],
+    "out": "cycle",
+    "nodes": [
+     {
+      "id": "A",
+      "x": 0,
+      "y": 45
+     },
+     {
+      "id": "B",
+      "x": 30,
+      "y": 0
+     },
+     {
+      "id": "C",
+      "x": 30,
+      "y": 90
+     },
+     {
+      "id": "D",
+      "x": 60,
+      "y": 45
+     },
+     {
+      "id": "E",
+      "x": 95,
+      "y": 45
+     },
+     {
+      "id": "F",
+      "x": 65,
+      "y": 95
+     }
+    ],
+    "edges": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "A",
+      "C"
+     ],
+     [
+      "B",
+      "D"
+     ],
+     [
+      "C",
+      "D"
+     ],
+     [
+      "D",
+      "E"
+     ]
+    ],
+    "say": "A, B, D, C leads back to A: that is a cycle. When you walk a graph, keep a visited set or you go round forever."
+   },
+   {
+    "dim": [
+     "A",
+     "B",
+     "C",
+     "D",
+     "E"
+    ],
+    "bad": [
+     "F"
+    ],
+    "out": "2 components",
+    "nodes": [
+     {
+      "id": "A",
+      "x": 0,
+      "y": 45
+     },
+     {
+      "id": "B",
+      "x": 30,
+      "y": 0
+     },
+     {
+      "id": "C",
+      "x": 30,
+      "y": 90
+     },
+     {
+      "id": "D",
+      "x": 60,
+      "y": 45
+     },
+     {
+      "id": "E",
+      "x": 95,
+      "y": 45
+     },
+     {
+      "id": "F",
+      "x": 65,
+      "y": 95
+     }
+    ],
+    "edges": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "A",
+      "C"
+     ],
+     [
+      "B",
+      "D"
+     ],
+     [
+      "C",
+      "D"
+     ],
+     [
+      "D",
+      "E"
+     ]
+    ],
+    "say": "F has no edges, so no walk reaches it. A graph can come in separate pieces, called connected components."
+   }
+  ]
+ },
+ "when": [
+  "Things linked by relations: friends, roads, flights",
+  "Can I get from X to Y?",
+  "Tasks with prerequisites",
+  "Count separate groups",
+  "Shortest route between two places"
+ ],
+ "python": "edges = [(\"A\", \"B\"), (\"A\", \"C\"), (\"B\", \"D\"), (\"C\", \"D\"), (\"D\", \"E\")]\nadj = {node: [] for node in \"ABCDEF\"}\nfor u, v in edges:\n    adj[u].append(v)\n    adj[v].append(u)          # undirected: store both ways\nprint(adj[\"A\"], adj[\"D\"], adj[\"F\"])\n\nseen, todo = {\"A\"}, [\"A\"]\nwhile todo:\n    for nxt in adj[todo.pop()]:\n        if nxt not in seen:\n            seen.add(nxt)\n            todo.append(nxt)\nprint(sorted(seen))",
+ "output": "['B', 'C'] ['B', 'C', 'E'] []\n['A', 'B', 'C', 'D', 'E']",
+ "cost": [
+  [
+   "Store it as an adjacency list",
+   "O(V + E) memory"
+  ],
+  [
+   "List one node's neighbors",
+   "O(its neighbors)"
+  ],
+  [
+   "Visit every node and edge",
+   "O(V + E)"
+  ],
+  [
+   "Check one edge with a set per node",
+   "O(1)"
+  ]
+ ],
+ "watch": [
+  "In an undirected graph add each edge both ways.",
+  "Keep a visited set, or a cycle makes your walk loop forever.",
+  "Nodes with no edges still need an entry. collections.defaultdict(list) avoids KeyError."
+ ],
+ "interview": [
+  "LC 133 Clone Graph",
+  "LC 207 Course Schedule",
+  "LC 323 Number of Connected Components in an Undirected Graph"
+ ],
+ "related": [
+  "bfs",
+  "dfs",
+  "dijkstra",
+  "topological-sort",
+  "union-find",
+  "grid"
+ ]
+}

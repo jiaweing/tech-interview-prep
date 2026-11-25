@@ -1,0 +1,713 @@
+{
+ "id": "token-budget",
+ "title": "Fit Chat History to a Budget",
+ "pattern": "greedy-sim",
+ "level": "easy",
+ "statement": "<p>Every call to a language model has a context limit. A chat app has to decide which earlier messages to send with the next request. The usual rule: always keep the system prompt, then keep as much of the <i>recent</i> conversation as fits, without leaving holes in it.</p><p>Write <code>def solution(messages, budget)</code>. <code>messages</code> is a list of <code>[role, text]</code>, oldest first. A message costs as many tokens as it has words (<code>len(text.split())</code>). Return the kept messages as a list of <code>[role, text]</code> in their original order:</p><ol><li>If the first message has role <code>\"system\"</code>, always keep it and subtract its cost from the budget, even if that makes the budget negative. A <code>\"system\"</code> message anywhere else is treated like any other message.</li><li>Then walk the other messages from newest to oldest. Keep a message if its cost is at most the budget left, and subtract its cost.</li><li>Stop at the first message that does not fit. Never skip it to keep an older, smaller one: a conversation with a hole in it confuses the model.</li></ol><p>Messages are kept whole or dropped; never cut one.</p>",
+ "examples": [
+  {
+   "input": "messages = [[\"system\", \"You are a helpful assistant.\"], [\"user\", \"hi\"], [\"assistant\", \"Hello! What do you need?\"], [\"user\", \"Summarise the Q3 report\"], [\"assistant\", \"Do you want the full report?\"], [\"user\", \"yes please\"]], budget = 9",
+   "output": "[[\"system\", \"You are a helpful assistant.\"], [\"user\", \"yes please\"]]",
+   "why": "The system prompt costs 5, leaving 4. \"yes please\" (2) fits. \"Do you want the full report?\" (6) does not, so the walk stops; \"hi\" is dropped too, so there is no hole."
+  },
+  {
+   "input": "messages = [[\"user\", \"one two three\"], [\"assistant\", \"four five\"], [\"user\", \"six\"]], budget = 3",
+   "output": "[[\"assistant\", \"four five\"], [\"user\", \"six\"]]",
+   "why": "No system prompt. Newest \"six\" (1), then \"four five\" (2): exactly 3. \"one two three\" does not fit."
+  },
+  {
+   "input": "messages = [[\"system\", \"Answer in English only please.\"], [\"user\", \"hello there\"]], budget = 3",
+   "output": "[[\"system\", \"Answer in English only please.\"]]",
+   "why": "The system prompt costs 5, more than the whole budget. It is kept anyway, and nothing else fits."
+  }
+ ],
+ "constraints": [
+  "0 &le; len(messages) &le; 50,000",
+  "0 &le; budget &le; 10^6",
+  "role is a non-empty string; text may be empty (cost 0)"
+ ],
+ "starter": "def solution(messages, budget):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "Which messages can be kept?",
+   "a": "The leading system message (always), plus one unbroken run of the newest messages. So the answer is \"system prompt + the longest suffix that fits\"."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "System \"be brief\" (2), user \"hi there\" (2), assistant \"hello how can I help\" (5), user \"summarise this\" (2), budget 7?",
+   "a": "Keep system: 5 left. Newest \"summarise this\" (2): keep, 3 left. \"hello how can I help\" (5) &gt; 3: stop. Result: system + the last user message."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the slow but obvious version?",
+   "a": "Try every suffix from longest to shortest and sum it each time: O(n^2). It also invites a wrong variant: skipping a big message to fit an older small one."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Clue words?",
+   "a": "\"newest first\", \"keep whole or drop\", \"stop at the first\" &rarr; <b>greedy simulation</b> over the list in reverse with a running budget."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li>If <code>messages[0]</code> is system: keep it, subtract its cost, work on <code>messages[1:]</code>.</li><li>Loop over <code>reversed(rest)</code>: break if the cost is over the budget, else keep and subtract.</li><li>Reverse the kept list and put the system message in front.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "Empty list. Budget 0 (empty texts still fit). A system prompt bigger than the budget. A system message that is not first. A big message in the middle with small older ones behind it (must stop). A message that fits exactly."
+  }
+ ],
+ "hints": [
+  "Handle the system prompt first and separately, then forget about it: the rest is a plain list.",
+  "Iterate with <code>for message in reversed(rest)</code>, keep a running <code>budget</code>, and <code>break</code> on the first message whose cost is larger than what is left.",
+  "You collected messages newest-first, so <code>reverse()</code> them before returning, and return <code>kept_system + tail</code>."
+ ],
+ "solution": "def count_tokens(text):\n    # Stand-in for a real tokenizer: one token per whitespace-separated word\n    return len(text.split())\n\ndef solution(messages, budget):\n    kept_system = []\n    rest = messages\n    if messages and messages[0][0] == 'system':\n        kept_system = [messages[0]]                 # always kept, even if over budget\n        budget -= count_tokens(messages[0][1])\n        rest = messages[1:]\n\n    # Walk from newest to oldest; stop at the first message that does not fit,\n    # so the kept history has no gaps.\n    tail = []\n    for message in reversed(rest):\n        cost = count_tokens(message[1])\n        if cost > budget:\n            break\n        budget -= cost\n        tail.append(message)\n    tail.reverse()                                  # back to original order\n    return kept_system + tail\n",
+ "brute": "def solution(messages, budget):\n    # Brute force: try the longest suffix first and shrink it until it fits.\n    # Re-summing every suffix makes this O(n^2).\n    head = []\n    if messages and messages[0][0] == 'system':\n        head = [messages[0]]\n        budget -= len(messages[0][1].split())\n        messages = messages[1:]\n    for k in range(len(messages), -1, -1):\n        suffix = messages[len(messages) - k:]\n        if sum(len(m[1].split()) for m in suffix) <= budget:\n            return head + suffix\n    return head\n",
+ "explain": "<p>Because messages are kept as an unbroken run from the newest end, one backwards pass with a running budget is enough. Example 1, budget 9:</p><ul><li>System \"You are a helpful assistant.\" costs 5: keep it, 4 left.</li><li>Newest \"yes please\" (2): keep, 2 left.</li><li>\"Do you want the full report?\" (6) &gt; 2: stop. The older messages are dropped even though \"hi\" would fit.</li><li>Reverse the kept tail and put the system message first.</li></ul><p>Mention the real-world version: you would count with the model's tokenizer, reserve room for the reply, and maybe summarise dropped messages instead of losing them.</p>",
+ "complexity": "O(total words) time, O(kept messages) extra space",
+ "tests": [
+  {
+   "args": [
+    [
+     [
+      "system",
+      "You are a helpful assistant."
+     ],
+     [
+      "user",
+      "hi"
+     ],
+     [
+      "assistant",
+      "Hello! What do you need?"
+     ],
+     [
+      "user",
+      "Summarise the Q3 report"
+     ],
+     [
+      "assistant",
+      "Do you want the full report?"
+     ],
+     [
+      "user",
+      "yes please"
+     ]
+    ],
+    9
+   ],
+   "expected": [
+    [
+     "system",
+     "You are a helpful assistant."
+    ],
+    [
+     "user",
+     "yes please"
+    ]
+   ],
+   "label": "example 1",
+   "cat": "example",
+   "why": "system kept; stop at the first message that does not fit"
+  },
+  {
+   "args": [
+    [
+     [
+      "user",
+      "one two three"
+     ],
+     [
+      "assistant",
+      "four five"
+     ],
+     [
+      "user",
+      "six"
+     ]
+    ],
+    3
+   ],
+   "expected": [
+    [
+     "assistant",
+     "four five"
+    ],
+    [
+     "user",
+     "six"
+    ]
+   ],
+   "label": "example 2 (no system prompt)",
+   "cat": "example",
+   "why": "fill the budget exactly from the newest end"
+  },
+  {
+   "args": [
+    [
+     [
+      "system",
+      "Answer in English only please."
+     ],
+     [
+      "user",
+      "hello there"
+     ]
+    ],
+    3
+   ],
+   "expected": [
+    [
+     "system",
+     "Answer in English only please."
+    ]
+   ],
+   "label": "example 3 (system over budget)",
+   "cat": "example",
+   "why": "the system message is always kept"
+  },
+  {
+   "args": [
+    [],
+    10
+   ],
+   "expected": [],
+   "label": "no messages",
+   "cat": "empty",
+   "why": "nothing to keep"
+  },
+  {
+   "args": [
+    [
+     [
+      "user",
+      "hello world"
+     ]
+    ],
+    2
+   ],
+   "expected": [
+    [
+     "user",
+     "hello world"
+    ]
+   ],
+   "label": "one message fits exactly",
+   "cat": "single",
+   "why": "cost 2, budget 2"
+  },
+  {
+   "args": [
+    [
+     [
+      "user",
+      "a b"
+     ],
+     [
+      "assistant",
+      ""
+     ],
+     [
+      "user",
+      "c"
+     ]
+    ],
+    0
+   ],
+   "expected": [],
+   "label": "budget zero",
+   "cat": "zero",
+   "why": "only empty texts (cost 0) fit; \"c\" stops the walk at once"
+  },
+  {
+   "args": [
+    [
+     [
+      "user",
+      "x"
+     ],
+     [
+      "assistant",
+      ""
+     ],
+     [
+      "user",
+      ""
+     ]
+    ],
+    0
+   ],
+   "expected": [
+    [
+     "assistant",
+     ""
+    ],
+    [
+     "user",
+     ""
+    ]
+   ],
+   "label": "empty texts fit at zero",
+   "cat": "zero",
+   "why": "two empty messages fit, then \"x\" stops the walk"
+  },
+  {
+   "args": [
+    [
+     [
+      "system",
+      "rules here"
+     ],
+     [
+      "user",
+      "a"
+     ],
+     [
+      "assistant",
+      "b c d e f g h"
+     ],
+     [
+      "user",
+      "i j"
+     ]
+    ],
+    6
+   ],
+   "expected": [
+    [
+     "system",
+     "rules here"
+    ],
+    [
+     "user",
+     "i j"
+    ]
+   ],
+   "label": "big message in the middle",
+   "cat": "edge",
+   "why": "stop at the 7-word message; do not skip it to keep \"a\""
+  },
+  {
+   "args": [
+    [
+     [
+      "user",
+      "first"
+     ],
+     [
+      "system",
+      "late system note"
+     ],
+     [
+      "user",
+      "last"
+     ]
+    ],
+    1
+   ],
+   "expected": [
+    [
+     "user",
+     "last"
+    ]
+   ],
+   "label": "system not first",
+   "cat": "edge",
+   "why": "a system message later in the list is not special"
+  },
+  {
+   "args": [
+    [
+     [
+      "system",
+      "be brief"
+     ],
+     [
+      "user",
+      "ok"
+     ],
+     [
+      "user",
+      "ok"
+     ],
+     [
+      "user",
+      "ok"
+     ]
+    ],
+    4
+   ],
+   "expected": [
+    [
+     "system",
+     "be brief"
+    ],
+    [
+     "user",
+     "ok"
+    ],
+    [
+     "user",
+     "ok"
+    ]
+   ],
+   "label": "duplicate messages",
+   "cat": "dupes",
+   "why": "identical messages count separately"
+  },
+  {
+   "args": [
+    [
+     [
+      "system",
+      "Use plain English."
+     ],
+     [
+      "user",
+      "What is the budget?"
+     ],
+     [
+      "assistant",
+      "The budget is 2 million dollars for this year."
+     ],
+     [
+      "user",
+      "And next year?"
+     ],
+     [
+      "assistant",
+      "Not decided yet."
+     ],
+     [
+      "user",
+      "Who decides?"
+     ],
+     [
+      "assistant",
+      "The finance committee in March."
+     ]
+    ],
+    16
+   ],
+   "expected": [
+    [
+     "system",
+     "Use plain English."
+    ],
+    [
+     "user",
+     "And next year?"
+    ],
+    [
+     "assistant",
+     "Not decided yet."
+    ],
+    [
+     "user",
+     "Who decides?"
+    ],
+    [
+     "assistant",
+     "The finance committee in March."
+    ]
+   ],
+   "label": "longer chat",
+   "cat": "medium",
+   "why": "a realistic chat trimmed to the last few turns"
+  },
+  {
+   "args": [
+    [
+     [
+      "system",
+      "s"
+     ],
+     [
+      "user",
+      "u1"
+     ],
+     [
+      "assistant",
+      "a1"
+     ]
+    ],
+    1000000
+   ],
+   "expected": [
+    [
+     "system",
+     "s"
+    ],
+    [
+     "user",
+     "u1"
+    ],
+    [
+     "assistant",
+     "a1"
+    ]
+   ],
+   "label": "everything fits",
+   "cat": "large",
+   "why": "a large budget keeps the whole history"
+  }
+ ],
+ "perf": {
+  "label": "performance: 20,000 messages, budget 300",
+  "gen": "[[['user' if i % 2 else 'assistant', ' '.join('w' for j in range(i % 9 + 1))] for i in range(20000)], 300]",
+  "expected": [
+   [
+    "user",
+    "w w w w w w w"
+   ],
+   [
+    "assistant",
+    "w w w w w w w w"
+   ],
+   [
+    "user",
+    "w w w w w w w w w"
+   ],
+   [
+    "assistant",
+    "w"
+   ],
+   [
+    "user",
+    "w w"
+   ],
+   [
+    "assistant",
+    "w w w"
+   ],
+   [
+    "user",
+    "w w w w"
+   ],
+   [
+    "assistant",
+    "w w w w w"
+   ],
+   [
+    "user",
+    "w w w w w w"
+   ],
+   [
+    "assistant",
+    "w w w w w w w"
+   ],
+   [
+    "user",
+    "w w w w w w w w"
+   ],
+   [
+    "assistant",
+    "w w w w w w w w w"
+   ],
+   [
+    "user",
+    "w"
+   ],
+   [
+    "assistant",
+    "w w"
+   ],
+   [
+    "user",
+    "w w w"
+   ],
+   [
+    "assistant",
+    "w w w w"
+   ],
+   [
+    "user",
+    "w w w w w"
+   ],
+   [
+    "assistant",
+    "w w w w w w"
+   ],
+   [
+    "user",
+    "w w w w w w w"
+   ],
+   [
+    "assistant",
+    "w w w w w w w w"
+   ],
+   [
+    "user",
+    "w w w w w w w w w"
+   ],
+   [
+    "assistant",
+    "w"
+   ],
+   [
+    "user",
+    "w w"
+   ],
+   [
+    "assistant",
+    "w w w"
+   ],
+   [
+    "user",
+    "w w w w"
+   ],
+   [
+    "assistant",
+    "w w w w w"
+   ],
+   [
+    "user",
+    "w w w w w w"
+   ],
+   [
+    "assistant",
+    "w w w w w w w"
+   ],
+   [
+    "user",
+    "w w w w w w w w"
+   ],
+   [
+    "assistant",
+    "w w w w w w w w w"
+   ],
+   [
+    "user",
+    "w"
+   ],
+   [
+    "assistant",
+    "w w"
+   ],
+   [
+    "user",
+    "w w w"
+   ],
+   [
+    "assistant",
+    "w w w w"
+   ],
+   [
+    "user",
+    "w w w w w"
+   ],
+   [
+    "assistant",
+    "w w w w w w"
+   ],
+   [
+    "user",
+    "w w w w w w w"
+   ],
+   [
+    "assistant",
+    "w w w w w w w w"
+   ],
+   [
+    "user",
+    "w w w w w w w w w"
+   ],
+   [
+    "assistant",
+    "w"
+   ],
+   [
+    "user",
+    "w w"
+   ],
+   [
+    "assistant",
+    "w w w"
+   ],
+   [
+    "user",
+    "w w w w"
+   ],
+   [
+    "assistant",
+    "w w w w w"
+   ],
+   [
+    "user",
+    "w w w w w w"
+   ],
+   [
+    "assistant",
+    "w w w w w w w"
+   ],
+   [
+    "user",
+    "w w w w w w w w"
+   ],
+   [
+    "assistant",
+    "w w w w w w w w w"
+   ],
+   [
+    "user",
+    "w"
+   ],
+   [
+    "assistant",
+    "w w"
+   ],
+   [
+    "user",
+    "w w w"
+   ],
+   [
+    "assistant",
+    "w w w w"
+   ],
+   [
+    "user",
+    "w w w w w"
+   ],
+   [
+    "assistant",
+    "w w w w w w"
+   ],
+   [
+    "user",
+    "w w w w w w w"
+   ],
+   [
+    "assistant",
+    "w w w w w w w w"
+   ],
+   [
+    "user",
+    "w w w w w w w w w"
+   ],
+   [
+    "assistant",
+    "w"
+   ],
+   [
+    "user",
+    "w w"
+   ]
+  ]
+ },
+ "govtech": {
+  "round": "live",
+  "tag": "domain",
+  "source": "Giant Robots Labs-style practice",
+  "evidence": "Practice shaped like the lab's public products (any LLM app, such as GovBrain or Transcribe X); not a reported interview question.",
+  "extensions": [
+   "Reserve room for the answer: take a <code>max_reply_tokens</code> argument and subtract it from the budget first. What should happen if the system prompt plus the reserve already exceeds the limit?",
+   "Never drop the newest user message. If it alone is over budget, truncate its text from the front and say why that is better than refusing the request.",
+   "Pinned messages (for example an uploaded document) must always be kept, wherever they are. Change the rules and write the test that shows the order is still the original order.",
+   "Instead of dropping old messages, replace them with one summary message. Where in the code does the summary go, and how do you test it without calling a real model?"
+  ]
+ },
+ "grl": true
+}

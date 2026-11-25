@@ -1,0 +1,730 @@
+{
+ "id": "payments",
+ "title": "Payment system",
+ "tagline": "Charge cards through a payment provider, exactly once in effect, with a ledger that always balances.",
+ "govtech": false,
+ "featured": true,
+ "difficulty": "hard",
+ "summary": "<p>Money moves through systems you do not control: the payment service provider (PSP), card networks and banks. Any call can time out with the outcome <b>unknown</b>. So the design rests on five habits: every request carries an <b>idempotency key</b>; you record the intent <b>before</b> calling the PSP; a timeout means \"ask the PSP\", never \"charge again\"; money is recorded in an append-only <b>double-entry ledger</b>; and events leave through a <b>transactional outbox</b>. A nightly <b>reconciliation</b> against the PSP's settlement file catches whatever slipped through.</p>",
+ "requirements": {
+  "functional": [
+   "Charge a customer for an order through a PSP (cards, wallets)",
+   "Full and partial refunds",
+   "Report payment status to the order service and the customer",
+   "Daily reconciliation of our records against the PSP settlement report"
+  ],
+  "nonfunctional": [
+   "Never charge twice for one checkout, even when clients, servers or the PSP retry",
+   "Never lose a successful payment: durable, append-only, auditable records",
+   "Our own overhead under ~100 ms; the PSP call itself takes 1-3 s",
+   "Card numbers never touch our servers, which keeps PCI DSS scope small"
+  ],
+  "out_of_scope": [
+   "Building a PSP or talking to card networks directly",
+   "Fraud scoring models (assume the PSP provides a risk score)",
+   "Currency conversion and payouts to sellers"
+  ]
+ },
+ "estimates": [
+  {
+   "label": "Payments per day",
+   "calc": "given for a mid-size online shop",
+   "value": "1M"
+  },
+  {
+   "label": "Average rate",
+   "calc": "1M ÷ 86,400 s",
+   "value": "~12/s"
+  },
+  {
+   "label": "Peak rate",
+   "calc": "× 10 during a flash sale",
+   "value": "~120/s"
+  },
+  {
+   "label": "PSP calls in flight at peak",
+   "calc": "120/s × 2 s per call (Little's law)",
+   "value": "~240 concurrent"
+  },
+  {
+   "label": "Ledger growth",
+   "calc": "1M × ~4 entries × 200 B",
+   "value": "~0.8 GB/day, ~300 GB/year"
+  },
+  {
+   "label": "Webhooks received",
+   "calc": "1M × ~3 events per payment ÷ 86,400 s",
+   "value": "~35/s average"
+  }
+ ],
+ "api": [
+  {
+   "method": "POST",
+   "path": "/payments {order_id, amount, currency, method_token}",
+   "desc": "Header Idempotency-Key. Same key and body returns the stored response; same key, different body returns 422."
+  },
+  {
+   "method": "GET",
+   "path": "/payments/{id}",
+   "desc": "Status: PENDING, SUCCEEDED, FAILED, UNKNOWN (being resolved) or REFUNDED."
+  },
+  {
+   "method": "POST",
+   "path": "/payments/{id}/refunds {amount}",
+   "desc": "Also needs an Idempotency-Key. Total refunds can never exceed the captured amount."
+  },
+  {
+   "method": "POST",
+   "path": "/webhooks/psp",
+   "desc": "Called by the PSP. Signature checked, event stored, 200 returned within a second."
+  }
+ ],
+ "data": [
+  {
+   "name": "idempotency_keys",
+   "store": "PostgreSQL",
+   "fields": [
+    "key PK (scoped per client)",
+    "request_hash",
+    "state: in_progress | done",
+    "response_code, response_body",
+    "created_at"
+   ],
+   "note": "Inserted in the same transaction as the payment row. Kept at least 24 h, longer than any client retry window."
+  },
+  {
+   "name": "payments",
+   "store": "PostgreSQL",
+   "fields": [
+    "payment_id PK",
+    "order_id",
+    "amount (integer minor units)",
+    "currency",
+    "status",
+    "psp_reference",
+    "version"
+   ],
+   "note": "Amounts are integers in minor units (cents; JPY has none). Floats turn 0.1 + 0.2 into 0.30000000000000004."
+  },
+  {
+   "name": "ledger_entries",
+   "store": "PostgreSQL, append-only",
+   "fields": [
+    "entry_id",
+    "txn_id",
+    "account",
+    "direction: debit | credit",
+    "amount",
+    "created_at"
+   ],
+   "note": "Entries of one txn_id always sum to zero. Rows are never updated or deleted; mistakes get reversing entries."
+  },
+  {
+   "name": "outbox",
+   "store": "PostgreSQL",
+   "fields": [
+    "id",
+    "payment_id",
+    "event_type",
+    "payload",
+    "published_at NULL"
+   ],
+   "note": "Written in the same transaction as the status change, so an event exists if and only if the change committed."
+  },
+  {
+   "name": "psp_events",
+   "store": "PostgreSQL",
+   "fields": [
+    "psp_event_id PK",
+    "type",
+    "payload",
+    "processed_at"
+   ],
+   "note": "Unique PSP event ID makes webhook redelivery a no-op."
+  }
+ ],
+ "diagram": {
+  "w": 960,
+  "h": 540,
+  "groups": [
+   {
+    "label": "Charge path (synchronous)",
+    "x": 14,
+    "y": 50,
+    "w": 936,
+    "h": 110
+   },
+   {
+    "label": "Reconciliation (nightly)",
+    "x": 8,
+    "y": 330,
+    "w": 440,
+    "h": 120
+   },
+   {
+    "label": "Events out (async)",
+    "x": 500,
+    "y": 330,
+    "w": 450,
+    "h": 202
+   }
+  ],
+  "nodes": [
+   {
+    "id": "client",
+    "label": "Checkout",
+    "kind": "client",
+    "x": 90,
+    "y": 110,
+    "sub": "web or app"
+   },
+   {
+    "id": "pay",
+    "label": "Payment service",
+    "kind": "service",
+    "x": 360,
+    "y": 110,
+    "sub": "idempotent API"
+   },
+   {
+    "id": "psp",
+    "label": "PSP",
+    "kind": "ext",
+    "x": 850,
+    "y": 110,
+    "sub": "e.g. Stripe, Adyen"
+   },
+   {
+    "id": "db",
+    "label": "Payments DB",
+    "kind": "db",
+    "x": 600,
+    "y": 250,
+    "sub": "ledger + outbox, 1 tx"
+   },
+   {
+    "id": "hook",
+    "label": "Webhook handler",
+    "kind": "service",
+    "x": 850,
+    "y": 250,
+    "sub": "verify signature"
+   },
+   {
+    "id": "relay",
+    "label": "Outbox relay",
+    "kind": "worker",
+    "x": 600,
+    "y": 390,
+    "sub": "polls every 100 ms"
+   },
+   {
+    "id": "bus",
+    "label": "Event bus",
+    "kind": "stream",
+    "x": 850,
+    "y": 390,
+    "sub": "Kafka"
+   },
+   {
+    "id": "orders",
+    "label": "Order service",
+    "kind": "service",
+    "x": 850,
+    "y": 490,
+    "sub": "ship, email receipt"
+   },
+   {
+    "id": "recon",
+    "label": "Reconciliation",
+    "kind": "cron",
+    "x": 330,
+    "y": 390,
+    "sub": "nightly, per PSP"
+   },
+   {
+    "id": "settle",
+    "label": "Settlement file",
+    "kind": "storage",
+    "x": 90,
+    "y": 390,
+    "sub": "PSP daily CSV"
+   },
+   {
+    "id": "resolver",
+    "label": "Resolver",
+    "kind": "worker",
+    "x": 300,
+    "y": 250,
+    "sub": "settles UNKNOWN"
+   }
+  ],
+  "edges": [
+   {
+    "id": "c-p",
+    "from": "client",
+    "to": "pay",
+    "label": "POST /payments"
+   },
+   {
+    "id": "p-d",
+    "from": "pay",
+    "to": "db",
+    "label": "write in 1 tx"
+   },
+   {
+    "id": "p-x",
+    "from": "pay",
+    "to": "psp",
+    "label": "charge (PSP idem key)"
+   },
+   {
+    "id": "x-h",
+    "from": "psp",
+    "to": "hook",
+    "label": "webhook",
+    "dashed": true
+   },
+   {
+    "id": "h-d",
+    "from": "hook",
+    "to": "db",
+    "label": "apply"
+   },
+   {
+    "id": "d-r",
+    "from": "db",
+    "to": "relay",
+    "label": "outbox rows",
+    "dashed": true
+   },
+   {
+    "id": "r-b",
+    "from": "relay",
+    "to": "bus",
+    "label": "publish"
+   },
+   {
+    "id": "b-o",
+    "from": "bus",
+    "to": "orders",
+    "label": "events",
+    "dashed": true
+   },
+   {
+    "id": "s-r",
+    "from": "settle",
+    "to": "recon",
+    "label": "rows"
+   },
+   {
+    "id": "r-d",
+    "from": "recon",
+    "to": "db",
+    "label": "match ledger"
+   },
+   {
+    "id": "rs-x",
+    "from": "resolver",
+    "to": "psp",
+    "label": "GET status"
+   },
+   {
+    "id": "rs-d",
+    "from": "resolver",
+    "to": "db",
+    "label": "apply result"
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "charge",
+   "name": "Charge, happy path",
+   "desc": "Record intent, call the PSP, record the result.",
+   "steps": [
+    {
+     "edge": "c-p",
+     "note": "The checkout page tokenises the card with the PSP's hosted fields (we only see a token), then sends <code>POST /payments</code> with a fresh <code>Idempotency-Key</code> (a UUID created once per checkout attempt)."
+    },
+    {
+     "edge": "p-d",
+     "note": "One transaction: insert the idempotency row as <code>in_progress</code> and the payment as <code>PENDING</code>. The primary key on the idempotency key means two concurrent retries cannot both get past this line."
+    },
+    {
+     "edge": "p-x",
+     "note": "Call the PSP with <b>our payment_id as the PSP's idempotency key</b>. If we call twice, the PSP returns the first result instead of charging again. Timeout ~10 s."
+    },
+    {
+     "edge": "p-x",
+     "rev": true,
+     "note": "The PSP approves and returns its reference. Typical latency 1-3 s, most of it in the card network."
+    },
+    {
+     "edge": "p-d",
+     "note": "Second transaction: status <code>SUCCEEDED</code>, ledger entries (debit <code>psp_receivable</code> $100.00, credit <code>sales</code> $100.00, both stored as 10000 cents), an outbox row, and the stored response on the idempotency row."
+    },
+    {
+     "edge": "c-p",
+     "rev": true,
+     "note": "Return 201. If the client retries with the same key now, it gets this exact response from the idempotency row without touching the PSP."
+    }
+   ]
+  },
+  {
+   "id": "timeout",
+   "name": "Timeout: retry without double charging",
+   "desc": "The dangerous case.",
+   "steps": [
+    {
+     "edge": "p-x",
+     "note": "The PSP call times out after 10 s. The card <b>may or may not</b> have been charged. Marking it FAILED would be a lie; charging again with a new key could take money twice."
+    },
+    {
+     "edge": "p-d",
+     "note": "Set status <code>UNKNOWN</code>. The idempotency row stays <code>in_progress</code>."
+    },
+    {
+     "edge": "c-p",
+     "note": "The customer's app retries with the same key. The service sees <code>in_progress</code> and returns 409 \"still processing\" (or waits briefly), never a second charge."
+    },
+    {
+     "edge": "rs-x",
+     "note": "The resolver picks up UNKNOWN rows (and PENDING rows older than a minute, left by a crash) and asks the PSP \"what happened to payment_id 123?\". Retrying the charge with the same PSP idempotency key is also safe. Back off exponentially with jitter: 1 s, 2 s, 4 s."
+    },
+    {
+     "edge": "rs-x",
+     "rev": true,
+     "note": "The PSP answers with the real outcome: charged (with its reference) or no record of the charge."
+    },
+    {
+     "edge": "rs-d",
+     "note": "Apply it with a conditional update: SUCCEEDED with ledger entries, or FAILED. Finish the idempotency row so the next client retry gets the final answer."
+    }
+   ]
+  },
+  {
+   "id": "events",
+   "name": "Webhook in, events out",
+   "desc": "At-least-once on both sides.",
+   "steps": [
+    {
+     "edge": "x-h",
+     "note": "The PSP posts <code>payment.succeeded</code>. Verify the HMAC signature and timestamp first; anyone can hit this URL. Webhooks are delivered at least once and can arrive out of order."
+    },
+    {
+     "edge": "h-d",
+     "note": "Insert into <code>psp_events</code> (unique event ID, so a redelivery is a no-op), then apply the transition only if the state machine allows it. A late <code>payment.pending</code> after <code>succeeded</code> is ignored."
+    },
+    {
+     "edge": "d-r",
+     "note": "The relay reads outbox rows where <code>published_at IS NULL</code>, oldest first. Writing to Kafka directly from the request would be a <b>dual write</b>: the DB commit and the publish can each fail alone."
+    },
+    {
+     "edge": "r-b",
+     "note": "Publish, then set <code>published_at</code>. A crash in between republishes the same event, so delivery is at-least-once."
+    },
+    {
+     "edge": "b-o",
+     "note": "The order service ships the order and emails the receipt. It dedupes on <code>event_id</code>, because it will occasionally see the same event twice."
+    }
+   ]
+  },
+  {
+   "id": "recon",
+   "name": "Nightly reconciliation",
+   "desc": "The last line of defence.",
+   "steps": [
+    {
+     "node": "settle",
+     "note": "The PSP publishes a settlement file each day (SFTP or a reports API): every captured payment, refund and fee, with the amount it will pay out."
+    },
+    {
+     "edge": "s-r",
+     "note": "The reconciliation job loads the rows. It runs after the file lands, not at a fixed time, and is safe to re-run for the same day."
+    },
+    {
+     "edge": "r-d",
+     "note": "Match each row to our payment and ledger by <code>psp_reference</code> and amount. Typical breaks: paid at the PSP but UNKNOWN for us, refunded twice, fee different from contract."
+    },
+    {
+     "node": "recon",
+     "note": "Every break becomes a case for the finance team and, if it is our bug, a correcting ledger entry. Expect a few breaks even in a healthy system; that is why this job exists."
+    }
+   ]
+  }
+ ],
+ "deep": [
+  {
+   "title": "Idempotency, end to end",
+   "html": "<p>There are three layers, and you need all of them:</p><ol><li><b>Client key.</b> The client creates one UUID per checkout attempt and resends it on every retry. A double-click or a flaky mobile network sends the same key.</li><li><b>Server table.</b> Insert <code>(key, request_hash, in_progress)</code> in the same transaction as the payment. A duplicate key with state <code>done</code> returns the stored response; <code>in_progress</code> returns 409; a different <code>request_hash</code> under the same key returns 422, because that is a client bug.</li><li><b>PSP key.</b> Pass your own <code>payment_id</code> as the PSP's idempotency key (Stripe and Adyen both accept one). Your retries to the PSP are then safe too.</li></ol><p>Scope keys per client or merchant so two customers can never collide, and keep them longer than any client retry window (24 h is common).</p>"
+  },
+  {
+   "title": "The payment state machine",
+   "html": "<p>Write the states down first. The row is inserted as PENDING before the PSP is called. Each transition is a conditional update (<code>UPDATE ... WHERE status = 'PENDING' AND version = 7</code>), so a webhook and the resolver racing on the same payment cannot both win. The key state is <b>UNKNOWN</b>: it exists because a timeout tells you nothing about the outcome.</p>",
+   "diagram": {
+    "w": 960,
+    "h": 300,
+    "nodes": [
+     {
+      "id": "cr",
+      "label": "Request",
+      "kind": "client",
+      "x": 90,
+      "y": 90,
+      "sub": "idem key checked"
+     },
+     {
+      "id": "pe",
+      "label": "Pending",
+      "kind": "service",
+      "x": 320,
+      "y": 90,
+      "sub": "row written first"
+     },
+     {
+      "id": "su",
+      "label": "Succeeded",
+      "kind": "service",
+      "x": 560,
+      "y": 90,
+      "sub": "ledger posted"
+     },
+     {
+      "id": "rf",
+      "label": "Refunded",
+      "kind": "service",
+      "x": 820,
+      "y": 90,
+      "sub": "reversing entries"
+     },
+     {
+      "id": "fa",
+      "label": "Failed",
+      "kind": "notify",
+      "x": 320,
+      "y": 230,
+      "sub": "declined / error"
+     },
+     {
+      "id": "un",
+      "label": "Unknown",
+      "kind": "cron",
+      "x": 560,
+      "y": 230,
+      "sub": "timeout, ask PSP"
+     }
+    ],
+    "edges": [
+     {
+      "id": "t1",
+      "from": "cr",
+      "to": "pe",
+      "label": "insert"
+     },
+     {
+      "id": "t2",
+      "from": "pe",
+      "to": "su",
+      "label": "approved"
+     },
+     {
+      "id": "t3",
+      "from": "pe",
+      "to": "fa",
+      "label": "declined"
+     },
+     {
+      "id": "t4",
+      "from": "pe",
+      "to": "un",
+      "label": "timeout"
+     },
+     {
+      "id": "t5",
+      "from": "un",
+      "to": "su",
+      "label": "PSP: paid"
+     },
+     {
+      "id": "t6",
+      "from": "un",
+      "to": "fa",
+      "label": "no charge"
+     },
+     {
+      "id": "t7",
+      "from": "su",
+      "to": "rf",
+      "label": "refund"
+     }
+    ]
+   },
+   "flows": [
+    {
+     "id": "states",
+     "name": "Walk the states",
+     "steps": [
+      {
+       "edge": "t1",
+       "note": "The PENDING row is committed before the PSP is called. If the server crashes mid-call, the resolver finds a PENDING row older than a minute and asks the PSP."
+      },
+      {
+       "edge": "t2",
+       "note": "The normal path for most attempts. Ledger entries are written in the same transaction as this transition."
+      },
+      {
+       "edge": "t3",
+       "note": "Declines (insufficient funds, wrong CVV) are final for this attempt. The customer tries again with a new idempotency key."
+      },
+      {
+       "edge": "t4",
+       "note": "No answer within 10 s. Do not guess."
+      },
+      {
+       "edge": "t5",
+       "note": "The resolver or a webhook learns the charge went through. Post the ledger entries now."
+      },
+      {
+       "edge": "t6",
+       "note": "The PSP has no record of the charge. Mark FAILED; the customer can retry safely."
+      },
+      {
+       "edge": "t7",
+       "note": "Refunds are new ledger entries in the opposite direction. The captured row is never edited."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "title": "The double-entry ledger",
+   "html": "<p>Every money movement is a transaction of two or more entries whose debits equal credits. A $100 card payment with a $3 fee:</p><ul><li>On capture: debit <code>psp_receivable</code> 100, credit <code>sales</code> 100.</li><li>On settlement: debit <code>bank</code> 97, debit <code>psp_fees</code> 3, credit <code>psp_receivable</code> 100.</li></ul><p>After settlement <code>psp_receivable</code> for that payment is back to zero. Anything left non-zero is money the PSP still owes you, or a bug. Rules: entries are append-only, amounts are integers in cents, balances are derived from entries (cache them, but the entries are the truth), and corrections are new reversing entries so the audit trail stays complete.</p>"
+  },
+  {
+   "title": "Outbox, webhooks and reconciliation",
+   "html": "<p>Nothing in this system is exactly-once. What you can build is <b>at-least-once delivery plus idempotent handlers</b>, which is exactly-once in effect.</p><ul><li><b>Outbox</b>: the status change and the event commit together; a relay publishes later and may publish twice.</li><li><b>Webhooks</b>: store first, process later. Return 200 fast (PSPs retry for hours to days on errors), and dedupe by the PSP event ID.</li><li><b>Reconciliation</b>: compare our ledger, the PSP's report and the bank statement. Three-way matches catch PSP bugs, our bugs and missing payouts.</li></ul><p>A PSP that recovers from an outage often replays thousands of webhooks at once. The queue sim shows how a buffer absorbs that burst while workers drain it at a steady rate.</p>",
+   "sim": "queue"
+  }
+ ],
+ "tradeoffs": [
+  {
+   "choice": "Ledger in the payments DB or a separate service?",
+   "pick": "Same Postgres, same transaction",
+   "why": "At ~120 payments/s one primary is plenty, and one transaction keeps status, ledger and outbox consistent. Split the ledger out later only if volume or team boundaries demand it, and then via events plus reconciliation."
+  },
+  {
+   "choice": "Publish events directly or via an outbox?",
+   "pick": "Outbox",
+   "why": "Direct publish after commit loses events when the process dies between the two; publishing before commit announces payments that then roll back."
+  },
+  {
+   "choice": "On timeout: fail fast or resolve?",
+   "pick": "Resolve (status UNKNOWN)",
+   "why": "Failing tells the customer to pay again while the first charge may have gone through. A short \"processing\" state is a better experience than a double charge."
+  },
+  {
+   "choice": "SQL or NoSQL?",
+   "pick": "SQL",
+   "why": "Multi-row transactions, unique constraints and conditional updates are the core of correctness here. The write volume is small."
+  },
+  {
+   "choice": "Fail over to a second PSP?",
+   "pick": "For new payments only",
+   "why": "Routing new checkouts to a backup PSP keeps sales going. Never retry an UNKNOWN payment on the other PSP until the first one confirms it did not charge."
+  }
+ ],
+ "bottlenecks": [
+  {
+   "issue": "The PSP is slow or down",
+   "fix": "Circuit breaker on the PSP client, payments left in PENDING or UNKNOWN for the resolver, honest \"processing\" UI, and optional routing of new checkouts to a backup PSP."
+  },
+  {
+   "issue": "A merchant balance row updated on every payment becomes a hot row",
+   "fix": "Do not keep a running balance in one row on the hot path. Append entries and compute balances asynchronously, or split the balance into N sub-rows and sum them."
+  },
+  {
+   "issue": "Webhook burst after a PSP incident",
+   "fix": "Accept and store quickly, process from a queue with a fixed worker pool. Dedupe and the state machine make reprocessing harmless."
+  }
+ ],
+ "followups": [
+  {
+   "q": "The PSP charged the card but our database write failed. What happens?",
+   "a": "<p>The payment row is still PENDING because we wrote it before the call. The resolver asks the PSP using our payment_id, the webhook arrives too, and either one moves it to SUCCEEDED. If both fail, reconciliation finds the charge in the settlement file the next day.</p>"
+  },
+  {
+   "q": "How do you stop refunds exceeding the payment?",
+   "a": "<p>Process refunds with an idempotency key and in a transaction that locks the payment row (<code>SELECT ... FOR UPDATE</code>) and checks <code>captured - refunded &gt;= amount</code> before writing the refund entries.</p>"
+  },
+  {
+   "q": "Authorise and capture: why two steps?",
+   "a": "<p>Authorisation reserves funds on the card; capture moves them. Shops that ship later authorise at checkout and capture on shipment, and void the authorisation if the item is out of stock, so the customer is never charged for something they did not get.</p>"
+  },
+  {
+   "q": "How do you keep PCI scope small?",
+   "a": "<p>Use the PSP's hosted card fields or SDK, so card numbers go straight from the browser to the PSP and you store only a token. Your servers then never see a card number.</p>"
+  },
+  {
+   "q": "How do you test this?",
+   "a": "<p>Use the PSP's sandbox plus a fake PSP that can time out, return errors, duplicate webhooks and send them out of order. Assert invariants after each run: every ledger transaction sums to zero, and no order has two successful charges.</p>"
+  }
+ ],
+ "quiz": [
+  {
+   "q": "The PSP call times out. What should the payment service do?",
+   "options": [
+    "Mark FAILED and ask the customer to pay again",
+    "Retry immediately with a new idempotency key",
+    "Mark UNKNOWN and ask the PSP (or retry with the same PSP key)",
+    "Mark SUCCEEDED optimistically"
+   ],
+   "answer": 2,
+   "why": "A timeout says nothing about the outcome. Only a query or a safe retry with the same key finds out without risking a second charge."
+  },
+  {
+   "q": "Why write the outbox row in the same transaction as the status change?",
+   "options": [
+    "It is faster than Kafka",
+    "So the event exists if and only if the change committed",
+    "So events are delivered exactly once",
+    "To avoid storing the payment row"
+   ],
+   "answer": 1,
+   "why": "That removes the dual-write gap. Delivery is still at-least-once, so consumers must dedupe."
+  },
+  {
+   "q": "A ledger transaction has debits of 100 and credits of 97. What does that tell you?",
+   "options": [
+    "The fee was 3",
+    "It is invalid: debits must equal credits",
+    "The payment is partly refunded",
+    "Nothing, this is normal"
+   ],
+   "answer": 1,
+   "why": "A $3 fee is its own debit entry. Unbalanced transactions are rejected at write time."
+  },
+  {
+   "q": "The same Idempotency-Key arrives with a different amount. What is the right response?",
+   "options": [
+    "Process it as a new payment",
+    "Return the stored response for the first request",
+    "Reject with 422: same key, different request",
+    "Overwrite the stored request"
+   ],
+   "answer": 2,
+   "why": "A key names one request. Reusing it for a different body is a client bug, and silently doing either thing would be wrong."
+  },
+  {
+   "q": "Why store amounts as integer cents?",
+   "options": [
+    "Integers use less disk",
+    "Binary floats cannot represent most decimal amounts exactly",
+    "PSPs require it by law",
+    "It makes currency conversion unnecessary"
+   ],
+   "answer": 1,
+   "why": "0.1 + 0.2 is not 0.3 in floating point. Rounding drift in money is a real bug, and it breaks reconciliation."
+  }
+ ]
+}

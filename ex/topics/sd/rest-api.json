@@ -1,0 +1,197 @@
+{
+ "id": "rest-api",
+ "track": "sd",
+ "order": 17,
+ "title": "REST API",
+ "short": "Name things with URLs, act on them with HTTP verbs.",
+ "what": "REST is the most common way to shape a web API. Each thing (a pet, an order) gets a URL, and you act on it with the standard HTTP verbs: GET reads, POST creates, PATCH or PUT changes, DELETE removes. Each request carries everything the server needs, so any server can answer it.",
+ "analogy": "A library. Every book has a shelf number, and there are only a few actions: borrow, return, renew. Nobody invents a new counter for each book.",
+ "viz": {
+  "kind": "map",
+  "frames": [
+   {
+    "rows": [
+     [
+      "GET /pets",
+      "200, 3 pets"
+     ]
+    ],
+    "label": "request -> response",
+    "hi": [
+     0
+    ],
+    "say": "A pet shelter's API. The URL /pets names a collection (a noun). GET reads it. The answer 200 means OK, here are 3 pets."
+   },
+   {
+    "rows": [
+     [
+      "GET /pets",
+      "200, 3 pets"
+     ],
+     [
+      "POST /pets",
+      "201, id 7"
+     ]
+    ],
+    "label": "request -> response",
+    "hi": [
+     1
+    ],
+    "say": "POST /pets with {name: Rex} in the body creates a pet. The server answers 201 Created and the new id, 7."
+   },
+   {
+    "rows": [
+     [
+      "GET /pets",
+      "200, 3 pets"
+     ],
+     [
+      "POST /pets",
+      "201, id 7"
+     ],
+     [
+      "GET /pets/7",
+      "200, Rex"
+     ]
+    ],
+    "label": "request -> response",
+    "hi": [
+     2
+    ],
+    "say": "GET /pets/7 reads that one pet. The server keeps no memory of you between requests, so any of its copies can answer."
+   },
+   {
+    "rows": [
+     [
+      "GET /pets",
+      "200, 3 pets"
+     ],
+     [
+      "POST /pets",
+      "201, id 7"
+     ],
+     [
+      "GET /pets/7",
+      "200, Rex"
+     ],
+     [
+      "PATCH /pets/7",
+      "200, age 3"
+     ]
+    ],
+    "label": "request -> response",
+    "hi": [
+     3
+    ],
+    "say": "PATCH /pets/7 changes only the fields you send, here the age. PUT would replace the whole pet with what you send."
+   },
+   {
+    "rows": [
+     [
+      "GET /pets",
+      "200, 3 pets"
+     ],
+     [
+      "POST /pets",
+      "201, id 7"
+     ],
+     [
+      "GET /pets/7",
+      "200, Rex"
+     ],
+     [
+      "PATCH /pets/7",
+      "200, age 3"
+     ],
+     [
+      "DELETE /pets/7",
+      "204, no body"
+     ]
+    ],
+    "label": "request -> response",
+    "hi": [
+     4
+    ],
+    "say": "DELETE /pets/7 removes it. 204 means done, and there is nothing to send back."
+   },
+   {
+    "rows": [
+     [
+      "GET /pets",
+      "200, 3 pets"
+     ],
+     [
+      "POST /pets",
+      "201, id 7"
+     ],
+     [
+      "GET /pets/7",
+      "200, Rex"
+     ],
+     [
+      "PATCH /pets/7",
+      "200, age 3"
+     ],
+     [
+      "DELETE /pets/7",
+      "204, no body"
+     ],
+     [
+      "GET /pets/7",
+      "404, not found"
+     ]
+    ],
+    "label": "request -> response",
+    "bad": [
+     5
+    ],
+    "dim": [
+     0,
+     1,
+     2,
+     3,
+     4
+    ],
+    "say": "Ask for pet 7 again: 404. Codes in the 400s mean the request was wrong; 500s mean the server broke."
+   }
+  ]
+ },
+ "when": [
+  "Design the API for ...",
+  "Clients create, read, update and delete records",
+  "Web, phone and partner apps share one backend",
+  "Responses should be cacheable"
+ ],
+ "python": "pets = {}\ndef handle(method, path, body=None):\n    pid = 7 if path == \"/pets\" else int(path.split(\"/\")[2])\n    if method == \"POST\":\n        pets[pid] = body\n        return 201, pid\n    if pid not in pets:\n        return 404, \"not found\"\n    if method == \"DELETE\":\n        del pets[pid]\n        return 204, \"(no body)\"\n    return 200, pets[pid]\n\nfor method, path in [(\"POST\", \"/pets\"), (\"GET\", \"/pets/7\"), (\"DELETE\", \"/pets/7\"), (\"GET\", \"/pets/7\")]:\n    print(method, path, \"->\", *handle(method, path, {\"name\": \"Rex\"}))",
+ "output": "POST /pets -> 201 7\nGET /pets/7 -> 200 {'name': 'Rex'}\nDELETE /pets/7 -> 204 (no body)\nGET /pets/7 -> 404 not found",
+ "cost": [
+  [
+   "Read one item (GET /pets/7)",
+   "1 round trip, O(1) with an index"
+  ],
+  [
+   "List all (GET /pets)",
+   "O(n): send pages of 20"
+  ],
+  [
+   "Load a screen with 3 resources",
+   "3 round trips"
+  ]
+ ],
+ "watch": [
+  "Put nouns in URLs and let the method be the verb: /pets/7, not /getPet?id=7.",
+  "GET must never change data. Browsers, caches and retries repeat GETs freely.",
+  "Return long lists in pages (?limit=20&cursor=...), never all at once."
+ ],
+ "interview": [
+  "Design the API for a URL shortener",
+  "Design the API for Instagram posts and likes",
+  "PUT vs PATCH vs POST: which one and why?"
+ ],
+ "related": [
+  "client-server",
+  "api-gateway",
+  "idempotency",
+  "websockets"
+ ]
+}

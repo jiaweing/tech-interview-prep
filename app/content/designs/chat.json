@@ -1,0 +1,630 @@
+{
+ "id": "chat",
+ "title": "Chat app (WhatsApp-style messaging)",
+ "tagline": "Deliver 1:1 and group messages in order, in under a second, to phones that are often offline.",
+ "govtech": false,
+ "featured": true,
+ "difficulty": "hard",
+ "summary": "<p>Every online phone holds one long-lived <b>WebSocket</b> to a gateway. Gateways only hold sockets; a <b>session store</b> remembers which gateway each user is on. A <b>message service</b> gives each message the next <b>sequence number in its conversation</b>, appends it to a wide-column store partitioned by conversation, acks the sender, then routes it to the recipient's gateway, or to <b>APNs/FCM</b> push if they are offline. Delivery is at-least-once with idempotent IDs, and receipts are watermarks ('read up to 43'), not one event per message.</p>",
+ "requirements": {
+  "functional": [
+   "Send 1:1 and group text messages (groups up to ~1,000 members)",
+   "Deliver instantly to online users; deliver on reconnect to offline users, with a push notification",
+   "Sent, delivered and read receipts",
+   "Messages appear in the same order for everyone in a conversation",
+   "A phone that was offline for a week catches up on everything it missed"
+  ],
+  "nonfunctional": [
+   "Send-to-receive under ~500 ms when both are online",
+   "Never lose a message once the sender sees the first tick",
+   "Hundreds of millions of concurrent connections",
+   "End-to-end encrypted: servers route ciphertext they cannot read"
+  ],
+  "out_of_scope": [
+   "Voice and video calls",
+   "Stories/status, payments",
+   "Spam and abuse detection (mention it, do not design it)"
+  ]
+ },
+ "estimates": [
+  {
+   "label": "Messages per day",
+   "calc": "WhatsApp's public figure (2020)",
+   "value": "~100B"
+  },
+  {
+   "label": "Messages per second",
+   "calc": "100B ÷ 86,400 s, peak ×3",
+   "value": "~1.2M/s (3.5M peak)"
+  },
+  {
+   "label": "Concurrent sockets at peak",
+   "calc": "assume 400M phones online",
+   "value": "400M"
+  },
+  {
+   "label": "Gateway servers",
+   "calc": "400M ÷ 500k sockets per box",
+   "value": "~800"
+  },
+  {
+   "label": "Message storage",
+   "calc": "100B × ~200 B (ciphertext + metadata) per day",
+   "value": "~20 TB/day"
+  },
+  {
+   "label": "Kept 30 days, 3 replicas",
+   "calc": "20 TB × 30 × 3",
+   "value": "~1.8 PB"
+  },
+  {
+   "label": "Presence refreshes",
+   "calc": "400M sessions ÷ 120 s TTL refresh",
+   "value": "~3.3M writes/s (batch them)"
+  }
+ ],
+ "api": [
+  {
+   "method": "WS",
+   "path": "/v1/connect (token, device_id)",
+   "desc": "One TLS WebSocket per device, kept open while the app is in use. Heartbeat every ~30 s."
+  },
+  {
+   "method": "WS",
+   "path": "send {conv_id, client_msg_id, ciphertext}",
+   "desc": "Server replies ack {client_msg_id, seq}. Same client_msg_id on retry, so duplicates are dropped."
+  },
+  {
+   "method": "WS",
+   "path": "receipt {conv_id, up_to_seq, delivered|read}",
+   "desc": "A watermark: covers every message up to that seq."
+  },
+  {
+   "method": "GET",
+   "path": "/v1/conversations/{id}/messages?after_seq=&limit=200",
+   "desc": "Catch-up after reconnect, in seq order."
+  },
+  {
+   "method": "POST",
+   "path": "/v1/devices {push_token, platform, identity_key}",
+   "desc": "Register a device for push and publish its public key."
+  }
+ ],
+ "data": [
+  {
+   "name": "messages",
+   "store": "Wide-column (Cassandra-style)",
+   "fields": [
+    "partition: (conv_id, month)",
+    "clustering: seq",
+    "sender_id",
+    "client_msg_id",
+    "ciphertext",
+    "sent_at"
+   ],
+   "note": "One conversation's messages sit together on disk, sorted by seq, so catch-up is one sequential read. The month bucket stops a 5-year-old group chat from growing one giant partition."
+  },
+  {
+   "name": "conversation_members",
+   "store": "Wide-column",
+   "fields": [
+    "conv_id",
+    "user_id",
+    "last_delivered_seq",
+    "last_read_seq",
+    "muted"
+   ],
+   "note": "Receipts are stored as watermarks here, not as one row per message."
+  },
+  {
+   "name": "session:{user}:{device}",
+   "store": "Redis",
+   "fields": [
+    "value: gateway_id",
+    "TTL 120 s"
+   ],
+   "note": "Refreshed by heartbeats. If a gateway dies, its entries simply expire."
+  },
+  {
+   "name": "devices",
+   "store": "SQL",
+   "fields": [
+    "user_id",
+    "device_id",
+    "platform",
+    "push_token",
+    "identity_public_key"
+   ],
+   "note": "Small, read-mostly. Push tokens change; update on every app start."
+  }
+ ],
+ "diagram": {
+  "w": 960,
+  "h": 540,
+  "groups": [
+   {
+    "label": "Gateways",
+    "x": 356,
+    "y": 56,
+    "w": 148,
+    "h": 392
+   },
+   {
+    "label": "State",
+    "x": 782,
+    "y": 56,
+    "w": 174,
+    "h": 392
+   }
+  ],
+  "nodes": [
+   {
+    "id": "alice",
+    "label": "Alice",
+    "sub": "sender",
+    "kind": "mobile",
+    "x": 75,
+    "y": 110
+   },
+   {
+    "id": "bob",
+    "label": "Bob",
+    "sub": "recipient",
+    "kind": "mobile",
+    "x": 75,
+    "y": 410
+   },
+   {
+    "id": "lb",
+    "label": "Load balancer",
+    "sub": "L4, long-lived TCP",
+    "kind": "lb",
+    "x": 230,
+    "y": 260
+   },
+   {
+    "id": "gw1",
+    "label": "Gateway A",
+    "sub": "Alice's socket",
+    "kind": "ws",
+    "x": 430,
+    "y": 110
+   },
+   {
+    "id": "gw2",
+    "label": "Gateway B",
+    "sub": "Bob's socket",
+    "kind": "ws",
+    "x": 430,
+    "y": 410
+   },
+   {
+    "id": "msg",
+    "label": "Message service",
+    "sub": "order, store, route",
+    "kind": "service",
+    "x": 620,
+    "y": 260
+   },
+   {
+    "id": "store",
+    "label": "Message store",
+    "sub": "by conversation",
+    "kind": "nosql",
+    "x": 870,
+    "y": 110
+   },
+   {
+    "id": "session",
+    "label": "Session store",
+    "sub": "user → gateway",
+    "kind": "cache",
+    "x": 870,
+    "y": 260
+   },
+   {
+    "id": "group",
+    "label": "Group service",
+    "sub": "member lists",
+    "kind": "db",
+    "x": 870,
+    "y": 410
+   },
+   {
+    "id": "push",
+    "label": "Push service",
+    "sub": "offline devices",
+    "kind": "notify",
+    "x": 620,
+    "y": 460
+   },
+   {
+    "id": "apns",
+    "label": "APNs / FCM",
+    "sub": "Apple, Google",
+    "kind": "ext",
+    "x": 380,
+    "y": 500
+   }
+  ],
+  "edges": [
+   {
+    "id": "a-lb",
+    "from": "alice",
+    "to": "lb",
+    "label": "WSS",
+    "bi": true
+   },
+   {
+    "id": "b-lb",
+    "from": "bob",
+    "to": "lb",
+    "label": "WSS",
+    "bi": true
+   },
+   {
+    "id": "lb-g1",
+    "from": "lb",
+    "to": "gw1"
+   },
+   {
+    "id": "lb-g2",
+    "from": "lb",
+    "to": "gw2"
+   },
+   {
+    "id": "g1-m",
+    "from": "gw1",
+    "to": "msg",
+    "label": "send"
+   },
+   {
+    "id": "m-g2",
+    "from": "msg",
+    "to": "gw2",
+    "label": "deliver"
+   },
+   {
+    "id": "g2-m",
+    "from": "gw2",
+    "to": "msg",
+    "label": "receipt"
+   },
+   {
+    "id": "m-st",
+    "from": "msg",
+    "to": "store",
+    "label": "append"
+   },
+   {
+    "id": "m-ss",
+    "from": "msg",
+    "to": "session",
+    "label": "find Bob"
+   },
+   {
+    "id": "m-grp",
+    "from": "msg",
+    "to": "group",
+    "label": "members"
+   },
+   {
+    "id": "m-p",
+    "from": "msg",
+    "to": "push",
+    "label": "offline",
+    "dashed": true
+   },
+   {
+    "id": "p-ap",
+    "from": "push",
+    "to": "apns",
+    "label": "notify"
+   },
+   {
+    "id": "ap-b",
+    "from": "apns",
+    "to": "bob",
+    "label": "wake up"
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "online",
+   "name": "1:1 to an online user",
+   "desc": "Both phones have open sockets.",
+   "steps": [
+    {
+     "edge": "a-lb",
+     "note": "Alice's app keeps one TLS WebSocket open while it is in use. The L4 load balancer passes TCP straight through, so the socket stays pinned to one gateway for its whole life."
+    },
+    {
+     "edge": "lb-g1",
+     "note": "Gateway A holds hundreds of thousands of mostly idle sockets and no message state. WhatsApp wrote publicly in 2012 about ~2M connections on one server; plan for ~500k."
+    },
+    {
+     "edge": "g1-m",
+     "note": "Frame <code>{conv_id, client_msg_id, ciphertext}</code>. The <code>client_msg_id</code> makes retries safe: if the ack is lost and Alice resends, the server sees the same ID and does not store it twice."
+    },
+    {
+     "edge": "m-st",
+     "note": "Assign the next <b>per-conversation seq</b> (say 42) and append to the <code>conv_id</code> partition with quorum write. Order comes from the server, never from phone clocks, which drift by seconds."
+    },
+    {
+     "edge": "g1-m",
+     "rev": true,
+     "note": "Ack <code>seq 42</code> to Alice: one tick. The message is durable now, even if Bob's phone is at the bottom of a lake."
+    },
+    {
+     "edge": "m-ss",
+     "note": "Where is Bob? When Bob connected, Gateway B wrote <code>bob → gateway-B</code> with a 120 s TTL that heartbeats refresh. Answer: Gateway B."
+    },
+    {
+     "edge": "m-g2",
+     "note": "Internal RPC to Gateway B. Gateways talk to the message service, never to each other."
+    },
+    {
+     "edge": "lb-g2",
+     "rev": true,
+     "note": "Gateway B writes the frame to Bob's socket."
+    },
+    {
+     "edge": "b-lb",
+     "rev": true,
+     "note": "Bob's app stores it, sends back <code>delivered up_to_seq 42</code>, and Alice gets the second tick. End to end: ~100-300 ms."
+    }
+   ]
+  },
+  {
+   "id": "offline",
+   "name": "1:1 to an offline user",
+   "desc": "Store first, then wake the phone.",
+   "steps": [
+    {
+     "edge": "g1-m",
+     "note": "Alice sends while Bob's phone is asleep in his pocket."
+    },
+    {
+     "edge": "m-st",
+     "note": "Stored with seq 43. Durability first; delivery can wait."
+    },
+    {
+     "edge": "m-ss",
+     "note": "No session for Bob: his entry expired when heartbeats stopped. iOS and Android suspend background sockets to save battery, so 'offline' is the normal case."
+    },
+    {
+     "edge": "m-p",
+     "note": "Hand off to the push service through a queue. Never block the send path on Apple's or Google's latency."
+    },
+    {
+     "edge": "p-ap",
+     "note": "Send through APNs (iOS) or FCM (Android) with Bob's push token. With end-to-end encryption the payload is the ciphertext or just 'new message'; the phone decrypts locally."
+    },
+    {
+     "edge": "ap-b",
+     "note": "The OS wakes Bob's app. A push is a hint, not the delivery: pushes can be dropped or collapsed."
+    },
+    {
+     "edge": "b-lb",
+     "note": "Bob's app reconnects (and lands on whichever gateway the LB picks)."
+    },
+    {
+     "edge": "g2-m",
+     "note": "Sync: <code>after_seq=41</code> for each conversation with a newer seq. This is why seq numbers matter: the gap tells the phone exactly what it missed."
+    },
+    {
+     "edge": "m-g2",
+     "note": "Return 42 and 43 in order, then Bob acks <code>delivered up_to_seq 43</code>. Messages are only marked delivered after the device acks, so nothing is lost if the app is killed mid-sync."
+    }
+   ]
+  },
+  {
+   "id": "read",
+   "name": "Read receipt",
+   "desc": "One watermark covers many messages.",
+   "steps": [
+    {
+     "edge": "b-lb",
+     "note": "Bob opens the chat. His app sends <code>read {conv_id, up_to_seq: 43}</code>: one frame for everything up to 43, not one per message."
+    },
+    {
+     "edge": "lb-g2",
+     "note": "Over the same open socket to Gateway B."
+    },
+    {
+     "edge": "g2-m",
+     "note": "Gateway B forwards the receipt."
+    },
+    {
+     "edge": "m-st",
+     "note": "Set <code>last_read_seq = max(old, 43)</code> on Bob's member row. Taking the max makes receipts idempotent and order-proof: a late, older receipt changes nothing."
+    },
+    {
+     "edge": "m-ss",
+     "note": "Where is Alice? Gateway A. If she is offline, she picks the watermark up on her next sync; no push needed for a blue tick."
+    },
+    {
+     "edge": "g1-m",
+     "rev": true,
+     "note": "Push the receipt to Gateway A."
+    },
+    {
+     "edge": "a-lb",
+     "rev": true,
+     "note": "Alice's app turns every message up to 43 blue."
+    }
+   ]
+  },
+  {
+   "id": "group",
+   "name": "Group message",
+   "desc": "Store once, fan out to many gateways.",
+   "steps": [
+    {
+     "edge": "g1-m",
+     "note": "Alice sends to a 200-member group. With Signal-style <b>sender keys</b> she encrypts once for the group, so she uploads one ciphertext, not 200."
+    },
+    {
+     "edge": "m-st",
+     "note": "Stored once in the group's partition with the group's next seq. Every member sees the same order."
+    },
+    {
+     "edge": "m-grp",
+     "note": "Fetch the member list. It changes rarely, so cache it in the message service."
+    },
+    {
+     "edge": "m-ss",
+     "note": "One batched lookup (MGET) of all 200 members' sessions, not 200 round trips."
+    },
+    {
+     "edge": "m-g2",
+     "note": "Group recipients by gateway and send one RPC per gateway carrying many recipients. 200 members might span 150 gateways."
+    },
+    {
+     "edge": "m-p",
+     "note": "Offline members get a push. Fan-out cost grows with group size, which is why products cap groups (WhatsApp's cap is 1,024) and send big-group fan-out through a queue."
+    }
+   ]
+  }
+ ],
+ "deep": [
+  {
+   "title": "Ordering: one sequence per conversation",
+   "html": "<p>You only need order <i>within</i> a conversation, never across all of them. Give each conversation one owner: hash <code>conv_id</code> onto a ring of message-service instances, and the owner hands out seq 41, 42, 43 from memory (seeded from the store's last seq on startup). Global ordering would need one counter for 1.2M messages a second; per-conversation ordering scales with the number of conversations.</p><ul><li><b>Phone timestamps</b>: wrong; clocks drift and can be set by the user.</li><li><b>Server timestamps</b>: two servers can disagree by milliseconds, so ties and reorderings appear.</li><li><b>Per-conversation seq</b>: total order inside the chat, and gaps tell a phone what it missed.</li></ul><p>When an owner moves (scale-out, crash), the new owner must read the last stored seq before issuing new ones. Try adding servers in the ring below and see how few conversations move.</p>",
+   "sim": "ring"
+  },
+  {
+   "title": "At-least-once delivery, effectively once",
+   "html": "<p>Networks drop acks, so every hop retries, and retries create duplicates. Exactly-once delivery across a phone network is not achievable; you get <b>at-least-once plus deduplication</b>:</p><ul><li>Sender retries with the same <code>client_msg_id</code>; the server keeps a short-lived set of recent IDs per sender and returns the original seq.</li><li>Receivers dedupe by seq: a message already in the local database is ignored.</li><li>Ticks map to state: one tick = stored on the server, two = acked by a recipient device, blue = read watermark passed it.</li></ul>"
+  },
+  {
+   "title": "End-to-end encryption",
+   "html": "<p>WhatsApp has used the Signal protocol since 2016. Each device has an identity key pair and uploads a batch of one-time public <b>prekeys</b>; a sender fetches them to start a session even when the recipient is offline. The server stores and routes ciphertext and sees metadata (who, when, size) but not content.</p><p>Design consequences: no server-side search or content moderation; each of a user's devices is a separate recipient (a message to someone with a phone and a laptop is encrypted twice); groups use sender keys so a message is encrypted once and the key is shared pairwise when membership changes; media are encrypted on the phone, uploaded to object storage, and only the key and URL travel in the message.</p>"
+  },
+  {
+   "title": "Where the messages live",
+   "html": "<p>The workload is append-heavy and read by range (a conversation after seq N). A wide-column store fits: partition by <code>(conv_id, month)</code>, cluster by seq, replicate 3×, write at quorum. Discord's engineering blog describes the same shape (channel plus time bucket). WhatsApp's public FAQ says it keeps messages only until delivered and drops undelivered ones after 30 days; products with full history on every device (Slack, Messenger) keep them indefinitely. Decide this early: it changes storage by 10-100×.</p>"
+  }
+ ],
+ "tradeoffs": [
+  {
+   "choice": "How does the phone receive messages?",
+   "pick": "WebSocket while open, push when not",
+   "why": "A socket gives sub-second delivery without polling. Phones kill background sockets, so APNs/FCM wake the app and it syncs. Long-polling works too but costs a request per message."
+  },
+  {
+   "choice": "How are messages ordered?",
+   "pick": "Server-assigned seq per conversation",
+   "why": "Gives one order every member agrees on and lets a phone detect gaps. A global sequence would be a single bottleneck for no benefit."
+  },
+  {
+   "choice": "SQL or wide-column for messages?",
+   "pick": "Wide-column",
+   "why": "Writes are append-only, reads are 'range of one partition', and the data grows by ~20 TB/day. You need horizontal scale more than joins. Keep users and devices in SQL."
+  },
+  {
+   "choice": "Keep messages on the server?",
+   "pick": "Until delivered to every device, capped at 30 days",
+   "why": "Less to store and less to leak. The cost: a brand-new device cannot download old chats from the server, so you need encrypted backups or device-to-device transfer."
+  },
+  {
+   "choice": "Per-message receipts or watermarks?",
+   "pick": "Watermarks",
+   "why": "One 'read up to 43' write replaces dozens, and a late duplicate is harmless when you keep the max."
+  }
+ ],
+ "bottlenecks": [
+  {
+   "issue": "A gateway crashes and 500k phones reconnect at once",
+   "fix": "Clients reconnect with jittered exponential backoff, the LB spreads them over the other gateways, and each phone resyncs from its last seq. Stale sessions expire on their own after the TTL."
+  },
+  {
+   "issue": "Presence refresh: 400M sessions heartbeating",
+   "fix": "The gateway absorbs heartbeats and refreshes Redis in batches every minute or two. A gateway can also hold a lease for all its users, so one write covers 500k sessions."
+  },
+  {
+   "issue": "A 1,000-member group in a busy chat",
+   "fix": "Store once, batch session lookups, one RPC per gateway, and push offline members through a queue so one chat cannot stall others."
+  }
+ ],
+ "followups": [
+  {
+   "q": "How do 'online' and 'typing…' work?",
+   "a": "<p>They are ephemeral: sent over the socket, never stored. Typing goes only to people with that chat open. 'Last seen' is a timestamp updated at most once a minute. Fanning presence out to every contact on each change is expensive, so subscribe only while a chat is open.</p>"
+  },
+  {
+   "q": "How do you support a phone and a laptop on one account?",
+   "a": "<p>Each device is its own recipient with its own keys and session entry. The sender encrypts per device, the message service delivers to each, and each device keeps its own delivered watermark.</p>"
+  },
+  {
+   "q": "Two people send at the same instant. Who comes first?",
+   "a": "<p>Whichever request the conversation's owner processes first gets the lower seq. Both phones then display seq order, so they agree, even if one phone showed its own message first for a moment before the ack.</p>"
+  },
+  {
+   "q": "How do you send a 20 MB video?",
+   "a": "<p>The phone encrypts it with a random key, uploads the blob to object storage via a presigned URL, then sends a normal small message containing the URL, the key and a hash. Recipients download and decrypt. The chat path never carries large bytes.</p>"
+  },
+  {
+   "q": "How would you search messages if they are end-to-end encrypted?",
+   "a": "<p>On the device. The server cannot read them, so the phone builds a local index (e.g. SQLite FTS) over its decrypted history.</p>"
+  }
+ ],
+ "quiz": [
+  {
+   "q": "What gives messages a consistent order for everyone in a group?",
+   "options": [
+    "Each phone's clock",
+    "A sequence number assigned per conversation by the server",
+    "The order the gateway receives them",
+    "A global counter for all messages"
+   ],
+   "answer": 1,
+   "why": "One owner per conversation hands out seq numbers; every member displays that order and can spot gaps."
+  },
+  {
+   "q": "Why does the sender include a client_msg_id?",
+   "options": [
+    "For encryption",
+    "So a retried send is recognised and not stored twice",
+    "To pick a gateway",
+    "To sort messages"
+   ],
+   "answer": 1,
+   "why": "Lost acks cause retries; the ID makes the send idempotent."
+  },
+  {
+   "q": "Bob's phone is asleep. What actually delivers the message to it?",
+   "options": [
+    "The APNs/FCM push carries the guaranteed copy",
+    "The push wakes the app, which syncs from its last seq over the socket",
+    "The gateway keeps retrying the closed socket",
+    "SMS fallback"
+   ],
+   "answer": 1,
+   "why": "Pushes can be dropped or collapsed; they are hints. The sync after reconnect is the reliable path."
+  },
+  {
+   "q": "Why store read receipts as a watermark with max()?",
+   "options": [
+    "It uses less CPU on phones",
+    "One write covers many messages, and late or duplicate receipts cannot move it backwards",
+    "Cassandra requires it",
+    "It hides read status"
+   ],
+   "answer": 1,
+   "why": "Idempotent and order-proof updates are what you want on an unreliable network."
+  },
+  {
+   "q": "What does the server know about an end-to-end encrypted message?",
+   "options": [
+    "Nothing at all",
+    "Its content",
+    "Metadata such as sender, recipient, time and size, but not the content",
+    "Only the content, not the sender"
+   ],
+   "answer": 2,
+   "why": "It must route and store it, so it sees metadata; the content stays ciphertext."
+  }
+ ]
+}

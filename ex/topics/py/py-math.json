@@ -1,0 +1,321 @@
+{
+ "id": "py-math",
+ "track": "py",
+ "order": 13,
+ "title": "Math: //, %, inf",
+ "short": "Integer division, remainders, infinity and the math module.",
+ "what": "Python ints never overflow, and a few number tools show up in almost every interview: // and % for whole-number division, float(\"inf\") as a starting value for a minimum, pow with a modulus, and math.gcd, sqrt and ceil.",
+ "analogy": "Sharing 7 sweets between 2 kids: each gets 7 // 2 = 3, and 7 % 2 = 1 is left over in the bag.",
+ "viz": {
+  "kind": "table",
+  "frames": [
+   {
+    "cells": [
+     [
+      "7 / 2",
+      "7 // 2",
+      "7 % 2",
+      "divmod(7,2)"
+     ],
+     [
+      "3.5",
+      "3",
+      "1",
+      "(3, 1)"
+     ]
+    ],
+    "rows": [
+     "you write",
+     "you get"
+    ],
+    "label": "7 sweets, 2 kids",
+    "hi": [
+     [
+      1,
+      1
+     ],
+     [
+      1,
+      2
+     ]
+    ],
+    "say": "/ always gives a float. // divides and drops the remainder; % gives the remainder. divmod returns both."
+   },
+   {
+    "cells": [
+     [
+      "-7 // 2",
+      "-7 % 2",
+      "int(-7/2)"
+     ],
+     [
+      "-4",
+      "1",
+      "-3"
+     ]
+    ],
+    "rows": [
+     "you write",
+     "you get"
+    ],
+    "label": "negative numbers",
+    "bad": [
+     [
+      1,
+      0
+     ]
+    ],
+    "hi": [
+     [
+      1,
+      1
+     ]
+    ],
+    "ok": [
+     [
+      1,
+      2
+     ]
+    ],
+    "say": "With a negative, // rounds down toward minus infinity: -7 // 2 is -4, not -3. Then % is 1, never negative."
+   },
+   {
+    "cells": [
+     [
+      "-7 // 2",
+      "-7 % 2",
+      "int(-7/2)"
+     ],
+     [
+      "-4",
+      "1",
+      "-3"
+     ]
+    ],
+    "rows": [
+     "you write",
+     "you get"
+    ],
+    "label": "cut toward zero",
+    "ok": [
+     [
+      0,
+      2
+     ],
+     [
+      1,
+      2
+     ]
+    ],
+    "dim": [
+     [
+      0,
+      0
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      0
+     ],
+     [
+      1,
+      1
+     ]
+    ],
+    "say": "To cut toward zero instead, as Evaluate RPN needs, write int(a / b). int(-3.5) is -3."
+   },
+   {
+    "cells": [
+     [
+      "inf > 10**9",
+      "min(inf, 7)",
+      "-inf < -1e9"
+     ],
+     [
+      "True",
+      "7",
+      "True"
+     ]
+    ],
+    "rows": [
+     "you write",
+     "you get"
+    ],
+    "label": "inf = float(\"inf\")",
+    "ok": [
+     [
+      1,
+      1
+     ]
+    ],
+    "say": "inf = float(\"inf\") is bigger than every number, a safe start for \"best so far\" when you want a minimum."
+   },
+   {
+    "cells": [
+     [
+      "2 ** 10",
+      "pow(2,10)",
+      "pow(2,10,7)"
+     ],
+     [
+      "1024",
+      "1024",
+      "2"
+     ]
+    ],
+    "rows": [
+     "you write",
+     "you get"
+    ],
+    "label": "powers",
+    "ok": [
+     [
+      1,
+      2
+     ]
+    ],
+    "say": "pow(a, b, m) works out a ** b % m without building the huge number. \"Answer modulo 10**9 + 7\" wants this."
+   },
+   {
+    "cells": [
+     [
+      "int(\"42\")",
+      "int(3.9)",
+      "round(2.5)",
+      "round(3.5)"
+     ],
+     [
+      "42",
+      "3",
+      "2",
+      "4"
+     ]
+    ],
+    "rows": [
+     "you write",
+     "you get"
+    ],
+    "label": "int and round",
+    "bad": [
+     [
+      1,
+      2
+     ]
+    ],
+    "say": "int() parses text and cuts floats toward zero. round() sends halves to the even neighbour: round(2.5) is 2."
+   },
+   {
+    "cells": [
+     [
+      "abs(-5)",
+      "gcd(12,18)",
+      "sqrt(16)",
+      "isqrt(17)"
+     ],
+     [
+      "5",
+      "6",
+      "4.0",
+      "4"
+     ]
+    ],
+    "rows": [
+     "you write",
+     "you get"
+    ],
+    "label": "abs and math.*",
+    "hi": [
+     [
+      1,
+      1
+     ],
+     [
+      1,
+      3
+     ]
+    ],
+    "say": "math has the rest. sqrt gives a float; isqrt the whole root. gcd is the biggest common divisor."
+   },
+   {
+    "cells": [
+     [
+      "ceil(7/2)",
+      "(7+2-1)//2",
+      "-(-7//2)"
+     ],
+     [
+      "4",
+      "4",
+      "4"
+     ]
+    ],
+    "rows": [
+     "you write",
+     "you get"
+    ],
+    "label": "round up",
+    "ok": [
+     [
+      1,
+      0
+     ],
+     [
+      1,
+      1
+     ],
+     [
+      1,
+      2
+     ]
+    ],
+    "say": "Round up to count trips or pages: math.ceil(a / b), or stay in ints with (a + b - 1) // b or -(-a // b). All give 4."
+   }
+  ]
+ },
+ "when": [
+  "Split into groups or pages",
+  "Digits of a number with % 10 and // 10",
+  "Answer modulo 10**9 + 7",
+  "Start a minimum at infinity",
+  "Is this a perfect square?"
+ ],
+ "python": "import math\nprint(7 / 2, 7 // 2, 7 % 2, divmod(7, 2))\nprint(-7 // 2, -7 % 2, int(-7 / 2))\nbest = float(\"inf\")\nbest = min(best, 7)\nprint(best, float(\"inf\") > 10**18)\nprint(2 ** 10, pow(2, 10, 7), pow(2, 100, 10**9 + 7))\nprint(int(\"42\"), int(3.9), int(-3.9), round(2.5), round(3.5))\nprint(abs(-5), math.gcd(12, 18), math.sqrt(16), math.isqrt(17))\nprint(math.ceil(7 / 2), (7 + 2 - 1) // 2, -(-7 // 2))\nn = 1234\nprint(n % 10, n // 10, 0.1 + 0.2 == 0.3)",
+ "output": "3.5 3 1 (3, 1)\n-4 1 -3\n7 True\n1024 2 976371285\n42 3 -3 2 4\n5 6 4.0 4\n4 4 4\n4 123 False",
+ "cost": [
+  [
+   "+ - * // % on normal-size ints",
+   "O(1)"
+  ],
+  [
+   "pow(a, b, m)",
+   "O(log b)"
+  ],
+  [
+   "math.gcd(a, b)",
+   "O(log min(a, b))"
+  ],
+  [
+   "math.isqrt(n)",
+   "O(1) for normal sizes"
+  ]
+ ],
+ "watch": [
+  "-7 // 2 is -4 in Python. To cut toward zero, use int(a / b).",
+  "float(\"inf\") is a float. If no answer was found, return the -1 the problem asks for, not inf.",
+  "0.1 + 0.2 == 0.3 is False. Stay in integers, or compare floats with a small tolerance."
+ ],
+ "interview": [
+  "LC 150 Evaluate Reverse Polish Notation",
+  "LC 7 Reverse Integer",
+  "LC 1922 Count Good Numbers"
+ ],
+ "related": [
+  "py-basics",
+  "bit-manipulation",
+  "binary-search",
+  "py-gotchas"
+ ]
+}

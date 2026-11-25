@@ -1,0 +1,310 @@
+{
+ "round": {
+  "intro": "Learn the building blocks, watch well-known architectures handle real requests, then practise GovTech-style questions against a 45-minute clock. Say every step out loud: interviewers score how you reason, not whether you draw their diagram.",
+  "steps": [
+   {
+    "title": "Requirements",
+    "minutes": "5 min",
+    "do": "Ask who uses it, the 3-4 core actions, and what is out of scope. Pin down scale, latency, consistency and who must never see what."
+   },
+   {
+    "title": "Estimates",
+    "minutes": "5 min",
+    "do": "Turn users into requests per second, peak and storage. Write the arithmetic down and say what the numbers rule in or out."
+   },
+   {
+    "title": "API & data model",
+    "minutes": "7 min",
+    "do": "List the endpoints with methods and status codes. Sketch the main tables, their keys and the one query each must serve fast."
+   },
+   {
+    "title": "High-level design",
+    "minutes": "10 min",
+    "do": "Draw client, edge, API tier, services and stores. Walk one read and one write through the diagram, end to end."
+   },
+   {
+    "title": "Deep dive",
+    "minutes": "12 min",
+    "do": "Take the hardest part (consistency, hot keys, failure, security) and go deep with numbers. Let the interviewer pick if they want to."
+   },
+   {
+    "title": "Bottlenecks & trade-offs",
+    "minutes": "6 min",
+    "do": "Name what breaks first at 10x load, how you would see it in monitoring, and what you chose not to build and why."
+   }
+  ],
+  "steps_note": "a 45-minute round; a prep guide suggests interns get about 15-20 minutes, so shrink each step",
+  "process": "<p><b>Evidence is thin, so read this as a guide, not a script.</b> Most of what follows comes from candidate reports on Glassdoor and NodeFlair, seen only as search snippets (unverified). Official pages and GitHub take-home repos are verified and are marked so.</p><p><b>GovTech.</b> The pipeline varies by team. Candidate reports on Glassdoor describe a proctored HackerRank test (usually 3 questions in 70 minutes, LeetCode easy to medium, hidden complexity tests), then live coding framed as pair programming. For mid and senior roles some teams add a system design round; one SWE report has it followed by a technical deep dive on your past work. Two or three 2026 reports name \"Roving on Mars\" (the Mars Rover kata) for live coding: real, but not proven common. For interns, one report mentions a system architecture question, and a third-party prep guide suggests about 15-20 minutes of design discussion rather than a full round.</p><ul><li>The only named recent system design prompt is <b>\"Design a chain of consensus system\"</b>: one line in 2-3 candidate reports on Glassdoor (unverified snippets, with conflicting dates), with no further spec. Raft, quorums and fault models are the natural way to answer it, not part of any report. See <a href=\"#sd-d-consensus-chain\">the consensus design</a>.</li><li>\"Design a rate limiter API\" is listed in one anonymous NodeFlair entry (low confidence). See <a href=\"#sd-d-rate-limiter\">rate limiter</a>.</li><li>Role variants (unverified): SRE/DevOps reports mention live coding plus system design; an AI Engineer report mentions explaining the AWS architecture of a guardrails proof of concept.</li><li>The only <b>verified</b> scaling questions come from the GovTech ACE take-home (2025) README: testing beyond unit tests, scaling to millions of uploaded files, and handling long-running POST uploads. See <a href=\"#sd-d-csv-ingest\">CSV ingest</a>.</li><li>A GovTech GDS blog snippet says a URL shortener and a room booking system were tried as interview exercises and later dropped. The URL shortener is still a common intern take-home (verified repos).</li></ul><p><b>OGP.</b> Official careers pages (verified): most roles have 3-4 rounds over 3-5 weeks, built around \"real-world\" work rather than theoretical puzzles, scored on structured rubrics by several interviewers. They look for Ability, Initiative, Communication and Values, and say clear thinking, debugging and knowing your design's limits matter more than the correct answer. Candidate reports on Glassdoor add a Codility test, live coding in your own editor, and in one 2025 report a system design round followed by a director chat. No OGP system design prompt has been reported.</p><p><b>What is evaluated.</b> GovTech names its ABC values (Agile, Bold, Collaborative). In pair programming, reports stress process and communication over finishing. Take-home reviews look at readability, secure coding, structure and testability. No source ties GovTech or OGP to Uber, Netflix or other famous prompts. Those designs are here because they train the same moves: estimates, data model, caching, queues and failure handling.</p>"
+ },
+ "cheat": {
+  "latency": [
+   {
+    "op": "L1 cache reference",
+    "ns": 1,
+    "label": "1 ns"
+   },
+   {
+    "op": "Branch mispredict",
+    "ns": 3,
+    "label": "3 ns"
+   },
+   {
+    "op": "L2 cache reference",
+    "ns": 4,
+    "label": "4 ns"
+   },
+   {
+    "op": "Mutex lock/unlock",
+    "ns": 17,
+    "label": "17 ns",
+    "hint": "uncontended"
+   },
+   {
+    "op": "Main memory reference",
+    "ns": 100,
+    "label": "100 ns",
+    "hint": "about 100x L1"
+   },
+   {
+    "op": "Compress 1 KB (Snappy/zstd)",
+    "ns": 2000,
+    "label": "2 µs"
+   },
+   {
+    "op": "Send 1 KB over a 1 Gbps link",
+    "ns": 10000,
+    "label": "10 µs"
+   },
+   {
+    "op": "Read 1 MB sequentially from memory",
+    "ns": 30000,
+    "label": "~30 µs",
+    "hint": "about 10-30 GB/s on one core"
+   },
+   {
+    "op": "SSD random read (4 KB)",
+    "ns": 100000,
+    "label": "~100 µs",
+    "hint": "NVMe; network-attached cloud volumes are nearer 0.5-1 ms"
+   },
+   {
+    "op": "Read 1 MB sequentially from SSD",
+    "ns": 200000,
+    "label": "~200 µs",
+    "hint": "NVMe at about 5 GB/s"
+   },
+   {
+    "op": "Round trip within one datacenter",
+    "ns": 500000,
+    "label": "500 µs",
+    "hint": "a Redis GET in the same AZ"
+   },
+   {
+    "op": "Round trip between AZs in a region",
+    "ns": 1000000,
+    "label": "~1 ms",
+    "hint": "AWS says single-digit ms"
+   },
+   {
+    "op": "HDD seek",
+    "ns": 5000000,
+    "label": "5 ms"
+   },
+   {
+    "op": "Read 1 MB sequentially from HDD",
+    "ns": 5000000,
+    "label": "~5 ms",
+    "hint": "about 200 MB/s"
+   },
+   {
+    "op": "Round trip Singapore to Tokyo",
+    "ns": 70000000,
+    "label": "~70 ms"
+   },
+   {
+    "op": "Round trip Singapore to US West",
+    "ns": 170000000,
+    "label": "~170 ms",
+    "hint": "why you serve SG users from ap-southeast-1"
+   }
+  ],
+  "capacity": [
+   {
+    "label": "Seconds in a day",
+    "calc": "24 × 3,600",
+    "value": "86,400 ≈ 10^5"
+   },
+   {
+    "label": "1M requests a day",
+    "calc": "1,000,000 / 86,400",
+    "value": "≈ 12 req/s"
+   },
+   {
+    "label": "100M requests a day",
+    "calc": "100,000,000 / 86,400",
+    "value": "≈ 1,160 req/s"
+   },
+   {
+    "label": "Peak traffic",
+    "calc": "average × 2-3 for daily peaks",
+    "value": "far more at a scheduled opening"
+   },
+   {
+    "label": "go.gov.sg redirects (Q3 2026)",
+    "calc": "190M clicks / 92 days ≈ 2.1M/day; / 86,400; × 3 for peak",
+    "value": "≈ 24/s avg, ≈ 75/s peak"
+   },
+   {
+    "label": "Postman-style bulk send",
+    "calc": "1M messages in 22 min = 1M / 1,320 s; one worker ≈ 200 msg/s",
+    "value": "≈ 760 msg/s ≈ 4 workers"
+   },
+   {
+    "label": "Storage for a year",
+    "calc": "1M writes/day × 1 KB × 365",
+    "value": "≈ 365 GB (× 2-3 for indexes, replicas)"
+   },
+   {
+    "label": "Five years of rows",
+    "calc": "100M rows/day × 500 B × 365 × 5",
+    "value": "≈ 91 TB"
+   },
+   {
+    "label": "Cache for the hot set",
+    "calc": "20% of 50M keys × 500 B",
+    "value": "≈ 5 GB, fits one Redis node"
+   },
+   {
+    "label": "1 Gbps link",
+    "calc": "1,000 Mb / 8",
+    "value": "125 MB/s; 1 TB ≈ 2.2 h"
+   },
+   {
+    "label": "7-char base62 codes",
+    "calc": "62^7",
+    "value": "≈ 3.5 trillion"
+   },
+   {
+    "label": "6-digit OTP space",
+    "calc": "10^6 codes, 5 attempts each",
+    "value": "5 in 1M guess chance"
+   },
+   {
+    "label": "99.9% availability",
+    "calc": "0.1% × 30 days × 1,440 min",
+    "value": "≈ 43 min/month"
+   },
+   {
+    "label": "99.99% availability",
+    "calc": "0.01% × 30 days × 1,440 min",
+    "value": "≈ 4.3 min/month"
+   }
+  ],
+  "pick": [
+   {
+    "need": "Relational data, transactions, joins",
+    "pick": "Postgres",
+    "why": "ACID, constraints and mature tooling. Your default until a named access pattern says otherwise. One primary plus replicas serves most government-scale apps."
+   },
+   {
+    "need": "Hot reads, sessions, OTPs, counters",
+    "pick": "Redis",
+    "why": "Sub-millisecond reads, TTLs and atomic <code>INCR</code>. Treat it as a cache that can be lost, unless you have configured persistence and know its limits."
+   },
+   {
+    "need": "Files, uploads, exports",
+    "pick": "Object storage + presigned URLs",
+    "why": "Clients upload straight to S3 with a short-lived URL; the DB keeps the key and metadata. Scan uploads before you mark them usable."
+   },
+   {
+    "need": "Full-text or fuzzy search",
+    "pick": "OpenSearch / Elasticsearch",
+    "why": "An inverted index with ranking. Feed it from the primary DB (CDC or outbox) and treat it as rebuildable."
+   },
+   {
+    "need": "Background jobs with retries",
+    "pick": "Queue + workers",
+    "why": "SQS-style queues give retries, visibility timeouts and a DLQ. At modest scale a Postgres job table claimed in a transaction also works; that is how a design like Postman.gov.sg runs."
+   },
+   {
+    "need": "Many consumers of one event stream, with replay",
+    "pick": "Kafka / Kinesis",
+    "why": "A retained, partitioned log; each consumer group keeps its own offset. Order holds only within a partition, so choose the key with care."
+   },
+   {
+    "need": "Static assets for users everywhere",
+    "pick": "CDN",
+    "why": "Content-hashed filenames with long TTLs; never cache per-user responses at the edge."
+   },
+   {
+    "need": "Server push to browsers",
+    "pick": "SSE, or WebSockets for two-way",
+    "why": "SSE is plain HTTP and reconnects on its own. WebSockets need sticky connections and a pub/sub layer to reach the right server."
+   },
+   {
+    "need": "Metrics over time",
+    "pick": "Time-series DB",
+    "why": "Prometheus or TimescaleDB store samples compactly, with retention and roll-ups for old data. Do not put per-second metrics in your OLTP database."
+   },
+   {
+    "need": "Nearby search",
+    "pick": "Geohash, Redis GEO or PostGIS",
+    "why": "Query the cell and its 8 neighbours, then filter by real distance. Keep only the latest position in memory."
+   },
+   {
+    "need": "Leader election, locks, cluster config",
+    "pick": "etcd / ZooKeeper",
+    "why": "Consensus-backed (Raft / ZAB) with leases and watches. Pair any lock with fencing tokens."
+   },
+   {
+    "need": "Huge key-based write volume",
+    "pick": "DynamoDB / Cassandra",
+    "why": "Scales writes by partition key. Design the table from the queries, because there are no joins and secondary indexes cost extra."
+   },
+   {
+    "need": "Citizen or officer login",
+    "pick": "OIDC with an identity provider",
+    "why": "Use the ID token for identity and short-lived access tokens for APIs. Singpass, for example, offers an OIDC login for citizens."
+   },
+   {
+    "need": "Secrets and encryption keys",
+    "pick": "KMS + secrets manager",
+    "why": "Envelope encryption: KMS wraps per-record or per-table data keys. Never put keys in code or env files in the repo."
+   },
+   {
+    "need": "Throttling across many servers",
+    "pick": "Token bucket in Redis at the gateway",
+    "why": "Shared atomic counters per user or IP; return <code>429</code> with <code>Retry-After</code>."
+   },
+   {
+    "need": "Job that takes minutes",
+    "pick": "202 + job id + status endpoint",
+    "why": "Return at once, process in a worker, let the client poll or receive a webhook. This answers the long-running-upload follow-up."
+   }
+  ],
+  "phrases": [
+   "\"Before I draw anything, can I confirm the users, the core actions and what is out of scope?\"",
+   "\"Let me put numbers on it: about 120 requests a second on average, maybe 400 at peak, so one Postgres primary is fine for now.\"",
+   "\"This read path is hot and read-heavy, so I'll put a cache in front with a TTL and delete on write.\"",
+   "\"The queue gives at-least-once delivery, so the consumer has to be idempotent; I'll dedupe on the message id.\"",
+   "\"I'll start simple and tell you what breaks first at 10x, rather than shard on day one.\"",
+   "\"The trade-off here is consistency against availability. For money or eligibility I'd rather refuse than show a wrong answer.\"",
+   "\"Retries are safe because the client sends an idempotency key and we store the result against it.\"",
+   "\"For personal data I'd encrypt at rest with KMS, log access, and keep only the fields we need.\"",
+   "\"How would I know this is failing? I'd alert on error rate, p99 latency and queue depth.\"",
+   "\"I'm not sure about that detail. Here is how I would find out, and what I'd assume until then.\""
+  ],
+  "mistakes": [
+   "Drawing boxes before asking a single clarifying question.",
+   "Skipping estimates, then proposing sharding for 50 requests a second.",
+   "Naming technologies (Kafka! Cassandra!) without saying which problem each one solves.",
+   "Saying \"exactly-once delivery\" without explaining idempotent consumers.",
+   "Caching per-user or personal data at the CDN, or caching without a plan to invalidate it.",
+   "Ignoring failure: no retries with backoff, no timeouts, no DLQ, no idea what happens when the primary dies.",
+   "Treating security as an afterthought: no authorization check per object, secrets in code, PII in logs.",
+   "Talking for ten minutes without checking in. Pause and ask whether to go deeper or move on.",
+   "Defending a choice after the interviewer shows a flaw, instead of adjusting the design.",
+   "Running out of time before the deep dive because the high-level design kept growing."
+  ]
+ }
+}

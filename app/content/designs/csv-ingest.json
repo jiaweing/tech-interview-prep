@@ -1,0 +1,585 @@
+{
+ "id": "csv-ingest",
+ "title": "Bulk CSV upload API at scale",
+ "tagline": "Accept millions of CSV files a day, apply each one all-or-nothing, and keep reads fast.",
+ "govtech": true,
+ "govtech_label": "Reported at GovTech",
+ "mirrors": "GovTech ACE take-home",
+ "featured": true,
+ "difficulty": "medium",
+ "govtech_note": "<p>This design grows out of a <b>verified</b> GovTech ACE take-home (2025; the task and its README were checked in public GitHub submissions). The task is a small Express API: <code>GET /users?min&amp;max&amp;offset&amp;limit&amp;sort=NAME|SALARY</code> and <code>POST /upload</code> taking a multipart CSV of <code>NAME,SALARY</code>. The upload is <b>all-or-nothing</b>: one malformed row rejects the whole file, rows with a negative salary are skipped, and names are unique, so a new row for an existing name overwrites it.</p><p>The README then asks three follow-up questions: <b>how you would test beyond unit tests</b>, <b>how you would scale to millions of files</b>, and <b>how you would handle long-running POST uploads</b>. These are the only GovTech scaling questions we could verify from a primary source. Everything below is a reasonable answer to them, not a description of a GovTech system. If you submit this take-home, prepare them as discussion topics; we have no report of how the follow-up chat itself runs.</p>",
+ "summary": "<p>The take-home version reads the whole file inside <code>POST /upload</code> and writes rows in the request. That breaks at scale: big files outlive load-balancer timeouts, retries create duplicates, and API servers hold megabytes of body in memory. The fix is to <b>separate accepting a file from processing it</b>: the client uploads straight to object storage, the API answers <b>202 Accepted</b> with a job id, a queue feeds a worker pool that <b>stream-parses</b> the file into a staging table, and <b>one short transaction</b> merges it into <code>users</code>. Reads go to a replica with an index on salary and keyset pagination.</p>",
+ "requirements": {
+  "functional": [
+   "Upload a CSV of <code>NAME,SALARY</code>; any malformed row rejects the whole file",
+   "Skip rows with a negative salary; they are not errors",
+   "Names are unique: an uploaded row overwrites the existing salary for that name",
+   "Report per-file status and progress (rows done, first errors with line numbers)",
+   "List users filtered by <code>min</code>/<code>max</code> salary, sorted by NAME or SALARY, paginated"
+  ],
+  "nonfunctional": [
+   "Millions of files a day; single files up to ~100 MB",
+   "No partial file is ever visible to readers, even if a worker crashes mid-file",
+   "Retrying an upload request never creates a second job or applies the file twice",
+   "Read p99 under ~100 ms at any page depth"
+  ],
+  "out_of_scope": [
+   "Formats other than CSV",
+   "Per-row edit history and audit UI",
+   "User accounts and auth details (assume an authenticated tenant)"
+  ]
+ },
+ "estimates": [
+  {
+   "label": "Files per day",
+   "calc": "assumption for \"millions of files\"",
+   "value": "1M"
+  },
+  {
+   "label": "File upload rate",
+   "calc": "1M ÷ 86,400 s ≈ 12/s; × 5 at office-hour peak",
+   "value": "~12/s avg, ~60/s peak"
+  },
+  {
+   "label": "Rows per file",
+   "calc": "assume ~1,000 rows × ~25 B per row",
+   "value": "~25 KB per file"
+  },
+  {
+   "label": "Rows to merge",
+   "calc": "1M × 1,000 = 1B/day ÷ 86,400 s ≈ 11.6k/s; × 5 peak",
+   "value": "~12k/s avg, ~60k/s peak"
+  },
+  {
+   "label": "Workers at peak",
+   "calc": "60k rows/s ÷ ~5k rows/s per worker (COPY in 10k batches)",
+   "value": "~12, run 25 for headroom"
+  },
+  {
+   "label": "Largest file",
+   "calc": "100 MB ÷ 25 B ≈ 4M rows ÷ 5k rows/s",
+   "value": "~13 min to process"
+  },
+  {
+   "label": "Raw file storage",
+   "calc": "1M × 25 KB = 25 GB/day × 365",
+   "value": "~9 TB/year in object storage"
+  }
+ ],
+ "api": [
+  {
+   "method": "POST",
+   "path": "/uploads {filename, sha256, size, callbackUrl?}",
+   "desc": "Header <code>Idempotency-Key</code> (a UUID the client makes per upload and reuses on retries). Creates a job: 202 Accepted with {jobId, uploadUrl (presigned, 15 min), statusUrl}. A retry with the same key gets the existing job."
+  },
+  {
+   "method": "PUT",
+   "path": "{uploadUrl}",
+   "desc": "Client sends the file straight to object storage. The presigned URL pins the SHA-256 checksum, so a corrupted upload is rejected. For large files the API can hand out one presigned URL per part (multipart), so a dropped connection resumes from the last part."
+  },
+  {
+   "method": "GET",
+   "path": "/jobs/{jobId}",
+   "desc": "{status: PENDING|RUNNING|SUCCEEDED|FAILED, rowsDone, rowsSkipped, errors[first 100, with line numbers]}. Sends Retry-After to pace polling."
+  },
+  {
+   "method": "GET",
+   "path": "/users?min&max&sort=NAME|SALARY&limit&cursor",
+   "desc": "Keyset pagination: returns {results, nextCursor}. offset still accepted for small pages, capped at 10,000."
+  },
+  {
+   "method": "POST",
+   "path": "/upload (multipart, legacy)",
+   "desc": "Kept for files under 1 MB and processed in the request. Larger files get 413 with a pointer to /uploads."
+  }
+ ],
+ "data": [
+  {
+   "name": "upload_jobs",
+   "store": "PostgreSQL",
+   "fields": [
+    "id PK",
+    "tenant_id",
+    "idempotency_key",
+    "sha256",
+    "object_key",
+    "status",
+    "rows_done",
+    "rows_skipped",
+    "error_summary",
+    "lease_owner, lease_until",
+    "seq (bigserial)",
+    "UNIQUE (tenant_id, idempotency_key)"
+   ],
+   "note": "The unique key makes a retried POST /uploads return the first job. The file hash is not the dedupe key: uploading file A, then B, then A again must leave A's salaries. Status changes are conditional updates, so two workers cannot both claim a job."
+  },
+  {
+   "name": "staging_users",
+   "store": "PostgreSQL (UNLOGGED)",
+   "fields": [
+    "job_id",
+    "line_no",
+    "name",
+    "salary"
+   ],
+   "note": "Per-job scratch rows loaded with COPY. Deleted after the merge. UNLOGGED skips the WAL; a crash only loses scratch data that is rebuilt from the file."
+  },
+  {
+   "name": "users",
+   "store": "PostgreSQL",
+   "fields": [
+    "name PK",
+    "salary NUMERIC(12,2)",
+    "last_job_seq",
+    "updated_at",
+    "INDEX (salary, name)"
+   ],
+   "note": "The (salary, name) index serves min/max filters, SALARY sort and keyset cursors. The NAME sort uses the primary key."
+  },
+  {
+   "name": "raw files",
+   "store": "S3",
+   "fields": [
+    "key: tenant/job_id.csv",
+    "lifecycle: cold tier after 30 days"
+   ],
+   "note": "The source of truth for replay. A failed or disputed job can be re-run from the exact bytes. Keying by job id lets the ObjectCreated event name its job."
+  }
+ ],
+ "diagram": {
+  "w": 960,
+  "h": 540,
+  "groups": [
+   {
+    "label": "Upload and ingest (async)",
+    "x": 20,
+    "y": 16,
+    "w": 920,
+    "h": 392
+   },
+   {
+    "label": "Read path",
+    "x": 20,
+    "y": 424,
+    "w": 920,
+    "h": 104
+   }
+  ],
+  "nodes": [
+   {
+    "id": "client",
+    "label": "Uploader",
+    "sub": "agency system",
+    "kind": "client",
+    "x": 80,
+    "y": 80
+   },
+   {
+    "id": "api",
+    "label": "Upload API",
+    "sub": "stateless × N",
+    "kind": "service",
+    "x": 330,
+    "y": 80
+   },
+   {
+    "id": "pg",
+    "label": "PostgreSQL",
+    "sub": "jobs, staging, users",
+    "kind": "db",
+    "x": 840,
+    "y": 80
+   },
+   {
+    "id": "s3",
+    "label": "Object storage",
+    "sub": "S3 bucket",
+    "kind": "storage",
+    "x": 330,
+    "y": 210
+   },
+   {
+    "id": "q",
+    "label": "Ingest queue",
+    "sub": "SQS + DLQ",
+    "kind": "queue",
+    "x": 590,
+    "y": 210
+   },
+   {
+    "id": "worker",
+    "label": "Parse workers",
+    "sub": "stream, 10k-row batches",
+    "kind": "worker",
+    "x": 590,
+    "y": 340
+   },
+   {
+    "id": "notify",
+    "label": "Webhook sender",
+    "sub": "signed, retries",
+    "kind": "notify",
+    "x": 330,
+    "y": 340
+   },
+   {
+    "id": "reader",
+    "label": "Reader",
+    "sub": "dashboard",
+    "kind": "user",
+    "x": 90,
+    "y": 476
+   },
+   {
+    "id": "readapi",
+    "label": "Read API",
+    "sub": "keyset pagination",
+    "kind": "service",
+    "x": 330,
+    "y": 476
+   },
+   {
+    "id": "replica",
+    "label": "Read replica",
+    "sub": "INDEX (salary, name)",
+    "kind": "db",
+    "x": 840,
+    "y": 476
+   }
+  ],
+  "edges": [
+   {
+    "id": "c-api",
+    "from": "client",
+    "to": "api",
+    "label": "POST /uploads"
+   },
+   {
+    "id": "api-pg",
+    "from": "api",
+    "to": "pg",
+    "label": "INSERT job PENDING"
+   },
+   {
+    "id": "c-s3",
+    "from": "client",
+    "to": "s3",
+    "label": "PUT (presigned)"
+   },
+   {
+    "id": "s3-q",
+    "from": "s3",
+    "to": "q",
+    "label": "ObjectCreated",
+    "dashed": true
+   },
+   {
+    "id": "q-w",
+    "from": "q",
+    "to": "worker",
+    "label": "job id",
+    "dashed": true
+   },
+   {
+    "id": "w-s3",
+    "from": "worker",
+    "to": "s3",
+    "label": "stream GET"
+   },
+   {
+    "id": "w-pg",
+    "from": "worker",
+    "to": "pg",
+    "label": "COPY + merge"
+   },
+   {
+    "id": "w-n",
+    "from": "worker",
+    "to": "notify",
+    "label": "job done",
+    "dashed": true
+   },
+   {
+    "id": "n-c",
+    "from": "notify",
+    "to": "client",
+    "label": "webhook",
+    "dashed": true
+   },
+   {
+    "id": "pg-rep",
+    "from": "pg",
+    "to": "replica",
+    "label": "WAL",
+    "dashed": true
+   },
+   {
+    "id": "r-ra",
+    "from": "reader",
+    "to": "readapi",
+    "label": "GET /users"
+   },
+   {
+    "id": "ra-rep",
+    "from": "readapi",
+    "to": "replica",
+    "label": "keyset query"
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "accept",
+   "name": "Accept an upload",
+   "desc": "The API never touches the file bytes.",
+   "steps": [
+    {
+     "edge": "c-api",
+     "note": "Client sends only metadata (filename, size, the <b>SHA-256</b> of the file) plus an <code>Idempotency-Key</code> header. A few hundred bytes, answered in milliseconds."
+    },
+    {
+     "edge": "api-pg",
+     "note": "INSERT a job row. <code>UNIQUE (tenant_id, idempotency_key)</code> means a retried request hits the constraint and gets the <b>existing</b> job back instead of a second one."
+    },
+    {
+     "edge": "c-api",
+     "rev": true,
+     "note": "Return <b>202 Accepted</b> with the job id, a status URL and a <b>presigned PUT URL</b> valid for 15 minutes. The long-running part is now off the request path."
+    },
+    {
+     "edge": "c-s3",
+     "note": "Client streams the file straight to object storage. A 100 MB file no longer ties up an API server or hits a 60 s load-balancer idle timeout; multipart upload lets it resume after a drop."
+    },
+    {
+     "edge": "s3-q",
+     "note": "The bucket emits an ObjectCreated event onto the queue. If the event is lost, a sweeper finds PENDING jobs whose object exists and re-enqueues them."
+    }
+   ]
+  },
+  {
+   "id": "ingest",
+   "name": "Ingest one file, all-or-nothing",
+   "desc": "Validate everything first, then one short transaction.",
+   "steps": [
+    {
+     "edge": "q-w",
+     "note": "A worker takes the message and <b>claims</b> the job: <code>UPDATE upload_jobs SET status='RUNNING', lease_until=now()+'5 min' WHERE id=$1 AND (status='PENDING' OR (status='RUNNING' AND lease_until &lt; now()))</code>. Zero rows updated means another worker has it or it is already finished."
+    },
+    {
+     "edge": "w-s3",
+     "note": "Stream the object and parse row by row in constant memory. Never load the whole file: a 4M-row file would need ~1 GB as objects."
+    },
+    {
+     "node": "worker",
+     "note": "Validate each row. A malformed row marks the job FAILED with its line number and stops. A negative salary is counted in <code>rows_skipped</code> and dropped."
+    },
+    {
+     "edge": "w-pg",
+     "note": "<code>COPY</code> valid rows into <code>staging_users</code> in 10k-row batches and bump <code>rows_done</code> after each one, which is the per-file progress the client sees."
+    },
+    {
+     "node": "pg",
+     "note": "At end of file, one transaction: <code>INSERT INTO users SELECT DISTINCT ON (name) ... FROM staging_users WHERE job_id=$1 ORDER BY name, line_no DESC ON CONFLICT (name) DO UPDATE ...</code>, then set the job SUCCEEDED. Readers see all of the file or none of it."
+    },
+    {
+     "edge": "w-n",
+     "note": "Emit a job-finished event. The worker deletes the queue message only after the commit, so a crash before that means redelivery; a redelivered message for a SUCCEEDED job claims nothing and is simply deleted."
+    },
+    {
+     "edge": "n-c",
+     "note": "If the client registered a <code>callbackUrl</code>, POST the result, signed with HMAC, retried with backoff. Polling still works for clients that cannot receive webhooks."
+    }
+   ]
+  },
+  {
+   "id": "poll",
+   "name": "Poll job status",
+   "steps": [
+    {
+     "edge": "c-api",
+     "note": "<code>GET /jobs/{id}</code>, starting at 1 s and backing off to 10 s."
+    },
+    {
+     "edge": "api-pg",
+     "note": "Primary-key read of one job row: status, <code>rows_done</code>, <code>rows_skipped</code> and the first errors."
+    },
+    {
+     "edge": "c-api",
+     "rev": true,
+     "note": "<code>200 {status: RUNNING, rowsDone: 1,200,000}</code> with <code>Retry-After: 5</code>. Thousands of pollers cost a few thousand indexed reads a second, which is cheap; if not, cache job rows for 1 s."
+    }
+   ]
+  },
+  {
+   "id": "read",
+   "name": "Read users by salary",
+   "steps": [
+    {
+     "edge": "pg-rep",
+     "note": "Merged rows reach the replica through WAL streaming, usually within milliseconds. The job is marked SUCCEEDED on the primary, so a reader may briefly see the old salary."
+    },
+    {
+     "edge": "r-ra",
+     "note": "<code>GET /users?min=3000&amp;max=5000&amp;sort=SALARY&amp;limit=50&amp;cursor=...</code>"
+    },
+    {
+     "edge": "ra-rep",
+     "note": "<code>WHERE salary BETWEEN 3000 AND 5000 AND (salary, name) &gt; ($s, $n) ORDER BY salary, name LIMIT 50</code>. The (salary, name) index finds the start in O(log n) and reads 50 rows, at page 1 or page 20,000."
+    },
+    {
+     "edge": "r-ra",
+     "rev": true,
+     "note": "Return 50 rows and a <code>nextCursor</code> encoding the last (salary, name). With OFFSET, page 20,000 would scan and throw away 1M rows, and concurrent upserts would shift rows between pages."
+    }
+   ]
+  }
+ ],
+ "deep": [
+  {
+   "title": "Long-running uploads: take the work out of the POST",
+   "sim": "queue",
+   "html": "<p>The take-home <code>POST /upload</code> parses and writes inside the request. For a 100 MB file that takes minutes, and three things fail:</p><ul><li><b>Timeouts</b>: load balancers and proxies commonly close a connection that sends nothing for 60 s (the AWS ALB default), and while the server parses, the connection sends nothing. The client sees an error while the server may still be writing, so the client retries and you process the file twice.</li><li><b>Memory and threads</b>: an API server buffering bodies runs out of memory when many big files land at once. If parsing is synchronous, Node's event loop blocks and every other request waits.</li><li><b>No progress</b>: the client cannot tell 10% from 90%.</li></ul><p>The standard answer is the <b>asynchronous request-reply</b> pattern: <b>202 Accepted</b> plus a status URL, then poll (with <code>Retry-After</code>) or a webhook. Uploading through a <b>presigned URL</b> means the bytes go straight to object storage, which is built for this, and multipart upload makes a dropped connection resume instead of restart. The queue then absorbs bursts: if 10,000 files land in a minute, they wait in the queue while a fixed worker pool drains it at the rate the database can take.</p>"
+  },
+  {
+   "title": "All-or-nothing per file at scale",
+   "html": "<p>The take-home rule is that one bad row rejects the file. Three ways to do it, and why two of them hurt:</p><ol><li><b>One long transaction over the live table while streaming</b>: correct, but it holds row locks on <code>users</code> for minutes and blocks every other file that touches the same names. Avoid.</li><li><b>Staging table, then one short merge</b> (my pick): COPY the whole file into <code>staging_users</code> outside any long transaction, validating as you go. Only if every row is valid, run one <code>INSERT ... ON CONFLICT (name) DO UPDATE</code> from staging. The lock window is the merge, a few seconds for a million rows, not the parse.</li><li><b>Batch id flipped to active</b>: write rows tagged with the job id and flip <code>batches.active = true</code> in one tiny transaction. Readers only see active batches. Great for append-only data, awkward here because a later upload must <b>overwrite</b> names, so every read would have to pick the newest active row per name.</li></ol><p>Three details interviewers like: <b>collapse duplicate names inside one file</b> with <code>SELECT DISTINCT ON (name) ... ORDER BY name, line_no DESC</code> (the last row wins), because Postgres refuses an <code>ON CONFLICT DO UPDATE</code> that touches the same row twice in one statement; <b>sort the merge by name</b> (<code>ORDER BY name</code>) so two concurrent merges take row locks in the same order and do not deadlock, and make overwrites deterministic with <code>DO UPDATE ... WHERE users.last_job_seq &lt;= EXCLUDED.last_job_seq</code>, so if two files touch the same name, the later-accepted file wins no matter which merge commits first.</p>"
+  },
+  {
+   "title": "Idempotency, retries and backpressure",
+   "sim": "bucket",
+   "html": "<ul><li><b>Idempotency key</b>: <code>UNIQUE (tenant_id, idempotency_key)</code> on jobs. A client that retries <code>POST /uploads</code> after a timeout gets the same job. Do not dedupe on the file hash alone: A, then B, then A again is a legitimate sequence that must end with A's salaries, and a hash key would silently drop the third upload.</li><li><b>At-least-once queue</b>: SQS may deliver a message twice. The job lease (a conditional UPDATE) lets only one worker run a job, and the merge itself is idempotent: re-running a job writes the same values with the same <code>seq</code>.</li><li><b>Visibility timeout</b>: a long file outlives the default; the worker extends the message visibility and its lease every minute as a heartbeat. After 3 failed attempts the message goes to a <b>dead-letter queue</b> and the job is FAILED with a reason.</li><li><b>Backpressure</b>: cap worker concurrency and DB connections at what the primary can absorb (measure it; say ~25 workers). Scale workers on queue age, not CPU. If the oldest message is older than, say, 15 minutes, return <b>429</b> with <code>Retry-After</code> on new uploads, per tenant, using a token bucket so one noisy tenant cannot starve the rest.</li></ul>"
+  },
+  {
+   "title": "Testing beyond unit tests",
+   "html": "<p>The README asks this directly. A test pyramid, with the reason for each layer:</p><ul><li><b>Unit</b> (many, milliseconds): the parser and validator. Quoted names with commas, a UTF-8 BOM, CRLF line endings, a trailing newline, an empty file, header only, <code>3000.5</code> versus <code>3,000</code>, negative and zero salary.</li><li><b>Property-based / fuzz</b>: random CSVs; assert the parser never crashes and that \"valid file in, same rows out\" holds.</li><li><b>Integration with a real database</b> (Testcontainers Postgres, not a mock): a file with one bad row on line 9,999 leaves <code>users</code> untouched; overwrite by name works; two concurrent uploads of overlapping names do not deadlock; a killed worker mid-file leaves no partial rows and the retry succeeds.</li><li><b>Contract tests</b>: the OpenAPI spec is the contract. Validate responses against it in CI, and consumer-driven contracts (Pact) if other teams call the API.</li><li><b>End-to-end</b>: one happy path through presigned upload, queue, worker and read, against a staging stack.</li><li><b>Load tests</b> (k6 or Locust): 60 uploads/s plus one 100 MB file, while reads run. Watch read p99, queue age and DB CPU; this is where you find the real worker cap.</li></ul>"
+  }
+ ],
+ "tradeoffs": [
+  {
+   "choice": "File bytes through the API or presigned upload to object storage?",
+   "pick": "Presigned upload",
+   "why": "Object storage handles large, resumable uploads and scales on its own. API servers stay small and stateless. The cost is one more round trip and a bucket policy to get right."
+  },
+  {
+   "choice": "Polling or webhook for job status?",
+   "pick": "Both, polling as the baseline",
+   "why": "Polling always works, even behind firewalls. Webhooks save requests but need signing, retries and a reachable client endpoint, so offer them as an option."
+  },
+  {
+   "choice": "Staging + one merge, or batch id flipped active?",
+   "pick": "Staging + merge",
+   "why": "Uploads overwrite existing names, so the live table must hold one row per name. A batch flip suits append-only data where readers can filter on active batches cheaply."
+  },
+  {
+   "choice": "OFFSET or keyset pagination?",
+   "pick": "Keyset on (salary, name)",
+   "why": "OFFSET n reads and discards n rows and shows duplicates or gaps when rows change between pages. Keyset is O(log n) at any depth. Keep offset for the take-home's API shape, but cap it."
+  },
+  {
+   "choice": "SQS or a Postgres job table?",
+   "pick": "SQS for events, Postgres for job state",
+   "why": "A Postgres job table whose workers claim rows in a transaction (Postman.gov.sg's public docs describe this for its <code>job_queue</code>) copes with tens of jobs a second and keeps one system. SQS adds S3 event delivery, visibility timeouts and a dead-letter queue for free and keeps polling load off the primary. Both are defensible at ~60 files/s; job status stays in Postgres either way because clients query it."
+  }
+ ],
+ "bottlenecks": [
+  {
+   "issue": "The primary cannot absorb 60k upserted rows a second",
+   "fix": "COPY into staging in batches, merge sorted by name, and cap worker concurrency at what the primary absorbs. Do not skip \"unchanged\" rows to save writes: the row must still record the newer <code>last_job_seq</code>, or a delayed older file could overwrite it later. Past that, hash-partition <code>users</code> by name across shards."
+  },
+  {
+   "issue": "One 100 MB file blocks a worker for 13 minutes",
+   "fix": "Split parsing by byte range at line boundaries across several workers that all COPY into the same job's staging rows, then run one merge (only safe if quoted fields cannot contain newlines; otherwise parse sequentially). Small files go to a separate queue so they do not wait behind it."
+  },
+  {
+   "issue": "One tenant uploads 200,000 files at once",
+   "fix": "Per-tenant quotas and fair scheduling (a queue per tenant, or a round-robin claimer). Excess gets 429 with Retry-After instead of delaying everyone."
+  },
+  {
+   "issue": "Readers see old salaries right after SUCCEEDED",
+   "fix": "Replica lag. Either mark the job done once the replica has replayed the commit LSN, or route the uploader's reads to the primary for a few seconds after their job ends."
+  }
+ ],
+ "followups": [
+  {
+   "q": "A worker dies after loading half the file into staging. What happens?",
+   "a": "<p>Nothing reaches <code>users</code>, because only the final merge touches it. The lease expires, SQS redelivers the message, the next worker deletes that job's staging rows and starts again from the file in object storage.</p>"
+  },
+  {
+   "q": "The client times out on POST /uploads and retries. Do you get two jobs?",
+   "a": "<p>No. The retry carries the same <code>Idempotency-Key</code>, the INSERT hits <code>UNIQUE (tenant_id, idempotency_key)</code>, and the API returns the existing job. Do not use the file hash as the key: re-uploading an older file on purpose must still apply it.</p>"
+  },
+  {
+   "q": "Two files set different salaries for the same name at the same moment. Who wins?",
+   "a": "<p>Define the rule first: the file accepted later wins. Each job gets a <code>seq</code> at creation, and the upsert only overwrites when <code>users.last_job_seq &lt;= EXCLUDED.last_job_seq</code>, so commit order no longer matters. The <code>=</code> case only arises when a job is re-run, which rewrites its own values.</p>"
+  },
+  {
+   "q": "How would the client show a progress bar?",
+   "a": "<p>The worker updates <code>rows_done</code> after each 10k-row batch, and the client knows the file size, so it can show bytes or rows. Do not update the job row on every row: that is a write per row.</p>"
+  },
+  {
+   "q": "How do you keep GET /users fast with min, max and a sort?",
+   "a": "<p>A composite index on <code>(salary, name)</code> serves the range filter, the SALARY sort and a unique tie-breaker for the cursor. For the NAME sort the planner has two plans: walk the primary key in name order and filter on salary (good for wide ranges), or read the salary range through <code>(salary, name)</code> and sort it (good for narrow ranges). A covering index <code>(name) INCLUDE (salary)</code> makes the first plan index-only.</p>"
+  },
+  {
+   "q": "How would you replay a month of uploads after fixing a parser bug?",
+   "a": "<p>Raw files are kept in object storage by job id. Re-enqueue the affected jobs in their original <code>seq</code> order on a low-priority queue. Because the merge overwrites when <code>last_job_seq &lt;= EXCLUDED.last_job_seq</code>, a replayed job rewrites the rows it last set but never a row a newer file has since changed.</p>"
+  }
+ ],
+ "quiz": [
+  {
+   "q": "Why return 202 Accepted from POST /uploads instead of 200 after processing?",
+   "options": [
+    "202 is faster to serialise",
+    "Processing can take minutes, longer than load-balancer and client timeouts, so the request only accepts the work",
+    "200 cannot carry a body",
+    "Browsers cache 200 responses"
+   ],
+   "answer": 1,
+   "why": "Accepting and processing are split. The client gets a job id at once and checks status later, so timeouts no longer cause duplicate work."
+  },
+  {
+   "q": "How do you make sure readers never see half a file?",
+   "options": [
+    "Insert rows one at a time, each in its own transaction",
+    "Upload smaller files",
+    "Load into a staging table, then merge everything in one transaction",
+    "Use a read replica"
+   ],
+   "answer": 2,
+   "why": "Readers only see committed data, and the only transaction touching the live table is the single merge."
+  },
+  {
+   "q": "A client retries the upload after a network error. What prevents a second job?",
+   "options": [
+    "A unique constraint on (tenant, idempotency key), with the key reused on every retry",
+    "The queue's FIFO ordering",
+    "A longer timeout",
+    "Deleting the first job"
+   ],
+   "answer": 0,
+   "why": "The duplicate INSERT fails on the constraint and the API returns the existing job: idempotency through the database. The key is per upload, not the file hash, so a deliberate re-upload still applies."
+  },
+  {
+   "q": "Why is keyset pagination better than OFFSET for page 20,000?",
+   "options": [
+    "It uses less network bandwidth",
+    "OFFSET is not valid SQL",
+    "Keyset needs no index",
+    "OFFSET must read and discard every earlier row; keyset seeks to the cursor through the index"
+   ],
+   "answer": 3,
+   "why": "OFFSET 1,000,000 scans a million index entries. A (salary, name) cursor starts reading exactly where the last page ended."
+  },
+  {
+   "q": "Which test proves the all-or-nothing rule actually holds?",
+   "options": [
+    "A unit test of the row validator",
+    "A load test",
+    "An integration test against a real Postgres where row 9,999 is bad and the users table is unchanged afterwards",
+    "A lint rule"
+   ],
+   "answer": 2,
+   "why": "The guarantee lives in the transaction, so only a test with a real database can show it. A mocked repository would pass even if the code committed rows early."
+  }
+ ]
+}

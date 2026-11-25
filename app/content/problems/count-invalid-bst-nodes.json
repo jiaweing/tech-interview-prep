@@ -1,0 +1,316 @@
+{
+ "id": "count-invalid-bst-nodes",
+ "title": "Count Invalid Nodes in a BST",
+ "pattern": "stack",
+ "level": "medium",
+ "statement": "<p>An ad server keeps campaign bids in a binary search tree so it can find \"all bids between A and B\" fast. A buggy writer inserted some nodes in the wrong place. Before deciding whether to repair or rebuild the tree, you want to know how many nodes are out of place.</p><p>Trees use LeetCode's list format: <code>tree[0]</code> is the root, then the children of each node, left before right, level by level. <code>None</code> marks a missing child, and missing nodes list no children. Trailing <code>None</code>s may be left off, and <code>[]</code> is the empty tree.</p><p>The tree should be a BST with <b>strict</b> ordering. For a node <code>v</code> and each of its ancestors <code>A</code>: if <code>v</code> is in <code>A</code>'s left subtree, <code>v</code> must be <b>strictly less</b> than <code>A</code>; if it is in <code>A</code>'s right subtree, <code>v</code> must be <b>strictly greater</b>. Together, all ancestors give each node an open range <code>(low, high)</code>. A node is <b>invalid</b> if its value is not strictly inside that range.</p><p>The range comes from the ancestors' <b>values</b>, whether or not those ancestors are themselves valid. An invalid node does not excuse its descendants, and it does not relax their range either. The root is never invalid.</p><p>Write <code>def solution(tree)</code> that returns the number of invalid nodes. Trees can be 10,000 levels deep, so avoid recursion.</p>",
+ "examples": [
+  {
+   "input": "tree = [2, 1, 3]",
+   "output": "0",
+   "why": "1 &lt; 2 &lt; 3: a valid BST."
+  },
+  {
+   "input": "tree = [10, 5, 15, None, None, 6, 20]",
+   "output": "1",
+   "why": "6 is a fine left child of 15, but it sits in the right subtree of 10 and 6 &lt; 10. Its range is (10, 15)."
+  },
+  {
+   "input": "tree = [5, None, 3, None, 4]",
+   "output": "2",
+   "why": "3 is invalid (range (5, inf)). 4 is the right child of 3, so its range is (max(5, 3), inf) = (5, inf), and 4 is invalid too. Using only the parent's value would wrongly give (3, inf)."
+  }
+ ],
+ "constraints": [
+  "0 &le; number of nodes &le; 20,001",
+  "-2^31 &le; node value &le; 2^31 - 1",
+  "the tree can be 10,000 levels deep"
+ ],
+ "starter": "def solution(tree):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "What range must a node fall in, and who sets it?",
+   "a": "Every ancestor sets one side. Going left past <code>A</code> caps the node below <code>A</code>; going right past <code>A</code> keeps it above <code>A</code>. So the range is <code>(largest value you went right of, smallest value you went left of)</code>. An invalid ancestor still counts: its value still bounds the subtree."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Count <code>[5, None, 3, None, 4]</code>.",
+   "a": "5 is the root: range (-inf, inf), valid. 3 is right of 5: range (5, inf), 3 is outside, invalid. 4 is right of 5 and right of 3: range (max(5, 3), inf) = (5, inf), invalid. Answer 2. If you set the child's low to the parent's value, 4 gets (3, inf) and you get 1: that is the bug to avoid."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first idea that works?",
+   "a": "For every node, walk up through all its ancestors and check each rule. Correct, but it costs O(height) per node, so O(n^2) on a 10,000-node chain."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Which pattern?",
+   "a": "<b>DFS on an explicit stack</b> of <code>(node, low, high)</code>. Pass the range down instead of walking up: a left child gets <code>high = min(high, node.val)</code>, a right child gets <code>low = max(low, node.val)</code>. Each node is checked once in O(1). Unlike LC 98, you do not stop at the first failure: you count them all."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li>Build the nodes. Empty tree: return 0.</li><li><code>stack = [(root, None, None)]</code>, <code>invalid = 0</code>.</li><li>Pop <code>(node, low, high)</code>. If <code>low is not None and val &lt;= low</code> or <code>high is not None and val &gt;= high</code>, add 1.</li><li>Push the left child with <code>high</code> tightened to <code>min(high, val)</code> and the right child with <code>low</code> tightened to <code>max(low, val)</code>.</li><li>When the stack is empty, return <code>invalid</code>.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "An invalid node's children (tighten with min/max, never overwrite). Duplicates (equal is invalid). A range that becomes empty, like a right child of an invalid left child: every value fails. Values at the 32-bit limits (use <code>None</code>, not a sentinel). A value of 0 (<code>is not None</code>, not truthiness). Empty tree and one node."
+  }
+ ],
+ "hints": [
+  "Checking each node only against its parent misses <code>[10, 5, 15, None, None, 6, 20]</code>. Every ancestor matters.",
+  "Carry the allowed open range <code>(low, high)</code> down the tree on a stack of <code>(node, low, high)</code>, with <code>None</code> for 'no bound'. Do not stop at the first bad node; count them.",
+  "When you push a child, tighten the range: <code>min(high, node.val)</code> for the left child, <code>max(low, node.val)</code> for the right. Setting it to <code>node.val</code> directly lets an invalid node widen its children's range."
+ ],
+ "solution": "from collections import deque\n\nclass Node:\n    def __init__(self, val):\n        self.val = val\n        self.left = None\n        self.right = None\n\ndef build(tree):\n    # LeetCode list -> linked nodes. Each popped parent takes the next two slots.\n    if not tree or tree[0] is None:\n        return None\n    root = Node(tree[0])\n    queue = deque([root])\n    i = 1\n    while queue and i < len(tree):\n        node = queue.popleft()\n        if i < len(tree) and tree[i] is not None:\n            node.left = Node(tree[i])\n            queue.append(node.left)\n        i += 1\n        if i < len(tree) and tree[i] is not None:\n            node.right = Node(tree[i])\n            queue.append(node.right)\n        i += 1\n    return root\n\ndef solution(tree):\n    root = build(tree)\n    if root is None:\n        return 0\n    invalid = 0\n    # Each entry: (node, low, high). The node must satisfy low < val < high.\n    # None means \"no bound on this side\".\n    stack = [(root, None, None)]\n    while stack:\n        node, low, high = stack.pop()\n        if (low is not None and node.val <= low) or (high is not None and node.val >= high):\n            invalid += 1\n        # Children inherit the range of ALL ancestors, so tighten it, never replace it.\n        # This matters when node itself is invalid: its value must not widen the range.\n        if node.left is not None:\n            new_high = node.val if high is None else min(high, node.val)\n            stack.append((node.left, low, new_high))\n        if node.right is not None:\n            new_low = node.val if low is None else max(low, node.val)\n            stack.append((node.right, new_low, high))\n    return invalid\n",
+ "brute": "from collections import deque\n\nclass Node:\n    def __init__(self, val):\n        self.val = val\n        self.parent = None\n        self.is_left = False\n\ndef solution(tree):\n    # Build nodes with parent links, then for every node walk up through\n    # every ancestor and check the one rule that ancestor imposes.\n    # O(n * height): O(n^2) on a chain.\n    if not tree or tree[0] is None:\n        return 0\n    root = Node(tree[0])\n    nodes = [root]\n    queue = deque([root])\n    i = 1\n    while queue and i < len(tree):\n        parent = queue.popleft()\n        for is_left in (True, False):\n            if i < len(tree) and tree[i] is not None:\n                child = Node(tree[i])\n                child.parent = parent\n                child.is_left = is_left\n                nodes.append(child)\n                queue.append(child)\n            i += 1\n    invalid = 0\n    for node in nodes:\n        cur = node\n        bad = False\n        while cur.parent is not None:\n            anc = cur.parent\n            if cur.is_left and node.val >= anc.val:\n                bad = True\n            if not cur.is_left and node.val <= anc.val:\n                bad = True\n            cur = anc\n        if bad:\n            invalid += 1\n    return invalid\n",
+ "explain": "<p>Example 2, <code>[10, 5, 15, None, None, 6, 20]</code>:</p><ul><li>Pop (10, None, None): valid. Push 5 with (None, 10) and 15 with (10, None).</li><li>Pop (15, 10, None): valid. Push 6 with (10, min(None, 15) = 15) and 20 with (max(10, 15) = 15, None).</li><li>Pop (20, 15, None): valid. Pop (6, 10, 15): 6 &lt;= 10, invalid, count 1.</li><li>Pop (5, None, 10): valid. Stack empty: return <b>1</b>.</li></ul><p>Why <code>min</code> and <code>max</code>: in a correct BST the child's new bound is always tighter than the old one, so LC 98 code just writes <code>node.val</code>. Here the parent can be invalid. In <code>[5, None, 3, None, 4]</code>, 3 is outside (5, inf); writing <code>low = 3</code> for its right child would forget the root's rule and call 4 valid. Taking the max keeps <code>low = 5</code>. A range can also become empty, for example <code>(8, 5)</code> under an invalid left child 8 of root 5: every value in that subtree is invalid, which is correct because no number is both below 5 and above 8.</p><p>The in-order trick from LC 98 does not work for counting: one misplaced node can create one drop or several, and a drop does not say which side is wrong.</p>",
+ "complexity": "O(n) time; O(n) space for the built nodes, and the stack holds about one pending entry per level",
+ "tests": [
+  {
+   "args": [
+    [
+     2,
+     1,
+     3
+    ]
+   ],
+   "expected": 0,
+   "label": "example 1",
+   "cat": "example",
+   "why": "a valid BST has no invalid nodes"
+  },
+  {
+   "args": [
+    [
+     10,
+     5,
+     15,
+     null,
+     null,
+     6,
+     20
+    ]
+   ],
+   "expected": 1,
+   "label": "example 2 (grandparent trap)",
+   "cat": "example",
+   "why": "6 is fine under 15 but breaks the rule for 10"
+  },
+  {
+   "args": [
+    [
+     5,
+     null,
+     3,
+     null,
+     4
+    ]
+   ],
+   "expected": 2,
+   "label": "example 3 (invalid parent)",
+   "cat": "example",
+   "why": "4 keeps the root's bound even though its parent 3 is invalid"
+  },
+  {
+   "args": [
+    []
+   ],
+   "expected": 0,
+   "label": "empty tree",
+   "cat": "empty",
+   "why": "no nodes, nothing invalid"
+  },
+  {
+   "args": [
+    [
+     7
+    ]
+   ],
+   "expected": 0,
+   "label": "one node",
+   "cat": "single",
+   "why": "the root is never invalid"
+  },
+  {
+   "args": [
+    [
+     5,
+     1,
+     4,
+     null,
+     null,
+     3,
+     6
+    ]
+   ],
+   "expected": 2,
+   "label": "LeetCode 98 tree",
+   "cat": "small",
+   "why": "4 and 3 are below the root but in its right subtree; 6 is fine"
+  },
+  {
+   "args": [
+    [
+     0,
+     0,
+     0
+    ]
+   ],
+   "expected": 2,
+   "label": "zeros",
+   "cat": "zero",
+   "why": "equal values break strict order on both sides"
+  },
+  {
+   "args": [
+    [
+     1,
+     null,
+     1,
+     null,
+     1
+    ]
+   ],
+   "expected": 2,
+   "label": "equal chain",
+   "cat": "dupes",
+   "why": "each repeated 1 equals an ancestor"
+  },
+  {
+   "args": [
+    [
+     5,
+     8,
+     null,
+     null,
+     6
+    ]
+   ],
+   "expected": 2,
+   "label": "empty range",
+   "cat": "edge",
+   "why": "8 is invalid; 6 must be below 5 and above 8, which no value can be"
+  },
+  {
+   "args": [
+    [
+     5,
+     null,
+     3,
+     4,
+     6
+    ]
+   ],
+   "expected": 2,
+   "label": "invalid parent, both children",
+   "cat": "edge",
+   "why": "4 must be above 5 and below 3 (invalid); 6 is above 5 and 3 (valid)"
+  },
+  {
+   "args": [
+    [
+     0,
+     -5,
+     5,
+     -10,
+     -1,
+     1,
+     10
+    ]
+   ],
+   "expected": 0,
+   "label": "negatives",
+   "cat": "negative",
+   "why": "a valid BST with negative values"
+  },
+  {
+   "args": [
+    [
+     -2147483648,
+     null,
+     2147483647,
+     2147483647
+    ]
+   ],
+   "expected": 1,
+   "label": "32-bit limits",
+   "cat": "boundary",
+   "why": "the left child equals its parent; limit values must not clash with sentinels"
+  },
+  {
+   "args": [
+    [
+     8,
+     4,
+     12,
+     2,
+     6,
+     10,
+     14,
+     1,
+     3,
+     5,
+     9,
+     7,
+     11,
+     13,
+     15
+    ]
+   ],
+   "expected": 2,
+   "label": "two values swapped",
+   "cat": "medium",
+   "why": "9 and 7 swapped deep in a 15-node tree"
+  },
+  {
+   "args": [
+    [
+     50,
+     30,
+     70,
+     20,
+     60,
+     40,
+     80,
+     10,
+     25,
+     35,
+     65,
+     45,
+     75,
+     55,
+     90
+    ]
+   ],
+   "expected": 6,
+   "label": "several misplaced",
+   "cat": "medium",
+   "why": "60 and 40 swapped near the top, so whole subtrees fall out of range"
+  }
+ ],
+ "perf": {
+  "label": "performance: a 10,000-node right chain with scattered values",
+  "gen": "[[0] + [None if j == 0 else (i * 7919) % 20011 for i in range(1, 10000) for j in range(2)]]",
+  "expected": 9984
+ },
+ "al": {
+  "kind": "fundamentals",
+  "from": "Count invalid nodes in a BST",
+  "talk": [
+   "O(n) time: each node is pushed and popped once and checked against <code>(low, high)</code> in O(1). The brute force walks up every ancestor, O(n * height), which is O(n^2) on a chain.",
+   "This is LC 98 with two changes: I count instead of returning early, and I tighten bounds with <code>min</code>/<code>max</code> because a parent can itself be out of range.",
+   "<code>None</code> means no bound, so values at the 32-bit limits are safe, and I test <code>is not None</code> so a bound of 0 still counts. Python ints do not overflow, so there is no sentinel trick needed.",
+   "Explicit stack, not recursion: a 10,000-deep chain would blow Python's default recursion limit of 1,000."
+  ],
+  "extensions": [
+   "Return the invalid nodes' values in level order instead of a count. What changes if you switch the stack to a deque?",
+   "Change the definition: a node is invalid only if it breaks its <b>parent's</b> rule. Why is that a weaker check, and which example tree shows the difference?",
+   "Find the minimum number of nodes whose values you must change to make the tree a valid BST (hint: longest strictly increasing subsequence of the in-order reading).",
+   "Allow duplicates on the right (<code>left &lt; node &lt;= right</code>). Which comparison changes?",
+   "The tree is too big for one machine and is sharded by subtree. What does each shard need from its parent shard to count its own invalid nodes?"
+  ]
+ }
+}

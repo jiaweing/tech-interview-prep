@@ -1,0 +1,239 @@
+{
+ "stages": [
+  {
+   "when": "Round 1 · in person",
+   "title": "Deep dive",
+   "what": "Walk through 1-2 projects you owned. Decisions, setbacks, stakeholders, impact.",
+   "href": "dd"
+  },
+  {
+   "when": "Round 2 · 60 min",
+   "title": "Live coding",
+   "what": "Practical Python. Clarify, get it working, test, then extend. Talk while you code.",
+   "href": "problems"
+  },
+  {
+   "when": "Round 3 · 60 min",
+   "title": "System design",
+   "what": "Expect an AI product. Evals, cost, latency, fallbacks, access control.",
+   "href": "sd"
+  }
+ ],
+ "tips": [
+  "Restate the task and ask about edge cases before typing. Candidates say OA questions are \"framed weirdly\": pin down the exact rule.",
+  "Write the simplest correct version first, with a test for the given example, then improve it.",
+  "Make rules data, not if-chains (turning = an index into 'NESW'). The interviewer will add a rule; it should land in one place.",
+  "Name things clearly and keep functions small: reviewers mention code structure and testability, not just passing tests.",
+  "Think out loud. In pair programming, silence reads as stuck even when you are not.",
+  "When the base task passes, offer the next extension yourself: obstacles, wrap-around, a new command."
+ ],
+ "lc": [
+  {
+   "p": "Hashing & counting",
+   "w": "★★★★",
+   "items": [
+    {
+     "n": 1,
+     "slug": "two-sum",
+     "t": "Two Sum"
+    },
+    {
+     "n": 350,
+     "slug": "intersection-of-two-arrays-ii",
+     "t": "Intersection of Two Arrays II"
+    },
+    {
+     "n": 242,
+     "slug": "valid-anagram",
+     "t": "Valid Anagram"
+    },
+    {
+     "n": 49,
+     "slug": "group-anagrams",
+     "t": "Group Anagrams"
+    },
+    {
+     "n": 347,
+     "slug": "top-k-frequent-elements",
+     "t": "Top K Frequent Elements"
+    }
+   ]
+  },
+  {
+   "p": "Strings, parsing & regex",
+   "w": "★★★★",
+   "items": [
+    {
+     "n": 1807,
+     "slug": "evaluate-the-bracket-pairs-of-a-string",
+     "t": "Evaluate the Bracket Pairs of a String"
+    },
+    {
+     "n": 8,
+     "slug": "string-to-integer-atoi",
+     "t": "String to Integer (atoi)"
+    },
+    {
+     "n": 468,
+     "slug": "validate-ip-address",
+     "t": "Validate IP Address"
+    },
+    {
+     "n": 20,
+     "slug": "valid-parentheses",
+     "t": "Valid Parentheses"
+    },
+    {
+     "n": 394,
+     "slug": "decode-string",
+     "t": "Decode String"
+    }
+   ]
+  },
+  {
+   "p": "Two pointers & prefix max",
+   "w": "★★★",
+   "items": [
+    {
+     "n": 42,
+     "slug": "trapping-rain-water",
+     "t": "Trapping Rain Water"
+    },
+    {
+     "n": 11,
+     "slug": "container-with-most-water",
+     "t": "Container With Most Water"
+    },
+    {
+     "n": 167,
+     "slug": "two-sum-ii-input-array-is-sorted",
+     "t": "Two Sum II"
+    },
+    {
+     "n": 88,
+     "slug": "merge-sorted-array",
+     "t": "Merge Sorted Array"
+    },
+    {
+     "n": 15,
+     "slug": "3sum",
+     "t": "3Sum"
+    }
+   ]
+  },
+  {
+   "p": "Grid simulation",
+   "w": "★★★",
+   "items": [
+    {
+     "n": 874,
+     "slug": "walking-robot-simulation",
+     "t": "Walking Robot Simulation"
+    },
+    {
+     "n": 2069,
+     "slug": "walking-robot-simulation-ii",
+     "t": "Walking Robot Simulation II"
+    },
+    {
+     "n": 1041,
+     "slug": "robot-bounded-in-circle",
+     "t": "Robot Bounded In Circle"
+    },
+    {
+     "n": 657,
+     "slug": "robot-return-to-origin",
+     "t": "Robot Return to Origin"
+    },
+    {
+     "n": 54,
+     "slug": "spiral-matrix",
+     "t": "Spiral Matrix"
+    }
+   ]
+  },
+  {
+   "p": "Sliding window",
+   "w": "★",
+   "items": [
+    {
+     "n": 643,
+     "slug": "maximum-average-subarray-i",
+     "t": "Maximum Average Subarray I"
+    },
+    {
+     "n": 3,
+     "slug": "longest-substring-without-repeating-characters",
+     "t": "Longest Substring Without Repeating Characters"
+    },
+    {
+     "n": 209,
+     "slug": "minimum-size-subarray-sum",
+     "t": "Minimum Size Subarray Sum"
+    }
+   ]
+  },
+  {
+   "p": "Graphs / DFS",
+   "w": "★★ (older reports)",
+   "items": [
+    {
+     "n": 200,
+     "slug": "number-of-islands",
+     "t": "Number of Islands"
+    },
+    {
+     "n": 733,
+     "slug": "flood-fill",
+     "t": "Flood Fill"
+    },
+    {
+     "n": 797,
+     "slug": "all-paths-from-source-to-target",
+     "t": "All Paths From Source to Target"
+    },
+    {
+     "n": 133,
+     "slug": "clone-graph",
+     "t": "Clone Graph"
+    }
+   ]
+  },
+  {
+   "p": "Heaps, greedy & bits",
+   "w": "★",
+   "items": [
+    {
+     "n": 215,
+     "slug": "kth-largest-element-in-an-array",
+     "t": "Kth Largest Element in an Array"
+    },
+    {
+     "n": 703,
+     "slug": "kth-largest-element-in-a-stream",
+     "t": "Kth Largest Element in a Stream"
+    },
+    {
+     "n": 455,
+     "slug": "assign-cookies",
+     "t": "Assign Cookies"
+    },
+    {
+     "n": 134,
+     "slug": "gas-station",
+     "t": "Gas Station"
+    },
+    {
+     "n": 136,
+     "slug": "single-number",
+     "t": "Single Number"
+    },
+    {
+     "n": 191,
+     "slug": "number-of-1-bits",
+     "t": "Number of 1 Bits"
+    }
+   ]
+  }
+ ]
+}

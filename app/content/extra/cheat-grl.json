@@ -1,0 +1,96 @@
+{
+ "pick": [
+  {
+   "need": "Vector store for a pilot knowledge base",
+   "pick": "pgvector in your existing Postgres",
+   "why": "1M chunks at 1536 dimensions is about 6 GB, which HNSW serves in milliseconds. You keep SQL filters for access control in the same query. Move to a dedicated vector store at hundreds of millions of vectors."
+  },
+  {
+   "need": "Better ranking of retrieved chunks",
+   "pick": "Hybrid search plus a cross-encoder reranker",
+   "why": "BM25 catches exact codes and names that embeddings blur. Rerank the top 50 and keep 5-8: a large precision gain for tens of milliseconds."
+  },
+  {
+   "need": "Calling several model providers",
+   "pick": "An LLM gateway in front of all model calls",
+   "why": "One place for routing, fallback, retries with jittered backoff, per-team quotas, PII redaction and per-call cost logging. Without it, every product reinvents these and nobody knows the bill."
+  },
+  {
+   "need": "Knowing whether a change made answers better",
+   "pick": "A golden-set eval harness run in CI",
+   "why": "50-200 real cases with expected answers or sources, scored per category, blocking merges on regressions. Use an LLM judge only after checking it agrees with human labels."
+  },
+  {
+   "need": "Long generations (decks, transcripts, reports)",
+   "pick": "A job queue with workers and job status in the database",
+   "why": "POST returns 202 and a job ID. Leases let another worker resume after a crash, and checkpoints stop you paying for the same model call twice. Concurrency limits protect the provider quota."
+  },
+  {
+   "need": "Streaming tokens to the browser",
+   "pick": "Server-Sent Events",
+   "why": "One-way, plain HTTP, automatic reconnect. Use WebSockets only when the client also streams, such as live audio. Turn off proxy buffering on the route."
+  },
+  {
+   "need": "Speech recognition at volume",
+   "pick": "Self-hosted ASR on GPUs, autoscaled on backlog",
+   "why": "At steady volume a GPU running 30x real time costs cents per audio hour. Scale on minutes of audio waiting, keep a warm minimum, and use a hosted API while volume is low or spiky."
+  },
+  {
+   "need": "Cutting repeated model cost",
+   "pick": "Provider prompt caching plus an exact-match response cache",
+   "why": "Put the stable prefix first so the provider caches it. Key your own cache on model, prompt, parameters and permission scope, so one user's answer never reaches someone who cannot see its sources."
+  },
+  {
+   "need": "Keeping PII and unsafe content out",
+   "pick": "Input and output guardrails at the gateway",
+   "why": "Redact identifiers such as NRIC numbers to placeholders before the call and restore after. Run classifiers on input and streamed output; fail closed on high-risk checks."
+  },
+  {
+   "need": "Trying features and models on pilot users",
+   "pick": "Feature flags with cohorts",
+   "why": "Turn a model or feature on for one team, compare quality, latency and cost against the rest, and switch it off without a redeploy."
+  }
+ ],
+ "phrases": [
+  "\"Before picking a model, let me define how we will know it works: a golden set of about 100 real questions from officers, scored on every change.\"",
+  "\"Let me cost one request: 5,000 input and 500 output tokens is about 2 cents, so 20,000 requests a day is about $450. That decides whether we need a smaller model for the easy cases.\"",
+  "\"Access control happens at retrieval. If a user cannot read a document, its chunks never reach the prompt.\"",
+  "\"The model proposes, a person approves. Anything that sends, books or pays goes through a confirm step with an audit log.\"",
+  "\"I would stream the answer, so users see text in under a second even when the full answer takes ten.\"",
+  "\"For the first two weeks I would ship one workflow to one team, instrumented for use, quality and cost, and agree up front what result means keep, hand over or close.\""
+ ],
+ "mistakes": [
+  "Designing the AI feature without saying how you would evaluate it, before or after launch.",
+  "Relying on the system prompt for security: telling the model not to reveal restricted data instead of never retrieving it.",
+  "Letting the model take actions (send, book, pay, delete) without human approval or idempotency keys.",
+  "Never putting a number on tokens, cost per request or latency, so the design cannot be judged as affordable or fast.",
+  "Treating the model provider as always up: no retries with backoff, no fallback model, no quota per team.",
+  "Building a platform before a single officer has used a thin version, with no criteria for keeping or closing it."
+ ],
+ "latency": [
+  {
+   "op": "Vector search, top-10 over 1M vectors (HNSW)",
+   "ns": 5000000,
+   "label": "5-10 ms",
+   "hint": "Approximate nearest neighbour at high recall; cheap next to the model call."
+  },
+  {
+   "op": "Embed one query via an API",
+   "ns": 30000000,
+   "label": "20-50 ms",
+   "hint": "Mostly network. Batch when embedding documents."
+  },
+  {
+   "op": "LLM time to first token",
+   "ns": 500000000,
+   "label": "300-800 ms",
+   "hint": "Grows with prompt length and load. This is the wait users feel when you stream."
+  },
+  {
+   "op": "Generate 500 output tokens at ~50 tokens/s",
+   "ns": 10000000000,
+   "label": "~10 s",
+   "hint": "Output length dominates latency: cap max_tokens and stream."
+  }
+ ]
+}

@@ -1,0 +1,282 @@
+{
+ "id": "load-balancing",
+ "title": "Load balancing",
+ "group": "Scale out",
+ "tagline": "Spread requests over many identical servers, and stop sending traffic to the ones that are sick.",
+ "why": "<p>One server has a ceiling: CPU, memory, open connections. It is also a single point of failure. The usual fix is to run several identical copies and put a load balancer in front, so clients see one address while the work is shared.</p><p>A load balancer does three jobs: it <b>spreads</b> requests, it <b>removes</b> servers that fail health checks, and it lets you <b>deploy</b> by draining one server at a time. That only works if any server can serve any request, which is why the rule \"keep app servers stateless\" comes up in almost every design round.</p><p>In an interview you rarely need to design the balancer itself. You need to say where it sits, whether it is L4 or L7, which strategy it uses, and what happens to state when a server dies.</p>",
+ "how": "<p><b>L4 vs L7.</b> An L4 balancer routes TCP/UDP connections by IP and port. It never reads the HTTP request, so it is very fast and works for any protocol, but it balances <i>connections</i>, not requests. An L7 balancer terminates TLS, reads the HTTP request, and can route by path, header or cookie (<code>/api</code> to one pool, <code>/static</code> to another), retry a failed request, and add auth or rate limiting. Most web designs use L7 (an AWS ALB, NGINX, Envoy); L4 (an AWS NLB) fits raw TCP, very high connection counts, or a fixed IP.</p><p><b>Strategies.</b></p><ul><li><b>Round robin</b>: next server in turn. Fine when requests cost about the same.</li><li><b>Least connections</b>: the server with the fewest in-flight requests. Better when some requests are slow, because it routes around a busy server. Try both in the sim above. Its traffic is more than the 4 servers can finish, so queues grow under every strategy; watch how even they stay.</li><li><b>Random</b> (or \"power of two choices\": pick 2 at random, take the less loaded): simple and works well at large scale.</li><li><b>Consistent hashing</b> on a key (user ID, cache key): the same key keeps going to the same server, which helps caches and connection affinity. Adding a server moves only about 1/N of keys. See <a href=\"#sd-c-consistent-hashing\">Consistent hashing</a>.</li></ul><p><b>Health checks.</b> The balancer calls something like <code>GET /healthz</code> every few seconds. After a few failures in a row it stops routing to that server; after a few successes it adds it back. A good health check is cheap and checks the server itself, not every dependency, or one slow database marks the whole fleet unhealthy at once.</p><p><b>State.</b> Keep sessions in a shared store (Redis, a database) or in a signed token, so a server can die without logging anyone out. <b>Sticky sessions</b> (cookie or IP affinity) pin a user to one server. They are sometimes needed for WebSockets or an in-memory cache, but they make load uneven and lose that state when the server dies.</p>",
+ "sim": "lb",
+ "diagram": {
+  "w": 960,
+  "h": 340,
+  "groups": [
+   {
+    "label": "Stateless app tier",
+    "x": 470,
+    "y": 14,
+    "w": 220,
+    "h": 312
+   }
+  ],
+  "nodes": [
+   {
+    "id": "user",
+    "label": "Clients",
+    "sub": "browsers, apps",
+    "kind": "user",
+    "x": 90,
+    "y": 170
+   },
+   {
+    "id": "lb",
+    "label": "Load balancer",
+    "sub": "L7, health checks",
+    "kind": "lb",
+    "x": 320,
+    "y": 170
+   },
+   {
+    "id": "a",
+    "label": "App server 1",
+    "sub": "stateless",
+    "kind": "service",
+    "x": 580,
+    "y": 64
+   },
+   {
+    "id": "b",
+    "label": "App server 2",
+    "sub": "stateless",
+    "kind": "service",
+    "x": 580,
+    "y": 170
+   },
+   {
+    "id": "c",
+    "label": "App server 3",
+    "sub": "stateless",
+    "kind": "service",
+    "x": 580,
+    "y": 276
+   },
+   {
+    "id": "redis",
+    "label": "Session store",
+    "sub": "Redis",
+    "kind": "cache",
+    "x": 850,
+    "y": 170
+   }
+  ],
+  "edges": [
+   {
+    "id": "u-lb",
+    "from": "user",
+    "to": "lb",
+    "label": "HTTPS"
+   },
+   {
+    "id": "lb-a",
+    "from": "lb",
+    "to": "a",
+    "label": "health check",
+    "dashed": true
+   },
+   {
+    "id": "lb-b",
+    "from": "lb",
+    "to": "b",
+    "label": "request"
+   },
+   {
+    "id": "lb-c",
+    "from": "lb",
+    "to": "c",
+    "label": "request"
+   },
+   {
+    "id": "a-r",
+    "from": "a",
+    "to": "redis"
+   },
+   {
+    "id": "b-r",
+    "from": "b",
+    "to": "redis",
+    "label": "GET session"
+   },
+   {
+    "id": "c-r",
+    "from": "c",
+    "to": "redis"
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "route",
+   "name": "A normal request",
+   "desc": "Any server can take it because none holds state.",
+   "steps": [
+    {
+     "edge": "u-lb",
+     "note": "The client connects to one address. The L7 balancer terminates TLS so it can read the path and headers."
+    },
+    {
+     "edge": "lb-b",
+     "note": "Least connections picks server 2, which has the fewest requests in flight right now."
+    },
+    {
+     "edge": "b-r",
+     "note": "Server 2 loads the session from Redis (about 0.5 ms). Nothing about this user lives in server 2's memory."
+    },
+    {
+     "edge": "lb-b",
+     "rev": true,
+     "note": "Response goes back through the balancer."
+    },
+    {
+     "edge": "u-lb",
+     "rev": true,
+     "note": "The client never learns which server answered. The next request may land on a different one, and that is fine."
+    }
+   ]
+  },
+  {
+   "id": "fail",
+   "name": "A server dies",
+   "desc": "Health checks take it out of rotation.",
+   "steps": [
+    {
+     "edge": "a-r",
+     "note": "Server 1 reads sessions from Redis like the others, so nothing about any user lives only in its memory."
+    },
+    {
+     "node": "a",
+     "note": "Server 1 runs out of memory and stops answering."
+    },
+    {
+     "edge": "lb-a",
+     "note": "<code>GET /healthz</code> times out. With a 10 s interval and a threshold of 2 failures, the balancer ejects it in about 20 s."
+    },
+    {
+     "edge": "lb-c",
+     "note": "Requests already in flight to server 1 fail. An L7 balancer can retry idempotent ones (GET) on another server; never blindly retry a payment POST."
+    },
+    {
+     "edge": "c-r",
+     "note": "Server 3 reads the same session from Redis, so the user stays logged in. With sticky sessions in server memory, they would have been logged out."
+    },
+    {
+     "node": "lb",
+     "note": "Two servers now carry the load of three. If each was at 70% CPU, they jump to 105%: plan headroom so you can lose one server."
+    }
+   ]
+  }
+ ],
+ "tradeoffs": [
+  {
+   "option": "L4 (TCP) balancer",
+   "pro": "Very fast, any protocol, handles millions of connections, can keep a static IP.",
+   "con": "Cannot see paths or headers, so no path routing, no per-request retries, and one long-lived connection stays on one server."
+  },
+  {
+   "option": "L7 (HTTP) balancer",
+   "pro": "Routes by path, header or cookie, terminates TLS, retries, and balances per request even on keep-alive connections.",
+   "con": "More CPU per request and a little more latency; it must decrypt traffic, so it holds your TLS certificates."
+  },
+  {
+   "option": "Round robin",
+   "pro": "Simple, no state, perfectly even when requests cost the same.",
+   "con": "Keeps feeding a server that is stuck on slow requests, so its queue grows."
+  },
+  {
+   "option": "Least connections",
+   "pro": "Adapts to slow requests and uneven servers automatically.",
+   "con": "Needs a live count per server; a newly added empty server can get a flood of traffic at once (use slow start)."
+  },
+  {
+   "option": "Sticky sessions",
+   "pro": "Lets a server keep per-user state in memory, needed by some WebSocket or legacy apps.",
+   "con": "Uneven load, harder scale-in, and that state is lost when the server dies. Prefer a shared session store."
+  }
+ ],
+ "numbers": [
+  "AWS ALB default health check: every <b>30 s</b>, <b>2</b> failures to mark unhealthy, so up to about <b>a minute</b> before a dead target is removed. Tighten it for faster failover.",
+  "AWS target group default deregistration delay (connection draining): <b>300 s</b>. Shorten it for fast deploys of short requests.",
+  "Headroom: with 3 servers at 66% each, losing one puts the other two at <b>~100%</b>. Size for N+1: run at or below <b>(N-1)/N</b> of capacity.",
+  "Session lookup in Redis in the same AZ: roughly <b>0.2 to 1 ms</b>, small next to a 50 ms page.",
+  "A balancer is itself a single point of failure unless it is redundant: an AWS ALB must be placed in at least <b>2 AZs</b>; self-hosted pairs use a floating IP or DNS with health checks."
+ ],
+ "say": [
+  "I'll put an L7 load balancer in front of a stateless app tier, with sessions in Redis, so any server can take any request and I can scale out or lose a server without logging anyone out.",
+  "I'd use least connections rather than round robin, because some requests here are much slower than others.",
+  "Health checks hit a cheap /healthz endpoint that checks the process itself, not the database, so one slow dependency doesn't take the whole fleet out of rotation."
+ ],
+ "pitfalls": [
+  "Drawing one load balancer and calling the design highly available. Say how the balancer itself is redundant (managed, multi-AZ).",
+  "Keeping sessions or uploaded files on the app server's disk. The next request lands on another server and the data is not there.",
+  "Deep health checks that call the database. When the database is slow, every server fails its check together and the balancer has nothing left to route to.",
+  "Retrying non-idempotent requests at the balancer. A retried payment POST can charge twice; retry only safe methods or use idempotency keys.",
+  "Forgetting long-lived connections: with WebSockets, or gRPC behind an L4 balancer, a new server gets no traffic until clients reconnect, so rebalancing needs a deliberate reconnect."
+ ],
+ "quiz": [
+  {
+   "q": "Some requests take 10× longer than others. Which strategy keeps queues most even?",
+   "options": [
+    "Round robin",
+    "Least connections",
+    "Hash of client IP",
+    "Always the first healthy server"
+   ],
+   "answer": 1,
+   "why": "Least connections sends new work to the server with the fewest requests in flight, so a server stuck on slow work gets fewer new ones. Round robin keeps feeding it."
+  },
+  {
+   "q": "You need to send <code>/api/*</code> and <code>/static/*</code> to different server pools. What do you need?",
+   "options": [
+    "DNS round robin",
+    "An L4 balancer",
+    "Sticky sessions",
+    "An L7 balancer"
+   ],
+   "answer": 3,
+   "why": "Only an L7 balancer reads the HTTP path. L4 sees IPs and ports, not URLs."
+  },
+  {
+   "q": "Users get logged out whenever a server is replaced during a deploy. What is the best fix?",
+   "options": [
+    "Move sessions to a shared store such as Redis, or use signed tokens",
+    "Turn on sticky sessions",
+    "Deploy less often",
+    "Use round robin instead of least connections"
+   ],
+   "answer": 0,
+   "why": "The sessions live in server memory, so they die with the server. Sticky sessions do not help: the server is still replaced. Shared state makes servers disposable."
+  },
+  {
+   "q": "Your <code>/healthz</code> runs <code>SELECT 1</code> on the database. The database has a 30 s slowdown. What happens?",
+   "options": [
+    "Nothing; health checks ignore slow responses",
+    "Only one server is removed",
+    "Every server can fail its check together, and the balancer may have no healthy targets",
+    "The database is removed from rotation"
+   ],
+   "answer": 2,
+   "why": "A shared dependency in the health check turns one slow component into a fleet-wide outage. Check the process itself; report dependency health separately."
+  }
+ ],
+ "used_in": [
+  "url-shortener",
+  "chat",
+  "csv-ingest",
+  "form-builder",
+  "llm-guardrails",
+  "vaccination-booking",
+  "otp-login",
+  "news-feed",
+  "uber",
+  "netflix",
+  "payments"
+ ]
+}

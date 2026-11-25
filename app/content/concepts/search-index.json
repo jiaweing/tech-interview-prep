@@ -1,0 +1,268 @@
+{
+ "id": "search-index",
+ "title": "Search indexes",
+ "group": "Data",
+ "tagline": "An inverted index turns \"which documents contain these words\" into a lookup, and BM25 decides which come first.",
+ "why": "<p>A SQL <code>WHERE title LIKE '%clinic%'</code> cannot use a normal B-tree index, so it scans every row. It also cannot rank: it does not know that a short clinic name containing \"vaccination\" is a better match than a long page that mentions it once, or that \"clinics\" should match \"clinic\".</p><p>A search engine solves both. It builds an <b>inverted index</b> at write time, so a query becomes a few dictionary lookups and a merge, and it scores matches by relevance. OpenSearch and Elasticsearch (both built on Lucene) are the usual answer in an interview.</p><p>The index is a <b>derived copy</b> of data that lives in your main database. The design question is as much about keeping that copy in sync as about the search itself.</p>",
+ "how": "<p><b>Tokenising (analysis).</b> At index time each text field goes through an analyzer: split into tokens, lowercase, drop or keep stop words, and often stem (\"clinics\" → \"clinic\"). The same analyzer runs on the query, so both sides match. For prefix search (\"vacc\" → vaccination) index edge n-grams or use a completion suggester.</p><p><b>Inverted index.</b> For every term, a sorted <b>postings list</b> of the documents that contain it, with term frequency and positions. A query for <code>polyclinic bedok</code> fetches two postings lists and intersects or unions them. Positions make phrase queries possible.</p><p><b>Ranking with BM25.</b> The default scoring in Lucene. Three ideas:</p><ul><li><b>IDF</b>: rare terms count more. \"Bedok\" is more informative than \"the\".</li><li><b>Term frequency with saturation</b>: more occurrences help, but the tenth adds little (parameter <code>k1</code>, default 1.2).</li><li><b>Length normalisation</b>: a match in a short field beats the same match in a long one (parameter <code>b</code>, default 0.75).</li></ul><p>Combine the text score with filters (status, region) and business signals (recency, popularity) in the query.</p><p><b>OpenSearch layout.</b> An index is split into primary <b>shards</b> (Lucene indexes) spread across nodes, each with replicas for availability and read throughput. A query fans out to every shard and the coordinating node merges the top results. New documents become searchable after a <b>refresh</b>, every 1 s by default: search is near real time, not immediate.</p><p><b>Keeping it in sync.</b> Do not dual-write from the app (one write can fail and the copies drift). Use <b>change data capture</b>: read the database's change log (for example Debezium on the Postgres WAL), publish events to Kafka, and have an indexer bulk-upsert documents. Use the row's version or log position so an older event never overwrites a newer one. For mapping changes, build a new index in the background and swap an alias.</p>",
+ "diagram": {
+  "w": 960,
+  "h": 340,
+  "nodes": [
+   {
+    "id": "user",
+    "label": "Client",
+    "kind": "client",
+    "x": 85,
+    "y": 260
+   },
+   {
+    "id": "app",
+    "label": "Catalog service",
+    "kind": "service",
+    "x": 340,
+    "y": 80,
+    "sub": "writes go here"
+   },
+   {
+    "id": "db",
+    "label": "Postgres",
+    "kind": "db",
+    "x": 600,
+    "y": 80,
+    "sub": "source of truth"
+   },
+   {
+    "id": "cdc",
+    "label": "CDC connector",
+    "kind": "stream",
+    "x": 860,
+    "y": 80,
+    "sub": "Debezium → Kafka"
+   },
+   {
+    "id": "api",
+    "label": "Search API",
+    "kind": "service",
+    "x": 340,
+    "y": 260,
+    "sub": "builds the query"
+   },
+   {
+    "id": "os",
+    "label": "OpenSearch",
+    "kind": "search",
+    "x": 600,
+    "y": 260,
+    "sub": "inverted index"
+   },
+   {
+    "id": "idx",
+    "label": "Indexer",
+    "kind": "worker",
+    "x": 860,
+    "y": 260,
+    "sub": "bulk upsert by version"
+   }
+  ],
+  "edges": [
+   {
+    "id": "u-app",
+    "from": "user",
+    "to": "app",
+    "label": "PUT /clinics/7"
+   },
+   {
+    "id": "app-db",
+    "from": "app",
+    "to": "db",
+    "label": "UPDATE row"
+   },
+   {
+    "id": "db-cdc",
+    "from": "db",
+    "to": "cdc",
+    "label": "WAL change",
+    "dashed": true
+   },
+   {
+    "id": "cdc-idx",
+    "from": "cdc",
+    "to": "idx",
+    "label": "event",
+    "dashed": true
+   },
+   {
+    "id": "idx-os",
+    "from": "idx",
+    "to": "os",
+    "label": "upsert doc"
+   },
+   {
+    "id": "u-api",
+    "from": "user",
+    "to": "api",
+    "label": "GET /search?q="
+   },
+   {
+    "id": "api-os",
+    "from": "api",
+    "to": "os",
+    "label": "bool query"
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "sync",
+   "name": "Index sync via CDC",
+   "desc": "The index follows the database.",
+   "steps": [
+    {
+     "edge": "u-app",
+     "note": "An admin renames clinic 7. The write goes to the normal service, which knows nothing about search."
+    },
+    {
+     "edge": "app-db",
+     "note": "The database commits the change. It is the source of truth; the index is a copy you can always rebuild."
+    },
+    {
+     "edge": "db-cdc",
+     "note": "The CDC connector reads the committed change from the write-ahead log, so it never sees a change that rolled back and never misses one the app forgot to publish."
+    },
+    {
+     "edge": "cdc-idx",
+     "note": "An event with the row and its log position lands on a Kafka topic, partitioned by clinic id so changes to one clinic stay in order."
+    },
+    {
+     "edge": "idx-os",
+     "note": "The indexer sends the document in a <code>_bulk</code> request; OpenSearch runs the analyzer when it indexes it. The log position goes in as an external version, so an older event cannot overwrite a newer one."
+    },
+    {
+     "node": "os",
+     "note": "The document becomes searchable after the next refresh, 1 s by default. End to end, expect a lag of about 1 to 5 s."
+    }
+   ]
+  },
+  {
+   "id": "query",
+   "name": "Query",
+   "desc": "From text to ranked hits.",
+   "steps": [
+    {
+     "edge": "u-api",
+     "note": "The user types <code>polyclinic bedok</code>. The API adds filters the user cannot change, such as <code>status = open</code>."
+    },
+    {
+     "edge": "api-os",
+     "note": "A <code>bool</code> query: a <code>match</code> on name and address scored by BM25, plus filters, which are cached and do not affect the score."
+    },
+    {
+     "node": "os",
+     "note": "The query runs on every shard in parallel. Each looks up the postings lists for <code>polyclinic</code> and <code>bedok</code> and returns its top hits; the coordinating node merges them."
+    },
+    {
+     "edge": "api-os",
+     "rev": true,
+     "note": "The top 20 ids, scores and stored fields come back, typically in tens of milliseconds."
+    },
+    {
+     "edge": "u-api",
+     "rev": true,
+     "note": "Results are near real time. If a detail must be exact (stock, slots left), read it from the database for the 20 results shown."
+    }
+   ]
+  }
+ ],
+ "tradeoffs": [
+  {
+   "option": "Database full-text search (Postgres <code>tsvector</code> + GIN)",
+   "pro": "No extra system, transactional, always in sync. Enough for millions of rows and simple ranking.",
+   "con": "Less control over analyzers and relevance, and search load competes with the primary workload."
+  },
+  {
+   "option": "Dedicated engine (OpenSearch)",
+   "pro": "Rich analyzers, BM25 ranking, facets, fuzzy matching and horizontal scaling by shards.",
+   "con": "Another cluster to run, eventual consistency, and a sync pipeline to build and monitor."
+  },
+  {
+   "option": "Dual write from the app",
+   "pro": "Simple to start; low lag.",
+   "con": "Partial failures leave the index permanently out of sync, and writes from other paths are missed."
+  },
+  {
+   "option": "CDC pipeline",
+   "pro": "Every committed change reaches the index, in order per row, from one place.",
+   "con": "More moving parts (connector, Kafka, indexer) and a few seconds of lag."
+  }
+ ],
+ "numbers": [
+  "OpenSearch refresh interval: <b>1 s</b> by default, so new documents are searchable after about a second. Raise it during bulk loads.",
+  "BM25 defaults in Lucene: <b>k1 = 1.2</b>, <b>b = 0.75</b>.",
+  "Common shard sizing guidance: <b>10 to 50 GB</b> per shard. 200 GB of documents at 25 to 50 GB each ≈ <b>4 to 8</b> primary shards, each with 1 replica.",
+  "Bulk indexing: batches of about <b>5 to 15 MB</b> per <code>_bulk</code> request are a common starting point.",
+  "Deep paging limit: <code>from + size</code> is capped at <b>10,000</b> hits by default; use <code>search_after</code> to go further."
+ ],
+ "say": [
+  "The database stays the source of truth; search is a derived index that I keep in sync with change data capture, so I never dual-write.",
+  "Text fields go through an analyzer that lowercases and stems, the same analyzer runs on the query, and BM25 ranks rare terms and short fields higher.",
+  "Search results are near real time, about a second behind, so anything that must be exact, like slots left, I re-read from the database for the results on screen."
+ ],
+ "pitfalls": [
+  "Using the search index as the source of truth. It can be dropped and rebuilt; the database cannot.",
+  "Dual writes from the app to the database and the index. One fails, and nothing ever repairs the difference.",
+  "Ignoring ordering in the sync pipeline. Two quick updates processed out of order leave the older one in the index. Use versions.",
+  "Changing a field's analyzer in place. Existing documents keep the old tokens; build a new index and swap an alias.",
+  "Too many tiny shards, or one huge one. Each shard has fixed overhead, and the primary shard count is fixed when the index is created: changing it needs the split or shrink API, or a reindex."
+ ],
+ "quiz": [
+  {
+   "q": "What does an inverted index map?",
+   "options": [
+    "Each document to its terms",
+    "Each term to the list of documents (and positions) that contain it",
+    "Each user to their recent queries",
+    "Each shard to a node"
+   ],
+   "answer": 1,
+   "why": "Term → postings list. A query looks up the postings lists for its terms and merges them, instead of scanning every document."
+  },
+  {
+   "q": "Under BM25, which document likely scores higher for <code>bedok</code>?",
+   "options": [
+    "A 2,000-word page that mentions Bedok once",
+    "They score the same",
+    "A 10-word clinic name containing Bedok",
+    "Whichever was indexed first"
+   ],
+   "answer": 2,
+   "why": "Length normalisation (b) boosts a match in a short field. The same term in a long document counts for less."
+  },
+  {
+   "q": "A clinic is renamed in Postgres but search still shows the old name an hour later. The app writes to both stores. What is the robust fix?",
+   "options": [
+    "Lower the refresh interval to 100 ms",
+    "Add more replicas",
+    "Retry the search query",
+    "Sync the index from the database's change log (CDC) with versioned upserts"
+   ],
+   "answer": 3,
+   "why": "Dual writes drift when one write fails. CDC sends every committed change, in order, and versions stop older events from winning."
+  },
+  {
+   "q": "Why can a just-indexed document be missing from results for a moment?",
+   "options": [
+    "It becomes searchable only after the next refresh (1 s by default)",
+    "BM25 ignores new documents",
+    "Postings lists are rebuilt nightly",
+    "Replicas are always a day behind"
+   ],
+   "answer": 0,
+   "why": "OpenSearch is near real time: new segments are opened for search on refresh. Plan for about a second of lag, more through a CDC pipeline."
+  }
+ ],
+ "used_in": [
+  "typeahead",
+  "netflix"
+ ]
+}

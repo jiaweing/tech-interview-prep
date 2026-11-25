@@ -1,0 +1,182 @@
+{
+ "id": "py-heapq",
+ "track": "py",
+ "order": 12,
+ "title": "heapq",
+ "short": "Get the smallest item fast, again and again.",
+ "what": "heapq keeps a plain list arranged as a min-heap: the smallest item always sits at heap[0]. Pushing and popping each cost O(log n). There is no max-heap, so you store negated numbers instead.",
+ "analogy": "An emergency room line. Whoever is most urgent is always seen next, no matter when they arrived, and a new patient slots in without re-sorting everyone.",
+ "viz": {
+  "kind": "tree",
+  "frames": [
+   {
+    "nodes": [
+     5
+    ],
+    "hi": [
+     0
+    ],
+    "label": "heappush(heap, 5)",
+    "say": "heap = [] is a plain list. heappush(heap, 5) adds 5. Drawn as a tree, heap[0] is the root."
+   },
+   {
+    "nodes": [
+     3,
+     5
+    ],
+    "hi": [
+     0
+    ],
+    "edge": [
+     1
+    ],
+    "label": "heappush(heap, 3)",
+    "say": "Push 3: it lands at the end, is smaller than its parent 5, so they swap. 3 is the new heap[0]."
+   },
+   {
+    "nodes": [
+     1,
+     3,
+     8,
+     5
+    ],
+    "hi": [
+     0
+    ],
+    "edge": [
+     1,
+     3
+    ],
+    "label": "push 8, push 1",
+    "tag": {
+     "0": "heap[0]"
+    },
+    "say": "Push 8, then 1. 1 climbs two levels to the top. A push climbs at most the tree height: O(log n)."
+   },
+   {
+    "nodes": [
+     3,
+     5,
+     8
+    ],
+    "ok": [
+     0
+    ],
+    "label": "heappop(heap)",
+    "out": "heappop -> 1",
+    "say": "heappop(heap) removes and returns the smallest, 1. The last item fills the root and sinks back down."
+   },
+   {
+    "nodes": [
+     -8,
+     -3,
+     -5
+    ],
+    "ok": [
+     0
+    ],
+    "label": "max-heap: store -x",
+    "out": "-heappop(mx) -> 8",
+    "say": "No max-heap exists. Push -x instead: -8 is the smallest, so popping it and flipping the sign gives 8."
+   },
+   {
+    "nodes": [
+     "1,b",
+     "2,a",
+     "3,c"
+    ],
+    "ok": [
+     0
+    ],
+    "label": "(priority, item) drawn as 1,b",
+    "out": "(1, 'b')",
+    "say": "Push (priority, item) tuples. They compare by the first item, so priority 1 comes out first with its item \"b\"."
+   },
+   {
+    "nodes": [
+     1,
+     4,
+     7,
+     9
+    ],
+    "ok": [
+     0
+    ],
+    "edge": [
+     1,
+     3
+    ],
+    "label": "heapify([9, 4, 7, 1])",
+    "out": "[1, 4, 7, 9]",
+    "say": "heapify(nums) turns [9, 4, 7, 1] into a heap in place in O(n), faster than pushing items one at a time."
+   },
+   {
+    "nodes": [
+     1,
+     4,
+     7,
+     9
+    ],
+    "ok": [
+     2,
+     3
+    ],
+    "dim": [
+     0,
+     1
+    ],
+    "label": "heapq.nlargest(2, nums)",
+    "out": "[9, 7]",
+    "say": "nlargest(2, nums) returns the top 2, largest first; nsmallest the bottom k. For one item use max() or min()."
+   }
+  ]
+ },
+ "when": [
+  "Kth largest or smallest",
+  "Always take the cheapest next item",
+  "Merge k sorted lists",
+  "Shortest path with weights",
+  "Keep the top k while streaming"
+ ],
+ "python": "import heapq\nheap = []\nfor x in [5, 3, 8, 1]:\n    heapq.heappush(heap, x)\nprint(heap)\nprint(heapq.heappop(heap), heap)\nmx = [-x for x in [5, 3, 8]]\nheapq.heapify(mx)\nprint(-heapq.heappop(mx))\ntasks = [(2, \"a\"), (1, \"b\"), (3, \"c\")]\nheapq.heapify(tasks)\nprint(heapq.heappop(tasks))\nnums = [9, 4, 7, 1]\nheapq.heapify(nums)\nprint(nums, heapq.nlargest(2, nums), heapq.nsmallest(2, nums))",
+ "output": "[1, 3, 8, 5]\n1 [3, 5, 8]\n8\n(1, 'b')\n[1, 4, 7, 9] [9, 7] [1, 4]",
+ "cost": [
+  [
+   "heappush / heappop",
+   "O(log n)"
+  ],
+  [
+   "Peek at heap[0]",
+   "O(1)"
+  ],
+  [
+   "heapify a list",
+   "O(n)"
+  ],
+  [
+   "nlargest(k, n items)",
+   "O(n log k)"
+  ],
+  [
+   "Find any other item",
+   "O(n)"
+  ]
+ ],
+ "watch": [
+  "heapq is a min-heap only. For a max-heap push -x and negate what you pop.",
+  "heap[0] is the smallest, but heap[1] is not the second smallest. The list is not sorted.",
+  "On equal priorities Python compares the next tuple item. If those cannot be compared, add a counter: (priority, i, item)."
+ ],
+ "interview": [
+  "LC 215 Kth Largest Element in an Array",
+  "LC 1046 Last Stone Weight",
+  "LC 23 Merge k Sorted Lists"
+ ],
+ "related": [
+  "heap",
+  "top-k-heap",
+  "dijkstra",
+  "py-classes",
+  "py-sorting"
+ ]
+}

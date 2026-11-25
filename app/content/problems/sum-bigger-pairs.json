@@ -1,0 +1,329 @@
+{
+ "id": "sum-bigger-pairs",
+ "title": "Sum of Bigger Elements",
+ "pattern": "two-pointers",
+ "level": "medium",
+ "statement": "<p>You get two integer arrays, <code>A</code> and <code>B</code>. Look at every pair <code>(a, b)</code> with <code>a</code> from <code>A</code> and <code>b</code> from <code>B</code>. Whenever <code>a &gt; b</code> (strictly), add <code>a</code> to the total.</p><p>Write <code>def solution(A, B)</code> that returns the total as an <code>int</code>. An <code>a</code> that beats three values of <code>B</code> is added three times. Ties (<code>a == b</code>) add nothing.</p><p>The reported GovTech wording was looser (\"sum of all elements in one array that is bigger than the other\"). This page fixes one precise reading. The follow-ups at the end cover the other readings.</p>",
+ "examples": [
+  {
+   "input": "A = [1, 4, 6], B = [2, 5]",
+   "output": "16",
+   "why": "1 beats nothing. 4 beats 2: +4. 6 beats 2 and 5: +12. Total 16."
+  },
+  {
+   "input": "A = [3, 3], B = [3]",
+   "output": "0",
+   "why": "Equal values do not count: the rule is strictly bigger."
+  },
+  {
+   "input": "A = [5], B = [1, 2, 3]",
+   "output": "15",
+   "why": "5 beats all three values of B, so it is added three times."
+  }
+ ],
+ "constraints": [
+  "0 &le; len(A), len(B) &le; 100,000",
+  "-10,000 &le; A[i], B[i] &le; 10,000",
+  "the answer fits in a 64-bit integer; hidden tests are large enough that checking every pair times out"
+ ],
+ "starter": "def solution(A, B):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "The prompt says \"sum of all elements in one array that is bigger than the other\". What would you ask before coding?",
+   "a": "Three questions. Compare against <b>each</b> element of the other array, or index by index, or against all of it? Add the value or count it? Strictly bigger or bigger-or-equal? In a live round you ask; in an OA you test each reading against the sample output. Here the rule is: every pair with <code>a &gt; b</code> adds <code>a</code>."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "<code>A = [1, 4, 6]</code>, <code>B = [2, 5]</code>?",
+   "a": "For each <code>a</code>, count how many <code>b</code> are smaller: 1 &rarr; 0, 4 &rarr; 1, 6 &rarr; 2. Total <code>1*0 + 4*1 + 6*2 = 16</code>."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first correct thing you could write?",
+   "a": "Two nested loops over all pairs. O(N &times; M): 10^10 pairs at the limits, so it times out on the hidden tests."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Clue words?",
+   "a": "\"bigger than\" across two arrays &rarr; <b>sort both and walk two pointers</b>. The hand trace shows that each <code>a</code> only needs <code>smaller(a)</code>, the number of <code>b</code> below it. Once both arrays are sorted, <code>smaller(a)</code> only grows as <code>a</code> grows, so one pointer into B never moves back. A hashmap also works when values are bounded: count B by value and keep a running count of values below each <code>v</code>."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li>Sort A and B.</li><li><code>j = 0</code> counts how many values of B are smaller than the current <code>a</code>.</li><li>For each <code>a</code> in sorted A: while <code>j &lt; len(B)</code> and <code>B[j] &lt; a</code>, step <code>j</code>.</li><li>Add <code>a * j</code> to the total. Return it.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "Either array empty (0). Ties: <code>&lt;</code> not <code>&lt;=</code> in the while loop. Negative values of <code>a</code> make the total go down: do not filter them out. Duplicates in A: the pointer must not reset between equal values. Every <code>a</code> smaller than every <code>b</code> (0)."
+  }
+ ],
+ "hints": [
+  "Flip the question: for one value <code>a</code>, how much does it add? It adds <code>a</code> once per <code>b</code> that is smaller, so <code>a * smaller(a)</code>.",
+  "Sort B. Now <code>smaller(a)</code> is a position in sorted B: <code>bisect_left(B, a)</code> gives it in O(log M). That is already O((N + M) log M).",
+  "Sort A too and walk it in order. <code>smaller(a)</code> never decreases, so keep one pointer <code>j</code> into B and only move it forward."
+ ],
+ "solution": "def solution(A, B):\n    # Each a adds itself once per b that is strictly smaller: a * smaller(a).\n    # With both arrays sorted, smaller(a) only grows, so one pointer into B is enough.\n    a_sorted = sorted(A)\n    b_sorted = sorted(B)\n    total = 0\n    j = 0  # number of values in B strictly less than the current a\n    for a in a_sorted:\n        while j < len(b_sorted) and b_sorted[j] < a:\n            j += 1\n        total += a * j\n    return total\n",
+ "brute": "def solution(A, B):\n    # O(N * M): check every pair\n    total = 0\n    for a in A:\n        for b in B:\n            if a > b:\n                total += a\n    return total\n",
+ "explain": "<p>First, pin down the rule. The reported prompt said \"2 arrays, find the sum of all elements in one array that is bigger than the other\", and the candidate described \"just a 2 pointer solution and a hashmap solution for each of the 2 questions\". The exact rule was not reported. This page uses the pairwise rule because it is the reading where both a two-pointer and a hashmap solution are natural.</p><p>Trace <code>A = [1, 4, 6]</code>, <code>B = [2, 5]</code> (already sorted):</p><ul><li><code>a = 1</code>: <code>B[0] = 2</code> is not smaller, <code>j</code> stays 0. Add <code>1 * 0</code>.</li><li><code>a = 4</code>: 2 &lt; 4, <code>j</code> becomes 1; 5 is not smaller. Add <code>4 * 1 = 4</code>.</li><li><code>a = 6</code>: 5 &lt; 6, <code>j</code> becomes 2. Add <code>6 * 2 = 12</code>. Total 16.</li></ul><p>The pointer <code>j</code> moves at most <code>len(B)</code> times in total, so the walk is O(N + M) and sorting dominates. The hashmap version: when values are bounded (here &plusmn;10,000), count B by value, build a running count of \"values below v\", and look each <code>a</code> up in O(1).</p>",
+ "complexity": "O(N log N + M log M) time for the sorts, O(N + M) for the sorted copies",
+ "tests": [
+  {
+   "args": [
+    [
+     1,
+     4,
+     6
+    ],
+    [
+     2,
+     5
+    ]
+   ],
+   "expected": 16,
+   "label": "example 1",
+   "cat": "example",
+   "why": "4 beats one value, 6 beats two"
+  },
+  {
+   "args": [
+    [
+     3,
+     3
+    ],
+    [
+     3
+    ]
+   ],
+   "expected": 0,
+   "label": "example 2 (ties)",
+   "cat": "example",
+   "why": "equal values add nothing"
+  },
+  {
+   "args": [
+    [
+     5
+    ],
+    [
+     1,
+     2,
+     3
+    ]
+   ],
+   "expected": 15,
+   "label": "example 3",
+   "cat": "example",
+   "why": "one a counted once per smaller b"
+  },
+  {
+   "args": [
+    [],
+    [
+     1,
+     2
+    ]
+   ],
+   "expected": 0,
+   "label": "A is empty",
+   "cat": "empty",
+   "why": "nothing to add"
+  },
+  {
+   "args": [
+    [
+     1,
+     2
+    ],
+    []
+   ],
+   "expected": 0,
+   "label": "B is empty",
+   "cat": "empty",
+   "why": "no b to beat"
+  },
+  {
+   "args": [
+    [
+     7
+    ],
+    [
+     6
+    ]
+   ],
+   "expected": 7,
+   "label": "one pair",
+   "cat": "single",
+   "why": "the smallest non-zero answer"
+  },
+  {
+   "args": [
+    [
+     1,
+     2,
+     3
+    ],
+    [
+     10,
+     20
+    ]
+   ],
+   "expected": 0,
+   "label": "A all smaller",
+   "cat": "small",
+   "why": "no a beats any b"
+  },
+  {
+   "args": [
+    [
+     6,
+     1,
+     4
+    ],
+    [
+     5,
+     2
+    ]
+   ],
+   "expected": 16,
+   "label": "unsorted input",
+   "cat": "small",
+   "why": "example 1 shuffled: the answer must not depend on input order (16)"
+  },
+  {
+   "args": [
+    [
+     0,
+     0,
+     1
+    ],
+    [
+     0,
+     -1
+    ]
+   ],
+   "expected": 2,
+   "label": "zeros",
+   "cat": "zero",
+   "why": "zero beats -1 but adds 0; 1 beats both"
+  },
+  {
+   "args": [
+    [
+     -1,
+     -5,
+     2
+    ],
+    [
+     -3,
+     -10
+    ]
+   ],
+   "expected": -3,
+   "label": "negatives",
+   "cat": "negative",
+   "why": "a negative a that wins lowers the total: -1*2 + -5*1 + 2*2"
+  },
+  {
+   "args": [
+    [
+     4,
+     4,
+     4
+    ],
+    [
+     1,
+     4,
+     4,
+     2
+    ]
+   ],
+   "expected": 24,
+   "label": "duplicates and ties",
+   "cat": "dupes",
+   "why": "each 4 beats only 1 and 2; the pointer must not reset"
+  },
+  {
+   "args": [
+    [
+     10000,
+     -10000
+    ],
+    [
+     -10000,
+     9999
+    ]
+   ],
+   "expected": 20000,
+   "label": "extreme values",
+   "cat": "boundary",
+   "why": "10000 beats both, -10000 beats nothing"
+  },
+  {
+   "args": [
+    [
+     -10,
+     3,
+     -5,
+     8,
+     0,
+     -8,
+     5,
+     -3,
+     10,
+     2,
+     -6,
+     7,
+     -1,
+     -9,
+     4,
+     -4,
+     9,
+     1,
+     -7,
+     6
+    ],
+    [
+     -8,
+     -1,
+     6,
+     -4,
+     3,
+     -7,
+     0,
+     7,
+     -3,
+     4,
+     -6,
+     1,
+     8,
+     -2,
+     5
+    ]
+   ],
+   "expected": 644,
+   "label": "mixed 20 x 15",
+   "cat": "medium",
+   "why": "random-looking values with negatives and repeats"
+  }
+ ],
+ "perf": {
+  "label": "performance: 40,000 x 40,000 values",
+  "gen": "[[(i * 7919) % 20001 - 10000 for i in range(40000)], [(i * 104729) % 20001 - 10000 for i in range(40000)]]",
+  "expected": 2666893109864
+ },
+ "govtech": {
+  "round": "oa",
+  "tag": "inspired",
+  "source": "GovTech SWE HackerRank OA (Jul 2026), exact rule unknown",
+  "evidence": "A July 2026 GovTech SWE OA report (Glassdoor snippet, unverified) mentions \"2 arrays, find the sum of all elements in one array that is bigger than the other\" and \"just a 2 pointer solution and a hashmap solution for each of the 2 questions\"; the exact rule was not reported, so this page fixes one precise reading.",
+  "extensions": [
+   "Index-wise reading: add <code>A[i]</code> whenever <code>A[i] &gt; B[i]</code>. That is a single O(N) loop with no sorting. Ask which reading is meant before you code.",
+   "Dominance reading: add <code>a</code> only if it is bigger than <b>every</b> <code>b</code>, i.e. <code>a &gt; max(B)</code>. One pass to find the max, one pass to sum.",
+   "Count instead of sum: return the number of pairs with <code>a &gt; b</code>. Replace <code>a * j</code> with <code>j</code>.",
+   "Bigger-or-equal: change <code>&lt;</code> to <code>&lt;=</code> in the while loop. Then write a test with ties that tells the two versions apart.",
+   "Values are bounded (&plusmn;10,000). Write the hashmap version: count B by value, build prefix counts, and avoid sorting A at all."
+  ]
+ }
+}

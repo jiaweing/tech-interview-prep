@@ -1,0 +1,322 @@
+{
+ "id": "two-sum",
+ "title": "Two Bids That Hit the Budget",
+ "pattern": "hashing",
+ "level": "easy",
+ "statement": "<p>An advertiser wants to fill one ad slot pair with exactly its remaining budget. You get the list of incoming bids, in arrival order, and the budget. Find two <b>different</b> bids whose amounts add up to the budget exactly.</p><p>Write <code>def solution(bids, budget)</code> that returns <code>[i, j]</code> with <code>i &lt; j</code> and <code>bids[i] + bids[j] == budget</code>. A bid cannot be paired with itself, but two different bids may have the same amount.</p><p>If several pairs work, return the one with the <b>smallest <code>j</code></b> (the pair that is complete earliest in arrival order), and among those the <b>smallest <code>i</code></b>. If no pair works, return <code>[]</code>.</p>",
+ "examples": [
+  {
+   "input": "bids = [2, 7, 11, 15], budget = 9",
+   "output": "[0, 1]",
+   "why": "The LeetCode 1 example 1: 2 + 7 = 9."
+  },
+  {
+   "input": "bids = [3, 2, 4], budget = 6",
+   "output": "[1, 2]",
+   "why": "The LeetCode 1 example 2. The trap: 3 + 3 = 6, but there is only one 3, and a bid cannot be used twice."
+  },
+  {
+   "input": "bids = [3, 3], budget = 6",
+   "output": "[0, 1]",
+   "why": "The LeetCode 1 example 3. Two different bids with the same amount are fine."
+  },
+  {
+   "input": "bids = [2, 2, 3, 1, 4], budget = 5",
+   "output": "[0, 2]",
+   "why": "Pairs (0, 2), (1, 2) and (3, 4) all sum to 5. The smallest <code>j</code> is 2, and the smallest <code>i</code> with it is 0."
+  }
+ ],
+ "constraints": [
+  "0 &le; <code>len(bids)</code> &le; 100,000",
+  "-10^9 &le; <code>bids[i]</code> &le; 10^9",
+  "-2 x 10^9 &le; <code>budget</code> &le; 2 x 10^9"
+ ],
+ "starter": "def solution(bids, budget):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "What exactly do you return when there are several answers or none?",
+   "a": "Indices, not amounts, with <code>i &lt; j</code>. The pair with the smallest <code>j</code> wins, ties go to the smallest <code>i</code>, and no pair gives <code>[]</code>. The classic problem guarantees exactly one answer; here you must handle zero and many, so the tie rule matters."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Walk through <code>[3, 2, 4]</code>, budget 6, one bid at a time. For each bid, what partner do you need?",
+   "a": "Bid 3 (index 0) needs 3: nothing earlier. Bid 2 (index 1) needs 4: nothing earlier. Bid 4 (index 2) needs 2: seen at index 1. Answer <code>[1, 2]</code>. You only ever asked 'have I seen amount X before?', which is a lookup."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first idea that works?",
+   "a": "Two loops: for each <code>j</code>, try every <code>i &lt; j</code>. With <code>j</code> outside, the first hit is already the smallest <code>j</code> and then the smallest <code>i</code>. Correct, but O(n^2): 100,000 bids is 5 billion pair checks."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Which pattern?",
+   "a": "<b>Hash map of complements</b>. Walk once; for each bid, look up <code>budget - bid</code> in a dict of amounts already seen. A dict lookup is O(1) on average, so the whole walk is O(n)."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li><code>first_index = {}</code> maps an amount to the earliest index with that amount.</li><li>For each <code>j, bid</code> in <code>enumerate(bids)</code>: if <code>budget - bid</code> is in the dict, return <code>[first_index[budget - bid], j]</code>.</li><li>Otherwise, if <code>bid</code> is not in the dict yet, store <code>first_index[bid] = j</code>.</li><li>After the loop, return <code>[]</code>.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "Empty list and a single bid (both <code>[]</code>). The same bid used twice (look up <b>before</b> you insert). Duplicate amounts (keep the <b>first</b> index, or you break the smallest-<code>i</code> rule). Zeros and a budget of 0. Negative bids and budgets. A later pair with a smaller <code>i</code> that must lose to an earlier-completing pair."
+  }
+ ],
+ "hints": [
+  "For each bid you know exactly which amount would complete it: <code>budget - bid</code>. The question is only whether you have seen it earlier.",
+  "Keep a dict from amount to index of the bids you have passed. Look up the complement <b>before</b> adding the current bid, so a bid never pairs with itself.",
+  "Returning at the first hit gives the smallest <code>j</code>. For the smallest <code>i</code>, do not overwrite an amount that is already in the dict."
+ ],
+ "solution": "def solution(bids, budget):\n    first_index = {}                         # bid value -> earliest index seen so far\n    for j, bid in enumerate(bids):\n        need = budget - bid\n        if need in first_index:\n            return [first_index[need], j]    # first j that completes a pair, earliest partner\n        if bid not in first_index:           # keep the earliest index on duplicates\n            first_index[bid] = j\n    return []\n",
+ "brute": "def solution(bids, budget):\n    # Try every pair, j outer so the first hit has the smallest j, then the smallest i.\n    for j in range(len(bids)):\n        for i in range(j):\n            if bids[i] + bids[j] == budget:\n                return [i, j]\n    return []\n",
+ "explain": "<p>Example 4, <code>[2, 2, 3, 1, 4]</code>, budget 5:</p><ul><li>j = 0, bid 2, need 3: not seen. Store <code>{2: 0}</code>.</li><li>j = 1, bid 2, need 3: not seen. 2 is already stored, so keep index 0.</li><li>j = 2, bid 3, need 2: seen at index 0. Return <b>[0, 2]</b>.</li></ul><p>Returning at the first hit gives the smallest <code>j</code>, because every pair that ends earlier would have been found earlier. Keeping the first index of each amount gives the smallest <code>i</code> for that <code>j</code>. Had you overwritten <code>{2: 1}</code>, you would return <code>[1, 2]</code>. Sorting with two pointers also finds a pair, but sorting loses the original indices unless you sort <code>(amount, index)</code> pairs, and it costs O(n log n).</p>",
+ "complexity": "O(n) average time, O(n) extra space for the dict",
+ "tests": [
+  {
+   "args": [
+    [
+     2,
+     7,
+     11,
+     15
+    ],
+    9
+   ],
+   "expected": [
+    0,
+    1
+   ],
+   "label": "example 1 (LeetCode 1)",
+   "cat": "example",
+   "why": "the first two bids"
+  },
+  {
+   "args": [
+    [
+     3,
+     2,
+     4
+    ],
+    6
+   ],
+   "expected": [
+    1,
+    2
+   ],
+   "label": "example 2 (LeetCode 1)",
+   "cat": "example",
+   "why": "a bid cannot be paired with itself"
+  },
+  {
+   "args": [
+    [
+     3,
+     3
+    ],
+    6
+   ],
+   "expected": [
+    0,
+    1
+   ],
+   "label": "example 3 (LeetCode 1)",
+   "cat": "example",
+   "why": "equal amounts at different indices"
+  },
+  {
+   "args": [
+    [
+     2,
+     2,
+     3,
+     1,
+     4
+    ],
+    5
+   ],
+   "expected": [
+    0,
+    2
+   ],
+   "label": "example 4 (tie rule)",
+   "cat": "example",
+   "why": "smallest j, then smallest i"
+  },
+  {
+   "args": [
+    [],
+    5
+   ],
+   "expected": [],
+   "label": "no bids",
+   "cat": "empty",
+   "why": "nothing to pair"
+  },
+  {
+   "args": [
+    [
+     5
+    ],
+    10
+   ],
+   "expected": [],
+   "label": "single bid",
+   "cat": "single",
+   "why": "5 + 5 would need the same bid twice"
+  },
+  {
+   "args": [
+    [
+     1,
+     2,
+     3,
+     4
+    ],
+    100
+   ],
+   "expected": [],
+   "label": "no pair",
+   "cat": "small",
+   "why": "nothing adds up, return []"
+  },
+  {
+   "args": [
+    [
+     0,
+     4,
+     3,
+     0
+    ],
+    0
+   ],
+   "expected": [
+    0,
+    3
+   ],
+   "label": "zeros",
+   "cat": "zero",
+   "why": "0 + 0 = 0 with two different zero bids"
+  },
+  {
+   "args": [
+    [
+     -1,
+     -2,
+     -3,
+     -4,
+     -5
+    ],
+    -8
+   ],
+   "expected": [
+    2,
+    4
+   ],
+   "label": "negative bids",
+   "cat": "negative",
+   "why": "-3 + -5 = -8"
+  },
+  {
+   "args": [
+    [
+     1000000000,
+     -1000000000,
+     1000000000
+    ],
+    2000000000
+   ],
+   "expected": [
+    0,
+    2
+   ],
+   "label": "limits",
+   "cat": "boundary",
+   "why": "the largest amounts; Python ints do not overflow"
+  },
+  {
+   "args": [
+    [
+     1,
+     1,
+     1,
+     1
+    ],
+    2
+   ],
+   "expected": [
+    0,
+    1
+   ],
+   "label": "all the same",
+   "cat": "dupes",
+   "why": "keep the first index of a repeated amount"
+  },
+  {
+   "args": [
+    [
+     8,
+     3,
+     7,
+     2
+    ],
+    10
+   ],
+   "expected": [
+    1,
+    2
+   ],
+   "label": "earlier j beats smaller i",
+   "cat": "edge",
+   "why": "(1, 2) completes before (0, 3), so it wins"
+  },
+  {
+   "args": [
+    [
+     5,
+     1,
+     9,
+     4,
+     6,
+     3,
+     7
+    ],
+    10
+   ],
+   "expected": [
+    1,
+    2
+   ],
+   "label": "many pairs",
+   "cat": "medium",
+   "why": "(1, 2) is complete first; (0, ?) never happens because there is one 5"
+  }
+ ],
+ "perf": {
+  "label": "performance: 60,002 bids where the only pair is the last two",
+  "gen": "[[(i * 7919) % 1000003 * 2 for i in range(60000)] + [7, 13], 20]",
+  "expected": [
+   60000,
+   60001
+  ]
+ },
+ "al": {
+  "kind": "fundamentals",
+  "from": "LC 1 Two Sum (reported: final round, 2026)",
+  "talk": [
+   "One pass with a dict from amount to earliest index: for each bid I check <code>budget - bid in first_index</code>, which is O(1) on average, so the whole thing is O(n) time and O(n) space.",
+   "Order matters: I look up the complement before I insert the current bid, so <code>[3, 2, 4]</code> with budget 6 never pairs index 0 with itself.",
+   "The tie rule falls out of the loop: returning at the first hit gives the smallest <code>j</code>, and <code>if bid not in first_index</code> keeps the earliest index for duplicates, so the smallest <code>i</code>.",
+   "Why not sort plus two pointers: it needs the original indices carried along as <code>(amount, index)</code> pairs, costs O(n log n), and makes the 'smallest j' rule harder. It wins only when the input is already sorted and memory is tight.",
+   "Python ints do not overflow, so <code>budget - bid</code> is safe even at plus or minus 2 x 10^9."
+  ],
+  "extensions": [
+   "The bids arrive sorted (LC 167): solve it in O(1) extra space with two pointers from both ends.",
+   "Return every pair, or just the number of pairs, that hit the budget. How do duplicates change the count?",
+   "Three bids that hit the budget (LC 15): sort, fix one, and run two pointers on the rest, O(n^2).",
+   "No exact match is required: find the pair with the largest sum that does not exceed the budget.",
+   "Bids stream in forever and the question 'does any pair hit X?' comes at random times (LC 170): which side do you make O(1), <code>add</code> or <code>find</code>?"
+  ]
+ }
+}

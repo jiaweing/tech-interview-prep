@@ -1,0 +1,801 @@
+{
+ "id": "bit-manipulation",
+ "track": "algo",
+ "order": 26,
+ "title": "Bit manipulation",
+ "short": "Use the 0s and 1s inside a number as tiny switches.",
+ "what": "Every integer is stored as bits: 12 is 1100, meaning 8 + 4. Operators work on all the bits at once: & (both 1), | (either 1), ^ (different), and << >> shift left or right. A few patterns come up a lot: x & 1 tells odd from even, x & (x - 1) clears the lowest 1, and a ^ a = 0.",
+ "analogy": "A row of light switches. Each switch is a bit, and the number is the pattern of which lights are on.",
+ "viz": {
+  "kind": "table",
+  "frames": [
+   {
+    "cells": [
+     [
+      0,
+      1,
+      0,
+      0
+     ],
+     [
+      0,
+      0,
+      0,
+      1
+     ],
+     [
+      0,
+      0,
+      1,
+      0
+     ],
+     [
+      0,
+      0,
+      0,
+      1
+     ],
+     [
+      0,
+      0,
+      1,
+      0
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ],
+    "rows": [
+     "4",
+     "1",
+     "2",
+     "1",
+     "2",
+     "acc"
+    ],
+    "cols": [
+     "8",
+     "4",
+     "2",
+     "1"
+    ],
+    "label": "XOR all of them",
+    "say": "Every number but one appears twice in [4, 1, 2, 1, 2]. Find the single one. Each row is a number in bits; columns are worth 8, 4, 2, 1."
+   },
+   {
+    "cells": [
+     [
+      0,
+      1,
+      0,
+      0
+     ],
+     [
+      0,
+      0,
+      0,
+      1
+     ],
+     [
+      0,
+      0,
+      1,
+      0
+     ],
+     [
+      0,
+      0,
+      0,
+      1
+     ],
+     [
+      0,
+      0,
+      1,
+      0
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ],
+    "rows": [
+     "4",
+     "1",
+     "2",
+     "1",
+     "2",
+     "acc"
+    ],
+    "cols": [
+     "8",
+     "4",
+     "2",
+     "1"
+    ],
+    "label": "XOR all of them",
+    "hi": [
+     [
+      1,
+      3
+     ],
+     [
+      3,
+      3
+     ],
+     [
+      2,
+      2
+     ],
+     [
+      4,
+      2
+     ]
+    ],
+    "say": "XOR (^) compares bits: the same gives 0, different gives 1. So x ^ x = 0 and x ^ 0 = x. Pairs will cancel out."
+   },
+   {
+    "cells": [
+     [
+      0,
+      1,
+      0,
+      0
+     ],
+     [
+      0,
+      0,
+      0,
+      1
+     ],
+     [
+      0,
+      0,
+      1,
+      0
+     ],
+     [
+      0,
+      0,
+      0,
+      1
+     ],
+     [
+      0,
+      0,
+      1,
+      0
+     ],
+     [
+      0,
+      1,
+      0,
+      0
+     ]
+    ],
+    "rows": [
+     "4",
+     "1",
+     "2",
+     "1",
+     "2",
+     "acc"
+    ],
+    "cols": [
+     "8",
+     "4",
+     "2",
+     "1"
+    ],
+    "label": "XOR all of them",
+    "hi": [
+     [
+      0,
+      0
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      0,
+      3
+     ],
+     [
+      5,
+      0
+     ],
+     [
+      5,
+      1
+     ],
+     [
+      5,
+      2
+     ],
+     [
+      5,
+      3
+     ]
+    ],
+    "say": "Start acc at 0 and XOR in 4: acc = 0100."
+   },
+   {
+    "cells": [
+     [
+      0,
+      1,
+      0,
+      0
+     ],
+     [
+      0,
+      0,
+      0,
+      1
+     ],
+     [
+      0,
+      0,
+      1,
+      0
+     ],
+     [
+      0,
+      0,
+      0,
+      1
+     ],
+     [
+      0,
+      0,
+      1,
+      0
+     ],
+     [
+      0,
+      1,
+      0,
+      1
+     ]
+    ],
+    "rows": [
+     "4",
+     "1",
+     "2",
+     "1",
+     "2",
+     "acc"
+    ],
+    "cols": [
+     "8",
+     "4",
+     "2",
+     "1"
+    ],
+    "label": "XOR all of them",
+    "hi": [
+     [
+      1,
+      0
+     ],
+     [
+      1,
+      1
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      1,
+      3
+     ],
+     [
+      5,
+      0
+     ],
+     [
+      5,
+      1
+     ],
+     [
+      5,
+      2
+     ],
+     [
+      5,
+      3
+     ]
+    ],
+    "dim": [
+     [
+      0,
+      0
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      0,
+      3
+     ]
+    ],
+    "say": "XOR in 1: the last bit differs, so it turns on. acc = 0101."
+   },
+   {
+    "cells": [
+     [
+      0,
+      1,
+      0,
+      0
+     ],
+     [
+      0,
+      0,
+      0,
+      1
+     ],
+     [
+      0,
+      0,
+      1,
+      0
+     ],
+     [
+      0,
+      0,
+      0,
+      1
+     ],
+     [
+      0,
+      0,
+      1,
+      0
+     ],
+     [
+      0,
+      1,
+      1,
+      1
+     ]
+    ],
+    "rows": [
+     "4",
+     "1",
+     "2",
+     "1",
+     "2",
+     "acc"
+    ],
+    "cols": [
+     "8",
+     "4",
+     "2",
+     "1"
+    ],
+    "label": "XOR all of them",
+    "hi": [
+     [
+      2,
+      0
+     ],
+     [
+      2,
+      1
+     ],
+     [
+      2,
+      2
+     ],
+     [
+      2,
+      3
+     ],
+     [
+      5,
+      0
+     ],
+     [
+      5,
+      1
+     ],
+     [
+      5,
+      2
+     ],
+     [
+      5,
+      3
+     ]
+    ],
+    "dim": [
+     [
+      0,
+      0
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      0,
+      3
+     ],
+     [
+      1,
+      0
+     ],
+     [
+      1,
+      1
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      1,
+      3
+     ]
+    ],
+    "say": "XOR in 2: the 2s bit turns on. acc = 0111."
+   },
+   {
+    "cells": [
+     [
+      0,
+      1,
+      0,
+      0
+     ],
+     [
+      0,
+      0,
+      0,
+      1
+     ],
+     [
+      0,
+      0,
+      1,
+      0
+     ],
+     [
+      0,
+      0,
+      0,
+      1
+     ],
+     [
+      0,
+      0,
+      1,
+      0
+     ],
+     [
+      0,
+      1,
+      1,
+      0
+     ]
+    ],
+    "rows": [
+     "4",
+     "1",
+     "2",
+     "1",
+     "2",
+     "acc"
+    ],
+    "cols": [
+     "8",
+     "4",
+     "2",
+     "1"
+    ],
+    "label": "XOR all of them",
+    "hi": [
+     [
+      3,
+      0
+     ],
+     [
+      3,
+      1
+     ],
+     [
+      3,
+      2
+     ],
+     [
+      3,
+      3
+     ],
+     [
+      5,
+      0
+     ],
+     [
+      5,
+      1
+     ],
+     [
+      5,
+      2
+     ],
+     [
+      5,
+      3
+     ]
+    ],
+    "dim": [
+     [
+      0,
+      0
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      0,
+      3
+     ],
+     [
+      1,
+      0
+     ],
+     [
+      1,
+      1
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      1,
+      3
+     ],
+     [
+      2,
+      0
+     ],
+     [
+      2,
+      1
+     ],
+     [
+      2,
+      2
+     ],
+     [
+      2,
+      3
+     ]
+    ],
+    "say": "XOR in the second 1: both have a 1 in the last bit, so it turns off. The pair of 1s cancelled."
+   },
+   {
+    "cells": [
+     [
+      0,
+      1,
+      0,
+      0
+     ],
+     [
+      0,
+      0,
+      0,
+      1
+     ],
+     [
+      0,
+      0,
+      1,
+      0
+     ],
+     [
+      0,
+      0,
+      0,
+      1
+     ],
+     [
+      0,
+      0,
+      1,
+      0
+     ],
+     [
+      0,
+      1,
+      0,
+      0
+     ]
+    ],
+    "rows": [
+     "4",
+     "1",
+     "2",
+     "1",
+     "2",
+     "acc"
+    ],
+    "cols": [
+     "8",
+     "4",
+     "2",
+     "1"
+    ],
+    "label": "XOR all of them",
+    "ok": [
+     [
+      5,
+      0
+     ],
+     [
+      5,
+      1
+     ],
+     [
+      5,
+      2
+     ],
+     [
+      5,
+      3
+     ]
+    ],
+    "dim": [
+     [
+      0,
+      0
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      0,
+      3
+     ],
+     [
+      1,
+      0
+     ],
+     [
+      1,
+      1
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      1,
+      3
+     ],
+     [
+      2,
+      0
+     ],
+     [
+      2,
+      1
+     ],
+     [
+      2,
+      2
+     ],
+     [
+      2,
+      3
+     ],
+     [
+      3,
+      0
+     ],
+     [
+      3,
+      1
+     ],
+     [
+      3,
+      2
+     ],
+     [
+      3,
+      3
+     ],
+     [
+      4,
+      0
+     ],
+     [
+      4,
+      1
+     ],
+     [
+      4,
+      2
+     ],
+     [
+      4,
+      3
+     ]
+    ],
+    "out": "single = 4",
+    "say": "XOR in the second 2: the 2s bit turns off too. acc = 0100 = 4. One pass, no extra memory, no dict needed."
+   }
+  ]
+ },
+ "when": [
+  "Every item appears twice except one",
+  "Count the 1 bits, or check if n is a power of 2",
+  "Represent a set of up to ~20 flags as one number",
+  "Solve it without extra memory"
+ ],
+ "python": "x = 12\nprint(bin(x))             # 0b1100 = 8 + 4\nprint(x & 1)              # last bit: 0 means even\nprint(x >> 1, x << 1)     # halve, double\nprint(x & (x - 1))        # clear the lowest 1 bit\nprint(bin(x).count(\"1\"))  # how many 1 bits\ndef single(nums):\n    acc = 0\n    for n in nums:\n        acc ^= n          # pairs cancel: a ^ a == 0\n    return acc\nprint(single([4, 1, 2, 1, 2]))",
+ "output": "0b1100\n0\n6 24\n8\n2\n4",
+ "cost": [
+  [
+   "One bit operation",
+   "O(1)"
+  ],
+  [
+   "XOR a whole list",
+   "O(n)"
+  ],
+  [
+   "Loop over every subset of n flags",
+   "O(2^n)"
+  ]
+ ],
+ "watch": [
+  "Shifts bind looser than + and -: 1 << n - 1 means 1 << (n - 1). Add brackets to be clear.",
+  "Python integers have no fixed size, so ~x is -x - 1, not a flipped 32-bit pattern.",
+  "x & (x - 1) == 0 tests for a power of 2, but 0 passes too. Check x > 0 as well."
+ ],
+ "interview": [
+  "LC 136 Single Number",
+  "LC 191 Number of 1 Bits",
+  "LC 338 Counting Bits",
+  "LC 268 Missing Number"
+ ],
+ "related": [
+  "hash-set",
+  "big-o",
+  "backtracking"
+ ]
+}

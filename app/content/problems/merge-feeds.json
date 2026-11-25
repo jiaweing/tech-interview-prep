@@ -1,0 +1,637 @@
+{
+ "id": "merge-feeds",
+ "title": "Merge K Sorted Feeds",
+ "pattern": "sorting",
+ "level": "medium",
+ "statement": "<p>A user follows <code>k</code> creators. Each creator's posts are already sorted <b>newest first</b>. To build the home feed, merge them and show the newest posts first.</p><p>Write <code>def solution(feeds, limit)</code>. <code>feeds</code> is a list of <code>k</code> feeds; each feed is a list of <code>[timestamp, post_id]</code> pairs sorted by timestamp, largest (newest) first. Return the <code>post_id</code>s of the first <code>limit</code> posts of the merged feed, newest first. When two posts have the same timestamp, the smaller <code>post_id</code> comes first (each feed already follows that rule). If there are fewer than <code>limit</code> posts, return them all.</p><p>Post ids are unique across all feeds.</p>",
+ "examples": [
+  {
+   "input": "feeds = [[[50, 1], [30, 2], [10, 3]], [[40, 4], [30, 5], [20, 6]], [[35, 7]]], limit = 5",
+   "output": "[1, 4, 7, 2, 5]",
+   "why": "Timestamps in merged order: 50, 40, 35, 30, 30. Posts 2 and 5 tie at 30, so 2 goes first."
+  },
+  {
+   "input": "feeds = [[], [[5, 9]], []], limit = 3",
+   "output": "[9]",
+   "why": "Empty feeds add nothing, and there is only one post in total."
+  },
+  {
+   "input": "feeds = [[[7, 3], [7, 8]], [[7, 1]]], limit = 2",
+   "output": "[1, 3]",
+   "why": "All three posts share timestamp 7, so order by post_id: 1, 3, 8. Keep the first 2."
+  }
+ ],
+ "constraints": [
+  "0 &le; k &le; 10,000 feeds",
+  "0 &le; total posts &le; 300,000",
+  "0 &le; timestamp &le; 2 &times; 10^9",
+  "0 &le; limit &le; 10,000",
+  "post ids are unique integers"
+ ],
+ "starter": "def solution(feeds, limit):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "Each feed is already sorted. Which posts can possibly be next in the merged feed?",
+   "a": "Only the <b>first unused post of each feed</b>. Anything further down a feed is older than (or ties with a larger id than) the post above it. So at any moment there are at most <code>k</code> candidates."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Example 1 by hand?",
+   "a": "Fronts: 50 (id 1), 40 (id 4), 35 (id 7). Take id 1; feed 1's front becomes 30 (id 2). Take 4 &rarr; front 30 (id 5). Take 7, feed 3 is empty. Fronts tie at 30: take id 2, then id 5. Five taken: <code>[1, 4, 7, 2, 5]</code>."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first idea that works?",
+   "a": "Put every post in one list and sort it by <code>(-timestamp, post_id)</code>, then slice. That costs O(N log N) for all N posts even when the feed only shows 20 of 300,000."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Which pattern?",
+   "a": "<b>K-way merge with a heap</b>. A min-heap of the <code>k</code> feed fronts gives the next post in O(log k). Store <code>(-timestamp, post_id, feed, index)</code>: negating turns Python's min-heap into newest first, and <code>post_id</code> breaks ties."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li>Push the first post of every non-empty feed, then <code>heapify</code>.</li><li>While the heap is not empty and you have fewer than <code>limit</code> ids: pop the smallest tuple, record its id.</li><li>If that feed has a next post, push it.</li><li>Return the ids.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "No feeds, all feeds empty, or <code>limit = 0</code>. <code>limit</code> larger than the total. Ties on timestamp across feeds (and inside one feed). One feed only (the merge is just its prefix)."
+  }
+ ],
+ "hints": [
+  "The next post is always the front of one of the feeds. Keep only the fronts, and pick the newest each time.",
+  "<code>heapq</code> is a min-heap. Push <code>(-timestamp, post_id, feed_index, position)</code> so the newest post (and on ties the smaller id) comes out first.",
+  "After popping from feed <code>f</code> at <code>position</code>, push <code>feeds[f][position + 1]</code> if it exists. Stop as soon as you have <code>limit</code> ids."
+ ],
+ "solution": "import heapq\n\ndef solution(feeds, limit):\n    # Heap of feed fronts: (-timestamp, post_id, feed index, position).\n    # Smallest tuple = newest post, ties broken by smaller post_id.\n    heap = []\n    for f, feed in enumerate(feeds):\n        if feed:\n            ts, post_id = feed[0]\n            heap.append((-ts, post_id, f, 0))\n    heapq.heapify(heap)                    # O(k)\n    merged = []\n    while heap and len(merged) < limit:\n        _, post_id, f, pos = heapq.heappop(heap)\n        merged.append(post_id)\n        if pos + 1 < len(feeds[f]):        # refill from the same feed\n            ts, nxt = feeds[f][pos + 1]\n            heapq.heappush(heap, (-ts, nxt, f, pos + 1))\n    return merged\n",
+ "brute": "def solution(feeds, limit):\n    # Flatten everything and sort: O(N log N) over all N posts.\n    posts = []\n    for feed in feeds:\n        for ts, post_id in feed:\n            posts.append((-ts, post_id))\n    posts.sort()\n    return [post_id for _, post_id in posts[:limit]]\n",
+ "explain": "<p>The heap never holds more than one post per feed. In example 1 it starts as <code>(-50, 1)</code>, <code>(-40, 4)</code>, <code>(-35, 7)</code>.</p><ul><li>Pop <code>(-50, 1)</code>, push feed 1's next <code>(-30, 2)</code>.</li><li>Pop <code>(-40, 4)</code>, push <code>(-30, 5)</code>.</li><li>Pop <code>(-35, 7)</code>; feed 3 is done.</li><li>Pop <code>(-30, 2)</code> (it beats <code>(-30, 5)</code> on the id), push <code>(-10, 3)</code>.</li><li>Pop <code>(-30, 5)</code>. Five ids, stop.</li></ul><p>Cost: O(k) to build the heap plus O(log k) per post shown. With 2,000 feeds and a page of 50 posts, that is about 2,000 + 50 &times; 11 steps, instead of sorting 200,000 posts.</p>",
+ "complexity": "O(k + limit log k) time, O(k) extra space",
+ "tests": [
+  {
+   "args": [
+    [
+     [
+      [
+       50,
+       1
+      ],
+      [
+       30,
+       2
+      ],
+      [
+       10,
+       3
+      ]
+     ],
+     [
+      [
+       40,
+       4
+      ],
+      [
+       30,
+       5
+      ],
+      [
+       20,
+       6
+      ]
+     ],
+     [
+      [
+       35,
+       7
+      ]
+     ]
+    ],
+    5
+   ],
+   "expected": [
+    1,
+    4,
+    7,
+    2,
+    5
+   ],
+   "label": "example 1",
+   "cat": "example",
+   "why": "three feeds, a tie at timestamp 30"
+  },
+  {
+   "args": [
+    [
+     [],
+     [
+      [
+       5,
+       9
+      ]
+     ],
+     []
+    ],
+    3
+   ],
+   "expected": [
+    9
+   ],
+   "label": "example 2 (fewer posts than limit)",
+   "cat": "example",
+   "why": "return everything there is"
+  },
+  {
+   "args": [
+    [
+     [
+      [
+       7,
+       3
+      ],
+      [
+       7,
+       8
+      ]
+     ],
+     [
+      [
+       7,
+       1
+      ]
+     ]
+    ],
+    2
+   ],
+   "expected": [
+    1,
+    3
+   ],
+   "label": "example 3 (all tie)",
+   "cat": "example",
+   "why": "equal timestamps order by post_id"
+  },
+  {
+   "args": [
+    [],
+    10
+   ],
+   "expected": [],
+   "label": "no feeds",
+   "cat": "empty",
+   "why": "nothing to merge"
+  },
+  {
+   "args": [
+    [
+     [],
+     [],
+     []
+    ],
+    4
+   ],
+   "expected": [],
+   "label": "all feeds empty",
+   "cat": "empty",
+   "why": "empty feeds must not crash the heap setup"
+  },
+  {
+   "args": [
+    [
+     [
+      [
+       9,
+       1
+      ],
+      [
+       8,
+       2
+      ]
+     ]
+    ],
+    5
+   ],
+   "expected": [
+    1,
+    2
+   ],
+   "label": "one feed",
+   "cat": "single",
+   "why": "the merge is the feed itself"
+  },
+  {
+   "args": [
+    [
+     [
+      [
+       9,
+       1
+      ],
+      [
+       8,
+       2
+      ]
+     ],
+     [
+      [
+       7,
+       3
+      ]
+     ]
+    ],
+    0
+   ],
+   "expected": [],
+   "label": "limit 0",
+   "cat": "zero",
+   "why": "show nothing"
+  },
+  {
+   "args": [
+    [
+     [
+      [
+       0,
+       4
+      ]
+     ],
+     [
+      [
+       0,
+       2
+      ]
+     ],
+     [
+      [
+       0,
+       3
+      ]
+     ]
+    ],
+    3
+   ],
+   "expected": [
+    2,
+    3,
+    4
+   ],
+   "label": "timestamp 0",
+   "cat": "zero",
+   "why": "zero timestamps still sort by id"
+  },
+  {
+   "args": [
+    [
+     [
+      [
+       10,
+       1
+      ],
+      [
+       10,
+       5
+      ],
+      [
+       10,
+       9
+      ]
+     ],
+     [
+      [
+       10,
+       2
+      ],
+      [
+       10,
+       6
+      ]
+     ],
+     [
+      [
+       10,
+       3
+      ],
+      [
+       10,
+       4
+      ]
+     ]
+    ],
+    6
+   ],
+   "expected": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "label": "same second",
+   "cat": "dupes",
+   "why": "a burst of posts in one second, merged by id"
+  },
+  {
+   "args": [
+    [
+     [
+      [
+       6,
+       1
+      ],
+      [
+       4,
+       2
+      ]
+     ],
+     [
+      [
+       5,
+       3
+      ],
+      [
+       3,
+       4
+      ]
+     ],
+     [
+      [
+       2,
+       5
+      ]
+     ]
+    ],
+    5
+   ],
+   "expected": [
+    1,
+    3,
+    2,
+    4,
+    5
+   ],
+   "label": "limit equals total",
+   "cat": "boundary",
+   "why": "interleaves perfectly, every post shown"
+  },
+  {
+   "args": [
+    [
+     [
+      [
+       2000000000,
+       11
+      ],
+      [
+       1999999999,
+       12
+      ]
+     ],
+     [
+      [
+       2000000000,
+       10
+      ]
+     ]
+    ],
+    3
+   ],
+   "expected": [
+    10,
+    11,
+    12
+   ],
+   "label": "large timestamps",
+   "cat": "boundary",
+   "why": "big values compare like small ones"
+  },
+  {
+   "args": [
+    [
+     [
+      [
+       100,
+       0
+      ],
+      [
+       97,
+       1
+      ],
+      [
+       94,
+       2
+      ],
+      [
+       91,
+       3
+      ],
+      [
+       88,
+       4
+      ],
+      [
+       85,
+       5
+      ]
+     ],
+     [
+      [
+       99,
+       10
+      ],
+      [
+       96,
+       11
+      ],
+      [
+       93,
+       12
+      ],
+      [
+       90,
+       13
+      ],
+      [
+       87,
+       14
+      ],
+      [
+       84,
+       15
+      ]
+     ],
+     [
+      [
+       98,
+       20
+      ],
+      [
+       95,
+       21
+      ],
+      [
+       92,
+       22
+      ],
+      [
+       89,
+       23
+      ],
+      [
+       86,
+       24
+      ],
+      [
+       83,
+       25
+      ]
+     ],
+     [
+      [
+       97,
+       30
+      ],
+      [
+       94,
+       31
+      ],
+      [
+       91,
+       32
+      ],
+      [
+       88,
+       33
+      ],
+      [
+       85,
+       34
+      ],
+      [
+       82,
+       35
+      ]
+     ],
+     [
+      [
+       96,
+       40
+      ],
+      [
+       93,
+       41
+      ],
+      [
+       90,
+       42
+      ],
+      [
+       87,
+       43
+      ],
+      [
+       84,
+       44
+      ],
+      [
+       81,
+       45
+      ]
+     ]
+    ],
+    12
+   ],
+   "expected": [
+    0,
+    10,
+    20,
+    1,
+    30,
+    11,
+    40,
+    21,
+    2,
+    31,
+    12,
+    41
+   ],
+   "label": "five feeds",
+   "cat": "medium",
+   "why": "five interleaved feeds, the first 12 posts"
+  }
+ ],
+ "perf": {
+  "label": "performance: 2,000 feeds x 100 posts, limit 50",
+  "gen": "[[[[10 ** 6 - j * 50 - (i * 7) % 50, i * 100 + j] for j in range(100)] for i in range(2000)], 50]",
+  "expected": [
+   0,
+   5000,
+   10000,
+   15000,
+   20000,
+   25000,
+   30000,
+   35000,
+   40000,
+   45000,
+   50000,
+   55000,
+   60000,
+   65000,
+   70000,
+   75000,
+   80000,
+   85000,
+   90000,
+   95000,
+   100000,
+   105000,
+   110000,
+   115000,
+   120000,
+   125000,
+   130000,
+   135000,
+   140000,
+   145000,
+   150000,
+   155000,
+   160000,
+   165000,
+   170000,
+   175000,
+   180000,
+   185000,
+   190000,
+   195000,
+   4300,
+   9300,
+   14300,
+   19300,
+   24300,
+   29300,
+   34300,
+   39300,
+   44300,
+   49300
+  ]
+ },
+ "al": {
+  "kind": "fundamentals",
+  "from": "LC 23 Merge k Sorted Lists",
+  "talk": [
+   "O(k + limit log k): heapify the k fronts once, then each post shown is one pop and at most one push. Sorting everything would be O(N log N) for N total posts.",
+   "A heap because I only ever need the minimum of k candidates and the set changes by one each step. Python's heapq is a min-heap, so I negate the timestamp.",
+   "The tuple order is the tie rule: <code>(-ts, post_id)</code>. Because post ids are unique, the comparison never reaches the feed index.",
+   "Edge cases: no feeds, empty feeds, <code>limit = 0</code>, limit bigger than the total, many posts with the same timestamp."
+  ],
+  "extensions": [
+   "Pagination: return a cursor (the last <code>(timestamp, post_id)</code> shown) and fetch the next page from there without re-merging from the top.",
+   "The same post can appear in two feeds (a repost): skip ids you have already emitted with a set.",
+   "Feeds are remote and paged, 20 posts per call: refill a feed's front lazily, only when its last buffered post is popped.",
+   "Fan-out on write vs fan-out on read: when would you precompute each user's merged feed instead of merging at read time (think of a creator with 10M followers)?"
+  ]
+ }
+}

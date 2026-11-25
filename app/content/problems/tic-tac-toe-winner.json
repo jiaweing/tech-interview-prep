@@ -1,0 +1,570 @@
+{
+ "id": "tic-tac-toe-winner",
+ "title": "Tic-Tac-Toe Winner (N x N, K in a row)",
+ "pattern": "greedy-sim",
+ "level": "medium",
+ "statement": "<p>You are writing the referee for a tic-tac-toe game server. The board is <code>n</code> x <code>n</code>, and a player wins by getting <code>k</code> of their marks in <b>consecutive</b> cells along a row, a column or a diagonal (either direction). A run longer than <code>k</code> also wins. Marks with a gap between them do not form a line.</p><p>Write <code>def solution(n, k, moves)</code>. <code>moves</code> is a list of <code>[row, col]</code> cells (0-indexed). Players alternate: the first move is <code>X</code>, the second <code>O</code>, and so on. Every move is on the board and on an empty cell.</p><p>Replay the moves in order. Return <code>\"X\"</code> or <code>\"O\"</code> for the <b>first</b> player to complete <code>k</code> in a row (ignore any moves after that). If nobody wins and all <code>n * n</code> cells are filled, return <code>\"Draw\"</code>. Otherwise return <code>\"Pending\"</code>.</p>",
+ "examples": [
+  {
+   "input": "n = 3, k = 3, moves = [[0, 0], [1, 1], [0, 1], [2, 2], [0, 2]]",
+   "why": "X plays (0,0), (0,1), (0,2): the whole top row.",
+   "output": "'X'"
+  },
+  {
+   "input": "n = 3, k = 3, moves = [[0, 0], [1, 1], [2, 2], [0, 1], [2, 1], [2, 0], [0, 2], [1, 2], [1, 0]]",
+   "why": "All 9 cells are filled and no line of 3 belongs to one player.",
+   "output": "'Draw'"
+  },
+  {
+   "input": "n = 4, k = 3, moves = [[0, 0], [1, 1]]",
+   "why": "Two moves on a 16-cell board: the game is still going.",
+   "output": "'Pending'"
+  }
+ ],
+ "constraints": [
+  "1 &le; k &le; n &le; 300",
+  "0 &le; len(moves) &le; n^2",
+  "every move is a distinct <code>[row, col]</code> with 0 &le; row, col &lt; n"
+ ],
+ "starter": "def solution(n, k, moves):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "What exactly decides the answer?",
+   "a": "Replay moves in order. X plays on even indexes (0, 2, 4...), O on odd ones. The first time a player has <code>k</code> marks in a straight line, the game ends and that player wins. If moves run out first: full board means <code>\"Draw\"</code>, anything else means <code>\"Pending\"</code>."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "<code>n = 3, k = 3</code>, X at (0,0), O at (1,1), X at (0,1), O at (2,2), X at (0,2)?",
+   "a": "After move 5, row 0 is <code>X X X</code>. Three in a row for X, so return <code>\"X\"</code>. Before that move no line had 3."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first thing you would write?",
+   "a": "After every move, scan every cell and every direction for <code>k</code> in a row. That is O(n^2 &middot; k) per move and O(n^4 &middot; k) for a whole game. On a 150 x 150 board that is billions of steps."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Clue words?",
+   "a": "\"replay moves\", \"first player to...\" &rarr; <b>simulation</b>. The key observation: a new winning line must pass through the cell just played. Every other line was already checked. So check only the 4 lines through the last move, counting matching marks in both directions."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li>Make an empty <code>n</code> x <code>n</code> board.</li><li>For move <code>i</code>: mark = X if <code>i</code> is even, else O. Place it.</li><li>For each direction <code>(0,1), (1,0), (1,1), (1,-1)</code>: walk forward and backward while the cells match, count them, add 1 for the cell itself.</li><li>If any count &ge; <code>k</code>, return the mark.</li><li>After the loop: <code>\"Draw\"</code> if <code>len(moves) == n * n</code>, else <code>\"Pending\"</code>.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "No moves. <code>n = 1, k = 1</code> (the first move wins). The winning move also fills the board (a win, not a draw). Moves after the win. The last move lands in the <i>middle</i> of a line (X _ X, then X fills the gap). Anti-diagonals, which are easy to forget. <code>k &lt; n</code>, so a line does not have to touch the edge."
+  }
+ ],
+ "hints": [
+  "You never need to rescan the whole board. Which lines can a single new mark complete?",
+  "Use four direction vectors: <code>(0, 1)</code>, <code>(1, 0)</code>, <code>(1, 1)</code>, <code>(1, -1)</code>. For each one, count matching cells going <code>+d</code> and going <code>-d</code>, then add 1.",
+  "Check the win before deciding Draw: a move can fill the last cell and complete a line at the same time."
+ ],
+ "solution": "DIRS = [(0, 1), (1, 0), (1, 1), (1, -1)]   # row, column, diagonal, anti-diagonal\n\ndef count(board, n, r, c, dr, dc, mark):\n    # how many cells in a row match `mark`, walking from (r, c) one way\n    k = 0\n    r, c = r + dr, c + dc\n    while 0 <= r < n and 0 <= c < n and board[r][c] == mark:\n        k += 1\n        r, c = r + dr, c + dc\n    return k\n\ndef solution(n, k, moves):\n    board = [[None] * n for _ in range(n)]\n    for i, (r, c) in enumerate(moves):\n        mark = 'X' if i % 2 == 0 else 'O'\n        board[r][c] = mark\n        # Only a line through the move just played can be new, so check\n        # the 4 lines through (r, c) and count both ways along each.\n        for dr, dc in DIRS:\n            line = 1 + count(board, n, r, c, dr, dc, mark) + count(board, n, r, c, -dr, -dc, mark)\n            if line >= k:\n                return mark\n    return 'Draw' if len(moves) == n * n else 'Pending'\n",
+ "brute": "def solution(n, k, moves):\n    # After every move, scan the WHOLE board for k in a row.\n    # O(n^2 * k) per move: fine for 3 x 3, far too slow for 150 x 150.\n    board = [['.'] * n for _ in range(n)]\n    for i in range(len(moves)):\n        r, c = moves[i]\n        board[r][c] = 'X' if i % 2 == 0 else 'O'\n        for rr in range(n):\n            for cc in range(n):\n                m = board[rr][cc]\n                if m == '.':\n                    continue\n                for dr, dc in ((0, 1), (1, 0), (1, 1), (1, -1)):\n                    er, ec = rr + dr * (k - 1), cc + dc * (k - 1)\n                    if not (0 <= er < n and 0 <= ec < n):\n                        continue\n                    if all(board[rr + dr * t][cc + dc * t] == m for t in range(k)):\n                        return m\n    if len(moves) == n * n:\n        return 'Draw'\n    return 'Pending'\n",
+ "explain": "<p>Each move can only create lines that pass through its own cell. So after placing a mark at <code>(r, c)</code>, look along 4 directions. For each, walk outward both ways while the marks match.</p><ul><li>Example 1, move 5: X at <code>(0, 2)</code>. Direction <code>(0, 1)</code>: forward goes off the board (0), backward finds X at <code>(0, 1)</code> and <code>(0, 0)</code> (2). Line = 1 + 0 + 2 = 3 &ge; 3, so X wins.</li><li>Example 2: after each of the 9 moves the longest line through the new mark is 2, so nobody wins, and 9 moves = 3 x 3 cells means <code>\"Draw\"</code>.</li></ul><p>Each check walks at most <code>k - 1</code> cells each way before a mismatch or the edge stops it (you can also cap it at <code>k</code>), so one move costs O(k) instead of O(n^2 &middot; k). In a take-home, this check lives in a <code>Board.place(r, c)</code> method so the HTTP layer only asks \"who won?\".</p>",
+ "complexity": "O(len(moves) * k) time, O(n^2) space for the board",
+ "tests": [
+  {
+   "args": [
+    3,
+    3,
+    [
+     [
+      0,
+      0
+     ],
+     [
+      1,
+      1
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      2,
+      2
+     ],
+     [
+      0,
+      2
+     ]
+    ]
+   ],
+   "expected": "X",
+   "label": "example 1 (top row)",
+   "cat": "example",
+   "why": "X completes row 0"
+  },
+  {
+   "args": [
+    3,
+    3,
+    [
+     [
+      0,
+      0
+     ],
+     [
+      1,
+      1
+     ],
+     [
+      2,
+      2
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      2,
+      1
+     ],
+     [
+      2,
+      0
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      1,
+      0
+     ]
+    ]
+   ],
+   "expected": "Draw",
+   "label": "example 2 (draw)",
+   "cat": "example",
+   "why": "board full, no line of 3"
+  },
+  {
+   "args": [
+    4,
+    3,
+    [
+     [
+      0,
+      0
+     ],
+     [
+      1,
+      1
+     ]
+    ]
+   ],
+   "expected": "Pending",
+   "label": "example 3 (pending)",
+   "cat": "example",
+   "why": "game not finished"
+  },
+  {
+   "args": [
+    3,
+    3,
+    []
+   ],
+   "expected": "Pending",
+   "label": "no moves",
+   "cat": "empty",
+   "why": "an empty game is pending"
+  },
+  {
+   "args": [
+    1,
+    1,
+    [
+     [
+      0,
+      0
+     ]
+    ]
+   ],
+   "expected": "X",
+   "label": "1 x 1 board",
+   "cat": "single",
+   "why": "the first move is already k = 1 in a row"
+  },
+  {
+   "args": [
+    3,
+    3,
+    [
+     [
+      0,
+      0
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      1,
+      0
+     ],
+     [
+      1,
+      1
+     ],
+     [
+      2,
+      2
+     ],
+     [
+      2,
+      0
+     ]
+    ]
+   ],
+   "expected": "O",
+   "label": "O on the anti-diagonal",
+   "cat": "small",
+   "why": "O plays (0,2), (1,1), (2,0)"
+  },
+  {
+   "args": [
+    3,
+    3,
+    [
+     [
+      0,
+      0
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      0
+     ],
+     [
+      1,
+      1
+     ],
+     [
+      2,
+      0
+     ]
+    ]
+   ],
+   "expected": "X",
+   "label": "X down a column",
+   "cat": "small",
+   "why": "vertical win in column 0"
+  },
+  {
+   "args": [
+    3,
+    3,
+    [
+     [
+      0,
+      0
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      1,
+      0
+     ],
+     [
+      1,
+      1
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      2,
+      1
+     ],
+     [
+      2,
+      0
+     ],
+     [
+      2,
+      2
+     ]
+    ]
+   ],
+   "expected": "X",
+   "label": "win on the last cell",
+   "cat": "boundary",
+   "why": "the 9th move fills the board and completes the diagonal: a win, not a draw"
+  },
+  {
+   "args": [
+    3,
+    3,
+    [
+     [
+      0,
+      0
+     ],
+     [
+      1,
+      0
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      1
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      1,
+      2
+     ]
+    ]
+   ],
+   "expected": "X",
+   "label": "moves after the win",
+   "cat": "edge",
+   "why": "O also completes a row later, but X won first"
+  },
+  {
+   "args": [
+    5,
+    3,
+    [
+     [
+      2,
+      0
+     ],
+     [
+      0,
+      0
+     ],
+     [
+      2,
+      2
+     ],
+     [
+      0,
+      4
+     ],
+     [
+      2,
+      1
+     ]
+    ]
+   ],
+   "expected": "X",
+   "label": "gap filled in the middle",
+   "cat": "edge",
+   "why": "X _ X becomes X X X when X fills the gap: count both ways from the new cell"
+  },
+  {
+   "args": [
+    5,
+    3,
+    [
+     [
+      0,
+      0
+     ],
+     [
+      4,
+      4
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      4,
+      0
+     ],
+     [
+      0,
+      4
+     ],
+     [
+      3,
+      2
+     ]
+    ]
+   ],
+   "label": "marks with gaps are not a line",
+   "cat": "edge",
+   "why": "X holds (0,0), (0,2), (0,4): three in the same row, but not consecutive",
+   "expected": "Pending"
+  },
+  {
+   "args": [
+    5,
+    3,
+    [
+     [
+      0,
+      0
+     ],
+     [
+      4,
+      0
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      4,
+      2
+     ],
+     [
+      0,
+      3
+     ],
+     [
+      4,
+      4
+     ],
+     [
+      0,
+      4
+     ],
+     [
+      3,
+      0
+     ],
+     [
+      0,
+      2
+     ]
+    ]
+   ],
+   "label": "run longer than k",
+   "cat": "edge",
+   "why": "X has XX_XX in row 0 (no 3 yet); filling the gap makes a run of 5, which is at least k = 3",
+   "expected": "X"
+  },
+  {
+   "args": [
+    6,
+    4,
+    [
+     [
+      1,
+      1
+     ],
+     [
+      0,
+      5
+     ],
+     [
+      2,
+      2
+     ],
+     [
+      5,
+      0
+     ],
+     [
+      3,
+      3
+     ],
+     [
+      0,
+      0
+     ],
+     [
+      4,
+      4
+     ]
+    ]
+   ],
+   "expected": "X",
+   "label": "k smaller than n, diagonal",
+   "cat": "medium",
+   "why": "four in a row on the main diagonal, not touching a corner"
+  },
+  {
+   "args": [
+    4,
+    4,
+    [
+     [
+      0,
+      0
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      1
+     ],
+     [
+      1,
+      0
+     ],
+     [
+      2,
+      2
+     ],
+     [
+      2,
+      3
+     ],
+     [
+      3,
+      2
+     ],
+     [
+      3,
+      3
+     ]
+    ]
+   ],
+   "expected": "Pending",
+   "label": "k = n blocked diagonal",
+   "cat": "boundary",
+   "why": "X has 3 on the diagonal but O took (3,3)"
+  }
+ ],
+ "perf": {
+  "label": "performance: 80 x 80 board, 6,400 moves",
+  "gen": "[80, 3, [[a, 2 * (2 * (b // 2) + ((q - a) % 2)) + b % 2] for a in range(80) for b in range(40) for q in (0, 1)]]",
+  "expected": "Draw"
+ },
+ "govtech": {
+  "round": "take-home",
+  "tag": "inspired",
+  "source": "GovTech take-home: tic-tac-toe (candidate repo)",
+  "evidence": "Tic-tac-toe appears among the GovTech take-homes found in public candidate repos; the original brief is not reproduced here, and the n x n, k-in-a-row version and the return values are ours.",
+  "extensions": [
+   "Validate moves instead of trusting them: out of bounds, cell already taken, wrong player's turn, or a move after the game ended. Return a clear error for each.",
+   "Make it multiplayer over HTTP: <code>POST /games</code>, <code>POST /games/{id}/moves</code>, <code>GET /games/{id}</code>. How do you stop two requests for the same game from both placing a move? (A version number or a per-game lock.)",
+   "Support 3 or more players with their own marks. What changes? Only how you pick the mark for move <code>i</code>: <code>players[i % len(players)]</code>.",
+   "Detect an early draw: return <code>\"Draw\"</code> as soon as no line of <code>k</code> can still be completed by anyone, not only when the board is full.",
+   "The board is 10^9 x 10^9 (infinite tic-tac-toe). Store only played cells in a dict keyed by <code>(r, c)</code>; the O(k) check still works."
+  ]
+ }
+}

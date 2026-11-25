@@ -1,0 +1,178 @@
+{
+ "id": "heap",
+ "track": "ds",
+ "order": 9,
+ "title": "Heap",
+ "short": "Always hand you the smallest item, fast.",
+ "what": "A min-heap is a tree where every parent is smaller than or equal to its children, so the smallest item is always on top. Adding or removing only fixes one path from top to bottom, which is short. Python's heapq stores this tree in a plain list.",
+ "analogy": "An emergency room. Patients don't wait in arrival order: the most urgent one is always seen next, and a new arrival can jump ahead.",
+ "viz": {
+  "kind": "tree",
+  "frames": [
+   {
+    "nodes": [
+     2,
+     5,
+     3,
+     8,
+     7
+    ],
+    "tag": {
+     "0": "smallest"
+    },
+    "say": "A min-heap of 2, 5, 3, 8, 7. Each parent is smaller than its children, so the smallest, 2, sits on top."
+   },
+   {
+    "nodes": [
+     2,
+     5,
+     3,
+     8,
+     7,
+     1
+    ],
+    "hi": [
+     5
+    ],
+    "say": "heappush(h, 1) first puts 1 in the next free spot at the bottom: under 3."
+   },
+   {
+    "nodes": [
+     2,
+     5,
+     3,
+     8,
+     7,
+     1
+    ],
+    "hi": [
+     5
+    ],
+    "bad": [
+     2
+    ],
+    "edge": [
+     5
+    ],
+    "say": "1 is smaller than its parent 3. That breaks the rule, so they swap."
+   },
+   {
+    "nodes": [
+     2,
+     5,
+     1,
+     8,
+     7,
+     3
+    ],
+    "hi": [
+     2
+    ],
+    "bad": [
+     0
+    ],
+    "edge": [
+     2
+    ],
+    "say": "Now 1 is under 2. Still smaller than its parent, so swap again."
+   },
+   {
+    "nodes": [
+     1,
+     5,
+     2,
+     8,
+     7,
+     3
+    ],
+    "ok": [
+     0
+    ],
+    "tag": {
+     "0": "smallest"
+    },
+    "say": "1 reaches the top and the rule holds everywhere. Only one path moved: 2 swaps, about log n."
+   },
+   {
+    "nodes": [
+     3,
+     5,
+     2,
+     8,
+     7
+    ],
+    "hi": [
+     0
+    ],
+    "out": "heappop -> 1",
+    "say": "heappop(h) hands back the top, 1. The last item, 3, moves up to fill the hole."
+   },
+   {
+    "nodes": [
+     2,
+     5,
+     3,
+     8,
+     7
+    ],
+    "ok": [
+     0
+    ],
+    "edge": [
+     2
+    ],
+    "tag": {
+     "0": "smallest"
+    },
+    "say": "3 is bigger than its smaller child, 2, so they swap. Now 2 is on top, ready for the next pop."
+   }
+  ]
+ },
+ "when": [
+  "Top k largest or smallest",
+  "Always take the next cheapest or smallest",
+  "Merge k sorted lists",
+  "Running median of a stream",
+  "Schedule tasks by priority"
+ ],
+ "python": "import heapq\n\nh = []\nfor x in [2, 5, 3, 8, 7]:\n    heapq.heappush(h, x)\nheapq.heappush(h, 1)\nprint(h)\nprint(heapq.heappop(h), h)\nprint(heapq.nsmallest(2, [9, 4, 7, 1]))\n\nmax_heap = []\nfor x in [4, 9, 1]:\n    heapq.heappush(max_heap, -x)\nprint(-max_heap[0])",
+ "output": "[1, 5, 2, 8, 7, 3]\n1 [2, 5, 3, 8, 7]\n[1, 4]\n9",
+ "cost": [
+  [
+   "Look at the smallest (h[0])",
+   "O(1)"
+  ],
+  [
+   "Push",
+   "O(log n)"
+  ],
+  [
+   "Pop the smallest",
+   "O(log n)"
+  ],
+  [
+   "Build from a list (heapify)",
+   "O(n)"
+  ],
+  [
+   "Find any other value",
+   "O(n)"
+  ]
+ ],
+ "watch": [
+  "heapq is a min-heap only. For a max-heap push -x and flip the sign when you read.",
+  "The list is not sorted. Only h[0] is promised to be the smallest.",
+  "Pushing (priority, item) tuples fails on ties if items can't be compared. Add a counter in the middle."
+ ],
+ "interview": [
+  "LC 215 Kth Largest Element in an Array",
+  "LC 23 Merge k Sorted Lists",
+  "LC 295 Find Median from Data Stream"
+ ],
+ "related": [
+  "top-k-heap",
+  "dijkstra",
+  "binary-tree",
+  "queue"
+ ]
+}

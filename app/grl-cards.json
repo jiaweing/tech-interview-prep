@@ -1,0 +1,39 @@
+[
+ {
+  "title": "What it tests",
+  "items": [
+   "Whether you can ship an LLM feature that works for real users",
+   "That you measure quality, not just demo it",
+   "That you know what it costs and what fails first"
+  ]
+ },
+ {
+  "title": "Common prompts",
+  "items": [
+   "Search or Q&A over documents, with citations",
+   "Meeting transcription and summaries",
+   "Memory and a knowledge base for agents",
+   "Generating slides, audio or images from a brief"
+  ]
+ },
+ {
+  "title": "Strong answers cover",
+  "items": [
+   "Retrieval: chunking, embeddings, re-ranking",
+   "<b>Evals</b> before and after launch",
+   "<b>Cost</b> per user and a latency budget",
+   "Guardrails and data classification"
+  ]
+ },
+ {
+  "title": "Expect to be asked",
+  "tone": "ok",
+  "items": [
+   "How you'd evaluate it, before and after launch",
+   "Cost per user, latency budget for model calls",
+   "Fallback when a model provider fails",
+   "Access control and data classification",
+   "Ship a thin pilot fast, then keep, hand over or close"
+  ]
+ }
+]

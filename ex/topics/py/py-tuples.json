@@ -1,0 +1,174 @@
+{
+ "id": "py-tuples",
+ "track": "py",
+ "order": 6,
+ "title": "Tuples and unpacking",
+ "short": "Fixed little groups: swap, return two values, use as keys.",
+ "what": "A tuple is a list that cannot change, written with round brackets: (3, 5). Unpacking pulls its items into names in one line. Because it never changes, a tuple can be a dict key or a set item.",
+ "analogy": "A sealed envelope with a few cards inside. You cannot swap cards once it is sealed, but you can open it and hand each card to a different person.",
+ "viz": {
+  "kind": "array",
+  "frames": [
+   {
+    "cells": [
+     3,
+     5
+    ],
+    "label": "p = (3, 5)",
+    "hi": [
+     0
+    ],
+    "say": "p = (3, 5) is a tuple: round brackets, commas between. Read it like a list: p[0] is 3, len(p) is 2."
+   },
+   {
+    "cells": [
+     3,
+     5
+    ],
+    "label": "p[0] = 9",
+    "bad": [
+     0
+    ],
+    "out": "TypeError",
+    "say": "p[0] = 9 raises TypeError. Contents that never change are the point: safe to share and safe as a key."
+   },
+   {
+    "cells": [
+     3,
+     5
+    ],
+    "label": "x, y = p",
+    "ptr": {
+     "x": 0,
+     "y": 1
+    },
+    "ok": [
+     0,
+     1
+    ],
+    "out": "x = 3, y = 5",
+    "say": "x, y = p unpacks: the first item goes to x, the second to y. The number of names must match."
+   },
+   {
+    "cells": [
+     3,
+     5
+    ],
+    "label": "a, b = b, a",
+    "noIdx": true,
+    "ptr": {
+     "a": 0,
+     "b": 1
+    },
+    "hi": [
+     0,
+     1
+    ],
+    "say": "To swap a and b, write a, b = b, a. The right side is packed into a tuple (5, 3) first."
+   },
+   {
+    "cells": [
+     5,
+     3
+    ],
+    "label": "a, b = b, a",
+    "noIdx": true,
+    "ptr": {
+     "a": 0,
+     "b": 1
+    },
+    "ok": [
+     0,
+     1
+    ],
+    "out": "a = 5, b = 3",
+    "say": "Then it is unpacked into a and b. No temporary variable needed."
+   },
+   {
+    "cells": [
+     4,
+     1,
+     7,
+     2
+    ],
+    "label": "nums[0], nums[3] = nums[3], nums[0]",
+    "hi": [
+     0,
+     3
+    ],
+    "say": "The same trick swaps two items of a list: nums[0], nums[3] = nums[3], nums[0]."
+   },
+   {
+    "cells": [
+     2,
+     1,
+     7,
+     4
+    ],
+    "label": "nums[0], nums[3] = nums[3], nums[0]",
+    "ok": [
+     0,
+     3
+    ],
+    "out": "[2, 1, 7, 4]",
+    "say": "4 and 2 trade places in one line. Sorting and two-pointer code does this all the time."
+   },
+   {
+    "cells": [
+     "(0,1)",
+     "(2,2)"
+    ],
+    "label": "best = {(0, 1): 4, (2, 2): 9}",
+    "noIdx": true,
+    "ok": [
+     1
+    ],
+    "out": "best[(2, 2)] -> 9",
+    "say": "Tuples can be keys: best[(2, 2)] reads the value stored for grid cell row 2, column 2. A list as a key raises TypeError."
+   }
+  ]
+ },
+ "when": [
+  "Swap two values",
+  "Return two things from a function",
+  "Use a pair like (row, col) as a key",
+  "Store (priority, item) pairs"
+ ],
+ "python": "p = (3, 5)\nx, y = p\nprint(p[0], x, y, len(p))\na, b = 3, 5\na, b = b, a\nprint(a, b)\nnums = [4, 1, 7, 2]\nnums[0], nums[3] = nums[3], nums[0]\nprint(nums)\nbest = {(0, 1): 4, (2, 2): 9}\nprint(best[(2, 2)], (1, 1) in best)\ntry:\n    p[0] = 9\nexcept TypeError:\n    print(\"tuples cannot change\")",
+ "output": "3 3 5 2\n5 3\n[2, 1, 7, 4]\n9 False\ntuples cannot change",
+ "cost": [
+  [
+   "Read t[i]",
+   "O(1)"
+  ],
+  [
+   "Unpack or swap two names",
+   "O(1)"
+  ],
+  [
+   "Use a small tuple as a dict key",
+   "O(1)"
+  ],
+  [
+   "x in tuple",
+   "O(n)"
+  ]
+ ],
+ "watch": [
+  "(5) is the number 5. A one-item tuple needs a comma: (5,).",
+  "x, y = [1, 2, 3] raises ValueError: the counts must match.",
+  "A tuple that holds a list cannot be a key. Everything inside must be unchangeable too."
+ ],
+ "interview": [
+  "LC 200 Number of Islands",
+  "LC 49 Group Anagrams",
+  "LC 75 Sort Colors"
+ ],
+ "related": [
+  "py-lists",
+  "py-dicts-sets",
+  "py-sorting",
+  "grid",
+  "two-pointers"
+ ]
+}

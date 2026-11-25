@@ -1,0 +1,463 @@
+{
+ "id": "sql-vs-nosql",
+ "track": "sd",
+ "order": 7,
+ "title": "SQL vs NoSQL",
+ "short": "Strict tables you can join, or simple records that spread out.",
+ "what": "A SQL (relational) database keeps data in tables with fixed columns, links tables with joins, and runs a group of changes all or nothing (a transaction). NoSQL databases (key-value, document, wide-column) give up some of that to make one kind of access very fast and easy to spread over many machines.",
+ "analogy": "SQL is a set of strict spreadsheets that reference each other. NoSQL is a wall of labelled folders: grab one folder by its label and everything about that thing is inside.",
+ "viz": {
+  "kind": "sd",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "Shop app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "u",
+      "label": "users table",
+      "sub": "id, name, email",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "o",
+      "label": "orders table",
+      "sub": "id, user_id, total",
+      "x": 50,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "u"
+     ],
+     [
+      "app",
+      "o"
+     ],
+     [
+      "o",
+      "u",
+      "user_id"
+     ]
+    ],
+    "say": "A shop stores users and orders. In a SQL database each is a table with fixed columns. orders.user_id points to a row in users."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "Shop app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "u",
+      "label": "users table",
+      "sub": "id, name, email",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "o",
+      "label": "orders table",
+      "sub": "id, user_id, total",
+      "x": 50,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "u"
+     ],
+     [
+      "app",
+      "o"
+     ],
+     [
+      "o",
+      "u",
+      "JOIN"
+     ]
+    ],
+    "hi": [
+     "u",
+     "o"
+    ],
+    "edgeHi": [
+     [
+      "app",
+      "u"
+     ],
+     [
+      "app",
+      "o"
+     ],
+     [
+      "o",
+      "u"
+     ]
+    ],
+    "say": "To show Ana's orders with her name, one query joins the two tables. The database matches the rows for you."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "Shop app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "u",
+      "label": "users table",
+      "sub": "id, name, email",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "o",
+      "label": "orders table",
+      "sub": "all or nothing",
+      "x": 50,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "u"
+     ],
+     [
+      "app",
+      "o"
+     ],
+     [
+      "o",
+      "u"
+     ]
+    ],
+    "ok": [
+     "o"
+    ],
+    "edgeHi": [
+     [
+      "app",
+      "o"
+     ]
+    ],
+    "say": "Checkout must charge Ana and create her order. A transaction makes both happen or neither. SQL databases are built for this."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "Shop app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "u",
+      "label": "users table",
+      "sub": "id, name, email",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "o",
+      "label": "orders table",
+      "sub": "id, user_id, total",
+      "x": 50,
+      "y": 100
+     },
+     {
+      "id": "kv",
+      "label": "Cart store",
+      "sub": "key-value, NoSQL",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "u"
+     ],
+     [
+      "app",
+      "o"
+     ],
+     [
+      "app",
+      "kv",
+      "cart:ana"
+     ]
+    ],
+    "hi": [
+     "kv"
+    ],
+    "dim": [
+     "u",
+     "o"
+    ],
+    "edgeHi": [
+     [
+      "app",
+      "kv"
+     ]
+    ],
+    "say": "Now carts: 50,000 updates a second, always read by user, never joined. A key-value store gives you one key and one record."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "Shop app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "u",
+      "label": "users table",
+      "sub": "id, name, email",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "o",
+      "label": "orders table",
+      "sub": "id, user_id, total",
+      "x": 50,
+      "y": 100
+     },
+     {
+      "id": "n1",
+      "label": "Cart node 1",
+      "sub": "keys a to m",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "n2",
+      "label": "Cart node 2",
+      "sub": "keys n to z",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "u"
+     ],
+     [
+      "app",
+      "o"
+     ],
+     [
+      "app",
+      "n1",
+      "cart:ana"
+     ],
+     [
+      "app",
+      "n2"
+     ]
+    ],
+    "ok": [
+     "n1"
+    ],
+    "dim": [
+     "u",
+     "o"
+    ],
+    "edgeHi": [
+     [
+      "app",
+      "n1"
+     ]
+    ],
+    "say": "The store spreads keys over many machines by itself. Need more speed? Add a node. Each read touches one node."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "Shop app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "u",
+      "label": "users table",
+      "sub": "id, name, email",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "o",
+      "label": "orders table",
+      "sub": "id, user_id, total",
+      "x": 50,
+      "y": 100
+     },
+     {
+      "id": "n1",
+      "label": "Cart node 1",
+      "sub": "scan all",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "n2",
+      "label": "Cart node 2",
+      "sub": "scan all",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "u"
+     ],
+     [
+      "app",
+      "o"
+     ],
+     [
+      "app",
+      "n1"
+     ],
+     [
+      "app",
+      "n2"
+     ]
+    ],
+    "bad": [
+     "n1",
+     "n2"
+    ],
+    "dim": [
+     "u",
+     "o"
+    ],
+    "edgeHi": [
+     [
+      "app",
+      "n1"
+     ],
+     [
+      "app",
+      "n2"
+     ]
+    ],
+    "say": "The trade-off: ask it 'which carts hold the red mug?' and there is no join or query for that. You would read every cart."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "Shop app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "u",
+      "label": "users table",
+      "sub": "id, name, email",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "o",
+      "label": "orders table",
+      "sub": "id, user_id, total",
+      "x": 50,
+      "y": 100
+     },
+     {
+      "id": "kv",
+      "label": "Cart store",
+      "sub": "key-value, NoSQL",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "u"
+     ],
+     [
+      "app",
+      "o"
+     ],
+     [
+      "app",
+      "kv"
+     ],
+     [
+      "o",
+      "u"
+     ]
+    ],
+    "ok": [
+     "u",
+     "o",
+     "kv"
+    ],
+    "say": "Most real systems use both: SQL for users, orders and money; NoSQL for carts, sessions and feeds. Pick by how you read the data."
+   }
+  ]
+ },
+ "when": [
+  "Data has relations and you query it in many ways (SQL)",
+  "Money or stock counts must be exact (SQL)",
+  "Huge write volume, always read by one key (NoSQL)",
+  "Record shape changes often or differs per record (document store)"
+ ],
+ "python": "import sqlite3\ndb = sqlite3.connect(\":memory:\")\ndb.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)\")\ndb.execute(\"CREATE TABLE orders (id INTEGER, user_id INTEGER, total REAL)\")\ndb.execute(\"INSERT INTO users VALUES (42, 'Ana')\")\ndb.executemany(\"INSERT INTO orders VALUES (?, 42, ?)\", [(1, 19.5), (2, 5.0)])\nrows = db.execute(\"SELECT name, SUM(total) FROM users JOIN orders ON orders.user_id = users.id GROUP BY name\")\nprint(\"SQL join:\", rows.fetchall())\n\ncarts = {\"cart:ana\": {\"items\": [\"mug\", \"tea\"], \"updated\": \"12:01\"}}   # NoSQL style: one key, one record\nprint(\"NoSQL get:\", carts[\"cart:ana\"][\"items\"])",
+ "output": "SQL join: [('Ana', 24.5)]\nNoSQL get: ['mug', 'tea']",
+ "cost": [
+  [
+   "NoSQL read by key",
+   "O(1), ~1 ms"
+  ],
+  [
+   "SQL read by indexed column",
+   "O(log n), ~1 ms"
+  ],
+  [
+   "SQL join",
+   "fast with indexes, slow without"
+  ],
+  [
+   "Spread writes over machines",
+   "built into most NoSQL; manual sharding for SQL"
+  ]
+ ],
+ "watch": [
+  "NoSQL is not faster in general; it is fast for the one access pattern you designed it for.",
+  "Start with SQL when data has relations or money involved; one machine goes further than people think.",
+  "NoSQL often stores the same data twice, and you must keep the copies in sync yourself."
+ ],
+ "interview": [
+  "Design an online shop's checkout",
+  "Design a chat app's message storage",
+  "Which database for a URL shortener, and why?"
+ ],
+ "related": [
+  "database-index",
+  "sharding",
+  "replication",
+  "cap-theorem"
+ ]
+}

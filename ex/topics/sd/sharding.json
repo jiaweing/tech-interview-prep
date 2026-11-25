@@ -1,0 +1,634 @@
+{
+ "id": "sharding",
+ "track": "sd",
+ "order": 10,
+ "title": "Sharding",
+ "short": "Split one huge database into pieces that live on different machines.",
+ "what": "Sharding (also called partitioning) splits the rows of a database across several machines. A shard key, like user_id, decides which machine holds each row. Each shard holds part of the data and takes part of the traffic, so you can grow past one machine's limits.",
+ "analogy": "A library too big for one building. Authors A to F go in building 1, G to M in building 2. To find a book you only walk to one building.",
+ "viz": {
+  "kind": "sd",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "App",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "r",
+      "label": "Router",
+      "sub": "shard = id % 4",
+      "x": 33,
+      "y": 50
+     },
+     {
+      "id": "s0",
+      "label": "Shard 0",
+      "sub": "ids 0, 4, 8...",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "s1",
+      "label": "Shard 1",
+      "sub": "ids 1, 5, 9...",
+      "x": 100,
+      "y": 33
+     },
+     {
+      "id": "s2",
+      "label": "Shard 2",
+      "sub": "ids 2, 6, 10...",
+      "x": 100,
+      "y": 66
+     },
+     {
+      "id": "s3",
+      "label": "Shard 3",
+      "sub": "ids 3, 7, 11...",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "r"
+     ],
+     [
+      "r",
+      "s0"
+     ],
+     [
+      "r",
+      "s1"
+     ],
+     [
+      "r",
+      "s2"
+     ],
+     [
+      "r",
+      "s3"
+     ]
+    ],
+    "say": "A chat app has 400 million users and 8 TB of data, too much for one database. Split it into 4 shards, 2 TB each."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "App",
+      "sub": "get user 1001",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "r",
+      "label": "Router",
+      "sub": "1001 % 4 = 1",
+      "x": 33,
+      "y": 50
+     },
+     {
+      "id": "s0",
+      "label": "Shard 0",
+      "sub": "ids 0, 4, 8...",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "s1",
+      "label": "Shard 1",
+      "sub": "ids 1, 5, 9...",
+      "x": 100,
+      "y": 33
+     },
+     {
+      "id": "s2",
+      "label": "Shard 2",
+      "sub": "ids 2, 6, 10...",
+      "x": 100,
+      "y": 66
+     },
+     {
+      "id": "s3",
+      "label": "Shard 3",
+      "sub": "ids 3, 7, 11...",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "r"
+     ],
+     [
+      "r",
+      "s0"
+     ],
+     [
+      "r",
+      "s1"
+     ],
+     [
+      "r",
+      "s2"
+     ],
+     [
+      "r",
+      "s3"
+     ]
+    ],
+    "hi": [
+     "app",
+     "r"
+    ],
+    "edgeHi": [
+     [
+      "app",
+      "r"
+     ]
+    ],
+    "say": "To find user 1001, the router uses a rule on the shard key: 1001 % 4 = 1. That user's data always lives on shard 1."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "App",
+      "sub": "get user 1001",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "r",
+      "label": "Router",
+      "sub": "1001 % 4 = 1",
+      "x": 33,
+      "y": 50
+     },
+     {
+      "id": "s0",
+      "label": "Shard 0",
+      "sub": "ids 0, 4, 8...",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "s1",
+      "label": "Shard 1",
+      "sub": "has user 1001",
+      "x": 100,
+      "y": 33
+     },
+     {
+      "id": "s2",
+      "label": "Shard 2",
+      "sub": "ids 2, 6, 10...",
+      "x": 100,
+      "y": 66
+     },
+     {
+      "id": "s3",
+      "label": "Shard 3",
+      "sub": "ids 3, 7, 11...",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "r"
+     ],
+     [
+      "r",
+      "s0"
+     ],
+     [
+      "r",
+      "s1"
+     ],
+     [
+      "r",
+      "s2"
+     ],
+     [
+      "r",
+      "s3"
+     ]
+    ],
+    "ok": [
+     "s1"
+    ],
+    "dim": [
+     "s0",
+     "s2",
+     "s3"
+    ],
+    "edgeHi": [
+     [
+      "app",
+      "r"
+     ],
+     [
+      "r",
+      "s1"
+     ]
+    ],
+    "say": "The request goes straight to shard 1. The other 3 never see it, so each shard handles only a quarter of the traffic."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "App",
+      "sub": "users in Lisbon?",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "r",
+      "label": "Router",
+      "sub": "ask everyone",
+      "x": 33,
+      "y": 50
+     },
+     {
+      "id": "s0",
+      "label": "Shard 0",
+      "sub": "ids 0, 4, 8...",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "s1",
+      "label": "Shard 1",
+      "sub": "ids 1, 5, 9...",
+      "x": 100,
+      "y": 33
+     },
+     {
+      "id": "s2",
+      "label": "Shard 2",
+      "sub": "ids 2, 6, 10...",
+      "x": 100,
+      "y": 66
+     },
+     {
+      "id": "s3",
+      "label": "Shard 3",
+      "sub": "ids 3, 7, 11...",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "r"
+     ],
+     [
+      "r",
+      "s0"
+     ],
+     [
+      "r",
+      "s1"
+     ],
+     [
+      "r",
+      "s2"
+     ],
+     [
+      "r",
+      "s3"
+     ]
+    ],
+    "hi": [
+     "s0",
+     "s1",
+     "s2",
+     "s3"
+    ],
+    "edgeHi": [
+     [
+      "r",
+      "s0"
+     ],
+     [
+      "r",
+      "s1"
+     ],
+     [
+      "r",
+      "s2"
+     ],
+     [
+      "r",
+      "s3"
+     ]
+    ],
+    "say": "But 'find all users in Lisbon' isn't by user id. The router must ask all 4 shards and merge the answers: slower and costlier."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "App",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "r",
+      "label": "Router",
+      "sub": "shard = id % 4",
+      "x": 33,
+      "y": 50
+     },
+     {
+      "id": "s0",
+      "label": "Shard 0",
+      "sub": "ids 0, 4, 8...",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "s1",
+      "label": "Shard 1",
+      "sub": "ids 1, 5, 9...",
+      "x": 100,
+      "y": 33
+     },
+     {
+      "id": "s2",
+      "label": "Shard 2",
+      "sub": "ids 2, 6, 10...",
+      "x": 100,
+      "y": 66
+     },
+     {
+      "id": "s3",
+      "label": "Shard 3",
+      "sub": "celebrity: 30%",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "r"
+     ],
+     [
+      "r",
+      "s0"
+     ],
+     [
+      "r",
+      "s1"
+     ],
+     [
+      "r",
+      "s2"
+     ],
+     [
+      "r",
+      "s3"
+     ]
+    ],
+    "bad": [
+     "s3"
+    ],
+    "edgeHi": [
+     [
+      "r",
+      "s3"
+     ]
+    ],
+    "say": "A hot spot: a celebrity on shard 3 gets 30% of all traffic. A good shard key spreads the load, not only the data."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "App",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "r",
+      "label": "Router",
+      "sub": "shard = id % 5",
+      "x": 33,
+      "y": 50
+     },
+     {
+      "id": "s0",
+      "label": "Shard 0",
+      "sub": "most must move",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "s1",
+      "label": "Shard 1",
+      "sub": "most must move",
+      "x": 100,
+      "y": 33
+     },
+     {
+      "id": "s2",
+      "label": "Shard 2",
+      "sub": "most must move",
+      "x": 100,
+      "y": 66
+     },
+     {
+      "id": "s3",
+      "label": "Shard 3",
+      "sub": "most must move",
+      "x": 100,
+      "y": 100
+     },
+     {
+      "id": "s4",
+      "label": "Shard 4",
+      "sub": "new, empty",
+      "x": 66,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "r"
+     ],
+     [
+      "r",
+      "s0"
+     ],
+     [
+      "r",
+      "s1"
+     ],
+     [
+      "r",
+      "s2"
+     ],
+     [
+      "r",
+      "s3"
+     ],
+     [
+      "r",
+      "s4"
+     ]
+    ],
+    "hi": [
+     "s4"
+    ],
+    "bad": [
+     "s0",
+     "s1",
+     "s2",
+     "s3"
+    ],
+    "say": "Data keeps growing, so you add a fifth shard. The rule becomes id % 5, and about 80% of users now map to a different shard."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "App",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "r",
+      "label": "Router",
+      "sub": "consistent hash",
+      "x": 33,
+      "y": 50
+     },
+     {
+      "id": "s0",
+      "label": "Shard 0",
+      "sub": "~1.6 TB",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "s1",
+      "label": "Shard 1",
+      "sub": "~1.6 TB",
+      "x": 100,
+      "y": 33
+     },
+     {
+      "id": "s2",
+      "label": "Shard 2",
+      "sub": "~1.6 TB",
+      "x": 100,
+      "y": 66
+     },
+     {
+      "id": "s3",
+      "label": "Shard 3",
+      "sub": "~1.6 TB",
+      "x": 100,
+      "y": 100
+     },
+     {
+      "id": "s4",
+      "label": "Shard 4",
+      "sub": "~1.6 TB",
+      "x": 66,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "r"
+     ],
+     [
+      "r",
+      "s0"
+     ],
+     [
+      "r",
+      "s1"
+     ],
+     [
+      "r",
+      "s2"
+     ],
+     [
+      "r",
+      "s3"
+     ],
+     [
+      "r",
+      "s4"
+     ]
+    ],
+    "ok": [
+     "s0",
+     "s1",
+     "s2",
+     "s3",
+     "s4"
+    ],
+    "say": "Moving 80% of 8 TB is a huge job. That is why real systems use consistent hashing, which moves only about a fifth."
+   }
+  ]
+ },
+ "when": [
+  "Data doesn't fit on one machine",
+  "Writes are too many for one database",
+  "Each request is about one user, shop or chat",
+  "Someone says billions of rows"
+ ],
+ "python": "users = range(1, 100_001)\nbefore = {u: u % 4 for u in users}             # 4 shards\nafter = {u: u % 5 for u in users}              # add a 5th shard\nprint(\"user 1001 -> shard\", before[1001])\ncounts = [0] * 4\nfor shard in before.values():\n    counts[shard] += 1\nprint(\"users per shard:\", counts)\nmoved = sum(before[u] != after[u] for u in users)\nprint(f\"after adding a shard, {moved / len(users):.0%} of users move\")",
+ "output": "user 1001 -> shard 1\nusers per shard: [25000, 25000, 25000, 25000]\nafter adding a shard, 80% of users move",
+ "cost": [
+  [
+   "Find a row's shard",
+   "O(1)"
+  ],
+  [
+   "Query by shard key",
+   "hits 1 shard"
+  ],
+  [
+   "Query by anything else",
+   "hits every shard"
+  ],
+  [
+   "Capacity",
+   "x number of shards, reads and writes"
+  ]
+ ],
+ "watch": [
+  "Choose the shard key by how you read: user_id for a chat app keeps one user's data together.",
+  "Joins and transactions across shards are slow and hard; design so you rarely need them.",
+  "id % N moves most rows when N changes; use consistent hashing."
+ ],
+ "interview": [
+  "Design Twitter",
+  "Design WhatsApp",
+  "Design a distributed key-value store"
+ ],
+ "related": [
+  "consistent-hashing",
+  "replication",
+  "sql-vs-nosql",
+  "hash-map"
+ ]
+}

@@ -1,0 +1,599 @@
+{
+ "id": "news-feed",
+ "title": "News feed (Twitter/X home timeline)",
+ "tagline": "Show each user a fresh, ranked feed from the accounts they follow, in under 200 ms, while celebrities post to 50M followers.",
+ "govtech": false,
+ "featured": true,
+ "difficulty": "hard",
+ "summary": "<p>Two numbers shape this design: reads outnumber posts by tens of times, and each post must reach every follower. So you <b>precompute</b>. When someone posts, workers push the new tweet ID into each follower's cached timeline (<b>fan-out on write</b>), and reading a feed becomes one Redis call plus a hydrate. Celebrities break that model (one post would mean 50M cache writes), so their tweets are <b>pulled at read time</b> and merged in. That mix is the <b>hybrid</b> model, and it is the answer interviewers are looking for.</p>",
+ "requirements": {
+  "functional": [
+   "Post a tweet: up to 280 characters plus photos or video",
+   "Follow and unfollow accounts",
+   "Home timeline: tweets from accounts you follow, ranked or newest first, paginated",
+   "Profile timeline: one user's own tweets"
+  ],
+  "nonfunctional": [
+   "Home timeline p99 under ~200 ms; it is the first screen of the app",
+   "A new tweet reaches followers' feeds within a few seconds (eventual consistency is fine)",
+   "Highly available for reads: a stale feed beats an error page",
+   "Handle accounts with tens of millions of followers without slowing everyone else"
+  ],
+  "out_of_scope": [
+   "Search, trends and hashtags",
+   "Direct messages and notifications",
+   "Ads and the details of the ranking model"
+  ]
+ },
+ "estimates": [
+  {
+   "label": "Daily active users",
+   "calc": "assumption",
+   "value": "250M"
+  },
+  {
+   "label": "Posts per second",
+   "calc": "500M tweets/day ÷ 86,400 s (peak ×3)",
+   "value": "~5.8k/s (17k peak)"
+  },
+  {
+   "label": "Timeline reads per second",
+   "calc": "250M × 20 loads/day ÷ 86,400 s (peak ×3)",
+   "value": "~58k/s (170k peak)"
+  },
+  {
+   "label": "Fan-out writes per second",
+   "calc": "5.8k posts/s × 200 followers (median-ish)",
+   "value": "~1.2M LPUSH/s"
+  },
+  {
+   "label": "Timeline cache",
+   "calc": "250M users × 800 IDs × 8 B, ×3 replicas",
+   "value": "1.6 TB, ~5 TB RAM"
+  },
+  {
+   "label": "Tweet storage",
+   "calc": "500M × ~1 KB metadata per day × 365",
+   "value": "~0.5 TB/day, ~180 TB/yr"
+  }
+ ],
+ "api": [
+  {
+   "method": "POST",
+   "path": "/v1/media {type, bytes}",
+   "desc": "Returns {media_id, upload_url}. The client PUTs the file straight to object storage."
+  },
+  {
+   "method": "POST",
+   "path": "/v1/tweets {text, media_ids[]}",
+   "desc": "Returns 201 {tweet_id}. Fan-out happens after the response."
+  },
+  {
+   "method": "GET",
+   "path": "/v1/timeline/home?cursor=&limit=20",
+   "desc": "Returns {tweets[], next_cursor}. The cursor is the last tweet ID seen, not a page number."
+  },
+  {
+   "method": "GET",
+   "path": "/v1/users/{id}/tweets?cursor=",
+   "desc": "Profile timeline, read straight from the author index."
+  },
+  {
+   "method": "PUT",
+   "path": "/v1/follows/{user_id}",
+   "desc": "Follow. DELETE the same path to unfollow."
+  }
+ ],
+ "data": [
+  {
+   "name": "tweets",
+   "store": "Sharded wide-column / KV",
+   "fields": [
+    "tweet_id PK (Snowflake, time-ordered)",
+    "author_id",
+    "text",
+    "media_ids",
+    "created_at",
+    "deleted"
+   ],
+   "note": "Shard by hash of tweet_id so writes spread evenly. A second index on (author_id, tweet_id DESC) serves profiles and celebrity pulls."
+  },
+  {
+   "name": "follows",
+   "store": "Sharded SQL (graph)",
+   "fields": [
+    "follower_id",
+    "followee_id",
+    "created_at"
+   ],
+   "note": "Stored twice: keyed by follower (who do I follow?) and by followee (who follows me?), each sharded on its first column."
+  },
+  {
+   "name": "users",
+   "store": "SQL",
+   "fields": [
+    "user_id PK",
+    "handle",
+    "follower_count",
+    "is_celebrity",
+    "last_active_at"
+   ],
+   "note": "Fan-out workers read is_celebrity and last_active_at to decide who gets a push."
+  },
+  {
+   "name": "timeline:{user_id}",
+   "store": "Redis list",
+   "fields": [
+    "tweet IDs, newest first",
+    "LTRIM to 800",
+    "3 replicas"
+   ],
+   "note": "A cache, not the source of truth. Any timeline can be rebuilt from follows + tweets."
+  }
+ ],
+ "diagram": {
+  "w": 960,
+  "h": 550,
+  "groups": [
+   {
+    "label": "Write path: fan-out on write",
+    "x": 350,
+    "y": 18,
+    "w": 596,
+    "h": 134
+   },
+   {
+    "label": "Read path",
+    "x": 350,
+    "y": 318,
+    "w": 596,
+    "h": 222
+   }
+  ],
+  "nodes": [
+   {
+    "id": "client",
+    "label": "Mobile app",
+    "sub": "home timeline",
+    "kind": "mobile",
+    "x": 75,
+    "y": 235
+   },
+   {
+    "id": "gw",
+    "label": "API gateway",
+    "sub": "auth, limits",
+    "kind": "gateway",
+    "x": 275,
+    "y": 235
+   },
+   {
+    "id": "post",
+    "label": "Post service",
+    "sub": "validate, store",
+    "kind": "service",
+    "x": 440,
+    "y": 90
+   },
+   {
+    "id": "queue",
+    "label": "Fan-out queue",
+    "sub": "Kafka, by author",
+    "kind": "stream",
+    "x": 640,
+    "y": 90
+   },
+   {
+    "id": "fanout",
+    "label": "Fan-out workers",
+    "sub": "write to timelines",
+    "kind": "worker",
+    "x": 850,
+    "y": 90
+   },
+   {
+    "id": "tweets",
+    "label": "Tweet store",
+    "sub": "sharded, + cache",
+    "kind": "nosql",
+    "x": 440,
+    "y": 235
+   },
+   {
+    "id": "graph",
+    "label": "Social graph",
+    "sub": "who follows whom",
+    "kind": "db",
+    "x": 680,
+    "y": 235
+   },
+   {
+    "id": "timeline",
+    "label": "Timeline service",
+    "sub": "merge, hydrate",
+    "kind": "service",
+    "x": 440,
+    "y": 380
+   },
+   {
+    "id": "tcache",
+    "label": "Timeline cache",
+    "sub": "Redis, 800 IDs/user",
+    "kind": "cache",
+    "x": 858,
+    "y": 380
+   },
+   {
+    "id": "ranker",
+    "label": "Ranker",
+    "sub": "score candidates",
+    "kind": "ml",
+    "x": 680,
+    "y": 492
+   },
+   {
+    "id": "cdn",
+    "label": "CDN",
+    "sub": "images, video",
+    "kind": "cdn",
+    "x": 75,
+    "y": 470
+   },
+   {
+    "id": "media",
+    "label": "Media store",
+    "sub": "S3 origin",
+    "kind": "storage",
+    "x": 270,
+    "y": 470
+   }
+  ],
+  "edges": [
+   {
+    "id": "c-gw",
+    "from": "client",
+    "to": "gw",
+    "label": "HTTPS"
+   },
+   {
+    "id": "c-m",
+    "from": "client",
+    "to": "media",
+    "label": "PUT media"
+   },
+   {
+    "id": "c-cdn",
+    "from": "client",
+    "to": "cdn",
+    "label": "GET media"
+   },
+   {
+    "id": "cdn-m",
+    "from": "cdn",
+    "to": "media",
+    "label": "miss"
+   },
+   {
+    "id": "gw-p",
+    "from": "gw",
+    "to": "post",
+    "label": "POST /tweets"
+   },
+   {
+    "id": "gw-t",
+    "from": "gw",
+    "to": "timeline",
+    "label": "GET /timeline"
+   },
+   {
+    "id": "p-tw",
+    "from": "post",
+    "to": "tweets",
+    "label": "INSERT"
+   },
+   {
+    "id": "p-q",
+    "from": "post",
+    "to": "queue",
+    "dashed": true
+   },
+   {
+    "id": "q-f",
+    "from": "queue",
+    "to": "fanout",
+    "dashed": true
+   },
+   {
+    "id": "f-g",
+    "from": "fanout",
+    "to": "graph",
+    "label": "followers?"
+   },
+   {
+    "id": "f-tc",
+    "from": "fanout",
+    "to": "tcache",
+    "label": "LPUSH id"
+   },
+   {
+    "id": "t-tc",
+    "from": "timeline",
+    "to": "tcache",
+    "label": "get IDs"
+   },
+   {
+    "id": "t-g",
+    "from": "timeline",
+    "to": "graph",
+    "label": "celebs I follow"
+   },
+   {
+    "id": "t-tw",
+    "from": "timeline",
+    "to": "tweets",
+    "label": "hydrate"
+   },
+   {
+    "id": "t-r",
+    "from": "timeline",
+    "to": "ranker",
+    "label": "score"
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "post",
+   "name": "Post (normal user)",
+   "desc": "Fan-out on write: about 200 cache writes per tweet.",
+   "steps": [
+    {
+     "edge": "c-m",
+     "note": "Any photo goes first, straight to object storage with a <b>presigned URL</b> from <code>POST /v1/media</code>. A 3 MB image never passes through your app servers; the tweet carries only <code>media_id</code>."
+    },
+    {
+     "edge": "c-gw",
+     "note": "<code>POST /v1/tweets {text, media_ids}</code>. The gateway checks the session token and a per-user rate limit, because spam bots post thousands of times a minute."
+    },
+    {
+     "edge": "gw-p",
+     "note": "Routed to any post-service replica. It is stateless, so you add replicas for load."
+    },
+    {
+     "edge": "p-tw",
+     "note": "Write the tweet with a <b>Snowflake ID</b>: 64 bits of timestamp + machine + sequence, so sorting by ID is sorting by time. This row is the source of truth; everything after it can be rebuilt."
+    },
+    {
+     "edge": "p-q",
+     "note": "Publish <code>TweetCreated{id, author}</code> to Kafka. Partition by author so one author's tweets stay in order."
+    },
+    {
+     "edge": "c-gw",
+     "rev": true,
+     "note": "Return <b>201</b> in about 50 ms. The poster does not wait for 200 follower timelines; they update in the background over the next second or two."
+    },
+    {
+     "edge": "q-f",
+     "note": "A fan-out worker consumes the event. If it crashes mid-way, Kafka redelivers. Pushing the same ID twice is harmless because the reader dedupes by ID."
+    },
+    {
+     "edge": "f-g",
+     "note": "Read the follower list in pages of a few thousand. Skip followers inactive for 30+ days: their timeline is rebuilt on demand if they ever return, which saves most of the writes."
+    },
+    {
+     "edge": "f-tc",
+     "note": "Per follower: <code>LPUSH timeline:{id} tweet_id</code> then <code>LTRIM 0 799</code>. Only the 8-byte ID goes in, never the text, so a tweet edit or delete changes one row, not 200 copies."
+    }
+   ]
+  },
+  {
+   "id": "celeb",
+   "name": "Post (celebrity)",
+   "desc": "Why pure fan-out on write breaks.",
+   "steps": [
+    {
+     "edge": "c-gw",
+     "note": "An account with 50M followers posts."
+    },
+    {
+     "edge": "gw-p",
+     "note": "Same entry path as anyone else."
+    },
+    {
+     "edge": "p-tw",
+     "note": "Same durable write, indexed by (author_id, tweet_id) so it can be read by author later."
+    },
+    {
+     "edge": "p-q",
+     "note": "Same event onto the queue."
+    },
+    {
+     "edge": "q-f",
+     "note": "The worker reads <code>is_celebrity</code>. Above a threshold (say 100k followers, tuned from data) it <b>skips fan-out</b>. 50M LPUSHes would take about a minute of the whole cluster's write capacity and delay every other tweet queued behind it."
+    },
+    {
+     "node": "tweets",
+     "note": "The tweet simply waits in the tweet store. Followers <b>pull</b> it when they open the app: one extra indexed read per celebrity they follow, merged at read time."
+    }
+   ]
+  },
+  {
+   "id": "read",
+   "name": "Read home timeline",
+   "desc": "One cache read, a short celebrity pull, hydrate, rank.",
+   "steps": [
+    {
+     "edge": "c-gw",
+     "note": "<code>GET /v1/timeline/home?limit=20</code>. This runs tens of thousands of times a second, so every hop must be a cache or an indexed read."
+    },
+    {
+     "edge": "gw-t",
+     "note": "Routed to the timeline service, which does the merge."
+    },
+    {
+     "edge": "t-tc",
+     "note": "One Redis call returns up to 800 precomputed tweet IDs, about 1 ms. On a miss (a user back after months) rebuild from the graph and tweet store: slow once, then cached."
+    },
+    {
+     "edge": "t-g",
+     "note": "Which accounts I follow are celebrities? Usually tens, and the answer is cached per user."
+    },
+    {
+     "edge": "t-tw",
+     "note": "Pull each celebrity's recent tweets by author index, merge with the cached IDs by Snowflake ID, then <b>hydrate</b>: one multi-get for the tweet bodies, served mostly from the tweet cache. Drop deleted tweets and blocked authors here."
+    },
+    {
+     "edge": "t-r",
+     "note": "Score the few hundred candidates (recency, likes, how often you interact with the author) and keep the top 20. A chronological 'Latest' tab skips this step."
+    },
+    {
+     "edge": "c-gw",
+     "rev": true,
+     "note": "Return 20 tweets and <code>next_cursor</code> (the last tweet ID). Media come back as URLs, not bytes."
+    },
+    {
+     "edge": "c-cdn",
+     "note": "The app loads images from a nearby CDN edge. Popular media hit the cache well over 90% of the time."
+    },
+    {
+     "edge": "cdn-m",
+     "note": "A miss fetches once from object storage; every later viewer nearby gets the cached copy."
+    }
+   ]
+  }
+ ],
+ "deep": [
+  {
+   "title": "Fan-out on write, on read, or both?",
+   "html": "<ul><li><b>Fan-out on write (push)</b>: precompute every follower's feed when a tweet is posted. Reads are one cache call. Cost: write amplification (1 post × followers) and wasted work for followers who never log in.</li><li><b>Fan-out on read (pull)</b>: at read time, fetch recent tweets from every account you follow and merge. No wasted writes, but following 500 accounts means 500 lookups on every refresh, at 58k reads/s.</li><li><b>Hybrid</b>: push for normal accounts, pull for the few accounts above a follower threshold, merge at read time. Twitter described this approach publicly in its 2013 'Timelines at Scale' talk (Redis timelines capped at 800 entries, replicated 3 times).</li></ul><p>Say the threshold out loud and say it is tunable: the cost of a push grows with followers, the cost of a pull grows with how many readers follow that account.</p>"
+  },
+  {
+   "title": "Sharding the tweet store and hot keys",
+   "html": "<p>Shard tweets by a <b>hash of tweet_id</b>. If you range-shard by time-ordered ID, every new write lands on the newest shard. If you shard by author, a celebrity's shard becomes hot. A viral tweet is a hot <i>read</i> key instead: put it in an in-process cache on each timeline server for a few seconds, so 100k reads/s on one tweet never reach one cache node. Try both modes and the celebrity toggle below.</p>",
+   "sim": "shard"
+  },
+  {
+   "title": "Pagination with cursors",
+   "html": "<p>Use <code>?cursor=&lt;last tweet_id&gt;</code>, not <code>?page=3</code>. New tweets arrive at the top while you scroll, so offset pages shift and show duplicates. A cursor says 'older than this ID', which is stable because Snowflake IDs are time-ordered. The 800-entry cache covers a few days of scrolling; past that, fall back to pulling from the tweet store.</p>"
+  },
+  {
+   "title": "Deletes, unfollows and blocks",
+   "html": "<p>Do not try to remove a deleted tweet from 50M cached lists. Mark it deleted in the tweet store and <b>filter at hydrate time</b>, which you already do for every read. Same for unfollow and block: filter on read now, and let an async job trim the cached list later. On a new follow, an async job backfills that account's last ~20 tweets into your timeline so the feed does not look empty.</p>"
+  }
+ ],
+ "tradeoffs": [
+  {
+   "choice": "Fan-out on write or on read?",
+   "pick": "Hybrid",
+   "why": "Push gives cheap reads for the 99.9% of accounts with modest followings; pull avoids 50M writes per celebrity post. The merge costs a few extra indexed reads per request."
+  },
+  {
+   "choice": "What goes in the timeline cache?",
+   "pick": "Tweet IDs only",
+   "why": "8 B per entry keeps the cache at ~1.6 TB instead of hundreds of TB, and edits and deletes touch one row. You pay one multi-get to hydrate."
+  },
+  {
+   "choice": "Chronological or ranked?",
+   "pick": "Ranked by default, with a 'Latest' tab",
+   "why": "Ranking lifts engagement but needs a scoring step and features. Keep chronological as a fallback when the ranker is slow or down."
+  },
+  {
+   "choice": "How fresh must the feed be?",
+   "pick": "Eventual, within seconds",
+   "why": "Nobody notices a 2 s delay on a new tweet. Requiring it to be synchronous would put 200+ cache writes on the poster's request."
+  }
+ ],
+ "bottlenecks": [
+  {
+   "issue": "A big event (New Year, a final) triples posts for an hour",
+   "fix": "Kafka absorbs the burst, workers autoscale on consumer lag, and active users are fanned out first. Feeds lag by seconds, nothing fails."
+  },
+  {
+   "issue": "A viral tweet is read 100k times a second",
+   "fix": "Short-lived in-process cache on each timeline server plus replicated hot keys in the tweet cache, so no single node takes all the reads."
+  },
+  {
+   "issue": "A timeline cache node fails",
+   "fix": "Each list has replicas; on a total miss rebuild from the graph and tweet store. The cache is disposable by design."
+  }
+ ],
+ "followups": [
+  {
+   "q": "How do you show the '5 new posts' banner?",
+   "a": "<p>The client polls a cheap endpoint with <code>since_id</code> every 30-60 s (or keeps a WebSocket open). The server compares against the head of the cached list and returns a count. It never builds the full feed for this.</p>"
+  },
+  {
+   "q": "Someone follows 2,000 accounts and logs in after a year away. What happens?",
+   "a": "<p>Their cached timeline was never filled (inactive users are skipped) or expired. Rebuild on demand: pull recent tweets from the accounts they follow, merge, cache, return. The first load is slower; show a spinner and cap the pull at the most recently active followees.</p>"
+  },
+  {
+   "q": "Where does the threshold for 'celebrity' come from?",
+   "a": "<p>Data. Push cost grows with follower count; pull cost grows with how many active readers follow that account. Start around 10k-100k followers, measure fan-out lag and read latency, then tune. It can differ per account (an active celebrity vs a dormant one).</p>"
+  },
+  {
+   "q": "How would you go multi-region?",
+   "a": "<p>Write each tweet in the author's home region and replicate the event stream. Each region runs its own fan-out workers and timeline caches for users who live there. A tweet from across the world shows up after replication lag, which is fine for a feed.</p>"
+  },
+  {
+   "q": "How does ranking scale to 170k requests a second?",
+   "a": "<p>Two stages: cheap candidate generation (the ~800 IDs plus celebrity pulls) and a light model that scores only those. Precompute author and tweet features asynchronously; keep model inference per request under ~50 ms, and fall back to chronological if it times out.</p>"
+  }
+ ],
+ "quiz": [
+  {
+   "q": "Why not fan out a 50M-follower account's tweet on write?",
+   "options": [
+    "Redis lists can't hold that many entries",
+    "It turns one post into 50M writes and delays every tweet queued behind it",
+    "Kafka can't carry the event",
+    "Followers would see it twice"
+   ],
+   "answer": 1,
+   "why": "Write amplification. Pull those few accounts at read time and merge instead."
+  },
+  {
+   "q": "What should the timeline cache store?",
+   "options": [
+    "Full tweet JSON",
+    "Tweet IDs, hydrated at read time",
+    "Rendered HTML",
+    "Only the newest tweet"
+   ],
+   "answer": 1,
+   "why": "IDs are 8 bytes, and edits or deletes change one row instead of millions of copies."
+  },
+  {
+   "q": "Why paginate with a cursor of the last tweet ID instead of page numbers?",
+   "options": [
+    "Cursors are shorter",
+    "New tweets shift offset pages, causing duplicates and gaps",
+    "Page numbers leak user data",
+    "Databases don't support OFFSET"
+   ],
+   "answer": 1,
+   "why": "Time-ordered IDs give a stable 'older than X' boundary."
+  },
+  {
+   "q": "A user deletes a tweet that is already in 3M cached timelines. Best approach?",
+   "options": [
+    "LREM it from all 3M lists synchronously",
+    "Mark it deleted and filter during hydration",
+    "Flush the whole timeline cache",
+    "Leave it visible"
+   ],
+   "answer": 1,
+   "why": "You hydrate every ID anyway, so filtering there is free and immediate."
+  },
+  {
+   "q": "Why return 201 to the poster before fan-out finishes?",
+   "options": [
+    "HTTP requires it",
+    "Fan-out can take seconds and the poster shouldn't wait for it",
+    "It hides errors",
+    "Kafka needs the response first"
+   ],
+   "answer": 1,
+   "why": "Eventual consistency on followers' feeds is acceptable; the durable write already happened."
+  }
+ ]
+}

@@ -1,0 +1,770 @@
+{
+ "id": "otp-login",
+ "title": "Login with SMS OTP at national scale",
+ "tagline": "Send a 6-digit code, verify it safely, and let many agency apps sign people in through one identity provider.",
+ "govtech": true,
+ "govtech_label": "GovTech-relevant",
+ "mirrors": "Singpass-style login",
+ "featured": false,
+ "difficulty": "medium",
+ "govtech_note": "<p>A reported GovTech/MOM pair-programming exercise (~2022) was to build a small REST OTP server in an hour: generate a code, verify it, expire it, write tests. This design is that exercise <b>scaled up</b>: what changes when millions of people log in and dozens of agency apps rely on you. Singpass is the national digital identity; the design below is a reasonable one for a Singpass-style login, not a description of how Singpass is built. Treat it as <b>domain-flavoured practice</b>.</p>",
+ "summary": "<p>Two jobs. First, an <b>OTP service</b>: make an unguessable 6-digit code, store only a keyed hash of it with a 5-minute TTL, deliver it by SMS through a queue, and verify it with strict attempt limits. Second, an <b>OpenID Connect provider</b> so agency apps never see the OTP: they redirect the user to you and get back a signed ID token via the <b>authorization code flow with PKCE</b>. Most of the interesting decisions are security trade-offs: rate limits versus lockout abuse, and SMS convenience versus SIM-swap and phishing risk.</p>",
+ "requirements": {
+  "functional": [
+   "Request a 6-digit code for a registered mobile number",
+   "Verify the code and start a login session",
+   "Agency apps (relying parties) log users in via OIDC and receive an ID token",
+   "Resend with cool-down; codes expire after 5 minutes and are single-use",
+   "Audit log of every login attempt"
+  ],
+  "nonfunctional": [
+   "Guessing a code must be infeasible: few attempts per code, rate limits per phone and IP",
+   "Login p99 under 300 ms excluding SMS delivery; SMS delivered in under 10 s for 95%",
+   "Highly available: if login is down, every dependent agency service is down",
+   "Never store codes or tokens in plain text; never leak whether a number is registered",
+   "Survive the loss of one SMS provider"
+  ],
+  "out_of_scope": [
+   "Account registration and identity proofing",
+   "App-based push or biometric login (mentioned as an upgrade)",
+   "Authorisation inside agency apps"
+  ]
+ },
+ "estimates": [
+  {
+   "label": "Logins / day",
+   "calc": "assume 4.5M accounts × ~0.7 logins/day",
+   "value": "~3M"
+  },
+  {
+   "label": "Average login QPS",
+   "calc": "3M ÷ 86,400",
+   "value": "~35/s"
+  },
+  {
+   "label": "Peak login QPS",
+   "calc": "× 20 when a payout or deadline opens",
+   "value": "~700/s"
+  },
+  {
+   "label": "SMS per day",
+   "calc": "assume half of logins use SMS: 3M × 50% × 1.1 (resends)",
+   "value": "~1.65M"
+  },
+  {
+   "label": "Odds of guessing one code",
+   "calc": "5 attempts ÷ 10^6 possible codes",
+   "value": "1 in 200,000"
+  },
+  {
+   "label": "Redis memory for live codes",
+   "calc": "700/s × 300 s TTL × ~300 B",
+   "value": "~63 MB"
+  }
+ ],
+ "api": [
+  {
+   "method": "POST",
+   "path": "/otp {phone}",
+   "desc": "Always 202 {txnId} with the same message, registered or not. 429 when rate-limited."
+  },
+  {
+   "method": "POST",
+   "path": "/otp/verify {txnId, code}",
+   "desc": "200 + session cookie (HttpOnly, Secure). 401 wrong code, 410 expired, 423 too many attempts."
+  },
+  {
+   "method": "GET",
+   "path": "/authorize?client_id&redirect_uri&state&nonce&code_challenge",
+   "desc": "OIDC. Shows login if no session; then 302 to redirect_uri with ?code&state."
+  },
+  {
+   "method": "POST",
+   "path": "/token {code, code_verifier, client_assertion}",
+   "desc": "OIDC back channel. Returns a signed id_token (and access_token). Code is single-use."
+  },
+  {
+   "method": "GET",
+   "path": "/.well-known/jwks.json",
+   "desc": "Public keys that relying parties use to verify ID token signatures."
+  }
+ ],
+ "data": [
+  {
+   "name": "otp:{txnId}",
+   "store": "Redis",
+   "fields": [
+    "phone",
+    "code_hmac",
+    "attempts",
+    "TTL 300 s"
+   ],
+   "note": "Deleted on success or on the 5th failure. A new request replaces the old code."
+  },
+  {
+   "name": "rl:phone:{p}, rl:ip:{ip}",
+   "store": "Redis",
+   "fields": [
+    "counter per window",
+    "TTL = window"
+   ],
+   "note": "Sliding-window counters: e.g. 1 code per 60 s and 5 per hour per phone, 20 per hour per IP."
+  },
+  {
+   "name": "authcode:{code}",
+   "store": "Redis",
+   "fields": [
+    "user_id",
+    "client_id",
+    "redirect_uri",
+    "code_challenge",
+    "nonce",
+    "TTL 60 s"
+   ],
+   "note": "Single-use: deleted atomically (GETDEL) when exchanged at /token."
+  },
+  {
+   "name": "users",
+   "store": "PostgreSQL",
+   "fields": [
+    "user_id PK",
+    "phone UNIQUE",
+    "status",
+    "phone_changed_at"
+   ],
+   "note": "phone_changed_at feeds risk checks: a number changed yesterday deserves extra scrutiny."
+  },
+  {
+   "name": "clients",
+   "store": "PostgreSQL",
+   "fields": [
+    "client_id PK",
+    "redirect_uris[]",
+    "jwks_uri"
+   ],
+   "note": "Exact redirect_uri matching stops codes being sent to an attacker's site."
+  },
+  {
+   "name": "audit_log",
+   "store": "PostgreSQL",
+   "fields": [
+    "ts",
+    "user_id",
+    "event",
+    "ip",
+    "user_agent",
+    "client_id"
+   ],
+   "note": "Append-only, partitioned by month; used for fraud review and user-visible login history."
+  }
+ ],
+ "diagram": {
+  "w": 960,
+  "h": 500,
+  "groups": [
+   {
+    "label": "Identity provider",
+    "x": 205,
+    "y": 20,
+    "w": 735,
+    "h": 350
+   },
+   {
+    "label": "SMS delivery (async)",
+    "x": 205,
+    "y": 385,
+    "w": 420,
+    "h": 105
+   }
+  ],
+  "nodes": [
+   {
+    "id": "rp",
+    "label": "Agency app",
+    "sub": "OIDC client (RP)",
+    "kind": "service",
+    "x": 85,
+    "y": 80
+   },
+   {
+    "id": "user",
+    "label": "Resident",
+    "sub": "browser / app",
+    "kind": "client",
+    "x": 85,
+    "y": 215
+   },
+   {
+    "id": "provA",
+    "label": "SMS provider A",
+    "sub": "primary",
+    "kind": "ext",
+    "x": 85,
+    "y": 345
+   },
+   {
+    "id": "provB",
+    "label": "SMS provider B",
+    "sub": "standby",
+    "kind": "ext",
+    "x": 85,
+    "y": 455
+   },
+   {
+    "id": "gw",
+    "label": "API gateway",
+    "sub": "WAF, IP limits",
+    "kind": "gateway",
+    "x": 295,
+    "y": 215
+   },
+   {
+    "id": "oidc",
+    "label": "OIDC provider",
+    "sub": "/authorize, /token",
+    "kind": "auth",
+    "x": 505,
+    "y": 80
+   },
+   {
+    "id": "otp",
+    "label": "OTP service",
+    "sub": "issue + verify",
+    "kind": "auth",
+    "x": 505,
+    "y": 215
+   },
+   {
+    "id": "kms",
+    "label": "KMS",
+    "sub": "signing keys",
+    "kind": "auth",
+    "x": 800,
+    "y": 80
+   },
+   {
+    "id": "redis",
+    "label": "Redis",
+    "sub": "OTP hash, counters",
+    "kind": "cache",
+    "x": 800,
+    "y": 215
+   },
+   {
+    "id": "pg",
+    "label": "PostgreSQL",
+    "sub": "users, audit log",
+    "kind": "db",
+    "x": 800,
+    "y": 330
+   },
+   {
+    "id": "queue",
+    "label": "SMS queue",
+    "sub": "at-least-once",
+    "kind": "queue",
+    "x": 525,
+    "y": 440
+   },
+   {
+    "id": "sender",
+    "label": "SMS sender",
+    "sub": "failover",
+    "kind": "worker",
+    "x": 315,
+    "y": 440
+   }
+  ],
+  "edges": [
+   {
+    "id": "u-rp",
+    "from": "user",
+    "to": "rp",
+    "label": "log in"
+   },
+   {
+    "id": "u-gw",
+    "from": "user",
+    "to": "gw",
+    "label": "HTTPS"
+   },
+   {
+    "id": "gw-oidc",
+    "from": "gw",
+    "to": "oidc",
+    "label": "/authorize"
+   },
+   {
+    "id": "gw-otp",
+    "from": "gw",
+    "to": "otp",
+    "label": "/otp"
+   },
+   {
+    "id": "otp-r",
+    "from": "otp",
+    "to": "redis",
+    "label": "hash + TTL"
+   },
+   {
+    "id": "otp-pg",
+    "from": "otp",
+    "to": "pg",
+    "label": "user, audit"
+   },
+   {
+    "id": "otp-q",
+    "from": "otp",
+    "to": "queue",
+    "label": "job",
+    "dashed": true
+   },
+   {
+    "id": "q-s",
+    "from": "queue",
+    "to": "sender",
+    "dashed": true
+   },
+   {
+    "id": "s-a",
+    "from": "sender",
+    "to": "provA",
+    "label": "send"
+   },
+   {
+    "id": "s-b",
+    "from": "sender",
+    "to": "provB",
+    "label": "backup",
+    "dashed": true
+   },
+   {
+    "id": "a-u",
+    "from": "provA",
+    "to": "user",
+    "label": "SMS"
+   },
+   {
+    "id": "oidc-r",
+    "from": "oidc",
+    "to": "redis",
+    "label": "auth codes"
+   },
+   {
+    "id": "oidc-kms",
+    "from": "oidc",
+    "to": "kms",
+    "label": "sign"
+   },
+   {
+    "id": "rp-oidc",
+    "from": "rp",
+    "to": "oidc",
+    "label": "code + verifier"
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "request",
+   "name": "Request a code",
+   "desc": "Fast response, slow SMS: decouple them.",
+   "steps": [
+    {
+     "edge": "u-gw",
+     "note": "Resident enters their mobile number. The gateway applies coarse per-IP limits and WAF rules before any code runs."
+    },
+    {
+     "edge": "gw-otp",
+     "note": "<code>POST /otp {phone}</code>. Normalise to E.164 (<code>+6591234567</code>) first, or <code>9123 4567</code> and <code>+65 91234567</code> get separate rate limits."
+    },
+    {
+     "edge": "otp-pg",
+     "note": "Look up the user by phone. If none exists, <b>still return the same 202</b> after a similar delay, so the endpoint cannot be used to test which numbers are registered."
+    },
+    {
+     "edge": "otp-r",
+     "note": "Check counters (1 per 60 s, 5 per hour per phone). Generate the code with a CSPRNG, e.g. <code>secrets.randbelow(10**6)</code> zero-padded. Store <code>HMAC(server_key, txnId + code)</code> with TTL 300 s and attempts = 0."
+    },
+    {
+     "edge": "otp-q",
+     "note": "Enqueue the SMS job. Never call the SMS provider inline: it can take seconds or time out, and a slow provider would tie up API threads during a login rush."
+    },
+    {
+     "edge": "gw-otp",
+     "rev": true,
+     "note": "Return <code>202 {txnId}</code> in ~20 ms. The txnId binds the code to this login attempt, so a code typed into another browser session is useless."
+    },
+    {
+     "edge": "q-s",
+     "note": "A sender worker pulls the job. The queue is at-least-once, so dedupe on txnId before sending to avoid two texts."
+    },
+    {
+     "edge": "s-a",
+     "note": "Send via the primary provider with a 3 s timeout. The text names the service the code is for and warns: <i>Never share this code with anyone.</i>"
+    },
+    {
+     "edge": "a-u",
+     "note": "SMS arrives, typically within a few seconds. If it does not, the user can resend after the 60 s cool-down."
+    }
+   ]
+  },
+  {
+   "id": "verify",
+   "name": "Verify and start a session",
+   "steps": [
+    {
+     "edge": "u-gw",
+     "note": "Resident submits <code>{txnId, code}</code>."
+    },
+    {
+     "edge": "gw-otp",
+     "note": "Gateway forwards to the OTP service. Per-IP verify limits apply here too, to slow down someone spraying codes across many txnIds."
+    },
+    {
+     "edge": "otp-r",
+     "note": "One atomic Lua script: increment attempts, reject if attempts &gt; 5, compare HMACs in constant time, and delete the key on success. Atomic, so two parallel guesses cannot both slip under the limit."
+    },
+    {
+     "node": "otp",
+     "note": "On success, create a session: a random 256-bit id in Redis with a 15-minute idle timeout. Server-side sessions can be revoked instantly; a long-lived JWT cannot."
+    },
+    {
+     "edge": "otp-pg",
+     "note": "Append to the audit log (who, when, IP, device) asynchronously in batches, so a slow DB does not slow every login."
+    },
+    {
+     "edge": "gw-otp",
+     "rev": true,
+     "note": "Return <code>Set-Cookie: sid=...; HttpOnly; Secure; SameSite=Lax</code>. HttpOnly keeps the session away from injected scripts."
+    },
+    {
+     "edge": "u-gw",
+     "rev": true,
+     "note": "Logged in. If this login started from an agency app, the browser now continues the OIDC flow."
+    }
+   ]
+  },
+  {
+   "id": "oidc",
+   "name": "Agency app login via OIDC",
+   "desc": "Authorization code flow with PKCE.",
+   "steps": [
+    {
+     "edge": "u-rp",
+     "note": "Resident clicks Login on an agency site. The agency backend creates a random <code>code_verifier</code>, a <code>state</code> and a <code>nonce</code>, and keeps them in its own session."
+    },
+    {
+     "edge": "u-gw",
+     "note": "Browser is redirected to the IdP with <code>code_challenge = SHA256(code_verifier)</code>. The verifier itself never travels through the browser."
+    },
+    {
+     "edge": "gw-oidc",
+     "note": "IdP checks <code>client_id</code> and that <code>redirect_uri</code> matches a registered URI exactly. No session yet, so it runs the request-and-verify flows above."
+    },
+    {
+     "edge": "oidc-r",
+     "note": "After login, store a one-time authorization code with the user, client, challenge and nonce, TTL 60 s."
+    },
+    {
+     "edge": "u-gw",
+     "rev": true,
+     "note": "302 back to the agency's redirect_uri with <code>?code=...&amp;state=...</code>. The agency checks state matches, which blocks login CSRF."
+    },
+    {
+     "edge": "rp-oidc",
+     "note": "Agency backend calls <code>/token</code> server to server with the code, the code_verifier and a signed client assertion. A stolen code alone is useless without the verifier."
+    },
+    {
+     "edge": "oidc-kms",
+     "note": "IdP checks <code>SHA256(verifier) == challenge</code>, deletes the code, and signs an ID token (sub, aud, exp ~10 min, nonce). The signing key never leaves KMS/HSM, or is a short-lived key KMS wraps."
+    },
+    {
+     "edge": "rp-oidc",
+     "rev": true,
+     "note": "Agency verifies the signature with the IdP's public JWKS, plus iss, aud, exp and nonce, then creates its own session. It never sees the phone number or the code."
+    }
+   ]
+  },
+  {
+   "id": "failover",
+   "name": "SMS provider fails",
+   "steps": [
+    {
+     "edge": "q-s",
+     "note": "The sender pulls a job during an outage at provider A."
+    },
+    {
+     "edge": "s-a",
+     "note": "Timeouts and 5xx errors pile up. A circuit breaker opens after, say, 20% errors over 30 s, and stops sending to A."
+    },
+    {
+     "node": "sender",
+     "note": "Jobs are not lost: the message stays invisible in the queue until acked, and is retried with backoff. Codes have a 5-minute life, so retrying a 4-minute-old job is pointless: drop it and let the user resend."
+    },
+    {
+     "edge": "s-b",
+     "note": "Send via provider B. Keep B warm with a small share of normal traffic (say 5%), or you discover its misconfiguration during the outage."
+    },
+    {
+     "node": "provB",
+     "note": "The circuit half-opens after a minute and probes A with a few messages before moving traffic back."
+    }
+   ]
+  }
+ ],
+ "deep": [
+  {
+   "title": "Generating and storing the code",
+   "html": "<ul><li><b>CSPRNG only</b>: <code>secrets.randbelow(10**6)</code>, not <code>random.randint</code>, whose output can be predicted after observing enough values.</li><li><b>Store a keyed hash</b>: a plain SHA-256 of a 6-digit code is reversed by trying all 10^6 values in milliseconds, so use HMAC with a server secret. Then a Redis dump alone reveals nothing.</li><li><b>Bind to the attempt</b>: include the txnId in the HMAC so a code only works for the session that asked for it.</li><li><b>Single-use, short TTL</b>: delete on success; 5 minutes is long enough for slow SMS and short enough to limit exposure.</li><li><b>Constant-time compare</b> (<code>hmac.compare_digest</code>) so response timing does not leak how many digits matched.</li></ul>"
+  },
+  {
+   "title": "Rate limits without locking people out",
+   "sim": "bucket",
+   "html": "<p>Limit on several keys at once: per <b>phone</b> (1 code/60 s, 5/hour), per <b>IP</b> (20/hour, higher for known carrier NAT ranges), per <b>txn</b> (5 verify attempts), and a global SMS budget.</p><p>Careful with lockouts: if 5 wrong codes lock the <i>account</i> for a day, anyone who knows your number can lock you out. Lock the <b>transaction</b> instead, add growing delays per phone, and alert on patterns.</p><p><b>SMS pumping</b>: fraudsters trigger codes to premium or foreign numbers to earn a share of the fees. Allow only the country codes you serve, cap spend per hour, and alert on spikes by prefix.</p>"
+  },
+  {
+   "title": "Authorization code + PKCE, step by step",
+   "html": "<p>Why not hand the agency an ID token directly in the redirect (the old implicit flow)? Tokens in URLs leak through browser history, logs and Referer headers. With the code flow, the browser only carries a 60-second, single-use code, and only the party holding the <code>code_verifier</code> can redeem it.</p>",
+   "diagram": {
+    "w": 960,
+    "h": 300,
+    "nodes": [
+     {
+      "id": "b",
+      "label": "Browser",
+      "sub": "resident",
+      "kind": "client",
+      "x": 100,
+      "y": 150
+     },
+     {
+      "id": "rp",
+      "label": "Agency backend",
+      "sub": "holds code_verifier",
+      "kind": "service",
+      "x": 390,
+      "y": 60
+     },
+     {
+      "id": "az",
+      "label": "/authorize",
+      "sub": "OTP login, issues code",
+      "kind": "auth",
+      "x": 390,
+      "y": 240
+     },
+     {
+      "id": "tok",
+      "label": "/token",
+      "sub": "checks PKCE",
+      "kind": "auth",
+      "x": 680,
+      "y": 60
+     },
+     {
+      "id": "jw",
+      "label": "JWKS endpoint",
+      "sub": "public keys",
+      "kind": "auth",
+      "x": 870,
+      "y": 200
+     }
+    ],
+    "edges": [
+     {
+      "id": "b-rp",
+      "from": "b",
+      "to": "rp",
+      "label": "click Login"
+     },
+     {
+      "id": "b-az",
+      "from": "b",
+      "to": "az",
+      "label": "challenge"
+     },
+     {
+      "id": "rp-tok",
+      "from": "rp",
+      "to": "tok",
+      "label": "code + verifier"
+     },
+     {
+      "id": "rp-jw",
+      "from": "rp",
+      "to": "jw",
+      "label": "get keys",
+      "dashed": true
+     }
+    ]
+   },
+   "flows": [
+    {
+     "id": "pkce",
+     "name": "Code + PKCE",
+     "steps": [
+      {
+       "edge": "b-rp",
+       "note": "Agency backend makes a random 43+ character <code>code_verifier</code> and keeps it server side."
+      },
+      {
+       "edge": "b-az",
+       "note": "Browser goes to /authorize with only <code>code_challenge = BASE64URL(SHA256(verifier))</code>."
+      },
+      {
+       "node": "az",
+       "note": "User logs in with the OTP. IdP stores code → (user, client, challenge), TTL 60 s."
+      },
+      {
+       "edge": "b-az",
+       "rev": true,
+       "note": "302 back to the agency with the code. Anyone watching the browser sees the code but not the verifier."
+      },
+      {
+       "edge": "rp-tok",
+       "note": "Agency sends code + verifier. IdP hashes the verifier and compares it with the stored challenge."
+      },
+      {
+       "edge": "rp-tok",
+       "rev": true,
+       "note": "Match: return a signed ID token and delete the code. A replayed code gets an error."
+      },
+      {
+       "edge": "rp-jw",
+       "note": "Agency verifies the token signature with cached public keys. Keys rotate; the <code>kid</code> header says which one to use."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "title": "SIM swap, phishing and the limits of SMS",
+   "html": "<p>SMS proves you hold the SIM <i>right now</i>, not who you are.</p><ul><li><b>SIM swap</b>: an attacker talks a telco into moving your number to their SIM. Mitigate with telco signals for recent SIM changes where available, extra checks after a phone-number change, and notifying the old channel.</li><li><b>Real-time phishing</b>: a fake site relays your number and code to the real one within seconds. A code cannot tell the sites apart. Put the requesting service in the SMS text, and move high-risk actions to <b>app-based approval</b> or <b>passkeys (WebAuthn)</b>, which are bound to the real domain.</li><li><b>Interception</b> at the network level (SS7 abuse) is rare but real; it is one more reason SMS is the weakest factor.</li></ul>"
+  }
+ ],
+ "tradeoffs": [
+  {
+   "choice": "Where to keep live codes?",
+   "pick": "Redis with TTL",
+   "why": "Codes live 5 minutes, need atomic counters, and losing them only means the user asks again. A durable DB adds write load for no benefit."
+  },
+  {
+   "choice": "IdP session: server-side id or stateless JWT?",
+   "pick": "Server-side session id",
+   "why": "Can be revoked instantly on logout or fraud. Short-lived signed ID tokens are still the right thing to hand to agency apps."
+  },
+  {
+   "choice": "OIDC flow for agency apps",
+   "pick": "Authorization code + PKCE",
+   "why": "Tokens never sit in URLs; a stolen code is useless without the verifier. Implicit flow is deprecated for this reason."
+  },
+  {
+   "choice": "After too many wrong codes",
+   "pick": "Lock the transaction, slow the phone; do not lock the account",
+   "why": "Account lockouts let anyone who knows a number deny service to its owner."
+  },
+  {
+   "choice": "One SMS provider or two?",
+   "pick": "Two, with a circuit breaker",
+   "why": "If SMS is down, login is down for every agency. A warm standby costs little next to that."
+  }
+ ],
+ "bottlenecks": [
+  {
+   "issue": "Login spike when a payout opens (20× normal)",
+   "fix": "Stateless OTP and OIDC services autoscale; Redis handles ~100k ops/s per node; SMS is queued and paced, and the UI says the SMS may take a minute."
+  },
+  {
+   "issue": "SMS provider outage or throttling",
+   "fix": "Circuit breaker, warm standby provider, drop jobs older than the code TTL, and offer app-based login as an alternative path."
+  },
+  {
+   "issue": "Redis primary fails",
+   "fix": "Replica with automatic failover. In-flight codes may be lost; users request a new one. Rate-limit counters resetting briefly is acceptable."
+  },
+  {
+   "issue": "Token signing rate on KMS",
+   "fix": "Sign with an in-memory key that KMS unwraps at start-up and rotate it daily, instead of one KMS call per token."
+  }
+ ],
+ "followups": [
+  {
+   "q": "Why not let agency apps send and check the OTP themselves?",
+   "a": "<p>Every agency would store phone numbers, pay for SMS, and implement rate limits and lockouts slightly differently. One IdP gives one hardened implementation, one audit trail, and single sign-on across agencies. Agencies just verify a signed token.</p>"
+  },
+  {
+   "q": "How do you stop someone enumerating which numbers have accounts?",
+   "a": "<p>Same response, status code and similar latency for registered and unregistered numbers; rate limits per IP and per phone; and alerts on many distinct numbers from one source.</p>"
+  },
+  {
+   "q": "The code was correct but the user says they never logged in. What do you check?",
+   "a": "<p>The audit log (IP, device, time), whether the phone number changed recently (possible SIM swap), and whether the login came through an unusual relying party or region. Then revoke sessions, notify the user, and lock new logins until re-verified.</p>"
+  },
+  {
+   "q": "How would you add 'remember this device'?",
+   "a": "<p>After a successful login, issue a long-lived random device token in a secure cookie, stored hashed server-side with the user id. Next time, a valid device token plus the OTP can skip extra checks, or the device can be upgraded to a passkey.</p>"
+  },
+  {
+   "q": "How long should the ID token live, and how does the agency log the user out?",
+   "a": "<p>Minutes (e.g. 10): it only proves the login moment. The agency runs its own session after that. For single logout, the IdP can call each agency's back-channel logout endpoint when the IdP session ends.</p>"
+  }
+ ],
+ "quiz": [
+  {
+   "q": "Why store HMAC(key, code) instead of SHA-256(code)?",
+   "options": [
+    "HMAC is faster",
+    "A 6-digit code has only 10^6 values, so a plain hash is reversed by brute force instantly",
+    "SHA-256 is broken",
+    "Redis cannot store SHA-256"
+   ],
+   "answer": 1,
+   "why": "Without a secret key, anyone with the stored hash tries all million codes in milliseconds."
+  },
+  {
+   "q": "What does PKCE protect against?",
+   "options": [
+    "SIM swap",
+    "An intercepted authorization code being redeemed by someone else",
+    "Slow SMS delivery",
+    "Brute-forcing the OTP"
+   ],
+   "answer": 1,
+   "why": "Redeeming the code needs the code_verifier, which never passes through the browser."
+  },
+  {
+   "q": "Five wrong codes in a row. What is the safest response?",
+   "options": [
+    "Lock the account for 24 hours",
+    "Invalidate this code and slow further requests for the phone",
+    "Ignore it",
+    "Send the code by email instead"
+   ],
+   "answer": 1,
+   "why": "Account lockouts are a denial-of-service tool; ending the transaction and adding delay stops guessing without hurting the owner."
+  },
+  {
+   "q": "Why does POST /otp return the same response for unknown numbers?",
+   "options": [
+    "To save SMS cost",
+    "So the endpoint cannot be used to find out who has an account",
+    "Because HTTP requires it",
+    "To simplify the client"
+   ],
+   "answer": 1,
+   "why": "Different responses would turn the login page into an account-enumeration oracle."
+  },
+  {
+   "q": "Why is the SMS sent from a queue worker instead of inside the request?",
+   "options": [
+    "Queues encrypt messages",
+    "The provider can be slow or down; the API should answer in milliseconds and retries need a home",
+    "SMS must be sent in order",
+    "Workers are cheaper than API servers"
+   ],
+   "answer": 1,
+   "why": "Decoupling keeps login fast during provider slowness and lets failover and retries happen without the user waiting."
+  }
+ ]
+}

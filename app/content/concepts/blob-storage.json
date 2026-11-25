@@ -1,0 +1,270 @@
+{
+ "id": "blob-storage",
+ "title": "Blob storage and uploads",
+ "group": "Data",
+ "tagline": "Keep bytes in object storage, metadata in a database, and never stream big files through your API servers.",
+ "why": "<p>Files (attachments, photos, CSVs, video) are large, written once and read many times. A database is the wrong home: a 20 MB row bloats backups, replication and every query that touches the table. Object storage such as S3 stores the bytes cheaply, durably and with no capacity planning, and your database keeps a small row that says who owns the file, where it is and what state it is in.</p><p>The second idea is to keep bytes off your app servers. If a 100 MB upload streams through your API, it ties up a worker for a minute and your fleet scales on bandwidth instead of requests. A <b>presigned URL</b> lets the browser send the bytes straight to the bucket, with your API only handing out short-lived permission.</p><p>Uploaded files are untrusted input. Scanning, resizing and parsing happen asynchronously after the upload, and the file is not usable until they finish.</p>",
+ "how": "<p><b>1. Ask for permission.</b> The client calls <code>POST /uploads {name, type, size}</code>. The API checks auth, type and size, writes a metadata row with <code>status = pending</code>, and returns a presigned URL for a server-chosen key like <code>quarantine/7f3c...</code>. The URL is valid for a few minutes and only for that key.</p><p><b>2. Upload directly.</b> The browser PUTs the bytes to the bucket. Large files use <b>multipart upload</b>: parts of 5 MB to 5 GB (only the last part may be smaller), sent in parallel, retried one part at a time. A presigned <b>POST</b> policy can enforce a size range; a presigned PUT can at most pin an exact <code>Content-Length</code>.</p><p><b>3. React to the upload.</b> The bucket emits an <code>ObjectCreated</code> event to a queue. Delivery is at least once, so every handler must be idempotent (key on the object key and its ETag). Scope the event to the <code>quarantine/</code> prefix, or moving a clean file fires another event.</p><p><b>4. Process asynchronously.</b> A scanner (for example ClamAV, or a managed malware scanner) checks the file. Clean files move to the clean prefix and the row becomes <code>clean</code>; infected ones are deleted and the row becomes <code>rejected</code>. Only then do other workers make thumbnails, parse the CSV or extract text.</p><p><b>5. Serve it.</b> Downloads use short-lived presigned GET URLs, often through a CDN, with <code>Content-Disposition: attachment</code> so an uploaded HTML or SVG file cannot run as a page on your domain.</p><p><b>Lifecycle.</b> Rules move old objects to cheaper storage classes and delete abandoned <code>pending</code> uploads and incomplete multipart parts after a day or two.</p>",
+ "diagram": {
+  "w": 960,
+  "h": 420,
+  "nodes": [
+   {
+    "id": "client",
+    "label": "Browser",
+    "kind": "user",
+    "x": 90,
+    "y": 210,
+    "sub": "picks a 40 MB file"
+   },
+   {
+    "id": "api",
+    "label": "Upload API",
+    "kind": "service",
+    "x": 330,
+    "y": 80,
+    "sub": "auth, signs a PUT URL"
+   },
+   {
+    "id": "db",
+    "label": "Metadata DB",
+    "kind": "db",
+    "x": 830,
+    "y": 80,
+    "sub": "files: key, status"
+   },
+   {
+    "id": "s3",
+    "label": "Object storage",
+    "kind": "storage",
+    "x": 330,
+    "y": 340,
+    "sub": "bucket: quarantine/"
+   },
+   {
+    "id": "q",
+    "label": "Event queue",
+    "kind": "queue",
+    "x": 580,
+    "y": 340,
+    "sub": "ObjectCreated events"
+   },
+   {
+    "id": "scan",
+    "label": "Virus scanner",
+    "kind": "worker",
+    "x": 830,
+    "y": 210,
+    "sub": "ClamAV worker"
+   },
+   {
+    "id": "th",
+    "label": "Thumbnailer",
+    "kind": "worker",
+    "x": 580,
+    "y": 210,
+    "sub": "resize to 3 sizes"
+   }
+  ],
+  "edges": [
+   {
+    "id": "c-api",
+    "from": "client",
+    "to": "api",
+    "label": "POST /uploads"
+   },
+   {
+    "id": "api-db",
+    "from": "api",
+    "to": "db",
+    "label": "INSERT pending"
+   },
+   {
+    "id": "c-s3",
+    "from": "client",
+    "to": "s3",
+    "label": "PUT presigned URL"
+   },
+   {
+    "id": "s3-q",
+    "from": "s3",
+    "to": "q",
+    "label": "event",
+    "dashed": true
+   },
+   {
+    "id": "q-scan",
+    "from": "q",
+    "to": "scan",
+    "label": "scan job"
+   },
+   {
+    "id": "scan-db",
+    "from": "scan",
+    "to": "db",
+    "label": "status=clean"
+   },
+   {
+    "id": "scan-th",
+    "from": "scan",
+    "to": "th",
+    "label": "resize",
+    "dashed": true
+   },
+   {
+    "id": "th-s3",
+    "from": "th",
+    "to": "s3",
+    "label": "write thumbs"
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "upload",
+   "name": "Presigned upload",
+   "desc": "Bytes skip your API servers.",
+   "steps": [
+    {
+     "edge": "c-api",
+     "note": "The client asks to upload <code>report.pdf</code>, 40 MB. The API checks the user may upload, the type is allowed and the size is under the limit."
+    },
+    {
+     "edge": "api-db",
+     "note": "Insert a row: owner, server-chosen object key, size, <code>status = pending</code>. The key is generated by the server, never taken from the file name."
+    },
+    {
+     "edge": "c-api",
+     "rev": true,
+     "note": "Return a presigned URL valid for about 5 minutes, for that one key only. No cloud credentials ever reach the browser."
+    },
+    {
+     "edge": "c-s3",
+     "note": "The browser uploads straight to the bucket. Files over ~100 MB use multipart upload so a dropped connection retries one part, not the whole file."
+    },
+    {
+     "node": "s3",
+     "note": "The object sits in a <code>quarantine/</code> prefix that nothing serves from. Storage writes it across several devices and zones before acknowledging."
+    }
+   ]
+  },
+  {
+   "id": "process",
+   "name": "Async processing",
+   "desc": "Scan first, then derive.",
+   "steps": [
+    {
+     "edge": "s3-q",
+     "note": "The bucket emits <code>ObjectCreated</code> to a queue. Events are at least once and can arrive twice, so handlers must be idempotent."
+    },
+    {
+     "edge": "q-scan",
+     "note": "A scanner worker streams the object and checks it. It scales on queue depth, so a burst of uploads becomes backlog, not failures."
+    },
+    {
+     "edge": "scan-db",
+     "note": "Clean: move the object to the clean prefix and set <code>status = clean</code>. Infected: delete it and set <code>rejected</code>, and tell the user."
+    },
+    {
+     "edge": "scan-th",
+     "note": "Only clean files go on to further processing. Here a resize job is queued for images."
+    },
+    {
+     "edge": "th-s3",
+     "note": "Write three sizes under derived keys. Generating thumbnails eagerly costs storage; doing it on first request costs latency. Eager is simpler for a few fixed sizes."
+    },
+    {
+     "node": "client",
+     "note": "The client polls the file's status or gets a push. Until it says <code>clean</code>, the file cannot be downloaded or attached."
+    }
+   ]
+  }
+ ],
+ "tradeoffs": [
+  {
+   "option": "Presigned direct upload",
+   "pro": "App servers never touch the bytes; uploads scale with the storage service, not your fleet.",
+   "con": "Validation moves after the upload: you need events, a quarantine prefix and cleanup of abandoned uploads."
+  },
+  {
+   "option": "Upload through the API",
+   "pro": "Simple; you can validate and scan in the request.",
+   "con": "Large files hold workers and memory for minutes; request timeouts and load balancer limits bite."
+  },
+  {
+   "option": "Bytes in the database",
+   "pro": "One store, transactional with the metadata.",
+   "con": "Bloats backups and replicas, costs more per GB, and slows the database. Fine only for small files in small numbers."
+  },
+  {
+   "option": "Eager vs on-demand derivatives",
+   "pro": "Eager thumbnails are ready when needed; on-demand (resize at first request, then cache) stores only what is used.",
+   "con": "Eager wastes work on files nobody views; on-demand adds latency to the first view and needs a cache."
+  }
+ ],
+ "numbers": [
+  "S3 is designed for <b>99.999999999%</b> (11 nines) durability, by storing data across several devices in at least <b>3</b> availability zones.",
+  "One S3 PUT can be up to <b>5 GB</b>. Larger objects need multipart upload: parts of <b>5 MB to 5 GB</b>, at most <b>10,000</b> parts.",
+  "Request rate per prefix: about <b>3,500</b> writes/s and <b>5,500</b> reads/s. Spread hot workloads over several prefixes.",
+  "Presigned URLs signed with SigV4 can last at most <b>7 days</b>; in practice use <b>5 to 15 minutes</b>.",
+  "Sizing: 1M uploads/day × 2 MB average = <b>2 TB/day</b>, about <b>730 TB</b> a year before lifecycle rules.",
+  "Since December 2020, S3 gives strong read-after-write consistency for PUTs and DELETEs."
+ ],
+ "say": [
+  "The client asks my API for a presigned URL, uploads directly to S3, and my API only stores a metadata row, so big files never pass through the app servers.",
+  "Uploads land in a quarantine prefix; an ObjectCreated event triggers a virus scan, and only clean files are moved, processed and made downloadable.",
+  "Event handlers are idempotent because storage events are delivered at least once, and lifecycle rules clean up abandoned uploads."
+ ],
+ "pitfalls": [
+  "Using the user's file name as the object key. It leaks data, collides, and invites path tricks. Generate the key on the server.",
+  "Serving uploads inline from your main domain. An uploaded HTML or SVG file then runs script as your site. Use a separate domain and <code>Content-Disposition: attachment</code>.",
+  "Assuming a presigned PUT enforces a size limit. Unless you sign an exact <code>Content-Length</code>, it does not; use a presigned POST with a content-length range, or check the size when the event arrives and delete oversized files.",
+  "Making files available before the scan finishes. The status must gate every download path.",
+  "Forgetting cleanup: abandoned pending rows and incomplete multipart uploads keep costing money until a lifecycle rule removes them."
+ ],
+ "quiz": [
+  {
+   "q": "Why give the client a presigned URL instead of accepting the upload on your API?",
+   "options": [
+    "It encrypts the file",
+    "The bytes go straight to object storage, so app servers are not tied up by large uploads",
+    "It removes the need for authentication",
+    "It makes the upload synchronous"
+   ],
+   "answer": 1,
+   "why": "The API only authorises and records metadata. Bandwidth and retries are the storage service's problem, and your fleet scales on requests, not bytes."
+  },
+  {
+   "q": "Your thumbnail worker sometimes produces the same thumbnail twice. What is the most likely reason?",
+   "options": [
+    "S3 is eventually consistent",
+    "The presigned URL expired",
+    "Multipart uploads always duplicate",
+    "Storage event notifications are at least once, so the handler ran twice"
+   ],
+   "answer": 3,
+   "why": "Object events can be delivered more than once. Make the handler idempotent, for example by writing to a deterministic key derived from the source key."
+  },
+  {
+   "q": "Where should a newly uploaded file live until the virus scan passes?",
+   "options": [
+    "In a quarantine prefix that nothing serves from",
+    "Directly in the public CDN path",
+    "In the database as a blob",
+    "In the browser's local storage"
+   ],
+   "answer": 0,
+   "why": "Untrusted files are isolated until scanned. Only clean files are moved to where downloads and other processors can see them."
+  }
+ ],
+ "used_in": [
+  "file-sync",
+  "form-builder",
+  "csv-ingest",
+  "bulk-messaging",
+  "chat",
+  "netflix",
+  "llm-guardrails",
+  "web-crawler"
+ ]
+}

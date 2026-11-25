@@ -1,0 +1,121 @@
+{
+ "id": "applovin",
+ "name": "AppLovin",
+ "role": "Backend software engineer",
+ "summary": "Ad-tech company. Candidates report LeetCode-style coding rounds with an engineer, easy to medium, sometimes built around your own resume.",
+ "rounds": [
+  {
+   "name": "Short code",
+   "minutes": 45,
+   "kind": "coding",
+   "what": "Live coding with a backend engineer. LeetCode style, easy to medium, either fundamentals or a problem shaped like something on your resume.",
+   "practice": "p-two-sum"
+  }
+ ],
+ "tips": [
+  "Say the brute force and its Big-O before you improve it.",
+  "Run the example by hand, then name edge cases: empty input, duplicates, one element.",
+  "Be ready to write the core of anything on your resume and say how it ran in production."
+ ],
+ "reported": [
+  {
+   "problem": "two-sum",
+   "tag": "reported",
+   "note": "Final round, Oct 2026 · LC 1 Two Sum"
+  },
+  {
+   "problem": "cycle-start",
+   "tag": "reported",
+   "note": "SWE I screen, Apr 2025 · LC 142 Floyd cycle"
+  },
+  {
+   "problem": "lru-cache",
+   "tag": "reported",
+   "note": "Candidate report"
+  },
+  {
+   "problem": "longest-unique-substring",
+   "tag": "reported",
+   "note": "Candidate report"
+  },
+  {
+   "problem": "number-of-islands",
+   "tag": "reported",
+   "note": "Intern screen"
+  },
+  {
+   "problem": "anagram-queries",
+   "tag": "reported",
+   "note": "Phone screen, 2023"
+  },
+  {
+   "problem": "count-invalid-bst-nodes",
+   "tag": "reported",
+   "note": "SWE, Nov 2025"
+  },
+  {
+   "problem": "backspace-compare",
+   "tag": "reported",
+   "note": "SWE question bank · LC 844"
+  },
+  {
+   "problem": "min-window-substring",
+   "tag": "listed",
+   "note": "Flagged as likely by a prep site"
+  },
+  {
+   "problem": "ad-ctr-window",
+   "tag": "listed",
+   "note": "Coding take on a 2026 design prompt"
+  },
+  {
+   "problem": "valid-bst",
+   "tag": "listed",
+   "note": "Prep guide"
+  },
+  {
+   "problem": "tree-level-order",
+   "tag": "listed",
+   "note": "Prep guide"
+  },
+  {
+   "problem": "grid-shortest-path",
+   "tag": "listed",
+   "note": "Prep guides · LC 1091"
+  },
+  {
+   "problem": "anagram-groups",
+   "tag": "listed",
+   "note": "Prep guide"
+  },
+  {
+   "problem": "targeting-intersect",
+   "tag": "listed",
+   "note": "Prep guide, ad targeting"
+  },
+  {
+   "problem": "fibonacci-mod",
+   "tag": "listed",
+   "note": "Prep guide"
+  }
+ ],
+ "sources": [
+  {
+   "label": "Glassdoor: AppLovin software engineer interviews",
+   "url": "https://www.glassdoor.com/Interview/AppLovin-Software-Engineer-Interview-Questions-EI_IE576360.0,8_KO9,26.htm"
+  },
+  {
+   "label": "LeetCode: AppLovin company tag",
+   "url": "https://leetcode.com/company/applovin/"
+  },
+  {
+   "label": "Taro: AppLovin interview experiences",
+   "url": "https://www.jointaro.com/interviews/companies/applovin/?tab=questions"
+  },
+  {
+   "label": "Interview Query: AppLovin software engineer guide",
+   "url": "https://www.interviewquery.com/interview-guides/applovin-software-engineer"
+  }
+ ],
+ "caveat": "Built from public candidate reports and prep sites. \"Listed\" items come from prep sites and are unverified."
+}

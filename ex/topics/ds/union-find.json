@@ -1,0 +1,447 @@
+{
+ "id": "union-find",
+ "track": "ds",
+ "order": 15,
+ "title": "Union-find",
+ "short": "Merge groups and ask \"same group?\" almost instantly.",
+ "what": "Union-find (also called disjoint set union, DSU) keeps track of which items are in the same group. Each item points to a parent, and following parents up leads to the group's leader. Two items are in the same group when they reach the same leader.",
+ "analogy": "Companies buying each other. Every employee asks their boss, who asks theirs, up to the CEO. Same CEO, same company. A merger only needs one CEO to report to the other.",
+ "viz": {
+  "kind": "graph",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "0",
+      "x": 30,
+      "y": 0
+     },
+     {
+      "id": "1",
+      "x": 5,
+      "y": 50
+     },
+     {
+      "id": "2",
+      "x": 55,
+      "y": 50
+     },
+     {
+      "id": "3",
+      "x": 32,
+      "y": 92
+     },
+     {
+      "id": "4",
+      "x": 80,
+      "y": 25
+     },
+     {
+      "id": "5",
+      "x": 100,
+      "y": 25
+     }
+    ],
+    "edges": [],
+    "directed": true,
+    "say": "6 items, 0 to 5. At the start each one is its own group and its own leader: parent[x] = x."
+   },
+   {
+    "hi": [
+     "0",
+     "1"
+    ],
+    "edgeHi": [
+     [
+      "1",
+      "0"
+     ]
+    ],
+    "nodes": [
+     {
+      "id": "0",
+      "x": 30,
+      "y": 0
+     },
+     {
+      "id": "1",
+      "x": 5,
+      "y": 50
+     },
+     {
+      "id": "2",
+      "x": 55,
+      "y": 50
+     },
+     {
+      "id": "3",
+      "x": 32,
+      "y": 92
+     },
+     {
+      "id": "4",
+      "x": 80,
+      "y": 25
+     },
+     {
+      "id": "5",
+      "x": 100,
+      "y": 25
+     }
+    ],
+    "edges": [
+     [
+      "1",
+      "0"
+     ]
+    ],
+    "directed": true,
+    "say": "union(0, 1): their leaders are 0 and 1. Point 1 at 0. Now 0 leads the group {0, 1}."
+   },
+   {
+    "hi": [
+     "2",
+     "3"
+    ],
+    "edgeHi": [
+     [
+      "3",
+      "2"
+     ]
+    ],
+    "nodes": [
+     {
+      "id": "0",
+      "x": 30,
+      "y": 0
+     },
+     {
+      "id": "1",
+      "x": 5,
+      "y": 50
+     },
+     {
+      "id": "2",
+      "x": 55,
+      "y": 50
+     },
+     {
+      "id": "3",
+      "x": 32,
+      "y": 92
+     },
+     {
+      "id": "4",
+      "x": 80,
+      "y": 25
+     },
+     {
+      "id": "5",
+      "x": 100,
+      "y": 25
+     }
+    ],
+    "edges": [
+     [
+      "1",
+      "0"
+     ],
+     [
+      "3",
+      "2"
+     ]
+    ],
+    "directed": true,
+    "say": "union(2, 3): point 3 at 2. Two groups of two, and 4 and 5 are still alone."
+   },
+   {
+    "hi": [
+     "0",
+     "2"
+    ],
+    "edgeHi": [
+     [
+      "2",
+      "0"
+     ]
+    ],
+    "nodes": [
+     {
+      "id": "0",
+      "x": 30,
+      "y": 0
+     },
+     {
+      "id": "1",
+      "x": 5,
+      "y": 50
+     },
+     {
+      "id": "2",
+      "x": 55,
+      "y": 50
+     },
+     {
+      "id": "3",
+      "x": 32,
+      "y": 92
+     },
+     {
+      "id": "4",
+      "x": 80,
+      "y": 25
+     },
+     {
+      "id": "5",
+      "x": 100,
+      "y": 25
+     }
+    ],
+    "edges": [
+     [
+      "1",
+      "0"
+     ],
+     [
+      "3",
+      "2"
+     ],
+     [
+      "2",
+      "0"
+     ]
+    ],
+    "directed": true,
+    "say": "union(1, 3): climb to the leaders, 1 goes to 0 and 3 goes to 2. Point leader 2 at leader 0. Two groups merge with one change."
+   },
+   {
+    "hi": [
+     "3",
+     "2"
+    ],
+    "ok": [
+     "0"
+    ],
+    "edgeHi": [
+     [
+      "3",
+      "2"
+     ],
+     [
+      "2",
+      "0"
+     ]
+    ],
+    "out": "find(3) = 0",
+    "nodes": [
+     {
+      "id": "0",
+      "x": 30,
+      "y": 0
+     },
+     {
+      "id": "1",
+      "x": 5,
+      "y": 50
+     },
+     {
+      "id": "2",
+      "x": 55,
+      "y": 50
+     },
+     {
+      "id": "3",
+      "x": 32,
+      "y": 92
+     },
+     {
+      "id": "4",
+      "x": 80,
+      "y": 25
+     },
+     {
+      "id": "5",
+      "x": 100,
+      "y": 25
+     }
+    ],
+    "edges": [
+     [
+      "1",
+      "0"
+     ],
+     [
+      "3",
+      "2"
+     ],
+     [
+      "2",
+      "0"
+     ]
+    ],
+    "directed": true,
+    "say": "find(3) climbs 3, 2, 0. Leader 0, the same as for 1, so 3 and 1 are in the same group."
+   },
+   {
+    "ok": [
+     "0"
+    ],
+    "hi": [
+     "3"
+    ],
+    "edgeHi": [
+     [
+      "3",
+      "0"
+     ]
+    ],
+    "nodes": [
+     {
+      "id": "0",
+      "x": 30,
+      "y": 0
+     },
+     {
+      "id": "1",
+      "x": 5,
+      "y": 50
+     },
+     {
+      "id": "2",
+      "x": 55,
+      "y": 50
+     },
+     {
+      "id": "3",
+      "x": 32,
+      "y": 92
+     },
+     {
+      "id": "4",
+      "x": 80,
+      "y": 25
+     },
+     {
+      "id": "5",
+      "x": 100,
+      "y": 25
+     }
+    ],
+    "edges": [
+     [
+      "1",
+      "0"
+     ],
+     [
+      "3",
+      "0"
+     ],
+     [
+      "2",
+      "0"
+     ]
+    ],
+    "directed": true,
+    "say": "On the way up, find also points 3 straight at its grandparent 0. Next time find(3) takes one hop. This keeps chains short."
+   },
+   {
+    "ok": [
+     "0",
+     "1",
+     "2",
+     "3"
+    ],
+    "bad": [
+     "4"
+    ],
+    "out": "same(0, 4) -> False",
+    "nodes": [
+     {
+      "id": "0",
+      "x": 30,
+      "y": 0
+     },
+     {
+      "id": "1",
+      "x": 5,
+      "y": 50
+     },
+     {
+      "id": "2",
+      "x": 55,
+      "y": 50
+     },
+     {
+      "id": "3",
+      "x": 32,
+      "y": 92
+     },
+     {
+      "id": "4",
+      "x": 80,
+      "y": 25
+     },
+     {
+      "id": "5",
+      "x": 100,
+      "y": 25
+     }
+    ],
+    "edges": [
+     [
+      "1",
+      "0"
+     ],
+     [
+      "3",
+      "0"
+     ],
+     [
+      "2",
+      "0"
+     ]
+    ],
+    "directed": true,
+    "say": "4 was never joined, so its leader is itself, not 0. 0 and 4 are in different groups. 3 groups in total."
+   }
+  ]
+ },
+ "when": [
+  "Are these two in the same group?",
+  "Groups merge as new links arrive",
+  "Count connected components",
+  "Find the edge that makes a cycle",
+  "Join accounts that share an email"
+ ],
+ "python": "parent = list(range(6))\ndef find(x):\n    while parent[x] != x:\n        parent[x] = parent[parent[x]]   # shortcut: skip a level\n        x = parent[x]\n    return x\ndef union(a, b):\n    parent[find(b)] = find(a)\n\nunion(0, 1)\nunion(2, 3)\nunion(1, 3)\nprint(find(3), find(1))\nprint(find(0) == find(4))\nprint(len({find(x) for x in range(6)}))",
+ "output": "0 0\nFalse\n3",
+ "cost": [
+  [
+   "find or union, with the shortcut",
+   "nearly O(1)"
+  ],
+  [
+   "find or union, without it",
+   "up to O(n)"
+  ],
+  [
+   "Memory",
+   "O(n)"
+  ]
+ ],
+ "watch": [
+  "Join the leaders, find(a) and find(b), not a and b themselves.",
+  "Without the shortcut (path compression) one long chain makes every find slow.",
+  "It can merge groups but never split them apart."
+ ],
+ "interview": [
+  "LC 547 Number of Provinces",
+  "LC 684 Redundant Connection",
+  "LC 721 Accounts Merge"
+ ],
+ "related": [
+  "graph",
+  "grid",
+  "dfs"
+ ]
+}

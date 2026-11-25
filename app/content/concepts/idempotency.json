@@ -1,0 +1,271 @@
+{
+ "id": "idempotency",
+ "title": "Idempotency and safe retries",
+ "group": "Reliability & correctness",
+ "tagline": "Networks lose responses, so clients retry. Make doing something twice have the same effect as doing it once.",
+ "why": "<p>A client sends \"charge $10\" and the response never arrives. Did the charge happen? The client cannot know: the request may have been lost on the way in, or the work finished and the reply was lost on the way out. The only safe move is to retry, and retrying is only safe if the server can recognise the second attempt.</p><p>The same problem shows up everywhere in a distributed system. Queues deliver at least once. Load balancers retry on timeouts. Users double-tap buttons. Webhooks are re-sent until they get a 200. Without idempotency, each of these becomes a double charge, a duplicate SMS, or a voucher redeemed twice.</p><p>\"Exactly-once delivery\" across a network is not achievable in general. What you build instead is <b>at-least-once delivery plus idempotent processing</b>, which gives an exactly-once <i>effect</i>.</p>",
+ "how": "<p><b>Idempotency keys.</b> The client generates a unique key (a UUID) once per logical operation and sends it with every attempt, for example <code>Idempotency-Key: k1</code>. The server stores the key with a unique constraint before doing the work. On a repeat it returns the stored result instead of doing the work again. If the first attempt is still running, return <code>409 Conflict</code> and let the client retry later. Also store a hash of the request body and reject the same key with a different body. Expire keys after a window (Stripe keeps them at least 24 hours).</p><p><b>Natural idempotency.</b> Some operations are idempotent by design: <code>PUT /users/7 {name}</code>, <code>DELETE</code>, \"set status = REDEEMED where status = ISSUED\". Prefer these: a conditional update that only succeeds once needs no key table. Increments, appends and \"send a message\" are not idempotent.</p><p><b>Retries with exponential backoff and jitter.</b> Retry only errors that may succeed later (timeouts, 429, 503), not 400s. Wait <code>base &times; 2^attempt</code>, capped, and pick a random time between 0 and that value (\"full jitter\") so 10,000 clients that failed together do not all retry in the same millisecond. Cap attempts at 3-5 and retry at one layer only: if three layers each try 3 times, the bottom service sees 27 calls.</p><p><b>Transactional outbox.</b> \"Update the DB, then publish an event\" is two writes; a crash in between loses the event, and publishing first can announce something that never committed. Instead, write the event to an <code>outbox</code> table in the same transaction as the business change. A relay reads the outbox and publishes. The relay can publish twice, so consumers dedupe by event id.</p><p><b>The exactly-once myth.</b> Kafka's \"exactly-once semantics\" covers reading from and writing to Kafka inside one transaction. The moment your consumer calls an outside system (a card processor, an SMS gateway), you are back to at-least-once and need an idempotency key on that call too.</p>",
+ "diagram": {
+  "w": 960,
+  "h": 420,
+  "nodes": [
+   {
+    "id": "app",
+    "label": "Mobile app",
+    "sub": "Idempotency-Key: k1",
+    "kind": "mobile",
+    "x": 96,
+    "y": 200
+   },
+   {
+    "id": "api",
+    "label": "Payment API",
+    "sub": "checks key first",
+    "kind": "service",
+    "x": 384,
+    "y": 200
+   },
+   {
+    "id": "db",
+    "label": "Postgres",
+    "sub": "payments, keys, outbox",
+    "kind": "db",
+    "x": 660,
+    "y": 200
+   },
+   {
+    "id": "psp",
+    "label": "Card processor",
+    "sub": "PSP, own idem. key",
+    "kind": "ext",
+    "x": 856,
+    "y": 66
+   },
+   {
+    "id": "relay",
+    "label": "Outbox relay",
+    "sub": "polls new rows",
+    "kind": "worker",
+    "x": 610,
+    "y": 350
+   },
+   {
+    "id": "bus",
+    "label": "Event bus",
+    "sub": "payment.succeeded",
+    "kind": "queue",
+    "x": 856,
+    "y": 350
+   }
+  ],
+  "edges": [
+   {
+    "id": "app-api",
+    "from": "app",
+    "to": "api",
+    "label": "POST /payments"
+   },
+   {
+    "id": "api-db",
+    "from": "api",
+    "to": "db",
+    "label": "key + result"
+   },
+   {
+    "id": "api-psp",
+    "from": "api",
+    "to": "psp",
+    "label": "charge (key k1)"
+   },
+   {
+    "id": "db-relay",
+    "from": "db",
+    "to": "relay",
+    "label": "outbox rows",
+    "dashed": true
+   },
+   {
+    "id": "relay-bus",
+    "from": "relay",
+    "to": "bus",
+    "label": "publish",
+    "dashed": true
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "retry",
+   "name": "Retried payment",
+   "desc": "The response is lost; the retry must not charge twice.",
+   "steps": [
+    {
+     "edge": "app-api",
+     "note": "User taps Pay. The app creates key <code>k1</code> (a UUID) once for this payment and sends <code>POST /payments</code> with <code>Idempotency-Key: k1</code>."
+    },
+    {
+     "edge": "api-db",
+     "note": "API inserts <code>(key=k1, status=in_progress, request_hash)</code>. A <b>unique constraint</b> on the key means a concurrent duplicate fails to insert and gets 409."
+    },
+    {
+     "edge": "api-psp",
+     "note": "API calls the card processor and passes a key derived from k1, so the processor also dedupes if <i>this</i> call times out and is retried."
+    },
+    {
+     "edge": "api-psp",
+     "rev": true,
+     "note": "Charge of SGD 10.00 succeeds."
+    },
+    {
+     "edge": "api-db",
+     "note": "One transaction: mark the payment succeeded, store the response body under k1, insert an outbox row. All three commit or none do."
+    },
+    {
+     "edge": "app-api",
+     "rev": true,
+     "note": "The response is lost: the phone switched networks and the request timed out after 10 s. The user has been charged, but the app does not know."
+    },
+    {
+     "edge": "app-api",
+     "note": "The app retries with <b>the same key k1</b> after a jittered backoff (random 0-1 s, then 0-2 s, then 0-4 s). A new key would mean a new payment."
+    },
+    {
+     "edge": "api-db",
+     "note": "Lookup k1: status succeeded. The API returns the stored response and does <b>not</b> call the processor again."
+    },
+    {
+     "edge": "app-api",
+     "rev": true,
+     "note": "The app gets the original 200 with the same payment id. One charge, however many retries."
+    }
+   ]
+  },
+  {
+   "id": "outbox",
+   "name": "Outbox: publish without losing events",
+   "desc": "The event is part of the same transaction as the payment.",
+   "steps": [
+    {
+     "node": "db",
+     "note": "The outbox row was committed in the same transaction as the payment. There is no moment where the payment exists and the event does not, or the reverse."
+    },
+    {
+     "edge": "db-relay",
+     "note": "The relay polls <code>SELECT ... FROM outbox WHERE published_at IS NULL ORDER BY id LIMIT 100</code>, or tails the database log with change data capture."
+    },
+    {
+     "edge": "relay-bus",
+     "note": "It publishes <code>payment.succeeded</code> with <code>event_id</code> = the outbox row id, then marks the row published."
+    },
+    {
+     "node": "relay",
+     "note": "If the relay crashes after publishing but before marking the row, it publishes the same event again on restart. That is at-least-once, by design."
+    },
+    {
+     "node": "bus",
+     "note": "Consumers (receipt email, ledger) record processed <code>event_id</code>s in the same transaction as their own change and skip repeats. At-least-once delivery + dedupe = exactly-once effect."
+    }
+   ]
+  }
+ ],
+ "tradeoffs": [
+  {
+   "option": "Client-supplied idempotency key",
+   "pro": "Works for any non-idempotent operation (payments, sends); the client controls what counts as \"the same request\".",
+   "con": "Needs a key table with a unique index and a retention policy; clients must reuse the key correctly."
+  },
+  {
+   "option": "Conditional update (compare-and-set)",
+   "pro": "No extra table: <code>UPDATE vouchers SET status='REDEEMED' WHERE id=? AND status='ISSUED'</code> succeeds once.",
+   "con": "Only fits state transitions; the second caller gets \"0 rows\" and must look up why to return a helpful response."
+  },
+  {
+   "option": "Dedupe table on the consumer (processed event ids)",
+   "pro": "Makes at-least-once queues safe; simple to reason about.",
+   "con": "Must be written in the same transaction as the side effect, or a crash between them still duplicates."
+  },
+  {
+   "option": "Transactional outbox",
+   "pro": "DB change and event are atomic; no lost or phantom events.",
+   "con": "Extra table and relay process; events arrive with a small delay and possibly twice."
+  },
+  {
+   "option": "Under-send instead of over-send",
+   "pro": "For messages, a skipped retry is better than a duplicate SMS. Postman.gov.sg's docs describe retrying only messages with no provider message id.",
+   "con": "Some messages may never go out; you need reporting so operators can resend deliberately."
+  }
+ ],
+ "numbers": [
+  "Backoff with full jitter: sleep = random(0, min(cap, base &times; 2^n)). base 100 ms, cap 20 s, 3-5 attempts.",
+  "Retry amplification: 3 attempts at each of 3 layers = <b>27</b> calls to the bottom service.",
+  "Stripe keeps idempotency keys for at least <b>24 hours</b>; pick a window longer than any client's retry period.",
+  "Key table cost: 1M payments/day &times; ~200 bytes = <b>~200 MB/day</b>, tiny next to the payments table.",
+  "SQS FIFO dedupes identical sends within <b>5 minutes</b>; anything later is your job."
+ ],
+ "say": [
+  "The client sends an idempotency key with every payment request; I store it under a unique constraint before charging, and a retry with the same key gets the stored response instead of a second charge.",
+  "Retries use exponential backoff with full jitter, at most three attempts, and only at the edge, so a slow dependency isn't hit by a retry storm.",
+  "I'll write the event to an outbox table in the same transaction as the payment; the relay may publish twice, so consumers dedupe by event id. Delivery is at least once, the effect is exactly once."
+ ],
+ "pitfalls": [
+  "Generating a new idempotency key on each retry. The server sees two different payments.",
+  "Checking the key, doing the work, then saving the key, without a unique constraint. Two concurrent retries both pass the check.",
+  "Retrying non-retryable errors (400, 403) or retrying at every layer, which multiplies load on a struggling service.",
+  "Fixed backoff without jitter: every client that failed at 12:00:00 retries at 12:00:01 and causes the next outage.",
+  "Believing a broker's \"exactly-once\" covers your side effects. It stops at the broker; external calls still need keys."
+ ],
+ "quiz": [
+  {
+   "q": "A payment request times out on the client. What should the app do?",
+   "options": [
+    "Retry with a new idempotency key",
+    "Show an error and never retry",
+    "Retry with the same idempotency key after a jittered backoff",
+    "Retry immediately in a tight loop"
+   ],
+   "answer": 2,
+   "why": "Same key lets the server recognise the repeat and return the stored result. Jitter spreads retries out."
+  },
+  {
+   "q": "Why insert the idempotency key under a unique constraint before calling the card processor?",
+   "options": [
+    "So two concurrent attempts cannot both pass a \"key not seen\" check and both charge",
+    "To make the key shorter",
+    "Because the card processor requires it"
+   ],
+   "answer": 0,
+   "why": "Check-then-act without a constraint is a race. The constraint makes the database pick exactly one winner."
+  },
+  {
+   "q": "What does the transactional outbox guarantee?",
+   "options": [
+    "Each event is delivered exactly once",
+    "The event is recorded if and only if the business change commits",
+    "Events are delivered in global order"
+   ],
+   "answer": 1,
+   "why": "It removes the lost-or-phantom-event window. The relay can still publish twice, so consumers dedupe."
+  },
+  {
+   "q": "Which operation is naturally idempotent?",
+   "options": [
+    "<code>balance = balance - 10</code>",
+    "Append a row to the audit log",
+    "Send an SMS",
+    "<code>UPDATE vouchers SET status='REDEEMED' WHERE id=7 AND status='ISSUED'</code>"
+   ],
+   "answer": 3,
+   "why": "The conditional update succeeds once; repeats match 0 rows. The others change state again on every call."
+  }
+ ],
+ "used_in": [
+  "payments",
+  "voucher-redemption",
+  "bulk-messaging",
+  "csv-ingest",
+  "otp-login",
+  "form-builder",
+  "chat",
+  "consensus-chain"
+ ]
+}

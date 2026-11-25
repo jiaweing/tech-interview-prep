@@ -1,0 +1,320 @@
+{
+ "id": "mars-rover-obstacles",
+ "title": "Mars Rover II: rocks and collisions",
+ "pattern": "hashing",
+ "level": "medium",
+ "statement": "<p>Same plateau, rovers and <code>L</code>/<code>R</code>/<code>M</code> commands as <a href=\"#p-mars-rover\">Mars Rover</a>. Now there are rocks, given as <code>obstacles</code>, a list of <code>[x, y]</code> cells.</p><p>All rovers are on the plateau from the start, and they move one after another. Before each <code>M</code>, check the cell in front. If it is <b>off the plateau</b>, a <b>rock</b>, or <b>occupied by another rover</b> (where that rover is right now), the rover does not move. It <b>stops</b> and ignores the rest of its commands.</p><p>Write <code>def solution(spec, obstacles)</code>. For each rover return <code>x y H</code>, with <code> STOPPED</code> appended if it stopped. Join the rovers with <code>\\n</code>.</p>",
+ "examples": [
+  {
+   "input": "spec = \"5 5\\n1 2 N\\nLMLMLMLMM\\n3 3 E\\nMMRMMRMRRM\", obstacles = []",
+   "output": "\"1 3 N\\n5 1 E\"",
+   "why": "No rocks, nobody leaves: same answer as the classic kata."
+  },
+  {
+   "input": "spec = \"5 5\\n1 2 N\\nMMMMMM\", obstacles = []",
+   "output": "\"1 5 N STOPPED\"",
+   "why": "The 4th <code>M</code> would reach y = 6, off the plateau."
+  },
+  {
+   "input": "spec = \"5 5\\n0 0 E\\nMMMM\", obstacles = [[2, 0]]",
+   "output": "\"1 0 E STOPPED\"",
+   "why": "It stops in front of the rock."
+  }
+ ],
+ "constraints": [
+  "1 &le; rovers &le; 1,000; no two rovers start on the same cell",
+  "0 &le; X, Y &le; 10,000",
+  "up to 10,000 obstacles, none on a rover's start cell",
+  "total commands up to 100,000"
+ ],
+ "starter": "def solution(spec, obstacles):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "Which cells can block a move?",
+   "a": "Three kinds: outside <code>0..X</code> / <code>0..Y</code>; any rock; any cell another rover is on <b>right now</b> (rovers that already moved are at their final spot; rovers that haven't moved are at their start)."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Rover A at <code>0 0 N</code> with <code>MM</code>, rover B at <code>0 1 E</code>. What happens to A?",
+   "a": "A's first <code>M</code> targets <code>(0, 1)</code>, which is B's cell. A stops: <code>0 0 N STOPPED</code>."
+  },
+  {
+   "step": "Naive idea",
+   "q": "How would you check \"is this cell blocked?\" first?",
+   "a": "Loop over every rock and every other rover on every move. That is O(moves &times; (rocks + rovers)): 100,000 &times; 11,000 is far too slow."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "What makes the lookup fast?",
+   "a": "<b>Hashing</b>: put rock cells in a <code>set</code> of tuples. Keep a second set <code>taken</code> of rover cells. Remove the moving rover from <code>taken</code> before it moves and add its final cell after."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li>Parse all rovers first.</li><li><code>blocked = {tuple(o) for o in obstacles}</code>, <code>taken = {start cells}</code>.</li><li>For each rover: discard its start from <code>taken</code>; simulate; on <code>M</code> compute <code>(nx, ny)</code> and stop if out of bounds, in <code>blocked</code> or in <code>taken</code>.</li><li>Add the final cell to <code>taken</code>; append the line with or without <code> STOPPED</code>.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "Stopping mid-string (later turns must be ignored). A rover blocked by a rover that has not moved yet. A 0 x 0 plateau. Rocks given as lists, not tuples (lists are not hashable: convert)."
+  }
+ ],
+ "hints": [
+  "Convert obstacles to a set of tuples once: <code>{(x, y) for x, y in obstacles}</code>. Lists can't go in a set.",
+  "Parse every rover before moving any: rovers that haven't moved still block cells.",
+  "Use <code>break</code> to stop processing commands, and remember whether you stopped."
+ ],
+ "solution": "DIRS = 'NESW'\nSTEP = {'N': (0, 1), 'E': (1, 0), 'S': (0, -1), 'W': (-1, 0)}\n\ndef solution(spec, obstacles):\n    lines = [ln.strip() for ln in spec.strip().split('\\n') if ln.strip()]\n    max_x, max_y = map(int, lines[0].split())\n    rovers = []\n    for i in range(1, len(lines), 2):\n        x, y, d = lines[i].split()\n        cmds = lines[i + 1] if i + 1 < len(lines) else ''\n        rovers.append([int(x), int(y), d, cmds])\n    blocked = {tuple(o) for o in obstacles}\n    # every rover is on the plateau from the start, so all start cells are taken\n    taken = {(r[0], r[1]) for r in rovers}\n    out = []\n    for r in rovers:\n        x, y, d, cmds = r\n        taken.discard((x, y))                 # this rover is the one moving\n        stopped = False\n        for c in cmds:\n            if c == 'L':\n                d = DIRS[(DIRS.index(d) - 1) % 4]\n            elif c == 'R':\n                d = DIRS[(DIRS.index(d) + 1) % 4]\n            elif c == 'M':\n                dx, dy = STEP[d]\n                nx, ny = x + dx, y + dy\n                if not (0 <= nx <= max_x and 0 <= ny <= max_y) or (nx, ny) in blocked or (nx, ny) in taken:\n                    stopped = True\n                    break\n                x, y = nx, ny\n        taken.add((x, y))\n        out.append(f'{x} {y} {d}' + (' STOPPED' if stopped else ''))\n    return '\\n'.join(out)\n",
+ "brute": "def solution(spec, obstacles):\n    # Re-checks every other rover and every rock with a loop on each move: O(moves x (rovers + rocks))\n    lines = [ln.strip() for ln in spec.strip().split('\\n') if ln.strip()]\n    max_x, max_y = map(int, lines[0].split())\n    rovers = []\n    for i in range(1, len(lines), 2):\n        x, y, d = lines[i].split()\n        rovers.append([int(x), int(y), d, lines[i + 1] if i + 1 < len(lines) else ''])\n    order = 'NESW'\n    result = []\n    for k, r in enumerate(rovers):\n        x, y, d, cmds = r\n        stopped = False\n        for c in cmds:\n            if c in 'LR':\n                d = order[(order.index(d) + (1 if c == 'R' else 3)) % 4]\n                continue\n            nx = x + (d == 'E') - (d == 'W')\n            ny = y + (d == 'N') - (d == 'S')\n            hit = not (0 <= nx <= max_x and 0 <= ny <= max_y)\n            for o in obstacles:\n                if o[0] == nx and o[1] == ny: hit = True\n            for j, other in enumerate(rovers):\n                if j != k and other[0] == nx and other[1] == ny: hit = True\n            if hit:\n                stopped = True\n                break\n            x, y = nx, ny\n        r[0], r[1], r[2] = x, y, d\n        result.append('%d %d %s%s' % (x, y, d, ' STOPPED' if stopped else ''))\n    return '\\n'.join(result)\n",
+ "explain": "<p>The new rules all reduce to one question per move: <i>is the cell in front free?</i> Answer it in O(1) with two sets:</p><ul><li><code>blocked</code>: rock cells, fixed.</li><li><code>taken</code>: where every rover currently is. Take the moving rover out before it drives and put its final cell back after.</li></ul><p>That turns O(moves &times; things) into O(moves + things). In an interview, extract <code>is_free(x, y)</code> as its own function: the next extension (another kind of blocker) changes only that function.</p>",
+ "complexity": "O(total commands + rocks + rovers) time, O(rocks + rovers) space",
+ "tests": [
+  {
+   "args": [
+    "5 5\n1 2 N\nLMLMLMLMM\n3 3 E\nMMRMMRMRRM",
+    []
+   ],
+   "expected": "1 3 N\n5 1 E",
+   "label": "example 1 (no obstacles)",
+   "cat": "example",
+   "why": "same as the classic"
+  },
+  {
+   "args": [
+    "5 5\n1 2 N\nMMMMMM",
+    []
+   ],
+   "expected": "1 5 N STOPPED",
+   "label": "example 2 (edge)",
+   "cat": "example",
+   "why": "the 4th M would leave the plateau, so it stops at y = 5"
+  },
+  {
+   "args": [
+    "5 5\n0 0 E\nMMMM",
+    [
+     [
+      2,
+      0
+     ]
+    ]
+   ],
+   "expected": "1 0 E STOPPED",
+   "label": "example 3 (obstacle)",
+   "cat": "example",
+   "why": "stops in front of the rock at (2, 0)"
+  },
+  {
+   "args": [
+    "5 5\n0 0 N\nMM\n0 1 E\nLLM",
+    []
+   ],
+   "expected": "0 0 N STOPPED\n0 1 W STOPPED",
+   "label": "rovers collide",
+   "cat": "edge",
+   "why": "the first rover may not drive into the second one's cell"
+  },
+  {
+   "args": [
+    "5 5\n0 0 N\nMM\n0 4 S\nMMM",
+    []
+   ],
+   "expected": "0 2 N\n0 3 S STOPPED",
+   "label": "earlier rover is now an obstacle",
+   "cat": "edge",
+   "why": "rover 2 stops behind rover 1's final spot (0, 2)"
+  },
+  {
+   "args": [
+    "2 2\n1 1 N\nMMRLLLL",
+    []
+   ],
+   "expected": "1 2 N STOPPED",
+   "label": "stops then ignores the rest",
+   "cat": "boundary",
+   "why": "after STOPPED, the remaining turns are not applied"
+  },
+  {
+   "args": [
+    "0 0\n0 0 N\nMLMRM",
+    []
+   ],
+   "expected": "0 0 N STOPPED",
+   "label": "one-cell plateau",
+   "cat": "single",
+   "why": "every move is blocked immediately"
+  },
+  {
+   "args": [
+    "4 4\n2 2 N\nLMLMLMLM",
+    [
+     [
+      0,
+      0
+     ],
+     [
+      3,
+      3
+     ]
+    ]
+   ],
+   "expected": "2 2 N",
+   "label": "dodges obstacles",
+   "cat": "small",
+   "why": "a loop that never touches a rock is fine"
+  },
+  {
+   "args": [
+    "4 4\n0 0 N\nMMMM\n4 0 W\nMMMM",
+    [
+     [
+      2,
+      0
+     ]
+    ]
+   ],
+   "expected": "0 4 N\n3 0 W STOPPED",
+   "label": "second rover hits a rock",
+   "cat": "medium",
+   "why": "only rover 2 stops"
+  },
+  {
+   "args": [
+    "9 9\n5 6 N\nMRMMLMLLMRRMLM\n4 7 N\nMLLRRRRRRMMMRR\n3 4 W\nMMRLLMLLLMRMLR\n5 7 W\nLMLLLLRMLRLRRM\n3 0 W\nRRMMLRRRLRRMRL",
+    [
+     [
+      8,
+      8
+     ],
+     [
+      3,
+      1
+     ],
+     [
+      4,
+      3
+     ],
+     [
+      6,
+      6
+     ],
+     [
+      7,
+      6
+     ],
+     [
+      4,
+      0
+     ]
+    ]
+   ],
+   "expected": "5 6 N STOPPED\n4 9 N STOPPED\n0 4 N\n5 7 S STOPPED\n3 0 E STOPPED",
+   "label": "random 1",
+   "cat": "medium",
+   "why": "5 rovers, 6 rocks"
+  },
+  {
+   "args": [
+    "9 9\n2 0 W\nMRMRLLRMRRLLLL\n2 8 N\nMMMRLMLLLLMLMM\n4 2 S\nMMRMLLLRMMLRRL\n9 0 N\nMRRRRMLRMLMLLR\n4 0 N\nLRMMRLRLMRRLRL",
+    [
+     [
+      5,
+      6
+     ],
+     [
+      3,
+      0
+     ],
+     [
+      4,
+      8
+     ],
+     [
+      1,
+      3
+     ],
+     [
+      7,
+      3
+     ],
+     [
+      4,
+      3
+     ]
+    ]
+   ],
+   "expected": "1 2 S\n2 9 N STOPPED\n4 1 S STOPPED\n8 3 S\n4 0 N STOPPED",
+   "label": "random 2",
+   "cat": "medium",
+   "why": "5 rovers, 6 rocks"
+  },
+  {
+   "args": [
+    "9 9\n3 7 E\nRRLMRMLLRRMLML\n6 0 E\nLMLRLMLLRRMRML\n1 2 S\nLLMMMRLRMMRRRR\n2 1 N\nLRLRRLMLRRRRLL\n7 3 S\nMRLRRMRLMRLMRL",
+    [
+     [
+      7,
+      1
+     ],
+     [
+      0,
+      4
+     ],
+     [
+      3,
+      1
+     ],
+     [
+      9,
+      5
+     ],
+     [
+      5,
+      4
+     ],
+     [
+      5,
+      9
+     ]
+    ]
+   ],
+   "expected": "1 5 E\n4 2 W\n1 4 N STOPPED\n2 2 E\n7 5 N",
+   "label": "random 3",
+   "cat": "medium",
+   "why": "5 rovers, 6 rocks"
+  }
+ ],
+ "perf": {
+  "label": "performance: 58,000 commands, 950 rocks",
+  "gen": "['500 500\\n10 10 N\\n' + 'MMMMRMMMMRMMMMRMMMMR' * 2500 + '\\n300 300 W\\n' + 'MLMR' * 2000, [[i, 499] for i in range(500)] + [[499, j] for j in range(450)]]",
+  "expected": "10 10 N\n10 11 S STOPPED"
+ },
+ "govtech": {
+  "round": "live",
+  "tag": "inspired",
+  "source": "Common follow-up to the GovTech \"Roving on Mars\" kata",
+  "evidence": "GovTech reports name the Mars Rover kata but not its exact extensions; obstacles and rover collisions are the standard second step of this kata in pair-programming rounds.",
+  "extensions": [
+   "Instead of stopping, skip the blocked move and keep going. What changes? (Only the <code>break</code>.)",
+   "Report the obstacle that stopped the rover, e.g. <code>1 0 E STOPPED at 2 0</code>.",
+   "Rovers move at the same time, one command per tick. Two rovers aiming for the same cell: who wins? (Define a rule, e.g. lower index.)",
+   "Return an error for a spec where two rovers start on the same cell."
+  ],
+  "viz": {
+   "kind": "rover",
+   "mode": "safe",
+   "input": "5 5\n0 0 N\nMM\n0 4 S\nMMM\n2 0 E\nMMMM",
+   "obstacles": [
+    [
+     4,
+     0
+    ],
+    [
+     2,
+     3
+    ]
+   ]
+  }
+ }
+}

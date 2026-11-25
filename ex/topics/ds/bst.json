@@ -1,0 +1,203 @@
+{
+ "id": "bst",
+ "track": "ds",
+ "order": 11,
+ "title": "Binary search tree",
+ "short": "A tree kept in order, so each step skips half of it.",
+ "what": "A binary search tree (BST) is a binary tree with one rule: everything in a node's left subtree is smaller than the node, and everything in its right subtree is bigger. To find a value you go left or right at each node, like binary search.",
+ "analogy": "A \"choose your path\" book: at each page you pick left for smaller or right for bigger, and never read the other branch.",
+ "viz": {
+  "kind": "tree",
+  "frames": [
+   {
+    "nodes": [
+     8,
+     3,
+     10,
+     1,
+     6,
+     null,
+     14
+    ],
+    "label": "BST",
+    "say": "Left of 8 are 3, 1 and 6, all smaller. Right of 8 are 10 and 14, all bigger. The same rule holds at every node."
+   },
+   {
+    "nodes": [
+     8,
+     3,
+     10,
+     1,
+     6,
+     null,
+     14
+    ],
+    "label": "find 6",
+    "hi": [
+     0
+    ],
+    "dim": [
+     2,
+     6
+    ],
+    "edge": [
+     1
+    ],
+    "say": "Find 6. Start at the root, 8. 6 is smaller, so it can only be on the left. The whole right side is skipped."
+   },
+   {
+    "nodes": [
+     8,
+     3,
+     10,
+     1,
+     6,
+     null,
+     14
+    ],
+    "label": "find 6",
+    "hi": [
+     1
+    ],
+    "dim": [
+     2,
+     6,
+     3,
+     0
+    ],
+    "edge": [
+     4
+    ],
+    "say": "At 3: 6 is bigger, so go right. 1 and its side are skipped."
+   },
+   {
+    "nodes": [
+     8,
+     3,
+     10,
+     1,
+     6,
+     null,
+     14
+    ],
+    "label": "find 6",
+    "ok": [
+     4
+    ],
+    "dim": [
+     2,
+     6,
+     3,
+     0,
+     1
+    ],
+    "out": "found in 3 looks",
+    "say": "Found 6 after looking at 3 nodes. In a balanced tree that is about log n looks."
+   },
+   {
+    "nodes": [
+     8,
+     3,
+     10,
+     1,
+     6,
+     null,
+     14
+    ],
+    "label": "insert 9",
+    "hi": [
+     0,
+     2
+    ],
+    "edge": [
+     2
+    ],
+    "dim": [
+     1,
+     3,
+     4
+    ],
+    "say": "Insert 9 with the same walk: 9 > 8 go right, then 9 < 10 go left. 10 has no left child, so that spot is free."
+   },
+   {
+    "nodes": [
+     8,
+     3,
+     10,
+     1,
+     6,
+     9,
+     14
+    ],
+    "label": "insert 9",
+    "ok": [
+     5
+    ],
+    "edge": [
+     5
+    ],
+    "say": "9 becomes the left child of 10. Nothing else moved, and the order rule still holds."
+   },
+   {
+    "nodes": [
+     8,
+     3,
+     10,
+     1,
+     6,
+     9,
+     14
+    ],
+    "label": "in-order",
+    "tag": {
+     "3": "1st",
+     "1": "2nd",
+     "4": "3rd",
+     "0": "4th",
+     "5": "5th",
+     "2": "6th",
+     "6": "7th"
+    },
+    "out": "1 3 6 8 9 10 14",
+    "say": "Read left subtree, node, right subtree (in-order) and the values come out sorted."
+   }
+  ]
+ },
+ "when": [
+  "Keep data sorted while adding and removing",
+  "Find the closest value, floor or ceiling",
+  "Validate a BST or find its k-th smallest",
+  "The input says \"binary search tree\""
+ ],
+ "python": "# each node is a list: [value, left, right]\ndef insert(node, val):\n    if node is None:\n        return [val, None, None]\n    side = 1 if val < node[0] else 2\n    node[side] = insert(node[side], val)\n    return node\ndef contains(node, val):\n    while node and node[0] != val:\n        node = node[1] if val < node[0] else node[2]\n    return node is not None\nroot = None\nfor v in [8, 3, 10, 1, 6, 14, 9]:\n    root = insert(root, v)\nprint(contains(root, 6), contains(root, 5))",
+ "output": "True False",
+ "cost": [
+  [
+   "Find, insert or delete (balanced)",
+   "O(log n)"
+  ],
+  [
+   "Same on a lopsided tree",
+   "O(n)"
+  ],
+  [
+   "List every value in sorted order",
+   "O(n)"
+  ]
+ ],
+ "watch": [
+  "Insert values that are already sorted and the tree becomes one long line: every step is O(n).",
+  "To validate, checking a node against its direct children is not enough. Every value on the left must be smaller.",
+  "Python has no built-in BST. For a sorted list with fast lookups use the bisect module."
+ ],
+ "interview": [
+  "LC 98 Validate Binary Search Tree",
+  "LC 230 Kth Smallest Element in a BST",
+  "LC 235 Lowest Common Ancestor of a Binary Search Tree"
+ ],
+ "related": [
+  "binary-tree",
+  "binary-search",
+  "heap"
+ ]
+}

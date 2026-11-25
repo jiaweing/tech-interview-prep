@@ -1,0 +1,6430 @@
+{
+ "id": "scheme-eligibility",
+ "title": "Financial Assistance Scheme Eligibility",
+ "pattern": "hashing",
+ "level": "medium",
+ "statement": "<p>A government agency runs several financial assistance schemes. You are building the part of the system that tells each applicant which schemes they qualify for.</p><p>Write <code>def solution(applicants, schemes)</code>.</p><ul><li>Each applicant is <code>{\"id\": str, \"employment_status\": \"employed\" or \"unemployed\", \"household\": [{\"relation\": str, \"age\": int}, ...], \"monthly_income\": int}</code>. <code>household</code> lists the people living with the applicant, not the applicant.</li><li>Each scheme is <code>{\"id\": str, \"criteria\": {...}}</code>. <code>criteria</code> may contain any of these keys, and only these:<ul><li><code>\"employment_status\"</code>: the applicant's status must equal it.</li><li><code>\"max_monthly_income\"</code>: the applicant's <code>monthly_income</code> must be &le; it.</li><li><code>\"has_child_in_school\"</code>: a boolean. The applicant \"has a child in school\" if some household member has relation <code>\"son\"</code> or <code>\"daughter\"</code> and age 7 to 16 inclusive. This fact must equal the criterion, so <code>True</code> requires such a child and <code>False</code> requires none.</li><li><code>\"min_household_size\"</code>: household size (the applicant plus everyone in <code>household</code>) must be &ge; it.</li></ul></li></ul><p>An applicant is eligible for a scheme if they meet <b>every</b> criterion the scheme lists (a scheme with empty criteria is open to everyone). Return a dict mapping every applicant id to the sorted list of scheme ids they are eligible for (an empty list if none).</p>",
+ "examples": [
+  {
+   "input": "applicants = [{\"id\": \"A1\", \"employment_status\": \"unemployed\", \"household\": [{\"relation\": \"son\", \"age\": 10}], \"monthly_income\": 0}, {\"id\": \"A2\", \"employment_status\": \"employed\", \"household\": [], \"monthly_income\": 3000}], schemes = [{\"id\": \"retrenchment\", \"criteria\": {\"employment_status\": \"unemployed\"}}, {\"id\": \"student-aid\", \"criteria\": {\"has_child_in_school\": True, \"max_monthly_income\": 2000}}]",
+   "why": "A1 is unemployed, earns 0 and has a 10-year-old son, so both schemes. A2 is employed and has no children, so neither.",
+   "output": "{'A1': ['retrenchment', 'student-aid'], 'A2': []}"
+  },
+  {
+   "input": "applicants = [{\"id\": \"B1\", \"employment_status\": \"employed\", \"household\": [{\"relation\": \"spouse\", \"age\": 40}, {\"relation\": \"daughter\", \"age\": 17}], \"monthly_income\": 1500}], schemes = [{\"id\": \"family\", \"criteria\": {\"min_household_size\": 3}}, {\"id\": \"school\", \"criteria\": {\"has_child_in_school\": True}}, {\"id\": \"all\", \"criteria\": {}}]",
+   "why": "B1 plus 2 household members is size 3, so <code>family</code>. The daughter is 17, outside 7-16, so not <code>school</code>. <code>all</code> has no criteria.",
+   "output": "{'B1': ['all', 'family']}"
+  },
+  {
+   "input": "applicants = [], schemes = [{\"id\": \"s\", \"criteria\": {}}]",
+   "why": "No applicants: an empty dict.",
+   "output": "{}"
+  }
+ ],
+ "constraints": [
+  "0 &le; len(applicants) &le; 5,000",
+  "0 &le; len(schemes) &le; 100",
+  "0 &le; household size &le; 20 per applicant",
+  "ids are unique strings; 0 &le; age &le; 120; 0 &le; income &le; 10^6"
+ ],
+ "starter": "def solution(applicants, schemes):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "What makes an applicant eligible for one scheme?",
+   "a": "Every key in that scheme's <code>criteria</code> must pass. Keys that are missing are not checked. So a scheme is an AND of up to 4 small tests, and an empty criteria dict means \"yes\"."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Applicant: unemployed, income 0, one son aged 10. Scheme: <code>{\"has_child_in_school\": True, \"max_monthly_income\": 2000}</code>?",
+   "a": "Child in school: the son is 10, inside 7-16, so the fact is <code>True</code>, which matches. Income 0 &le; 2000 passes. Both pass, so eligible."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first thing you would write?",
+   "a": "Loop schemes, then applicants, re-scan the household for every check, and push passing <code>(applicant, scheme)</code> pairs into one list. Then, to build the answer, scan the whole pair list once per applicant. That last step is O(applicants &times; pairs), which is quadratic."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Clue words?",
+   "a": "\"for each applicant\", \"map id to schemes\" &rarr; <b>hashing</b>: build the result dict keyed by applicant id as you go, so there is no second search. Also compute each applicant's facts (household size, has a school-age child) once and reuse them for every scheme. A dict from criterion key to a small rule function keeps each rule in one place."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li><code>facts(a)</code>: status, income, <code>1 + len(household)</code>, and <code>any</code> son/daughter aged 7-16.</li><li><code>RULES = {key: lambda f, v: ...}</code>, one per criterion.</li><li>For each applicant: compute facts once; keep scheme ids where <code>all(RULES[k](f, v) for k, v in criteria.items())</code>.</li><li><code>result[a[\"id\"]] = sorted(ids)</code>.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "Ages 6 and 17 (just outside), 7 and 16 (just inside). A spouse or grandchild aged 10 (not a son/daughter). Income exactly equal to the max (eligible). Household size forgetting to count the applicant. <code>\"has_child_in_school\": False</code> for an applicant who has a school-age child. No schemes (every applicant maps to <code>[]</code>). No applicants (<code>{}</code>)."
+  }
+ ],
+ "hints": [
+  "Write a helper that turns one applicant into a few plain facts: status, income, household size (remember to add 1), and whether there is a son or daughter aged 7 to 16.",
+  "Map each criterion key to a tiny check, e.g. <code>RULES = {\"max_monthly_income\": lambda f, v: f[\"income\"] &lt;= v, ...}</code>. Then a scheme passes if <code>all(RULES[k](f, v) for k, v in criteria.items())</code>.",
+  "Build the answer dict directly: <code>result[a[\"id\"]] = sorted(passing_ids)</code>. Do not collect pairs and search them afterwards."
+ ],
+ "solution": "def facts(applicant):\n    # Work out each fact once per applicant, not once per scheme.\n    kids = [m for m in applicant['household'] if m['relation'] in ('son', 'daughter')]\n    return {\n        'employment_status': applicant['employment_status'],\n        'income': applicant['monthly_income'],\n        'size': 1 + len(applicant['household']),        # the applicant counts too\n        'school_child': any(7 <= m['age'] <= 16 for m in kids),\n    }\n\n# One small rule per criterion key: (facts, value) -> bool.\nRULES = {\n    'employment_status': lambda f, v: f['employment_status'] == v,\n    'max_monthly_income': lambda f, v: f['income'] <= v,\n    'has_child_in_school': lambda f, v: f['school_child'] == v,\n    'min_household_size': lambda f, v: f['size'] >= v,\n}\n\ndef solution(applicants, schemes):\n    result = {}\n    for a in applicants:\n        f = facts(a)\n        ok = [s['id'] for s in schemes\n              if all(RULES[key](f, value) for key, value in s['criteria'].items())]\n        result[a['id']] = sorted(ok)\n    return result\n",
+ "brute": "def solution(applicants, schemes):\n    # First collect every (applicant, scheme) pair that passes, re-reading the\n    # household for every check. Then, for each applicant, scan the whole pair\n    # list again to pick out its schemes: O(applicants x pairs).\n    pairs = []\n    for s in schemes:\n        for a in applicants:\n            ok = True\n            for key in s['criteria']:\n                v = s['criteria'][key]\n                if key == 'employment_status' and a['employment_status'] != v:\n                    ok = False\n                if key == 'max_monthly_income' and a['monthly_income'] > v:\n                    ok = False\n                if key == 'min_household_size' and len(a['household']) + 1 < v:\n                    ok = False\n                if key == 'has_child_in_school':\n                    has = False\n                    for m in a['household']:\n                        if (m['relation'] == 'son' or m['relation'] == 'daughter') and m['age'] >= 7 and m['age'] <= 16:\n                            has = True\n                    if has != v:\n                        ok = False\n            if ok:\n                pairs.append((a['id'], s['id']))\n    result = {}\n    for a in applicants:\n        mine = []\n        for aid, sid in pairs:\n            if aid == a['id']:\n                mine.append(sid)\n        mine.sort()\n        result[a['id']] = mine\n    return result\n",
+ "explain": "<p>Turn each applicant into facts once, then test those facts against each scheme with a lookup table of rules.</p><ul><li>A1: facts are status <code>unemployed</code>, income 0, size 2, school child <code>True</code> (son, 10).<ul><li><code>retrenchment</code>: status matches. Eligible.</li><li><code>student-aid</code>: school child <code>True == True</code>, 0 &le; 2000. Eligible.</li></ul></li><li>A2: status <code>employed</code>, income 3000, size 1, school child <code>False</code>. Fails status for <code>retrenchment</code>; fails the child rule for <code>student-aid</code>.</li></ul><p>The <code>RULES</code> table is what the interviewer is looking for in a take-home: adding a new criterion (say, <code>\"has_elderly\"</code>) is one new fact and one new rule, not a new branch in five places. The facts step is also where you would unit-test the tricky boundaries (age 7 and 16, size counting the applicant). Building <code>result</code> directly as a dict avoids the quadratic \"collect pairs, then search\" approach.</p>",
+ "complexity": "O(total household members + applicants * schemes * criteria) time, O(applicants * schemes) for the output",
+ "tests": [
+  {
+   "args": [
+    [
+     {
+      "id": "A1",
+      "employment_status": "unemployed",
+      "household": [
+       {
+        "relation": "son",
+        "age": 10
+       }
+      ],
+      "monthly_income": 0
+     },
+     {
+      "id": "A2",
+      "employment_status": "employed",
+      "household": [],
+      "monthly_income": 3000
+     }
+    ],
+    [
+     {
+      "id": "retrenchment",
+      "criteria": {
+       "employment_status": "unemployed"
+      }
+     },
+     {
+      "id": "student-aid",
+      "criteria": {
+       "has_child_in_school": true,
+       "max_monthly_income": 2000
+      }
+     }
+    ]
+   ],
+   "expected": {
+    "A1": [
+     "retrenchment",
+     "student-aid"
+    ],
+    "A2": []
+   },
+   "label": "example 1",
+   "cat": "example",
+   "why": "status and child-in-school criteria"
+  },
+  {
+   "args": [
+    [
+     {
+      "id": "B1",
+      "employment_status": "employed",
+      "household": [
+       {
+        "relation": "spouse",
+        "age": 40
+       },
+       {
+        "relation": "daughter",
+        "age": 17
+       }
+      ],
+      "monthly_income": 1500
+     }
+    ],
+    [
+     {
+      "id": "family",
+      "criteria": {
+       "min_household_size": 3
+      }
+     },
+     {
+      "id": "school",
+      "criteria": {
+       "has_child_in_school": true
+      }
+     },
+     {
+      "id": "all",
+      "criteria": {}
+     }
+    ]
+   ],
+   "expected": {
+    "B1": [
+     "all",
+     "family"
+    ]
+   },
+   "label": "example 2",
+   "cat": "example",
+   "why": "household size counts the applicant; age 17 is not in school"
+  },
+  {
+   "args": [
+    [],
+    [
+     {
+      "id": "s",
+      "criteria": {}
+     }
+    ]
+   ],
+   "expected": {},
+   "label": "example 3 (no applicants)",
+   "cat": "example",
+   "why": "empty dict"
+  },
+  {
+   "args": [
+    [
+     {
+      "id": "C1",
+      "employment_status": "employed",
+      "household": [],
+      "monthly_income": 100
+     },
+     {
+      "id": "C2",
+      "employment_status": "unemployed",
+      "household": [],
+      "monthly_income": 0
+     }
+    ],
+    []
+   ],
+   "expected": {
+    "C1": [],
+    "C2": []
+   },
+   "label": "no schemes",
+   "cat": "empty",
+   "why": "every applicant maps to an empty list"
+  },
+  {
+   "args": [
+    [
+     {
+      "id": "D1",
+      "employment_status": "employed",
+      "household": [],
+      "monthly_income": 2000
+     },
+     {
+      "id": "D2",
+      "employment_status": "employed",
+      "household": [],
+      "monthly_income": 2001
+     }
+    ],
+    [
+     {
+      "id": "cap",
+      "criteria": {
+       "max_monthly_income": 2000
+      }
+     }
+    ]
+   ],
+   "expected": {
+    "D1": [
+     "cap"
+    ],
+    "D2": []
+   },
+   "label": "income at and just above the cap",
+   "cat": "boundary",
+   "why": "the cap is inclusive: 2,000 passes, 2,001 does not"
+  },
+  {
+   "args": [
+    [
+     {
+      "id": "E6",
+      "employment_status": "employed",
+      "household": [
+       {
+        "relation": "son",
+        "age": 6
+       }
+      ],
+      "monthly_income": 0
+     },
+     {
+      "id": "E7",
+      "employment_status": "employed",
+      "household": [
+       {
+        "relation": "son",
+        "age": 7
+       }
+      ],
+      "monthly_income": 0
+     },
+     {
+      "id": "E16",
+      "employment_status": "employed",
+      "household": [
+       {
+        "relation": "daughter",
+        "age": 16
+       }
+      ],
+      "monthly_income": 0
+     },
+     {
+      "id": "E17",
+      "employment_status": "employed",
+      "household": [
+       {
+        "relation": "daughter",
+        "age": 17
+       }
+      ],
+      "monthly_income": 0
+     }
+    ],
+    [
+     {
+      "id": "school",
+      "criteria": {
+       "has_child_in_school": true
+      }
+     }
+    ]
+   ],
+   "expected": {
+    "E6": [],
+    "E7": [
+     "school"
+    ],
+    "E16": [
+     "school"
+    ],
+    "E17": []
+   },
+   "label": "school ages 6, 7, 16, 17",
+   "cat": "boundary",
+   "why": "only 7 and 16 are inside the inclusive range"
+  },
+  {
+   "args": [
+    [
+     {
+      "id": "F1",
+      "employment_status": "unemployed",
+      "household": [
+       {
+        "relation": "sister",
+        "age": 10
+       },
+       {
+        "relation": "grandson",
+        "age": 9
+       },
+       {
+        "relation": "nephew",
+        "age": 12
+       }
+      ],
+      "monthly_income": 0
+     }
+    ],
+    [
+     {
+      "id": "school",
+      "criteria": {
+       "has_child_in_school": true
+      }
+     },
+     {
+      "id": "nokid",
+      "criteria": {
+       "has_child_in_school": false
+      }
+     }
+    ]
+   ],
+   "expected": {
+    "F1": [
+     "nokid"
+    ]
+   },
+   "label": "not a son or daughter",
+   "cat": "edge",
+   "why": "a sister, grandson or nephew aged 7-16 does not count, so the applicant has no child in school"
+  },
+  {
+   "args": [
+    [
+     {
+      "id": "N1",
+      "employment_status": "unemployed",
+      "household": [
+       {
+        "relation": "daughter",
+        "age": 9
+       }
+      ],
+      "monthly_income": 500
+     }
+    ],
+    [
+     {
+      "id": "no-school-kids",
+      "criteria": {
+       "has_child_in_school": false
+      }
+     },
+     {
+      "id": "school",
+      "criteria": {
+       "has_child_in_school": true
+      }
+     }
+    ]
+   ],
+   "label": "has_child_in_school False excludes",
+   "cat": "edge",
+   "why": "False is a real condition, not \"not checked\": an applicant with a 9-year-old daughter fails it",
+   "expected": {
+    "N1": [
+     "school"
+    ]
+   }
+  },
+  {
+   "args": [
+    [
+     {
+      "id": "G1",
+      "employment_status": "employed",
+      "household": [
+       {
+        "relation": "son",
+        "age": 3
+       },
+       {
+        "relation": "son",
+        "age": 12
+       },
+       {
+        "relation": "daughter",
+        "age": 12
+       }
+      ],
+      "monthly_income": 900
+     }
+    ],
+    [
+     {
+      "id": "school",
+      "criteria": {
+       "has_child_in_school": true
+      }
+     },
+     {
+      "id": "size4",
+      "criteria": {
+       "min_household_size": 4
+      }
+     },
+     {
+      "id": "size5",
+      "criteria": {
+       "min_household_size": 5
+      }
+     }
+    ]
+   ],
+   "expected": {
+    "G1": [
+     "school",
+     "size4"
+    ]
+   },
+   "label": "twins and household size",
+   "cat": "dupes",
+   "why": "two school-age kids still means true; size is 1 + 3 = 4"
+  },
+  {
+   "args": [
+    [
+     {
+      "id": "H1",
+      "employment_status": "unemployed",
+      "household": [],
+      "monthly_income": 0
+     }
+    ],
+    [
+     {
+      "id": "solo",
+      "criteria": {
+       "min_household_size": 1
+      }
+     },
+     {
+      "id": "pair",
+      "criteria": {
+       "min_household_size": 2
+      }
+     }
+    ]
+   ],
+   "expected": {
+    "H1": [
+     "solo"
+    ]
+   },
+   "label": "single-person household",
+   "cat": "single",
+   "why": "size is 1: the applicant alone"
+  },
+  {
+   "args": [
+    [
+     {
+      "id": "Z0",
+      "employment_status": "unemployed",
+      "household": [],
+      "monthly_income": 0
+     },
+     {
+      "id": "Z1",
+      "employment_status": "employed",
+      "household": [
+       {
+        "relation": "son",
+        "age": 7
+       }
+      ],
+      "monthly_income": 731
+     },
+     {
+      "id": "Z2",
+      "employment_status": "employed",
+      "household": [
+       {
+        "relation": "son",
+        "age": 14
+       },
+       {
+        "relation": "daughter",
+        "age": 19
+       }
+      ],
+      "monthly_income": 1462
+     },
+     {
+      "id": "Z3",
+      "employment_status": "unemployed",
+      "household": [
+       {
+        "relation": "son",
+        "age": 21
+       },
+       {
+        "relation": "daughter",
+        "age": 1
+       },
+       {
+        "relation": "spouse",
+        "age": 6
+       }
+      ],
+      "monthly_income": 2193
+     },
+     {
+      "id": "Z4",
+      "employment_status": "employed",
+      "household": [
+       {
+        "relation": "son",
+        "age": 3
+       },
+       {
+        "relation": "daughter",
+        "age": 8
+       },
+       {
+        "relation": "spouse",
+        "age": 13
+       },
+       {
+        "relation": "mother",
+        "age": 18
+       }
+      ],
+      "monthly_income": 2924
+     },
+     {
+      "id": "Z5",
+      "employment_status": "employed",
+      "household": [],
+      "monthly_income": 3655
+     },
+     {
+      "id": "Z6",
+      "employment_status": "unemployed",
+      "household": [
+       {
+        "relation": "son",
+        "age": 17
+       }
+      ],
+      "monthly_income": 386
+     },
+     {
+      "id": "Z7",
+      "employment_status": "employed",
+      "household": [
+       {
+        "relation": "son",
+        "age": 24
+       },
+       {
+        "relation": "daughter",
+        "age": 4
+       }
+      ],
+      "monthly_income": 1117
+     }
+    ],
+    [
+     {
+      "id": "z-open",
+      "criteria": {}
+     },
+     {
+      "id": "low-income",
+      "criteria": {
+       "max_monthly_income": 2000
+      }
+     },
+     {
+      "id": "jobless",
+      "criteria": {
+       "employment_status": "unemployed"
+      }
+     },
+     {
+      "id": "big-family",
+      "criteria": {
+       "min_household_size": 4
+      }
+     },
+     {
+      "id": "no-kids",
+      "criteria": {
+       "has_child_in_school": false
+      }
+     },
+     {
+      "id": "a-combo",
+      "criteria": {
+       "employment_status": "employed",
+       "max_monthly_income": 2500,
+       "has_child_in_school": true,
+       "min_household_size": 3
+      }
+     }
+    ]
+   ],
+   "expected": {
+    "Z0": [
+     "jobless",
+     "low-income",
+     "no-kids",
+     "z-open"
+    ],
+    "Z1": [
+     "low-income",
+     "z-open"
+    ],
+    "Z2": [
+     "a-combo",
+     "low-income",
+     "z-open"
+    ],
+    "Z3": [
+     "big-family",
+     "jobless",
+     "no-kids",
+     "z-open"
+    ],
+    "Z4": [
+     "big-family",
+     "z-open"
+    ],
+    "Z5": [
+     "no-kids",
+     "z-open"
+    ],
+    "Z6": [
+     "jobless",
+     "low-income",
+     "no-kids",
+     "z-open"
+    ],
+    "Z7": [
+     "low-income",
+     "no-kids",
+     "z-open"
+    ]
+   },
+   "label": "eight applicants, six schemes",
+   "cat": "medium",
+   "why": "every criterion, mixed together, ids sorted"
+  },
+  {
+   "args": [
+    [
+     {
+      "id": "K1",
+      "employment_status": "employed",
+      "household": [
+       {
+        "relation": "son",
+        "age": 10
+       },
+       {
+        "relation": "spouse",
+        "age": 38
+       }
+      ],
+      "monthly_income": 0
+     }
+    ],
+    [
+     {
+      "id": "zero",
+      "criteria": {
+       "max_monthly_income": 0
+      }
+     },
+     {
+      "id": "x",
+      "criteria": {
+       "employment_status": "unemployed",
+       "max_monthly_income": 5000
+      }
+     }
+    ]
+   ],
+   "expected": {
+    "K1": [
+     "zero"
+    ]
+   },
+   "label": "zero income, one failing criterion",
+   "cat": "zero",
+   "why": "income 0 passes a cap of 0; one failed criterion rejects the scheme"
+  }
+ ],
+ "perf": {
+  "label": "performance: 1,000 applicants x 10 schemes",
+  "gen": "[[{'id': 'P%04d' % i, 'employment_status': 'employed' if i % 3 else 'unemployed', 'household': [{'relation': ['son', 'daughter', 'spouse', 'mother'][j % 4], 'age': (i * 7 + j * 13) % 40} for j in range(i % 6)], 'monthly_income': (i * 7919) % 6000} for i in range(1000)], [{'id': 'S%d' % s, 'criteria': [{'max_monthly_income': 3000}, {'employment_status': 'unemployed', 'max_monthly_income': 4000}, {'has_child_in_school': True}, {'min_household_size': 3}, {'employment_status': 'employed', 'has_child_in_school': True, 'min_household_size': 4, 'max_monthly_income': 5000}][s % 5]} for s in range(10)]]",
+  "expected": {
+   "P0000": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0001": [
+    "S0",
+    "S2",
+    "S5",
+    "S7"
+   ],
+   "P0002": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0003": [
+    "S3",
+    "S8"
+   ],
+   "P0004": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0005": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0006": [],
+   "P0007": [
+    "S0",
+    "S2",
+    "S5",
+    "S7"
+   ],
+   "P0008": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0009": [
+    "S3",
+    "S8"
+   ],
+   "P0010": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0011": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0012": [],
+   "P0013": [
+    "S0",
+    "S2",
+    "S5",
+    "S7"
+   ],
+   "P0014": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0015": [
+    "S3",
+    "S8"
+   ],
+   "P0016": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0017": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0018": [],
+   "P0019": [
+    "S0",
+    "S2",
+    "S5",
+    "S7"
+   ],
+   "P0020": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0021": [
+    "S3",
+    "S8"
+   ],
+   "P0022": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0023": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0024": [],
+   "P0025": [
+    "S2",
+    "S7"
+   ],
+   "P0026": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0027": [
+    "S1",
+    "S3",
+    "S6",
+    "S8"
+   ],
+   "P0028": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0029": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0030": [
+    "S1",
+    "S6"
+   ],
+   "P0031": [],
+   "P0032": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0033": [
+    "S1",
+    "S3",
+    "S6",
+    "S8"
+   ],
+   "P0034": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0035": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0036": [
+    "S1",
+    "S6"
+   ],
+   "P0037": [],
+   "P0038": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0039": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0040": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0041": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0042": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0043": [],
+   "P0044": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0045": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0046": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0047": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0048": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0049": [],
+   "P0050": [
+    "S3",
+    "S8"
+   ],
+   "P0051": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0052": [
+    "S3",
+    "S8"
+   ],
+   "P0053": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0054": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0055": [],
+   "P0056": [
+    "S3",
+    "S8"
+   ],
+   "P0057": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0058": [
+    "S3",
+    "S8"
+   ],
+   "P0059": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0060": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0061": [],
+   "P0062": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0063": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0064": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0065": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0066": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0067": [
+    "S0",
+    "S5"
+   ],
+   "P0068": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0069": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0070": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0071": [
+    "S3",
+    "S8"
+   ],
+   "P0072": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0073": [
+    "S0",
+    "S5"
+   ],
+   "P0074": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0075": [
+    "S3",
+    "S8"
+   ],
+   "P0076": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0077": [
+    "S3",
+    "S8"
+   ],
+   "P0078": [],
+   "P0079": [
+    "S0",
+    "S5"
+   ],
+   "P0080": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0081": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0082": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0083": [
+    "S3",
+    "S8"
+   ],
+   "P0084": [],
+   "P0085": [
+    "S0",
+    "S5"
+   ],
+   "P0086": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0087": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0088": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0089": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0090": [],
+   "P0091": [
+    "S0",
+    "S5"
+   ],
+   "P0092": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0093": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0094": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0095": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0096": [],
+   "P0097": [
+    "S0",
+    "S5"
+   ],
+   "P0098": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0099": [
+    "S1",
+    "S2",
+    "S3",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0100": [
+    "S3",
+    "S8"
+   ],
+   "P0101": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0102": [
+    "S1",
+    "S6"
+   ],
+   "P0103": [],
+   "P0104": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0105": [
+    "S1",
+    "S2",
+    "S3",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0106": [
+    "S3",
+    "S8"
+   ],
+   "P0107": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0108": [
+    "S1",
+    "S6"
+   ],
+   "P0109": [],
+   "P0110": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0111": [
+    "S1",
+    "S3",
+    "S6",
+    "S8"
+   ],
+   "P0112": [
+    "S3",
+    "S8"
+   ],
+   "P0113": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0114": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0115": [],
+   "P0116": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0117": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0118": [
+    "S3",
+    "S8"
+   ],
+   "P0119": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0120": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0121": [
+    "S2",
+    "S7"
+   ],
+   "P0122": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0123": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0124": [
+    "S3",
+    "S8"
+   ],
+   "P0125": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0126": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0127": [
+    "S2",
+    "S7"
+   ],
+   "P0128": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0129": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0130": [
+    "S3",
+    "S8"
+   ],
+   "P0131": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0132": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0133": [
+    "S2",
+    "S7"
+   ],
+   "P0134": [
+    "S3",
+    "S8"
+   ],
+   "P0135": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0136": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0137": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0138": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0139": [
+    "S0",
+    "S2",
+    "S5",
+    "S7"
+   ],
+   "P0140": [
+    "S3",
+    "S8"
+   ],
+   "P0141": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0142": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0143": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0144": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0145": [
+    "S0",
+    "S2",
+    "S5",
+    "S7"
+   ],
+   "P0146": [
+    "S3",
+    "S8"
+   ],
+   "P0147": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0148": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0149": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0150": [],
+   "P0151": [
+    "S0",
+    "S5"
+   ],
+   "P0152": [
+    "S3",
+    "S8"
+   ],
+   "P0153": [
+    "S3",
+    "S8"
+   ],
+   "P0154": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0155": [
+    "S3",
+    "S8"
+   ],
+   "P0156": [],
+   "P0157": [
+    "S0",
+    "S5"
+   ],
+   "P0158": [
+    "S3",
+    "S8"
+   ],
+   "P0159": [
+    "S3",
+    "S8"
+   ],
+   "P0160": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0161": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0162": [],
+   "P0163": [
+    "S0",
+    "S5"
+   ],
+   "P0164": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0165": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0166": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0167": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0168": [],
+   "P0169": [
+    "S0",
+    "S5"
+   ],
+   "P0170": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0171": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0172": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0173": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0174": [
+    "S1",
+    "S6"
+   ],
+   "P0175": [],
+   "P0176": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0177": [
+    "S1",
+    "S2",
+    "S3",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0178": [
+    "S3",
+    "S8"
+   ],
+   "P0179": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0180": [
+    "S1",
+    "S6"
+   ],
+   "P0181": [],
+   "P0182": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0183": [
+    "S1",
+    "S2",
+    "S3",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0184": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0185": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0186": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0187": [],
+   "P0188": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0189": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0190": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0191": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0192": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0193": [],
+   "P0194": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0195": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0196": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0197": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0198": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0199": [],
+   "P0200": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0201": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0202": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0203": [
+    "S3",
+    "S8"
+   ],
+   "P0204": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0205": [],
+   "P0206": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0207": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0208": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0209": [
+    "S3",
+    "S8"
+   ],
+   "P0210": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0211": [
+    "S0",
+    "S5"
+   ],
+   "P0212": [
+    "S3",
+    "S8"
+   ],
+   "P0213": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0214": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0215": [
+    "S3",
+    "S8"
+   ],
+   "P0216": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0217": [
+    "S0",
+    "S5"
+   ],
+   "P0218": [
+    "S3",
+    "S8"
+   ],
+   "P0219": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0220": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0221": [
+    "S3",
+    "S8"
+   ],
+   "P0222": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0223": [
+    "S0",
+    "S5"
+   ],
+   "P0224": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0225": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0226": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0227": [
+    "S3",
+    "S8"
+   ],
+   "P0228": [],
+   "P0229": [
+    "S0",
+    "S5"
+   ],
+   "P0230": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0231": [
+    "S3",
+    "S8"
+   ],
+   "P0232": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0233": [
+    "S3",
+    "S8"
+   ],
+   "P0234": [],
+   "P0235": [
+    "S0",
+    "S5"
+   ],
+   "P0236": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0237": [
+    "S3",
+    "S8"
+   ],
+   "P0238": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0239": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0240": [],
+   "P0241": [
+    "S0",
+    "S2",
+    "S5",
+    "S7"
+   ],
+   "P0242": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0243": [
+    "S3",
+    "S8"
+   ],
+   "P0244": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0245": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0246": [],
+   "P0247": [
+    "S2",
+    "S7"
+   ],
+   "P0248": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0249": [
+    "S1",
+    "S3",
+    "S6",
+    "S8"
+   ],
+   "P0250": [
+    "S3",
+    "S8"
+   ],
+   "P0251": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0252": [
+    "S1",
+    "S6"
+   ],
+   "P0253": [
+    "S2",
+    "S7"
+   ],
+   "P0254": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0255": [
+    "S1",
+    "S3",
+    "S6",
+    "S8"
+   ],
+   "P0256": [
+    "S3",
+    "S8"
+   ],
+   "P0257": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0258": [
+    "S1",
+    "S6"
+   ],
+   "P0259": [
+    "S2",
+    "S7"
+   ],
+   "P0260": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0261": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0262": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0263": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0264": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0265": [
+    "S2",
+    "S7"
+   ],
+   "P0266": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0267": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0268": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0269": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0270": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0271": [],
+   "P0272": [
+    "S3",
+    "S8"
+   ],
+   "P0273": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0274": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0275": [
+    "S3",
+    "S8"
+   ],
+   "P0276": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0277": [],
+   "P0278": [
+    "S3",
+    "S8"
+   ],
+   "P0279": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0280": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0281": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0282": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0283": [],
+   "P0284": [
+    "S3",
+    "S8"
+   ],
+   "P0285": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0286": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0287": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0288": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0289": [
+    "S0",
+    "S5"
+   ],
+   "P0290": [
+    "S3",
+    "S8"
+   ],
+   "P0291": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0292": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0293": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0294": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0295": [
+    "S0",
+    "S5"
+   ],
+   "P0296": [
+    "S3",
+    "S8"
+   ],
+   "P0297": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0298": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0299": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0300": [],
+   "P0301": [
+    "S0",
+    "S5"
+   ],
+   "P0302": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0303": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0304": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0305": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0306": [],
+   "P0307": [
+    "S0",
+    "S5"
+   ],
+   "P0308": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0309": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0310": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0311": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0312": [],
+   "P0313": [
+    "S0",
+    "S5"
+   ],
+   "P0314": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0315": [
+    "S3",
+    "S8"
+   ],
+   "P0316": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0317": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0318": [],
+   "P0319": [
+    "S0",
+    "S5"
+   ],
+   "P0320": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0321": [
+    "S1",
+    "S2",
+    "S3",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0322": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0323": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0324": [
+    "S1",
+    "S6"
+   ],
+   "P0325": [],
+   "P0326": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0327": [
+    "S1",
+    "S2",
+    "S3",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0328": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0329": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0330": [
+    "S1",
+    "S6"
+   ],
+   "P0331": [],
+   "P0332": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0333": [
+    "S1",
+    "S2",
+    "S3",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0334": [
+    "S3",
+    "S8"
+   ],
+   "P0335": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0336": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0337": [],
+   "P0338": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0339": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0340": [
+    "S3",
+    "S8"
+   ],
+   "P0341": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0342": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0343": [],
+   "P0344": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0345": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0346": [
+    "S3",
+    "S8"
+   ],
+   "P0347": [
+    "S3",
+    "S8"
+   ],
+   "P0348": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0349": [],
+   "P0350": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0351": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0352": [
+    "S3",
+    "S8"
+   ],
+   "P0353": [
+    "S3",
+    "S8"
+   ],
+   "P0354": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0355": [],
+   "P0356": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0357": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0358": [
+    "S3",
+    "S8"
+   ],
+   "P0359": [
+    "S3",
+    "S8"
+   ],
+   "P0360": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0361": [
+    "S0",
+    "S2",
+    "S5",
+    "S7"
+   ],
+   "P0362": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0363": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0364": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0365": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0366": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0367": [
+    "S0",
+    "S2",
+    "S5",
+    "S7"
+   ],
+   "P0368": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0369": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0370": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0371": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0372": [],
+   "P0373": [
+    "S0",
+    "S2",
+    "S5",
+    "S7"
+   ],
+   "P0374": [
+    "S3",
+    "S8"
+   ],
+   "P0375": [
+    "S3",
+    "S8"
+   ],
+   "P0376": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0377": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0378": [],
+   "P0379": [
+    "S0",
+    "S2",
+    "S5",
+    "S7"
+   ],
+   "P0380": [
+    "S3",
+    "S8"
+   ],
+   "P0381": [
+    "S3",
+    "S8"
+   ],
+   "P0382": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0383": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0384": [],
+   "P0385": [
+    "S0",
+    "S2",
+    "S5",
+    "S7"
+   ],
+   "P0386": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0387": [
+    "S3",
+    "S8"
+   ],
+   "P0388": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0389": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0390": [],
+   "P0391": [
+    "S0",
+    "S5"
+   ],
+   "P0392": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0393": [
+    "S3",
+    "S8"
+   ],
+   "P0394": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0395": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0396": [
+    "S1",
+    "S6"
+   ],
+   "P0397": [],
+   "P0398": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0399": [
+    "S1",
+    "S3",
+    "S6",
+    "S8"
+   ],
+   "P0400": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0401": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0402": [
+    "S1",
+    "S6"
+   ],
+   "P0403": [],
+   "P0404": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0405": [
+    "S1",
+    "S2",
+    "S3",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0406": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0407": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0408": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0409": [],
+   "P0410": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0411": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0412": [
+    "S3",
+    "S8"
+   ],
+   "P0413": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0414": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0415": [],
+   "P0416": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0417": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0418": [
+    "S3",
+    "S8"
+   ],
+   "P0419": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0420": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0421": [],
+   "P0422": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0423": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0424": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0425": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0426": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0427": [],
+   "P0428": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0429": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0430": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0431": [
+    "S3",
+    "S8"
+   ],
+   "P0432": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0433": [
+    "S0",
+    "S5"
+   ],
+   "P0434": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0435": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0436": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0437": [
+    "S3",
+    "S8"
+   ],
+   "P0438": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0439": [
+    "S0",
+    "S5"
+   ],
+   "P0440": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0441": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0442": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0443": [
+    "S3",
+    "S8"
+   ],
+   "P0444": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0445": [
+    "S0",
+    "S5"
+   ],
+   "P0446": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0447": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0448": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0449": [
+    "S3",
+    "S8"
+   ],
+   "P0450": [],
+   "P0451": [
+    "S0",
+    "S5"
+   ],
+   "P0452": [
+    "S3",
+    "S8"
+   ],
+   "P0453": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0454": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0455": [
+    "S3",
+    "S8"
+   ],
+   "P0456": [],
+   "P0457": [
+    "S0",
+    "S5"
+   ],
+   "P0458": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0459": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0460": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0461": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0462": [],
+   "P0463": [
+    "S0",
+    "S5"
+   ],
+   "P0464": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0465": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0466": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0467": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0468": [],
+   "P0469": [
+    "S0",
+    "S5"
+   ],
+   "P0470": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0471": [
+    "S1",
+    "S3",
+    "S6",
+    "S8"
+   ],
+   "P0472": [
+    "S3",
+    "S8"
+   ],
+   "P0473": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0474": [
+    "S1",
+    "S6"
+   ],
+   "P0475": [],
+   "P0476": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0477": [
+    "S1",
+    "S3",
+    "S6",
+    "S8"
+   ],
+   "P0478": [
+    "S3",
+    "S8"
+   ],
+   "P0479": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0480": [
+    "S1",
+    "S6"
+   ],
+   "P0481": [
+    "S2",
+    "S7"
+   ],
+   "P0482": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0483": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0484": [
+    "S3",
+    "S8"
+   ],
+   "P0485": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0486": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0487": [
+    "S2",
+    "S7"
+   ],
+   "P0488": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0489": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0490": [
+    "S3",
+    "S8"
+   ],
+   "P0491": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0492": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0493": [
+    "S2",
+    "S7"
+   ],
+   "P0494": [
+    "S3",
+    "S8"
+   ],
+   "P0495": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0496": [
+    "S3",
+    "S8"
+   ],
+   "P0497": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0498": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0499": [
+    "S2",
+    "S7"
+   ],
+   "P0500": [
+    "S3",
+    "S8"
+   ],
+   "P0501": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0502": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0503": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0504": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0505": [
+    "S2",
+    "S7"
+   ],
+   "P0506": [
+    "S3",
+    "S8"
+   ],
+   "P0507": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0508": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0509": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0510": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0511": [
+    "S0",
+    "S5"
+   ],
+   "P0512": [
+    "S3",
+    "S8"
+   ],
+   "P0513": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0514": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0515": [
+    "S3",
+    "S8"
+   ],
+   "P0516": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0517": [
+    "S0",
+    "S5"
+   ],
+   "P0518": [
+    "S3",
+    "S8"
+   ],
+   "P0519": [
+    "S3",
+    "S8"
+   ],
+   "P0520": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0521": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0522": [],
+   "P0523": [
+    "S0",
+    "S5"
+   ],
+   "P0524": [
+    "S3",
+    "S8"
+   ],
+   "P0525": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0526": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0527": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0528": [],
+   "P0529": [
+    "S0",
+    "S5"
+   ],
+   "P0530": [
+    "S3",
+    "S8"
+   ],
+   "P0531": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0532": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0533": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0534": [],
+   "P0535": [
+    "S0",
+    "S5"
+   ],
+   "P0536": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0537": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0538": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0539": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0540": [],
+   "P0541": [
+    "S0",
+    "S5"
+   ],
+   "P0542": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0543": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0544": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0545": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0546": [
+    "S1",
+    "S6"
+   ],
+   "P0547": [],
+   "P0548": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0549": [
+    "S1",
+    "S2",
+    "S3",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0550": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0551": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0552": [
+    "S1",
+    "S6"
+   ],
+   "P0553": [],
+   "P0554": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0555": [
+    "S1",
+    "S3",
+    "S6",
+    "S8"
+   ],
+   "P0556": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0557": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0558": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0559": [],
+   "P0560": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0561": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0562": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0563": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0564": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0565": [],
+   "P0566": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0567": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0568": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0569": [
+    "S3",
+    "S8"
+   ],
+   "P0570": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0571": [],
+   "P0572": [
+    "S3",
+    "S8"
+   ],
+   "P0573": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0574": [
+    "S3",
+    "S8"
+   ],
+   "P0575": [
+    "S3",
+    "S8"
+   ],
+   "P0576": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0577": [],
+   "P0578": [
+    "S3",
+    "S8"
+   ],
+   "P0579": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0580": [
+    "S3",
+    "S8"
+   ],
+   "P0581": [
+    "S3",
+    "S8"
+   ],
+   "P0582": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0583": [
+    "S0",
+    "S5"
+   ],
+   "P0584": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0585": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0586": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0587": [
+    "S3",
+    "S8"
+   ],
+   "P0588": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0589": [
+    "S0",
+    "S5"
+   ],
+   "P0590": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0591": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0592": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0593": [
+    "S3",
+    "S8"
+   ],
+   "P0594": [],
+   "P0595": [
+    "S0",
+    "S5"
+   ],
+   "P0596": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0597": [
+    "S3",
+    "S8"
+   ],
+   "P0598": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0599": [
+    "S3",
+    "S8"
+   ],
+   "P0600": [],
+   "P0601": [
+    "S0",
+    "S2",
+    "S5",
+    "S7"
+   ],
+   "P0602": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0603": [
+    "S3",
+    "S8"
+   ],
+   "P0604": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0605": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0606": [],
+   "P0607": [
+    "S0",
+    "S2",
+    "S5",
+    "S7"
+   ],
+   "P0608": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0609": [
+    "S3",
+    "S8"
+   ],
+   "P0610": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0611": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0612": [],
+   "P0613": [
+    "S0",
+    "S2",
+    "S5",
+    "S7"
+   ],
+   "P0614": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0615": [
+    "S3",
+    "S8"
+   ],
+   "P0616": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0617": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0618": [
+    "S1",
+    "S6"
+   ],
+   "P0619": [
+    "S2",
+    "S7"
+   ],
+   "P0620": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0621": [
+    "S1",
+    "S3",
+    "S6",
+    "S8"
+   ],
+   "P0622": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0623": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0624": [
+    "S1",
+    "S6"
+   ],
+   "P0625": [
+    "S2",
+    "S7"
+   ],
+   "P0626": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0627": [
+    "S1",
+    "S3",
+    "S6",
+    "S8"
+   ],
+   "P0628": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0629": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0630": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0631": [],
+   "P0632": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0633": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0634": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0635": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0636": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0637": [],
+   "P0638": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0639": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0640": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0641": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0642": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0643": [],
+   "P0644": [
+    "S3",
+    "S8"
+   ],
+   "P0645": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0646": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0647": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0648": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0649": [],
+   "P0650": [
+    "S3",
+    "S8"
+   ],
+   "P0651": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0652": [
+    "S3",
+    "S8"
+   ],
+   "P0653": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0654": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0655": [
+    "S0",
+    "S5"
+   ],
+   "P0656": [
+    "S3",
+    "S8"
+   ],
+   "P0657": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0658": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0659": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0660": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0661": [
+    "S0",
+    "S5"
+   ],
+   "P0662": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0663": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0664": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0665": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0666": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0667": [
+    "S0",
+    "S5"
+   ],
+   "P0668": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0669": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0670": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0671": [
+    "S3",
+    "S8"
+   ],
+   "P0672": [],
+   "P0673": [
+    "S0",
+    "S5"
+   ],
+   "P0674": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0675": [
+    "S3",
+    "S8"
+   ],
+   "P0676": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0677": [
+    "S3",
+    "S8"
+   ],
+   "P0678": [],
+   "P0679": [
+    "S0",
+    "S5"
+   ],
+   "P0680": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0681": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0682": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0683": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0684": [],
+   "P0685": [
+    "S0",
+    "S5"
+   ],
+   "P0686": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0687": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0688": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0689": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0690": [],
+   "P0691": [
+    "S0",
+    "S5"
+   ],
+   "P0692": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0693": [
+    "S1",
+    "S2",
+    "S3",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0694": [
+    "S3",
+    "S8"
+   ],
+   "P0695": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0696": [
+    "S1",
+    "S6"
+   ],
+   "P0697": [],
+   "P0698": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0699": [
+    "S1",
+    "S2",
+    "S3",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0700": [
+    "S3",
+    "S8"
+   ],
+   "P0701": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0702": [
+    "S1",
+    "S6"
+   ],
+   "P0703": [],
+   "P0704": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0705": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0706": [
+    "S3",
+    "S8"
+   ],
+   "P0707": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0708": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0709": [],
+   "P0710": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0711": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0712": [
+    "S3",
+    "S8"
+   ],
+   "P0713": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0714": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0715": [],
+   "P0716": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0717": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0718": [
+    "S3",
+    "S8"
+   ],
+   "P0719": [
+    "S3",
+    "S8"
+   ],
+   "P0720": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0721": [
+    "S2",
+    "S7"
+   ],
+   "P0722": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0723": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0724": [
+    "S3",
+    "S8"
+   ],
+   "P0725": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0726": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0727": [
+    "S2",
+    "S7"
+   ],
+   "P0728": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0729": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0730": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0731": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0732": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0733": [
+    "S0",
+    "S2",
+    "S5",
+    "S7"
+   ],
+   "P0734": [
+    "S3",
+    "S8"
+   ],
+   "P0735": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0736": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0737": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0738": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0739": [
+    "S0",
+    "S2",
+    "S5",
+    "S7"
+   ],
+   "P0740": [
+    "S3",
+    "S8"
+   ],
+   "P0741": [
+    "S3",
+    "S8"
+   ],
+   "P0742": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0743": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0744": [],
+   "P0745": [
+    "S0",
+    "S2",
+    "S5",
+    "S7"
+   ],
+   "P0746": [
+    "S3",
+    "S8"
+   ],
+   "P0747": [
+    "S3",
+    "S8"
+   ],
+   "P0748": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0749": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0750": [],
+   "P0751": [
+    "S0",
+    "S5"
+   ],
+   "P0752": [
+    "S3",
+    "S8"
+   ],
+   "P0753": [
+    "S3",
+    "S8"
+   ],
+   "P0754": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0755": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0756": [],
+   "P0757": [
+    "S0",
+    "S5"
+   ],
+   "P0758": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0759": [
+    "S3",
+    "S8"
+   ],
+   "P0760": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0761": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0762": [],
+   "P0763": [
+    "S0",
+    "S5"
+   ],
+   "P0764": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0765": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0766": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0767": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0768": [
+    "S1",
+    "S6"
+   ],
+   "P0769": [],
+   "P0770": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0771": [
+    "S1",
+    "S2",
+    "S3",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0772": [
+    "S3",
+    "S8"
+   ],
+   "P0773": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0774": [
+    "S1",
+    "S6"
+   ],
+   "P0775": [],
+   "P0776": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0777": [
+    "S1",
+    "S2",
+    "S3",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0778": [
+    "S3",
+    "S8"
+   ],
+   "P0779": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0780": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0781": [],
+   "P0782": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0783": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0784": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0785": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0786": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0787": [],
+   "P0788": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0789": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0790": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0791": [
+    "S3",
+    "S8"
+   ],
+   "P0792": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0793": [],
+   "P0794": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0795": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0796": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0797": [
+    "S3",
+    "S8"
+   ],
+   "P0798": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0799": [],
+   "P0800": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0801": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0802": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0803": [
+    "S3",
+    "S8"
+   ],
+   "P0804": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0805": [
+    "S0",
+    "S5"
+   ],
+   "P0806": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0807": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0808": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0809": [
+    "S3",
+    "S8"
+   ],
+   "P0810": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0811": [
+    "S0",
+    "S5"
+   ],
+   "P0812": [
+    "S3",
+    "S8"
+   ],
+   "P0813": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0814": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0815": [
+    "S3",
+    "S8"
+   ],
+   "P0816": [],
+   "P0817": [
+    "S0",
+    "S5"
+   ],
+   "P0818": [
+    "S3",
+    "S8"
+   ],
+   "P0819": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0820": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0821": [
+    "S3",
+    "S8"
+   ],
+   "P0822": [],
+   "P0823": [
+    "S0",
+    "S5"
+   ],
+   "P0824": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0825": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0826": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0827": [
+    "S3",
+    "S8"
+   ],
+   "P0828": [],
+   "P0829": [
+    "S0",
+    "S5"
+   ],
+   "P0830": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0831": [
+    "S3",
+    "S8"
+   ],
+   "P0832": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0833": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0834": [],
+   "P0835": [
+    "S0",
+    "S5"
+   ],
+   "P0836": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0837": [
+    "S3",
+    "S8"
+   ],
+   "P0838": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0839": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0840": [
+    "S1",
+    "S6"
+   ],
+   "P0841": [
+    "S2",
+    "S7"
+   ],
+   "P0842": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0843": [
+    "S1",
+    "S3",
+    "S6",
+    "S8"
+   ],
+   "P0844": [
+    "S3",
+    "S8"
+   ],
+   "P0845": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0846": [
+    "S1",
+    "S6"
+   ],
+   "P0847": [
+    "S2",
+    "S7"
+   ],
+   "P0848": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0849": [
+    "S1",
+    "S3",
+    "S6",
+    "S8"
+   ],
+   "P0850": [
+    "S3",
+    "S8"
+   ],
+   "P0851": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0852": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0853": [
+    "S2",
+    "S7"
+   ],
+   "P0854": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0855": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0856": [
+    "S3",
+    "S8"
+   ],
+   "P0857": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0858": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0859": [
+    "S2",
+    "S7"
+   ],
+   "P0860": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0861": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0862": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0863": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0864": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0865": [
+    "S2",
+    "S7"
+   ],
+   "P0866": [
+    "S3",
+    "S8"
+   ],
+   "P0867": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0868": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0869": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0870": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0871": [],
+   "P0872": [
+    "S3",
+    "S8"
+   ],
+   "P0873": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0874": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0875": [
+    "S3",
+    "S8"
+   ],
+   "P0876": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0877": [
+    "S0",
+    "S5"
+   ],
+   "P0878": [
+    "S3",
+    "S8"
+   ],
+   "P0879": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0880": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0881": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0882": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0883": [
+    "S0",
+    "S5"
+   ],
+   "P0884": [
+    "S3",
+    "S8"
+   ],
+   "P0885": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0886": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0887": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0888": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0889": [
+    "S0",
+    "S5"
+   ],
+   "P0890": [
+    "S3",
+    "S8"
+   ],
+   "P0891": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0892": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0893": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0894": [],
+   "P0895": [
+    "S0",
+    "S5"
+   ],
+   "P0896": [
+    "S3",
+    "S8"
+   ],
+   "P0897": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0898": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0899": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0900": [],
+   "P0901": [
+    "S0",
+    "S5"
+   ],
+   "P0902": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0903": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0904": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0905": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0906": [],
+   "P0907": [
+    "S0",
+    "S5"
+   ],
+   "P0908": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0909": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0910": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0911": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0912": [],
+   "P0913": [
+    "S0",
+    "S5"
+   ],
+   "P0914": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0915": [
+    "S1",
+    "S3",
+    "S6",
+    "S8"
+   ],
+   "P0916": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0917": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0918": [
+    "S1",
+    "S6"
+   ],
+   "P0919": [],
+   "P0920": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0921": [
+    "S1",
+    "S2",
+    "S3",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0922": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0923": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0924": [
+    "S1",
+    "S6"
+   ],
+   "P0925": [],
+   "P0926": [
+    "S0",
+    "S2",
+    "S3",
+    "S5",
+    "S7",
+    "S8"
+   ],
+   "P0927": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0928": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0929": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0930": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0931": [],
+   "P0932": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0933": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0934": [
+    "S3",
+    "S8"
+   ],
+   "P0935": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0936": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0937": [],
+   "P0938": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0939": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0940": [
+    "S3",
+    "S8"
+   ],
+   "P0941": [
+    "S3",
+    "S8"
+   ],
+   "P0942": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0943": [],
+   "P0944": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0945": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S5",
+    "S6",
+    "S7",
+    "S8"
+   ],
+   "P0946": [
+    "S3",
+    "S8"
+   ],
+   "P0947": [
+    "S3",
+    "S8"
+   ],
+   "P0948": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0949": [],
+   "P0950": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0951": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0952": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0953": [
+    "S3",
+    "S8"
+   ],
+   "P0954": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0955": [
+    "S0",
+    "S5"
+   ],
+   "P0956": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0957": [
+    "S0",
+    "S1",
+    "S3",
+    "S5",
+    "S6",
+    "S8"
+   ],
+   "P0958": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0959": [
+    "S3",
+    "S8"
+   ],
+   "P0960": [
+    "S0",
+    "S1",
+    "S5",
+    "S6"
+   ],
+   "P0961": [
+    "S0",
+    "S2",
+    "S5",
+    "S7"
+   ],
+   "P0962": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0963": [
+    "S3",
+    "S8"
+   ],
+   "P0964": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0965": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0966": [],
+   "P0967": [
+    "S0",
+    "S2",
+    "S5",
+    "S7"
+   ],
+   "P0968": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0969": [
+    "S3",
+    "S8"
+   ],
+   "P0970": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0971": [
+    "S2",
+    "S3",
+    "S4",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0972": [],
+   "P0973": [
+    "S0",
+    "S2",
+    "S5",
+    "S7"
+   ],
+   "P0974": [
+    "S3",
+    "S8"
+   ],
+   "P0975": [
+    "S3",
+    "S8"
+   ],
+   "P0976": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0977": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0978": [],
+   "P0979": [
+    "S0",
+    "S2",
+    "S5",
+    "S7"
+   ],
+   "P0980": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0981": [
+    "S3",
+    "S8"
+   ],
+   "P0982": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0983": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0984": [],
+   "P0985": [
+    "S0",
+    "S2",
+    "S5",
+    "S7"
+   ],
+   "P0986": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0987": [
+    "S3",
+    "S8"
+   ],
+   "P0988": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0989": [
+    "S0",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S7",
+    "S8",
+    "S9"
+   ],
+   "P0990": [
+    "S1",
+    "S6"
+   ],
+   "P0991": [],
+   "P0992": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0993": [
+    "S1",
+    "S3",
+    "S6",
+    "S8"
+   ],
+   "P0994": [
+    "S2",
+    "S3",
+    "S7",
+    "S8"
+   ],
+   "P0995": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0996": [
+    "S1",
+    "S6"
+   ],
+   "P0997": [],
+   "P0998": [
+    "S0",
+    "S3",
+    "S5",
+    "S8"
+   ],
+   "P0999": [
+    "S1",
+    "S3",
+    "S6",
+    "S8"
+   ]
+  }
+ },
+ "govtech": {
+  "round": "take-home",
+  "tag": "inspired",
+  "source": "GovTech take-home: Financial Assistance Scheme eligibility API",
+  "evidence": "Public candidate repos describe a GovTech take-home to build a Financial Assistance Scheme management API that returns the schemes an applicant is eligible for; the criteria format and rules here are ours and simplified.",
+  "extensions": [
+   "Expose it as an API: <code>GET /api/schemes/eligible?applicant={id}</code>, plus CRUD for applicants and schemes. Design the tables: applicants, household_members, schemes, and how criteria are stored (JSON column vs one row per rule).",
+   "Add a new criterion without editing the loop, e.g. <code>\"has_elderly_member\": true</code> (anyone aged 65+). With a rules table this is one fact and one entry.",
+   "Support <code>OR</code> and nested conditions, e.g. \"unemployed OR income &le; 1,500\". How would you represent a rule tree in JSON and evaluate it?",
+   "Return <i>why</i> an applicant is not eligible (\"income 3,000 is above the 2,000 limit\"), so a caseworker can explain the decision.",
+   "Schemes change over time. How do you keep past decisions explainable when a scheme's criteria are edited? (Version the criteria and store which version each decision used.)"
+  ]
+ }
+}

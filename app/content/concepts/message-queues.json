@@ -1,0 +1,110 @@
+{
+ "id": "message-queues",
+ "title": "Message queues and streams",
+ "group": "Async & realtime",
+ "tagline": "Put a buffer between the part that accepts work and the part that does it, so spikes wait instead of breaking things.",
+ "why": "<p>Some work does not need to finish before you answer the user: sending 50,000 SMS, resizing an upload, counting a click. If the API does that work inline, every slow downstream call makes the user wait, and a spike of 10&times; normal traffic hits the slowest component head on.</p><p>A queue splits the system in two. Producers write a small message and return in milliseconds. Consumers pull messages at the rate they can handle. When a spike arrives, the backlog grows for a while and drains later, instead of requests timing out. You can also scale the two sides separately: add consumers when the backlog grows, without touching the API.</p><p>The price is that work is no longer done when the request returns, delivery is usually <b>at least once</b> (so you will see duplicates), and you now have a backlog to watch. The sim below shows the backlog. Each consumer handles 2 messages per tick, and a spike triples the input for a few ticks. At the defaults (6 in, 3 consumers = 6 out) each spike leaves a backlog that never drains, because the average input is above what the consumers can do. Raise consumers to 5 and the backlog clears between spikes.</p>",
+ "how": "<p><b>The basic loop.</b> A producer sends a message. A consumer receives it; the broker hides it from other consumers for a <b>visibility timeout</b> (SQS default 30 s). If the consumer finishes, it deletes (acks) the message. If it crashes or the timeout passes first, the message becomes visible again and another consumer gets it. That is why delivery is <b>at least once</b>: a consumer that finished the work but died before the ack causes a redelivery. Make handlers idempotent (see <a href=\"#sd-c-idempotency\">Idempotency</a>).</p><p><b>Dead-letter queue (DLQ).</b> A poison message (bad JSON, a row that always throws) would be retried forever and block or slow everything. Set a max receive count, for example 5; after that the broker moves the message to a DLQ. Alert on DLQ depth, inspect, fix, then replay.</p><p><b>Queue vs log.</b> A <b>queue</b> (SQS, RabbitMQ) deletes a message once it is acked; each message goes to one consumer. A <b>log/stream</b> (Kafka, Kinesis) keeps every message for a retention period (Kafka default 7 days); consumers track their own <b>offset</b>, so many independent groups can read the same data and you can replay from yesterday.</p><p><b>Ordering and consumer groups.</b> Kafka splits a topic into <b>partitions</b>. Order is guaranteed only inside one partition, so you pick a key (user id, campaign id) and all messages for that key land in the same partition, in order. Within a consumer group each partition is read by exactly one consumer, so 12 partitions means at most 12 useful consumers. SQS standard queues give best-effort order; SQS FIFO queues keep order per <code>MessageGroupId</code> and drop duplicates sent within a 5-minute window.</p><p><b>A table can be a queue.</b> At moderate rates a Postgres table works well: workers claim a row inside a transaction so only one worker gets it (a common way is <code>SELECT ... FOR UPDATE SKIP LOCKED</code>). Postman.gov.sg's public docs describe a Postgres <code>job_queue</code> table polled by sender and logger workers, with job states READY &rarr; ENQUEUED &rarr; SENDING &rarr; SENT (or STOPPED) &rarr; LOGGED. You get transactions with your business data for free.</p>",
+ "sim": "queue",
+ "tradeoffs": [
+  {
+   "option": "SQS standard queue",
+   "pro": "Fully managed, scales with no tuning, per-message ack and built-in DLQ. The default on AWS for background jobs.",
+   "con": "At-least-once with best-effort order; no replay once a message is deleted; one consumer per message."
+  },
+  {
+   "option": "SQS FIFO queue",
+   "pro": "Ordered per message group and deduplicates retries sent within 5 minutes.",
+   "con": "Lower throughput (300 sends/s per API action, 3,000 with batching, more in high-throughput mode). A stuck message blocks its whole group."
+  },
+  {
+   "option": "Kafka (or Kinesis / MSK)",
+   "pro": "Durable log, replay, many consumer groups on the same data, very high throughput, order per partition.",
+   "con": "You size partitions up front, run or pay for a cluster, and handle offsets. No per-message DLQ built in; you build it as a separate topic."
+  },
+  {
+   "option": "Postgres table as a queue",
+   "pro": "No new infrastructure. Enqueue in the same transaction as the business write, so no lost or phantom jobs.",
+   "con": "Polling and row locks cost database capacity. Fine for hundreds to low thousands of jobs/s, not for 100k/s."
+  },
+  {
+   "option": "RabbitMQ",
+   "pro": "Flexible routing (topic, fanout exchanges), per-message acks, priorities.",
+   "con": "You operate it. Classic queues delete a message on ack, so no replay (RabbitMQ streams add a log, but that is a different mode). Long backlogs hurt it more than Kafka."
+  }
+ ],
+ "numbers": [
+  "SQS: visibility timeout default <b>30 s</b> (max 12 h); retention default <b>4 days</b> (max 14 days).",
+  "SQS FIFO: <b>300</b> sends/s per API action, <b>3,000</b> with batches of 10; dedup window <b>5 min</b>.",
+  "Kafka: default retention <b>7 days</b>; order only within a partition; useful consumers per group &le; partition count.",
+  "Backlog drain time = backlog &divide; (consume rate &minus; produce rate). 1M messages at 1,000/s net drain = <b>~17 min</b>.",
+  "A Postman-style sender at <b>~200 msg/s</b> per worker needs ~25 workers to send 300,000 messages in 1 minute.",
+  "A typical max receive count before the DLQ: <b>3-5</b>."
+ ],
+ "say": [
+  "I'll put a queue between the API and the workers so a spike becomes backlog instead of timeouts, and I'll autoscale workers on queue depth.",
+  "Delivery is at least once, so the handler is idempotent: it checks a message or job id before doing the side effect.",
+  "If order matters per user, I'll partition by user id; order is only guaranteed within a partition, and partitions cap how many consumers I can run."
+ ],
+ "pitfalls": [
+  "Assuming exactly-once delivery. A consumer that dies after the side effect but before the ack causes a duplicate.",
+  "A visibility timeout shorter than the job takes. The message reappears mid-job and a second worker does it again.",
+  "No DLQ: one poison message is retried forever, burns capacity, and in a FIFO group blocks every message behind it.",
+  "Expecting global order from Kafka. Order holds per partition only; a key change or repartition breaks it.",
+  "Writing to the DB and then publishing to the queue as two steps. A crash between them loses the event; use an outbox."
+ ],
+ "quiz": [
+  {
+   "q": "A worker finishes sending an email, then crashes before deleting the SQS message. What happens?",
+   "options": [
+    "The message is lost",
+    "After the visibility timeout, the message is delivered again and the email may be sent twice",
+    "SQS detects the email was sent and drops it",
+    "The message goes straight to the DLQ"
+   ],
+   "answer": 1,
+   "why": "This is the classic at-least-once case. The broker cannot know the work was done; make the handler idempotent."
+  },
+  {
+   "q": "A Kafka topic has 6 partitions. You run 10 consumers in one group. How many are doing work?",
+   "options": [
+    "10",
+    "5",
+    "6"
+   ],
+   "answer": 2,
+   "why": "Each partition goes to exactly one consumer in a group, so 4 consumers sit idle. Add partitions to add parallelism."
+  },
+  {
+   "q": "Which need points most strongly to Kafka over SQS?",
+   "options": [
+    "Three teams must each read every event, and you want to replay last week's events after a bug fix",
+    "Send one welcome email per signup",
+    "Retry a failed thumbnail job up to 5 times"
+   ],
+   "answer": 0,
+   "why": "A log keeps messages after they are read, so many consumer groups read the same data and can rewind. A queue deletes on ack."
+  },
+  {
+   "q": "A message fails parsing every time. Without a DLQ, what is the most likely result?",
+   "options": [
+    "It is silently dropped after 30 s",
+    "Kafka rewrites it",
+    "It is retried until retention expires, wasting capacity and hiding the real error",
+    "The producer is notified"
+   ],
+   "answer": 2,
+   "why": "Set a max receive count so poison messages move to a DLQ you alert on."
+  }
+ ],
+ "used_in": [
+  "bulk-messaging",
+  "csv-ingest",
+  "url-shortener",
+  "news-feed",
+  "web-crawler",
+  "payments",
+  "otp-login",
+  "form-builder"
+ ]
+}

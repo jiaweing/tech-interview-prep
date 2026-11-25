@@ -1,0 +1,289 @@
+{
+ "id": "chunk-text",
+ "title": "Chunk a Document for Retrieval",
+ "pattern": "strings",
+ "level": "medium",
+ "statement": "<p>A knowledge base answers questions by searching small pieces of each document, not whole files. Before you embed a document you cut it into <i>chunks</i>. Good chunks end at sentence boundaries, never exceed the size limit, and repeat a few words from the previous chunk so a fact split across the cut can still be found.</p><p>Write <code>def solution(text, max_words, overlap)</code> that returns the list of chunk strings.</p><p><b>Words and sentences.</b> Words are the pieces of <code>text.split()</code> (any run of whitespace separates words). A sentence ends at a word whose last character is <code>.</code>, <code>?</code> or <code>!</code>; the mark stays on the word. Any words left after the last mark form a final sentence.</p><p><b>Packing.</b> Build one chunk at a time as a list of words. A chunk's words are its <i>overlap</i> words (copied from the previous chunk) followed by its <i>new</i> words. To <i>close</i> a chunk: output its words joined by single spaces, then start the next chunk with the last <code>overlap</code> words of the one you closed (no words if <code>overlap</code> is 0). For each sentence, in order:</p><ol><li>If the sentence does not fit (current words + sentence words &gt; <code>max_words</code>) and the chunk has at least one new word, close the chunk.</li><li>Then, if the sentence fits, add all of its words.</li><li>Otherwise the sentence is too long even for a fresh chunk: add its words one at a time, closing the chunk each time it already holds <code>max_words</code> words before adding the next word.</li></ol><p>At the end, close the last chunk only if it has at least one new word. Empty or all-whitespace text returns <code>[]</code>.</p>",
+ "examples": [
+  {
+   "input": "text = \"Rates rose in May. Fees are waived for seniors. Apply online.\", max_words = 6, overlap = 2",
+   "output": "[\"Rates rose in May.\", \"in May. Fees are waived for\", \"waived for seniors. Apply online.\"]",
+   "why": "Sentence 2 does not fit after sentence 1, so chunk 1 closes. Chunk 2 starts with \"in May.\" and sentence 2 still does not fit, so it is split by words at 6. Chunk 3 starts with \"waived for\" and takes the rest."
+  },
+  {
+   "input": "text = \"One two. Three four. Five six.\", max_words = 4, overlap = 0",
+   "output": "[\"One two. Three four.\", \"Five six.\"]",
+   "why": "Two 2-word sentences fill a 4-word chunk exactly. With no overlap the next chunk starts empty."
+  },
+  {
+   "input": "text = \"Short. This sentence has far too many words\", max_words = 3, overlap = 1",
+   "output": "[\"Short.\", \"Short. This sentence\", \"sentence has far\", \"far too many\", \"many words\"]",
+   "why": "The second sentence has 7 words and no end mark. It cannot fit in any chunk, so it is cut by words; each chunk after the first starts with the last word of the previous one."
+  }
+ ],
+ "constraints": [
+  "0 &le; number of words &le; 50,000",
+  "1 &le; max_words &le; 2,000",
+  "0 &le; overlap &lt; max_words",
+  "words contain no whitespace; an end mark only counts as the last character of a word (so <code>3.14</code> or <code>e.g.,</code> do not end a sentence, but <code>e.g.</code> does)"
+ ],
+ "starter": "def solution(text, max_words, overlap):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "What are the three things that can happen to a sentence?",
+   "a": "It fits in the current chunk and is added. It does not fit, so the chunk closes and the sentence starts the next one (after the overlap words). Or it is longer than any chunk can hold, so it is cut by words."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "<code>\"A b. C d e. F.\"</code>, <code>max_words = 4</code>, <code>overlap = 1</code>?",
+   "a": "Sentences: [A b.] [C d e.] [F.]. Chunk 1 takes \"A b.\" (2 words); \"C d e.\" would make 5, so close \"A b.\". Chunk 2 starts with overlap \"b.\" then \"C d e.\" = 4 words. \"F.\" would make 5: close. Chunk 3 = \"e. F.\". Result <code>[\"A b.\", \"b. C d e.\", \"e. F.\"]</code>."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the obvious shortcut, and why is it wrong?",
+   "a": "Cut every <code>max_words</code> words. It is one line, but it splits sentences in half and has no overlap. Retrieval quality drops because each chunk loses context. The brute force here keeps the chunk as a string and re-splits it to count words, which is correct but O(n &times; max_words)."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Clue words?",
+   "a": "\"split into sentences\", \"pack\", \"at most\" &rarr; <b>string parsing plus greedy packing</b>. Keep the current chunk as a list of words and a counter of how many are new; never re-split strings you built."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li>Split into sentences (lists of words).</li><li>Keep <code>cur</code> (words) and <code>fresh</code> (new words in it).</li><li>Write <code>flush()</code>: append <code>\" \".join(cur)</code>, keep the last <code>overlap</code> words, set <code>fresh = 0</code>.</li><li>Per sentence: flush if it does not fit and <code>fresh &gt; 0</code>; add it whole if it now fits; else add word by word, flushing when <code>cur</code> is full.</li><li>Flush at the end if <code>fresh &gt; 0</code>.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "<code>overlap = 0</code>: <code>cur[-0:]</code> returns the whole list, an infinite-growth bug. Empty text. No punctuation at all. A sentence exactly <code>max_words</code> long. One sentence longer than <code>max_words</code>. Newlines and double spaces. A last chunk that would be only overlap (must not be emitted)."
+  }
+ ],
+ "hints": [
+  "Work with lists of words, not strings. <code>text.split()</code> with no argument already handles newlines and repeated spaces; a word ends a sentence if <code>word.endswith((\".\", \"?\", \"!\"))</code>.",
+  "Track two numbers: <code>len(cur)</code> (for the size limit) and <code>fresh</code>, the count of words that are not overlap. \"Close only if <code>fresh &gt; 0</code>\" stops you emitting a chunk that just repeats the previous one.",
+  "To keep the last <code>k</code> words use <code>cur[len(cur) - k:]</code>. Do not use <code>cur[-k:]</code>: when <code>k</code> is 0 it returns the whole list."
+ ],
+ "solution": "END_MARKS = ('.', '?', '!')\n\ndef split_sentences(text):\n    # A sentence ends at a word whose last character is . ? or !\n    sentences, current = [], []\n    for word in text.split():\n        current.append(word)\n        if word.endswith(END_MARKS):\n            sentences.append(current)\n            current = []\n    if current:                      # trailing words with no end mark\n        sentences.append(current)\n    return sentences\n\ndef solution(text, max_words, overlap):\n    chunks = []\n    cur = []        # words in the chunk being built\n    fresh = 0       # how many of them are new (not copied overlap)\n\n    def flush():\n        nonlocal cur, fresh\n        chunks.append(' '.join(cur))\n        # careful: cur[-0:] is the WHOLE list, so slice from the front\n        cur = cur[len(cur) - overlap:]\n        fresh = 0\n\n    for sentence in split_sentences(text):\n        # Rule 2: close the chunk if the sentence does not fit and the chunk has new words\n        if len(cur) + len(sentence) > max_words and fresh > 0:\n            flush()\n        if len(cur) + len(sentence) <= max_words:\n            cur.extend(sentence)                 # Rule 1: whole sentence fits\n            fresh += len(sentence)\n        else:\n            for word in sentence:                # Rule 3: too long, split by words\n                if len(cur) == max_words:\n                    flush()\n                cur.append(word)\n                fresh += 1\n    if fresh > 0:                                # Rule 4: last chunk, unless it is only overlap\n        chunks.append(' '.join(cur))\n    return chunks\n",
+ "brute": "def solution(text, max_words, overlap):\n    # Brute force: keep the chunk as a string and re-count its words with split()\n    # every time we need its length, and carry overlap by re-splitting the string.\n    words = text.split()\n    sentences, start = [], 0\n    for i in range(len(words)):\n        if words[i][-1] in '.?!':\n            sentences.append(' '.join(words[start:i + 1]))\n            start = i + 1\n    if start < len(words):\n        sentences.append(' '.join(words[start:]))\n\n    def count(s):\n        return len(s.split())\n\n    def tail(s):\n        if overlap == 0:\n            return ''\n        return ' '.join(s.split()[-overlap:])\n\n    chunks, chunk, has_new = [], '', False\n    for sent in sentences:\n        joined = (chunk + ' ' + sent).strip()\n        if count(joined) <= max_words:\n            chunk, has_new = joined, True\n            continue\n        if has_new:\n            chunks.append(chunk)\n            chunk, has_new = tail(chunk), False\n            joined = (chunk + ' ' + sent).strip()\n            if count(joined) <= max_words:\n                chunk, has_new = joined, True\n                continue\n        for w in sent.split():\n            if count(chunk) == max_words:\n                chunks.append(chunk)\n                chunk = tail(chunk)\n            chunk = (chunk + ' ' + w).strip()\n            has_new = True\n    if has_new:\n        chunks.append(chunk)\n    return chunks\n",
+ "explain": "<p>The solution is a greedy packer with one subtle state variable, <code>fresh</code>. Walk example 1 (<code>max_words = 6</code>, <code>overlap = 2</code>):</p><ul><li>Sentences: \"Rates rose in May.\" (4), \"Fees are waived for seniors.\" (5), \"Apply online.\" (2).</li><li>Chunk 1 takes sentence 1 (4 words). Sentence 2 would make 9 &gt; 6, and the chunk has new words, so close it.</li><li>Chunk 2 starts with the overlap \"in May.\" (2) + sentence 2 (5) = 7 &gt; 6: still too long, so rule 3 adds words one at a time and closes at 6 words: \"in May. Fees are waived for\".</li><li>Chunk 3 starts with overlap \"waived for\", adds \"seniors.\" (3 words); \"Apply online.\" makes 5 &le; 6, so it joins. End: close it.</li></ul><p>Talk about the trade-off out loud: a larger overlap helps recall but stores and embeds more duplicate text. Then test <code>overlap = 0</code> first, because that is where the <code>[-0:]</code> bug hides.</p>",
+ "complexity": "O(total words + total output words) time: each word is copied into at most a few chunks",
+ "tests": [
+  {
+   "args": [
+    "Rates rose in May. Fees are waived for seniors. Apply online.",
+    6,
+    2
+   ],
+   "expected": [
+    "Rates rose in May.",
+    "in May. Fees are waived for",
+    "waived for seniors. Apply online."
+   ],
+   "label": "example 1",
+   "cat": "example",
+   "why": "overlap, a forced word split, then a sentence that fits"
+  },
+  {
+   "args": [
+    "One two. Three four. Five six.",
+    4,
+    0
+   ],
+   "expected": [
+    "One two. Three four.",
+    "Five six."
+   ],
+   "label": "example 2 (no overlap)",
+   "cat": "example",
+   "why": "overlap 0 must not copy the whole chunk"
+  },
+  {
+   "args": [
+    "Short. This sentence has far too many words",
+    3,
+    1
+   ],
+   "expected": [
+    "Short.",
+    "Short. This sentence",
+    "sentence has far",
+    "far too many",
+    "many words"
+   ],
+   "label": "example 3 (long sentence)",
+   "cat": "example",
+   "why": "a sentence longer than max_words is split by words"
+  },
+  {
+   "args": [
+    "",
+    5,
+    1
+   ],
+   "expected": [],
+   "label": "empty text",
+   "cat": "empty",
+   "why": "no words, no chunks"
+  },
+  {
+   "args": [
+    "   \n  ",
+    5,
+    1
+   ],
+   "expected": [],
+   "label": "only whitespace",
+   "cat": "empty",
+   "why": "split() gives no words"
+  },
+  {
+   "args": [
+    "Hello.",
+    5,
+    2
+   ],
+   "expected": [
+    "Hello."
+   ],
+   "label": "one short sentence",
+   "cat": "single",
+   "why": "one chunk, no overlap needed"
+  },
+  {
+   "args": [
+    "Alpha beta gamma. Delta.",
+    3,
+    1
+   ],
+   "expected": [
+    "Alpha beta gamma.",
+    "gamma. Delta."
+   ],
+   "label": "sentence exactly max_words",
+   "cat": "boundary",
+   "why": "a 3-word sentence fills the chunk; the next chunk starts with \"gamma.\""
+  },
+  {
+   "args": [
+    "Ok? Yes! Fine. Done",
+    1,
+    0
+   ],
+   "expected": [
+    "Ok?",
+    "Yes!",
+    "Fine.",
+    "Done"
+   ],
+   "label": "max_words 1",
+   "cat": "boundary",
+   "why": "every word is its own chunk; ? and ! end sentences too"
+  },
+  {
+   "args": [
+    "no punctuation at all in this text",
+    4,
+    2
+   ],
+   "expected": [
+    "no punctuation at all",
+    "at all in this",
+    "in this text"
+   ],
+   "label": "no end marks",
+   "cat": "edge",
+   "why": "the whole text is one long sentence, cut by words with overlap"
+  },
+  {
+   "args": [
+    "It costs 3.14 dollars.\n\nPay  now.",
+    4,
+    1
+   ],
+   "expected": [
+    "It costs 3.14 dollars.",
+    "dollars. Pay now."
+   ],
+   "label": "decimals and blank lines",
+   "cat": "edge",
+   "why": "3.14 does not end a sentence; newlines and double spaces are just whitespace"
+  },
+  {
+   "args": [
+    "A b. A b. A b. A b.",
+    4,
+    2
+   ],
+   "expected": [
+    "A b. A b.",
+    "A b. A b.",
+    "A b. A b."
+   ],
+   "label": "repeated sentences",
+   "cat": "dupes",
+   "why": "identical sentences are packed like any other"
+  },
+  {
+   "args": [
+    "a. a. a. a. a. ",
+    2,
+    1
+   ],
+   "expected": [
+    "a. a.",
+    "a. a.",
+    "a. a.",
+    "a. a."
+   ],
+   "label": "overlap only tail",
+   "cat": "small",
+   "why": "the last chunk must not be emitted if it holds only overlap words"
+  },
+  {
+   "args": [
+    "The board met on Monday. It approved the budget for the new clinic. Construction starts in March and ends in December. Residents can send feedback until Friday! Who pays for parking? The agency does.",
+    10,
+    3
+   ],
+   "expected": [
+    "The board met on Monday.",
+    "met on Monday. It approved the budget for the new",
+    "for the new clinic.",
+    "the new clinic. Construction starts in March and ends in",
+    "and ends in December. Residents can send feedback until Friday!",
+    "feedback until Friday! Who pays for parking? The agency does."
+   ],
+   "label": "paragraph",
+   "cat": "medium",
+   "why": "a realistic paragraph with mixed marks"
+  }
+ ],
+ "perf": {
+  "label": "performance: 11,000 words with a 10,000-word run-on sentence",
+  "gen": "[' '.join('abcdefg'[i % 7] + ('.' if (i * 7) % 11 == 3 else '') for i in range(1000)) + ' ' + ' '.join('x' for i in range(10000)), 2000, 100]",
+  "expected": [
+   "a b c. d e f g a b c d e f g. a b c d e f g a b c d. e f g a b c d e f g a. b c d e f g a b c d e. f g a b c d e f g a b. c d e f g a b c d e f. g a b c d e f g a b c. d e f g a b c d e f g. a b c d e f g a b c d. e f g a b c d e f g a. b c d e f g a b c d e. f g a b c d e f g a b. c d e f g a b c d e f. g a b c d e f g a b c. d e f g a b c d e f g. a b c d e f g a b c d. e f g a b c d e f g a. b c d e f g a b c d e. f g a b c d e f g a b. c d e f g a b c d e f. g a b c d e f g a b c. d e f g a b c d e f g. a b c d e f g a b c d. e f g a b c d e f g a. b c d e f g a b c d e. f g a b c d e f g a b. c d e f g a b c d e f. g a b c d e f g a b c. d e f g a b c d e f g. a b c d e f g a b c d. e f g a b c d e f g a. b c d e f g a b c d e. f g a b c d e f g a b. c d e f g a b c d e f. g a b c d e f g a b c. d e f g a b c d e f g. a b c d e f g a b c d. e f g a b c d e f g a. b c d e f g a b c d e. f g a b c d e f g a b. c d e f g a b c d e f. g a b c d e f g a b c. d e f g a b c d e f g. a b c d e f g a b c d. e f g a b c d e f g a. b c d e f g a b c d e. f g a b c d e f g a b. c d e f g a b c d e f. g a b c d e f g a b c. d e f g a b c d e f g. a b c d e f g a b c d. e f g a b c d e f g a. b c d e f g a b c d e. f g a b c d e f g a b. c d e f g a b c d e f. g a b c d e f g a b c. d e f g a b c d e f g. a b c d e f g a b c d. e f g a b c d e f g a. b c d e f g a b c d e. f g a b c d e f g a b. c d e f g a b c d e f. g a b c d e f g a b c. d e f g a b c d e f g. a b c d e f g a b c d. e f g a b c d e f g a. b c d e f g a b c d e. f g a b c d e f g a b. c d e f g a b c d e f. g a b c d e f g a b c. d e f g a b c d e f g. a b c d e f g a b c d. e f g a b c d e f g a. b c d e f g a b c d e. f g a b c d e f g a b. c d e f g a b c d e f. g a b c d e f g a b c. d e f g a b c d e f g. a b c d e f g a b c d. e f g a b c d e f g a. b c d e f g a b c d e. f g a b c d e f g a b. c d e f g a b c d e f. g a b c d e f g a b c. d e f g a b c d e f g. a b c d e f g a b c d. e f g a b c d e f g a. b c d e f g a b c d e. f g a b c d e f g a b. c d e f g a b c d e f.",
+   "e. f g a b c d e f g a b. c d e f g a b c d e f. g a b c d e f g a b c. d e f g a b c d e f g. a b c d e f g a b c d. e f g a b c d e f g a. b c d e f g a b c d e. f g a b c d e f g a b. c d e f g a b c d e f. g a b c d e f x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x",
+   "x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x",
+   "x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x",
+   "x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x",
+   "x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x",
+   "x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x"
+  ]
+ },
+ "govtech": {
+  "round": "live",
+  "tag": "domain",
+  "source": "Giant Robots Labs-style practice",
+  "evidence": "Practice shaped like the lab's public products (GovBrain); not a reported interview question.",
+  "extensions": [
+   "Return chunk metadata too: <code>{text, start_word, end_word}</code> so a search hit can link back to the exact place in the source document.",
+   "Abbreviations like <code>Mr.</code>, <code>Dr.</code> and <code>No.</code> wrongly end a sentence. Add an exception list and a test for \"Dr. Tan approved it.\"",
+   "Count model tokens instead of words. Pass in a <code>count_tokens(str)</code> function and keep the packing logic unchanged. What breaks if counting is slow and you call it on the whole chunk each time?",
+   "Documents have headings. Never let a chunk cross a heading line, and prefix every chunk with its heading so search results keep their context."
+  ]
+ },
+ "grl": true
+}

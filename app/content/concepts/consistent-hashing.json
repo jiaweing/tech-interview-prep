@@ -1,0 +1,89 @@
+{
+ "id": "consistent-hashing",
+ "title": "Consistent hashing",
+ "group": "Scale out",
+ "tagline": "Map keys to servers so that adding or removing a server moves only a small share of the keys.",
+ "why": "<p>When you spread keys over N cache or storage servers, the obvious rule is <code>server = hash(key) % N</code>. It is even and simple, until N changes. Go from 4 servers to 5 and about 80% of keys now map to a different server. For a cache that means a sudden miss storm on the database; for storage it means copying most of your data.</p><p>Consistent hashing fixes that. Adding or removing one server moves only about <b>1/N</b> of the keys, and only to or from that server's neighbours. Amazon's Dynamo paper, Cassandra and many cache clients use it to place data.</p><p>Bring it up when a design has a cluster of caches, partitions or WebSocket servers whose membership changes, and say why <code>% N</code> is not enough.</p>",
+ "how": "<p><b>The ring.</b> Hash both servers and keys into the same space, say 0 to 2³², and picture it bent into a circle. A key belongs to the first server you meet walking clockwise from the key's position. In code, keep the server positions in a sorted array and binary-search it: O(log P) per lookup for P points.</p><p><b>Adding a server</b> puts a new point on the ring. It takes over only the keys between its predecessor and itself, which used to belong to its clockwise neighbour. Every other key stays put. <b>Removing</b> a server hands its keys to the next server clockwise. Try both in the sim above and compare the \"ring\" count with the \"hash % N\" count.</p><p><b>Virtual nodes.</b> With one point per server, the gaps on the ring are random, so one server can own twice the keys of another, and when it dies, one neighbour inherits all of its load. Giving each server many points (virtual nodes, often 100 to 256) evens out the load bars (the sim goes up to 8; real systems use more) and spreads a dead server's keys across many survivors. It also lets a bigger machine take more points.</p><p><b>Replication.</b> To keep 3 copies, store each key on the first 3 <i>distinct</i> servers clockwise. This is the preference list in Dynamo-style designs.</p><p><b>Alternatives.</b> Rendezvous (highest random weight) hashing gives the same minimal movement without a ring. Many databases instead pre-split into a fixed number of slots (Redis Cluster uses 16,384) and move whole slots, which is easier to reason about operationally.</p>",
+ "sim": "ring",
+ "tradeoffs": [
+  {
+   "option": "hash(key) % N",
+   "pro": "One line of code, perfectly even with a good hash.",
+   "con": "Changing N remaps almost every key: going from 10 to 11 servers moves about 91% of them."
+  },
+  {
+   "option": "Ring, one point per server",
+   "pro": "Adding or removing a server moves about 1/N of keys.",
+   "con": "Uneven load from random gaps, and a dead server's keys all land on one neighbour."
+  },
+  {
+   "option": "Ring with virtual nodes",
+   "pro": "Even load, and a failed server's keys spread over many survivors; weight big machines with more points.",
+   "con": "Bigger lookup table and more ranges to track when rebalancing."
+  },
+  {
+   "option": "Fixed slots (e.g. 16,384) assigned to nodes",
+   "pro": "Simple to operate: move whole slots, and every client sees the same slot map.",
+   "con": "Needs a slot map kept in sync across clients (or a redirect, like Redis Cluster's MOVED)."
+  }
+ ],
+ "numbers": [
+  "Going from N to N+1 servers: consistent hashing moves about <b>1/(N+1)</b> of keys; <code>% N</code> moves about <b>N/(N+1)</b>. At 10 → 11 that is ~9% vs ~91%.",
+  "Virtual nodes: <b>100 to 256</b> points per server is a common choice; Cassandra defaulted to 256 tokens per node and lowered it to <b>16</b> in 4.0 with a smarter allocator.",
+  "Redis Cluster splits keys into <b>16,384</b> hash slots and moves slots between nodes.",
+  "Lookup: binary search over S × V points, e.g. 10 servers × 200 vnodes = 2,000 points, about <b>11 comparisons</b>."
+ ],
+ "say": [
+  "I won't use hash mod N for the cache cluster, because adding one node would remap almost every key and send a miss storm to the database. Consistent hashing moves only about 1/N of keys.",
+  "I'd give each node around a hundred virtual nodes, so load stays even and a failed node's keys spread across all the others instead of doubling one neighbour's load."
+ ],
+ "pitfalls": [
+  "Claiming consistent hashing fixes hot keys. It spreads <i>keys</i>, not traffic; one celebrity key still lands on one server. Replicate or split that key.",
+  "Forgetting virtual nodes, then being asked why one server has twice the load of another.",
+  "Clients with different views of the ring. During a membership change, two app servers can send the same key to different nodes; propagate membership through one source (a config service, gossip, or the cluster itself).",
+  "Using it when there are only a few fixed nodes that never change. A simple map or slot table is easier to explain and debug."
+ ],
+ "quiz": [
+  {
+   "q": "A 4-node cache uses <code>hash(key) % 4</code>. You add a 5th node. Roughly what share of keys now map to a different node?",
+   "options": [
+    "About 20%",
+    "About 50%",
+    "About 80%",
+    "None"
+   ],
+   "answer": 2,
+   "why": "A key stays only if hash % 4 equals hash % 5, which happens for about 1 in 5 keys. So roughly 80% move, and the database takes the misses."
+  },
+  {
+   "q": "What do virtual nodes fix?",
+   "options": [
+    "Uneven load, and one neighbour inheriting all of a dead server's keys",
+    "Hot keys",
+    "Slow hash functions",
+    "Cross-region latency"
+   ],
+   "answer": 0,
+   "why": "Many small ranges per server average out the random gaps and spread a failed server's ranges across many survivors. A single hot key is still hot."
+  },
+  {
+   "q": "With replication factor 3 on a ring, where do a key's copies go?",
+   "options": [
+    "Three random servers",
+    "The first 3 distinct servers clockwise from the key",
+    "The same server three times",
+    "The 3 least loaded servers"
+   ],
+   "answer": 1,
+   "why": "Walking clockwise and skipping repeat physical servers (from virtual nodes) gives a deterministic preference list every client can compute."
+  }
+ ],
+ "used_in": [
+  "kv-store",
+  "chat",
+  "web-crawler",
+  "netflix",
+  "rate-limiter"
+ ]
+}

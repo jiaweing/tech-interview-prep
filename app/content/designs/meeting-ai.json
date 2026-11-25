@@ -1,0 +1,854 @@
+{
+ "id": "meeting-ai",
+ "title": "AI meeting workspace",
+ "tagline": "Stream speech to live captions, then turn the meeting into minutes and action items that a person approves before anything is sent.",
+ "govtech": true,
+ "govtech_label": "Giant Robots Labs-style",
+ "mirrors": "Transcribe X",
+ "featured": true,
+ "difficulty": "hard",
+ "govtech_note": "<p><b>Giant Robots Labs</b> is GovTech's experimental lab in the Government Technology Office. Its teams pilot products end to end and work with AI agents. <b>Transcribe X</b> is one of its three featured products, listed as \"GovTech's AI meeting workspace for transcription, decision capture, follow-ups, after-meeting actions, and advanced meeting workflows\". Its internals are not public, so this page is a design <i>like</i> it, not how it is built.</p><p>Public GovTech material on <b>Transcribe</b>: live and pre-recorded transcription as a web app and API for public officers, for data classified up to <b>RESTRICTED and SENSITIVE NORMAL</b>. It was first used for Parliament sittings, where it cut processing per 15-minute transcript from <b>2.5 h to 1.5 h</b>. A 2024 GovTech engineering blog (\"Need for Speed: How Transcribe Turbocharged Whisper for Real-Time Conversations\") describes self-hosted <b>Whisper</b> for live speech, <b>VBx</b> speaker diarisation, a <b>live-postprocessor</b> service between the Whisper live and VBx live engines and the main live transcription service, and re-transcribing short chunks in the interim, finalising text only once a chunk reaches <b>30 s</b> because Whisper hallucinates on padded audio.</p>",
+ "summary": "<p>Two systems share one transcript. The <b>live path</b> is latency-bound: browser audio over a WebSocket to GPU speech workers, interim captions in about a second, final text every 30 s. The <b>post-meeting path</b> is throughput-bound: async jobs turn the final transcript into a summary, decisions and action items as <b>structured JSON</b>. A person edits and approves them, and only then do queued connectors send email, tasks and calendar invites.</p><p>The hard parts are not the boxes. They are GPU cost per meeting hour, keeping the caption latency budget, and making sure a model mistake (a hallucinated sentence, a wrong speaker, an invented action item) is caught by a person before it reaches anyone else.</p>",
+ "requirements": {
+  "functional": [
+   "Live captions in the browser with speaker labels while the meeting runs",
+   "Upload a recording (audio or video) and get the same transcript and minutes",
+   "After the meeting: summary, decisions, and action items with owner and due date",
+   "Organiser edits and approves the draft; each item links to the transcript lines it came from",
+   "Send approved follow-ups: email the minutes, create tasks, schedule the next meeting",
+   "Delete a meeting, its audio and transcript on request"
+  ],
+  "nonfunctional": [
+   "Interim captions within ~1.5 s of speech at p95; final text at most ~30 s behind",
+   "Data up to RESTRICTED / SENSITIVE NORMAL: government-hosted, encrypted, no external model API that keeps data",
+   "No lost audio: a dropped connection resumes without a gap in the transcript",
+   "Nothing is sent to anyone without human approval",
+   "GPU capacity follows concurrent meetings; cost per meeting hour is tracked"
+  ],
+  "out_of_scope": [
+   "Joining Zoom or Teams calls as a bot (capture in the browser or upload)",
+   "Live translation between languages",
+   "Video and screen recording"
+  ]
+ },
+ "estimates": [
+  {
+   "label": "Peak concurrent live meetings",
+   "calc": "assumption for a whole-of-government tool, weekday 10 am",
+   "value": "2,000"
+  },
+  {
+   "label": "Audio ingress at peak",
+   "calc": "2,000 streams × 24 kbps Opus",
+   "value": "~48 Mbps"
+  },
+  {
+   "label": "Audio per meeting hour",
+   "calc": "24 kbps × 3,600 s ÷ 8",
+   "value": "~10.8 MB"
+  },
+  {
+   "label": "Transcript per meeting hour",
+   "calc": "150 words/min × 60 = 9,000 words × ~1.3 tokens/word",
+   "value": "~12k tokens"
+  },
+  {
+   "label": "Live GPUs at peak",
+   "calc": "2,000 ÷ ~25 streams per GPU (benchmark it) × 1.2 headroom",
+   "value": "~96 GPUs"
+  },
+  {
+   "label": "Cost per meeting hour",
+   "calc": "ASR: assumed US$1/GPU-h ÷ 25 = $0.04; LLM: 15k in + 2k out ≈ $0.03",
+   "value": "~US$0.07"
+  },
+  {
+   "label": "Audio kept, 90-day retention",
+   "calc": "10,000 meeting-h/day × 10.8 MB × 90 days",
+   "value": "~9.7 TB"
+  }
+ ],
+ "api": [
+  {
+   "method": "POST",
+   "path": "/meetings {title, classification, attendees}",
+   "desc": "Returns {meetingId, wsToken}. The token is short-lived and scoped to this meeting."
+  },
+  {
+   "method": "WS",
+   "path": "/live/{meetingId}?resume_from={seq}",
+   "desc": "Up: binary Opus frames with seq. Down: JSON {type: interim|final|ack, seg, speaker, text, t0, t1}."
+  },
+  {
+   "method": "POST",
+   "path": "/meetings/{id}/end",
+   "desc": "202. Flushes the last chunk and enqueues the minutes job."
+  },
+  {
+   "method": "POST",
+   "path": "/uploads {size, sha256}",
+   "desc": "Returns a presigned PUT URL and a meetingId; transcription starts when the file lands."
+  },
+  {
+   "method": "GET",
+   "path": "/meetings/{id}/minutes",
+   "desc": "Latest draft: summary, decisions[], actions[] with source segment ids, version, status."
+  },
+  {
+   "method": "PATCH",
+   "path": "/meetings/{id}/minutes {version, ...}",
+   "desc": "Edit the draft. 409 if version is stale (someone else edited)."
+  },
+  {
+   "method": "POST",
+   "path": "/meetings/{id}/minutes/approve {version, send[]}",
+   "desc": "202. Marks the version approved and queues the chosen follow-ups."
+  }
+ ],
+ "data": [
+  {
+   "name": "meetings",
+   "store": "PostgreSQL",
+   "fields": [
+    "id PK",
+    "owner_id",
+    "classification",
+    "status",
+    "started_at",
+    "ended_at",
+    "delete_after"
+   ],
+   "note": "Classification is set at creation and drives retention and who may open it."
+  },
+  {
+   "name": "segments",
+   "store": "PostgreSQL",
+   "fields": [
+    "meeting_id",
+    "seq",
+    "t0_ms",
+    "t1_ms",
+    "speaker_label",
+    "text",
+    "model_version"
+   ],
+   "note": "PK (meeting_id, seq). Final text only; interim captions are never stored. A speaker rename updates one label for the whole meeting."
+  },
+  {
+   "name": "minutes",
+   "store": "PostgreSQL",
+   "fields": [
+    "meeting_id",
+    "version",
+    "status DRAFT|APPROVED",
+    "summary",
+    "decisions jsonb",
+    "actions jsonb (text, owner, due, source_segs)",
+    "approved_by"
+   ],
+   "note": "Every edit is a new version, so you can show what the model wrote and what the person changed."
+  },
+  {
+   "name": "outbox",
+   "store": "PostgreSQL",
+   "fields": [
+    "id",
+    "meeting_id",
+    "action_id",
+    "channel",
+    "idempotency_key UNIQUE",
+    "status"
+   ],
+   "note": "Written in the approval transaction; a relay publishes it to the send queue."
+  },
+  {
+   "name": "audio",
+   "store": "Object storage",
+   "fields": [
+    "key: meetings/{id}/{chunk}.opus",
+    "SSE with a managed key",
+    "lifecycle rule: delete after N days"
+   ],
+   "note": "Retention is enforced by the bucket, not by a job someone must remember to run."
+  }
+ ],
+ "diagram": {
+  "w": 960,
+  "h": 540,
+  "groups": [
+   {
+    "label": "Live path (latency-bound)",
+    "x": 14,
+    "y": 14,
+    "w": 932,
+    "h": 214
+   },
+   {
+    "label": "After the meeting (throughput-bound)",
+    "x": 14,
+    "y": 246,
+    "w": 932,
+    "h": 286
+   }
+  ],
+  "nodes": [
+   {
+    "id": "browser",
+    "label": "Browser",
+    "sub": "mic → Opus",
+    "kind": "client",
+    "x": 80,
+    "y": 70
+   },
+   {
+    "id": "gw",
+    "label": "WS gateway",
+    "sub": "auth, resume",
+    "kind": "ws",
+    "x": 290,
+    "y": 70
+   },
+   {
+    "id": "live",
+    "label": "Live service",
+    "sub": "interim / final",
+    "kind": "service",
+    "x": 510,
+    "y": 70
+   },
+   {
+    "id": "asr",
+    "label": "ASR workers",
+    "sub": "Whisper on GPUs",
+    "kind": "ml",
+    "x": 820,
+    "y": 70
+   },
+   {
+    "id": "diar",
+    "label": "Diarisation",
+    "sub": "VBx, who spoke",
+    "kind": "ml",
+    "x": 820,
+    "y": 175
+   },
+   {
+    "id": "org",
+    "label": "Organiser",
+    "sub": "upload, review",
+    "kind": "user",
+    "x": 90,
+    "y": 310
+   },
+   {
+    "id": "api",
+    "label": "Meetings API",
+    "sub": "REST, authz",
+    "kind": "service",
+    "x": 320,
+    "y": 310
+   },
+   {
+    "id": "db",
+    "label": "Meetings DB",
+    "sub": "Postgres: segments",
+    "kind": "db",
+    "x": 540,
+    "y": 310
+   },
+   {
+    "id": "store",
+    "label": "Object storage",
+    "sub": "audio, TTL",
+    "kind": "storage",
+    "x": 820,
+    "y": 300
+   },
+   {
+    "id": "integ",
+    "label": "Connectors",
+    "sub": "email, tasks",
+    "kind": "ext",
+    "x": 75,
+    "y": 470
+   },
+   {
+    "id": "sendq",
+    "label": "Send queue",
+    "sub": "approved items",
+    "kind": "queue",
+    "x": 300,
+    "y": 470
+   },
+   {
+    "id": "jobq",
+    "label": "Job queue",
+    "sub": "jobs",
+    "kind": "queue",
+    "x": 490,
+    "y": 470
+   },
+   {
+    "id": "worker",
+    "label": "Job worker",
+    "sub": "batch ASR, LLM",
+    "kind": "worker",
+    "x": 680,
+    "y": 470
+   },
+   {
+    "id": "llm",
+    "label": "LLM",
+    "sub": "self-hosted",
+    "kind": "ml",
+    "x": 885,
+    "y": 470
+   }
+  ],
+  "edges": [
+   {
+    "id": "b-gw",
+    "from": "browser",
+    "to": "gw",
+    "label": "Opus, WSS",
+    "bi": true
+   },
+   {
+    "id": "gw-live",
+    "from": "gw",
+    "to": "live",
+    "label": "audio"
+   },
+   {
+    "id": "live-asr",
+    "from": "live",
+    "to": "asr",
+    "label": "open chunk"
+   },
+   {
+    "id": "live-diar",
+    "from": "live",
+    "to": "diar",
+    "label": "speaker turns"
+   },
+   {
+    "id": "live-db",
+    "from": "live",
+    "to": "db",
+    "label": "final segments"
+   },
+   {
+    "id": "live-st",
+    "from": "live",
+    "to": "store",
+    "label": "raw audio",
+    "dashed": true
+   },
+   {
+    "id": "org-api",
+    "from": "org",
+    "to": "api",
+    "label": "HTTPS"
+   },
+   {
+    "id": "api-db",
+    "from": "api",
+    "to": "db",
+    "label": "edits",
+    "bi": true
+   },
+   {
+    "id": "api-q",
+    "from": "api",
+    "to": "jobq",
+    "label": "meeting ended",
+    "dashed": true
+   },
+   {
+    "id": "st-q",
+    "from": "store",
+    "to": "jobq",
+    "label": "upload done",
+    "dashed": true
+   },
+   {
+    "id": "q-w",
+    "from": "jobq",
+    "to": "worker",
+    "dashed": true
+   },
+   {
+    "id": "w-st",
+    "from": "worker",
+    "to": "store",
+    "label": "fetch audio"
+   },
+   {
+    "id": "w-asr",
+    "from": "worker",
+    "to": "asr",
+    "label": "batch priority",
+    "curve": -90
+   },
+   {
+    "id": "w-db",
+    "from": "worker",
+    "to": "db",
+    "label": "draft minutes",
+    "bi": true
+   },
+   {
+    "id": "w-llm",
+    "from": "worker",
+    "to": "llm"
+   },
+   {
+    "id": "api-sq",
+    "from": "api",
+    "to": "sendq",
+    "label": "approved",
+    "dashed": true
+   },
+   {
+    "id": "sq-int",
+    "from": "sendq",
+    "to": "integ",
+    "label": "send once"
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "live",
+   "name": "Live captions",
+   "desc": "One officer talking; captions appear in about a second.",
+   "steps": [
+    {
+     "edge": "b-gw",
+     "note": "An AudioWorklet captures the mic, encodes <b>Opus</b> in 20 ms frames (~24 kbps) and sends them over one WebSocket, each batch tagged with a sequence number. Opus is ~10× smaller than raw 16 kHz PCM."
+    },
+    {
+     "edge": "gw-live",
+     "note": "The gateway checks the meeting token, then routes all frames of this meeting to the <b>same</b> live-transcription instance (sticky by meeting id), because the open chunk lives in its memory."
+    },
+    {
+     "edge": "live-asr",
+     "note": "About once a second, the service re-sends the <b>whole open chunk</b> (say the last 7 s) to a GPU worker. More context lets the model fix words it got wrong a second ago."
+    },
+    {
+     "edge": "live-diar",
+     "note": "The same audio goes to diarisation, which clusters voices into Speaker 1, 2, 3. Words and speaker turns are merged by timestamp."
+    },
+    {
+     "edge": "gw-live",
+     "rev": true,
+     "note": "An <b>interim</b> caption goes back: <code>{type: interim, seg: 41, text}</code>. The browser replaces segment 41's grey text on every update."
+    },
+    {
+     "edge": "b-gw",
+     "rev": true,
+     "note": "Target: interim text within ~1.5 s of speech at p95. Interim text is never stored."
+    },
+    {
+     "edge": "live-db",
+     "note": "When the chunk reaches <b>30 s</b> it is decoded once more and becomes <b>final</b>: written to Postgres with speaker, start and end times, then pushed as <code>{type: final}</code>."
+    },
+    {
+     "edge": "live-st",
+     "note": "The raw Opus is appended to object storage in parallel, so the meeting can be re-transcribed with a better model later and the transcript can be checked against audio."
+    }
+   ]
+  },
+  {
+   "id": "minutes",
+   "name": "Meeting ends: minutes and actions",
+   "desc": "Async, so the organiser never waits on a request.",
+   "steps": [
+    {
+     "edge": "org-api",
+     "note": "Organiser clicks End. <code>POST /meetings/{id}/end</code> returns <b>202</b> right away; the live session flushes its last chunk as final."
+    },
+    {
+     "edge": "api-q",
+     "note": "Enqueue <code>{meeting_id, kind: minutes}</code>. Meetings end on the hour, so hundreds of jobs can arrive in the same minute; the queue absorbs the burst."
+    },
+    {
+     "edge": "q-w",
+     "note": "A worker leases the job. If it crashes, the lease expires and another worker retries; the job is idempotent because it writes minutes version N+1 only once."
+    },
+    {
+     "edge": "w-db",
+     "note": "Read the final segments: a 1-hour meeting is ~9,000 words, about 12k tokens, which fits in one LLM call."
+    },
+    {
+     "edge": "w-llm",
+     "note": "Ask for <b>JSON matching a schema</b>: summary, decisions and action items, each with <code>owner</code>, <code>due</code> and the <code>source_segments</code> it came from."
+    },
+    {
+     "edge": "w-llm",
+     "rev": true,
+     "note": "Validate the output: schema-valid, every cited segment exists, owners match attendees. Invalid output is retried once, then the draft is flagged for manual minutes."
+    },
+    {
+     "edge": "w-db",
+     "note": "Save the draft as <code>minutes v1, status DRAFT</code>. Nothing leaves the system yet."
+    },
+    {
+     "edge": "org-api",
+     "rev": true,
+     "note": "The organiser is notified and opens the draft. Clicking an action item jumps to the transcript lines it came from."
+    }
+   ]
+  },
+  {
+   "id": "upload",
+   "name": "Upload a recording",
+   "desc": "Same pipeline, batch priority.",
+   "steps": [
+    {
+     "edge": "org-api",
+     "note": "<code>POST /uploads {size, sha256}</code> creates a meeting and returns a <b>presigned PUT URL</b>, valid for 15 minutes."
+    },
+    {
+     "node": "store",
+     "note": "The browser PUTs the file straight to object storage. A 1 GB video never passes through the API servers."
+    },
+    {
+     "edge": "st-q",
+     "note": "The storage event enqueues a <code>transcribe</code> job. Duplicate events are harmless: the job id is the object key."
+    },
+    {
+     "edge": "q-w",
+     "note": "A worker leases the job."
+    },
+    {
+     "edge": "w-st",
+     "note": "Fetch the audio (extract and downmix the audio track from video first)."
+    },
+    {
+     "edge": "w-asr",
+     "note": "Send fixed 30 s chunks to the <b>same GPU pool at lower priority</b>. Live streams always win; uploads soak up idle GPU time, so a 1-hour file finishes in minutes when the pool is quiet."
+    },
+    {
+     "edge": "w-db",
+     "note": "Write final segments, then enqueue the same minutes job as a live meeting. One pipeline, two entry points."
+    }
+   ]
+  },
+  {
+   "id": "send",
+   "name": "Send approved follow-ups",
+   "desc": "A human approves; connectors send exactly once.",
+   "steps": [
+    {
+     "edge": "org-api",
+     "note": "The organiser fixes an owner, moves a due date, deletes a wrong action, then approves version 3 with <code>PATCH</code> + <code>POST /approve {version: 3}</code>."
+    },
+    {
+     "edge": "api-db",
+     "note": "In one transaction: check version 3 is still current (no one else edited), mark it APPROVED, and write one <code>outbox</code> row per follow-up with an idempotency key."
+    },
+    {
+     "edge": "api-sq",
+     "note": "A relay publishes outbox rows to the send queue. The approval and the intent to send commit together, so a crash cannot lose or invent a send."
+    },
+    {
+     "edge": "sq-int",
+     "note": "Connectors call the email, task and calendar APIs with the idempotency key. On a retry after a timeout, the key stops a second email or a duplicate task."
+    },
+    {
+     "node": "integ",
+     "note": "Failures go to a dead-letter queue and show as \"not sent\" on the action item, so the organiser knows. Silent failure is worse than a visible one."
+    }
+   ]
+  }
+ ],
+ "deep": [
+  {
+   "title": "The live path: interim and final text",
+   "html": "<p>A streaming caption has two states. <b>Interim</b> text is cheap to show and allowed to change; <b>final</b> text is decoded once more, stored, and never changes. Whisper is not a streaming model: it reads windows of up to 30 s. So the live service keeps an <b>open chunk</b>, re-decodes it about once a second for interim captions, and finalises it when it reaches 30 s.</p><p>GovTech's Transcribe team described this approach publicly in 2024: self-hosted Whisper, VBx for diarisation, a live-postprocessor between the engines and the main live service, and finalising only at 30 s because Whisper hallucinates on padded audio.</p><ul><li><b>Cost of interim passes</b>: a stream re-decoded every second costs far more GPU than one decode per 30 s. Moving the cadence from 1 s to 2 s roughly halves interim GPU work for a little more lag.</li><li><b>Stickiness</b>: the open chunk lives in one instance's memory, so route by meeting id. If that instance dies, the client resumes from the last acked seq and the new instance rebuilds the chunk from replayed audio.</li></ul>",
+   "diagram": {
+    "w": 960,
+    "h": 340,
+    "nodes": [
+     {
+      "id": "mic",
+      "label": "Browser",
+      "sub": "Opus frames",
+      "kind": "client",
+      "x": 75,
+      "y": 170
+     },
+     {
+      "id": "gw2",
+      "label": "WS gateway",
+      "sub": "sticky",
+      "kind": "ws",
+      "x": 272,
+      "y": 170
+     },
+     {
+      "id": "lv",
+      "label": "Live service",
+      "sub": "open chunk",
+      "kind": "service",
+      "x": 470,
+      "y": 170
+     },
+     {
+      "id": "pp",
+      "label": "Live postprocessor",
+      "sub": "merge words, speakers",
+      "kind": "service",
+      "x": 700,
+      "y": 170
+     },
+     {
+      "id": "wh",
+      "label": "Whisper live",
+      "sub": "GPU, re-decodes",
+      "kind": "ml",
+      "x": 870,
+      "y": 70
+     },
+     {
+      "id": "vbx",
+      "label": "VBx live",
+      "sub": "speaker clusters",
+      "kind": "ml",
+      "x": 870,
+      "y": 270
+     },
+     {
+      "id": "seg",
+      "label": "Segments DB",
+      "sub": "final text only",
+      "kind": "db",
+      "x": 470,
+      "y": 285
+     }
+    ],
+    "edges": [
+     {
+      "id": "d1",
+      "from": "mic",
+      "to": "gw2",
+      "label": "frames"
+     },
+     {
+      "id": "d2",
+      "from": "gw2",
+      "to": "lv",
+      "label": "PCM"
+     },
+     {
+      "id": "d3",
+      "from": "lv",
+      "to": "pp",
+      "label": "chunk"
+     },
+     {
+      "id": "d4",
+      "from": "pp",
+      "to": "wh",
+      "label": "decode"
+     },
+     {
+      "id": "d5",
+      "from": "pp",
+      "to": "vbx",
+      "label": "embed"
+     },
+     {
+      "id": "d6",
+      "from": "lv",
+      "to": "seg",
+      "label": "final"
+     }
+    ]
+   },
+   "flows": [
+    {
+     "id": "chunk",
+     "name": "One 30 s chunk",
+     "steps": [
+      {
+       "edge": "d1",
+       "note": "Frames arrive every 100 ms with a sequence number, so the server can spot gaps and the client can resume after a drop."
+      },
+      {
+       "edge": "d2",
+       "note": "Decoded to 16 kHz mono PCM, which is what Whisper takes, and appended to the open chunk."
+      },
+      {
+       "edge": "d3",
+       "note": "Every ~1 s, send the chunk so far (0 to 30 s of audio) for an interim pass."
+      },
+      {
+       "edge": "d4",
+       "note": "Whisper re-decodes the whole open chunk. Earlier words can change: \"the bus deck\" becomes \"the budget\" once the next word arrives."
+      },
+      {
+       "edge": "d5",
+       "note": "VBx groups speech into speakers. The postprocessor aligns word timestamps with speaker turns."
+      },
+      {
+       "edge": "d3",
+       "rev": true,
+       "note": "Interim text with speakers goes back to the browser in grey. It is shown, never stored."
+      },
+      {
+       "node": "lv",
+       "note": "At <b>30 s</b> the chunk is finalised and a new one starts. Whisper works on 30 s windows and pads shorter audio, and it can <b>hallucinate on padding</b> (phantom sentences in silence). Finalising only full chunks avoids that."
+      },
+      {
+       "edge": "d6",
+       "note": "Final text is written once, with model version, speaker label and timestamps, and pushed as final. The browser turns grey text black."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Minutes you can trust: structured output and approval",
+   "html": "<p>The LLM is a drafting tool, not a sender. Three rules keep it honest:</p><ol><li><b>Schema, not prose.</b> Ask for JSON with <code>decisions[]</code> and <code>actions[{text, owner, due, source_segments}]</code> and reject anything that does not parse. Owners must be attendees or <code>null</code>; dates must be real dates or <code>null</code>. \"Unknown\" is a valid answer; a guessed owner is not.</li><li><b>Grounding.</b> Every item cites segment ids. Check that they exist and that the item's words overlap the cited text. An item with no support is dropped or flagged, which catches most invented actions.</li><li><b>Human approval.</b> The UI shows each item next to its source lines. Track the <b>edit rate</b> (how much people change the draft) as your quality metric.</li></ol><p>Jobs are bursty because meetings end on the hour. The queue soaks up the spike and workers scale on queue depth; a draft 3 minutes after the meeting is fine.</p>",
+   "sim": "queue"
+  },
+  {
+   "title": "Latency budget and GPU capacity",
+   "html": "<p><b>Interim caption budget, target ~1.5 s p95</b> (assumed numbers; measure on your hardware):</p><ul><li>Capture and send: 100 ms batches of Opus frames, ~100 ms</li><li>Network to the gateway: ~30 ms</li><li>Waiting for the next 1 s interim tick: ~500 ms on average</li><li>Queue for a GPU: under ~100 ms if the pool runs below ~70% busy</li><li>Whisper re-decode of up to 30 s of audio: ~300 ms</li><li>Merge speakers, push back, render: ~100 ms</li></ul><p>Total ~1.1 s typical. The GPU queue is the term that explodes: near 100% utilisation the wait grows without bound, so autoscale on <b>GPU queue wait</b>, not CPU.</p><p><b>Capacity</b>: benchmark streams per GPU at your interim cadence (say 25). 2,000 concurrent meetings → 80 GPUs, plus headroom. GPU nodes take minutes to start and load a model, so scale <b>ahead</b> of demand using the calendar (meetings start on the hour) and keep a warm pool. When live traffic peaks, pause upload jobs first; they can wait.</p>"
+  },
+  {
+   "title": "Data classification, retention and failure modes",
+   "html": "<p><b>Classification</b>: a design for RESTRICTED / SENSITIVE NORMAL data keeps audio, transcripts and models inside government-approved hosting. Self-host the ASR and the LLM (or use an approved endpoint with no data retention), encrypt at rest with managed keys, log every read of a transcript, and set access per meeting (attendees plus named delegates).</p><p><b>Retention</b>: audio is the riskiest artefact and the least useful after minutes are approved. Keep audio for a short period (say 30 to 90 days, set by policy) with a bucket lifecycle rule; keep approved minutes under the agency's records rules. Deletion removes audio, segments, drafts and search index entries.</p><p><b>Failure modes</b>:</p><ul><li><b>Dropped connection</b>: the browser keeps the last ~60 s of frames; the server acks the last durable seq; on reconnect the client sends <code>resume_from</code> and replays the gap.</li><li><b>ASR hallucination</b>: phantom text in silence or noise. Gate with voice activity detection, never pad short chunks, and drop segments with a high no-speech probability.</li><li><b>Wrong speaker</b>: diarisation gives anonymous clusters. Let the organiser rename or merge Speaker 2 once for the whole meeting, and recompute action owners from the corrected labels.</li></ul>"
+  }
+ ],
+ "tradeoffs": [
+  {
+   "choice": "How to send audio from the browser?",
+   "pick": "Opus frames over a WebSocket",
+   "why": "All processing is server-side, so you do not need WebRTC's peer media, TURN servers or jitter buffers. A WebSocket passes through agency proxies on port 443, TCP gives ordered delivery, and sequence numbers make resume simple. WebRTC wins only if you also need sub-200 ms audio between people."
+  },
+  {
+   "choice": "Streaming ASR model or re-decoding a window?",
+   "pick": "Re-decode the open chunk, finalise at 30 s",
+   "why": "Whisper is accurate but window-based. Re-decoding gives interim text with good accuracy at the price of more GPU per stream. A native streaming model is cheaper per stream but usually less accurate, which matters for minutes people sign off."
+  },
+  {
+   "choice": "Auto-send follow-ups or require approval?",
+   "pick": "Require approval",
+   "why": "An invented action item emailed to a director costs more trust than a few seconds of review. Approval also fixes the records question: the approved version, not the model output, is the minutes."
+  },
+  {
+   "choice": "One LLM call or map-reduce over sections?",
+   "pick": "One call up to ~3 h, map-reduce beyond",
+   "why": "A 1-hour meeting is ~12k tokens, which fits easily and keeps cross-references intact. For long sittings, summarise 20-minute sections first, then merge, keeping segment ids so grounding still works."
+  },
+  {
+   "choice": "Self-hosted models or a commercial API?",
+   "pick": "Self-hosted (or an approved no-retention endpoint)",
+   "why": "The data classification rules decide this before cost does. Self-hosting also lets you pin model versions, so a transcript can be reproduced."
+  }
+ ],
+ "bottlenecks": [
+  {
+   "issue": "10 am Monday: every directorate starts its meeting at once and the GPU pool saturates",
+   "fix": "Scale up before the hour from calendar data, keep a warm pool, give live streams strict priority over uploads, and when still short, lengthen the interim cadence (1 s → 2 s) before refusing anyone. Final text quality is unaffected."
+  },
+  {
+   "issue": "Hundreds of minutes jobs land at 11:00 when meetings end",
+   "fix": "The queue absorbs it; workers scale on queue age with a cap that the LLM servers can handle. A few minutes' delay is acceptable."
+  },
+  {
+   "issue": "A live-transcription instance dies mid-meeting",
+   "fix": "The gateway re-routes the meeting; the client replays frames from the last acked seq; at most the open chunk (≤30 s) is re-decoded. Final segments already in Postgres are safe."
+  },
+  {
+   "issue": "A 4-hour sitting overflows the LLM context",
+   "fix": "Map-reduce by agenda section or by 20-minute window, carrying segment ids through each stage."
+  }
+ ],
+ "followups": [
+  {
+   "q": "How do you stop the model inventing action items?",
+   "a": "<p>Require each item to cite transcript segment ids, verify they exist and overlap the item's text, allow <code>null</code> owners and dates instead of guesses, and never send without approval. Measure precision against human-written minutes on a test set.</p>"
+  },
+  {
+   "q": "The connection drops for 20 seconds. What does the user see?",
+   "a": "<p>Captions pause, a \"reconnecting\" banner shows, and the browser keeps buffering audio with sequence numbers. On reconnect it sends <code>resume_from = last acked seq</code>, replays the gap, and the missing captions fill in. If the tab was closed, the gap is marked in the transcript rather than silently skipped.</p>"
+  },
+  {
+   "q": "Diarisation says \"Speaker 3\". How does it become a name?",
+   "a": "<p>Let the organiser label clusters after (or during) the meeting; one rename applies to every segment in that cluster. Avoid storing voiceprints to auto-identify people: that is biometric data and needs its own justification and consent.</p>"
+  },
+  {
+   "q": "How do you measure quality?",
+   "a": "<p>Word error rate on a labelled set of local speech (accents, acronyms, code-switching), diarisation error rate for speakers, and for minutes the share of drafted items kept, edited or deleted at approval. Re-run the set on every model change before rollout.</p>"
+  },
+  {
+   "q": "How would you handle agency jargon and acronyms?",
+   "a": "<p>Pass a short vocabulary list as a decoding prompt, add a post-ASR correction pass for known terms, and collect organiser edits as evaluation data. Fine-tuning comes last, once you have enough labelled audio.</p>"
+  },
+  {
+   "q": "An officer asks you to delete a meeting. What has to go?",
+   "a": "<p>Audio objects, segments, every minutes version, outbox rows not yet sent, and search index entries, then log the deletion. Things already sent (emails, created tasks) live in other systems; tell the user that, do not pretend to recall them.</p>"
+  }
+ ],
+ "quiz": [
+  {
+   "q": "Why finalise live text only when a chunk reaches 30 s?",
+   "options": [
+    "30 s is the WebSocket message size limit",
+    "Whisper reads 30 s windows and can hallucinate on the padding added to shorter audio",
+    "Postgres batches writes every 30 s",
+    "Diarisation needs exactly 30 s of audio"
+   ],
+   "answer": 1,
+   "why": "Short audio is padded to the window; the model may write phantom text into the padding. Interim passes can be wrong because they are replaced; final text cannot."
+  },
+  {
+   "q": "Which metric should drive autoscaling of the live ASR pool?",
+   "options": [
+    "CPU utilisation of the gateway",
+    "GPU queue wait (time a chunk waits for a GPU)",
+    "Number of rows in the segments table",
+    "Object storage size"
+   ],
+   "answer": 1,
+   "why": "Caption latency is dominated by the wait for a GPU near saturation. Scale on what users feel."
+  },
+  {
+   "q": "The approval transaction marks minutes APPROVED and writes outbox rows. Why not call the email API directly in the request?",
+   "options": [
+    "Email APIs are slow to respond",
+    "So approval and the intent to send commit together, and retries with an idempotency key cannot lose or duplicate a send",
+    "Because the LLM must re-check the email first",
+    "Queues are cheaper than HTTP calls"
+   ],
+   "answer": 1,
+   "why": "A direct call can succeed after the DB commit fails, or fail after it succeeds. The outbox makes the two consistent."
+  },
+  {
+   "q": "Live traffic is at the GPU limit. What do you give up first?",
+   "options": [
+    "Final transcript accuracy",
+    "Upload transcription jobs, then interim caption cadence",
+    "Encryption at rest",
+    "Speaker labels for all meetings"
+   ],
+   "answer": 1,
+   "why": "Uploads can wait and a slower interim cadence costs a little lag; final accuracy and security are not negotiable."
+  },
+  {
+   "q": "An action item's owner was guessed by the model and is wrong. Which design choice catches it?",
+   "options": [
+    "A bigger LLM",
+    "Human approval with each item shown beside its source transcript lines, and null allowed when no owner was named",
+    "Sending follow-ups twice",
+    "Storing interim captions"
+   ],
+   "answer": 1,
+   "why": "Grounding plus review makes the guess visible; allowing null removes the pressure to guess."
+  }
+ ]
+}

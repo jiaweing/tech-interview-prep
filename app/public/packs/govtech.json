@@ -1,0 +1,62 @@
+{
+ "id": "govtech",
+ "name": "GovTech Singapore",
+ "role": "Software / product engineer",
+ "summary": "Singapore's Government Technology Agency. Candidates report a HackerRank online assessment, live or pair-programming rounds, take-home assignments for some teams, a project deep dive and a system design round.",
+ "rounds": [
+  {
+   "name": "Online assessment",
+   "minutes": 70,
+   "kind": "coding",
+   "what": "HackerRank, proctored. Usually about 3 questions, LeetCode easy to medium, with hidden tests that check complexity.",
+   "practice": "problems"
+  },
+  {
+   "name": "Live / pair programming",
+   "minutes": 60,
+   "kind": "coding",
+   "what": "Practical Python: a small kata such as a Mars rover, then extensions added live. Clarify, get it working, test, extend.",
+   "practice": "p-mars-rover"
+  },
+  {
+   "name": "Project deep dive",
+   "minutes": 60,
+   "kind": "behavioural",
+   "what": "One or two projects you owned: decisions, setbacks, stakeholders, user feedback, lessons.",
+   "practice": "dd-mock"
+  },
+  {
+   "name": "System design",
+   "minutes": 60,
+   "kind": "design",
+   "what": "A product-shaped design. For AI product teams expect evals, cost, latency, fallbacks and access control.",
+   "practice": "sd-practice"
+  }
+ ],
+ "tips": [
+  "Restate the task first. Candidates say OA questions can be framed oddly: pin down the exact rule.",
+  "Make rules data, not if-chains. In the rover kata the interviewer adds obstacles and wrap-around next.",
+  "Reviewers mention code structure and testability, not only passing tests.",
+  "For AI product teams, say how you would measure quality (evals) and what it costs per request."
+ ],
+ "problems_from": "govtech",
+ "sources": [
+  {
+   "label": "NodeFlair: GovTech interview reports",
+   "url": "https://nodeflair.com/interviews/govtech-interviews"
+  },
+  {
+   "label": "Glassdoor: GovTech interview questions",
+   "url": "https://www.glassdoor.com/Interview/GovTech-Interview-Questions-E1371268.htm"
+  },
+  {
+   "label": "Mars Rover kata",
+   "url": "https://kata-log.rocks/mars-rover-kata"
+  },
+  {
+   "label": "OGP careers: software engineer",
+   "url": "https://open.gov.sg/careers/what-we-do/software-engineer/"
+  }
+ ],
+ "caveat": "Built from public candidate reports. Processes differ by team and change over time; treat this as a likely shape, not an official agenda."
+}

@@ -1,0 +1,236 @@
+{
+ "id": "search-index",
+ "track": "sd",
+ "order": 23,
+ "title": "Search index",
+ "short": "Map each word to the documents that contain it.",
+ "what": "Finding 'red shoes' by reading every product is far too slow at millions of items. A search index (an inverted index) is built ahead of time: for each word, a list of the documents that contain it. A search jumps to those lists and combines them.",
+ "analogy": "The index at the back of a book. Look up 'volcano' and it says pages 12, 48 and 203, so you never read the whole book.",
+ "viz": {
+  "kind": "map",
+  "frames": [
+   {
+    "rows": [
+     [
+      "doc 1",
+      "red shoes"
+     ],
+     [
+      "doc 2",
+      "blue shoes"
+     ],
+     [
+      "doc 3",
+      "red wool socks"
+     ],
+     [
+      "doc 4",
+      "blue hat"
+     ]
+    ],
+    "label": "products",
+    "say": "Four products. Reading each one to find a word works for 4, not for 50 million. So build an index ahead of time."
+   },
+   {
+    "rows": [
+     [
+      "red",
+      "1"
+     ],
+     [
+      "shoes",
+      "1"
+     ]
+    ],
+    "label": "index: word -> doc ids",
+    "hi": [
+     0,
+     1
+    ],
+    "say": "Split doc 1, 'red shoes', into words. Under each word, write the doc id: red -> 1, shoes -> 1."
+   },
+   {
+    "rows": [
+     [
+      "red",
+      "1"
+     ],
+     [
+      "shoes",
+      "1, 2"
+     ],
+     [
+      "blue",
+      "2"
+     ]
+    ],
+    "label": "index: word -> doc ids",
+    "hi": [
+     1,
+     2
+    ],
+    "say": "Doc 2, 'blue shoes', adds 2 to the shoes list and starts a new word, blue."
+   },
+   {
+    "rows": [
+     [
+      "red",
+      "1, 3"
+     ],
+     [
+      "shoes",
+      "1, 2"
+     ],
+     [
+      "blue",
+      "2, 4"
+     ],
+     [
+      "wool",
+      "3"
+     ],
+     [
+      "socks",
+      "3"
+     ],
+     [
+      "hat",
+      "4"
+     ]
+    ],
+    "label": "index: word -> doc ids",
+    "hi": [
+     0,
+     2,
+     3,
+     4,
+     5
+    ],
+    "say": "After docs 3 and 4 it's done. Words point to docs, the reverse of docs holding words, so it's called an inverted index."
+   },
+   {
+    "rows": [
+     [
+      "red",
+      "1, 3"
+     ],
+     [
+      "shoes",
+      "1, 2"
+     ],
+     [
+      "blue",
+      "2, 4"
+     ],
+     [
+      "wool",
+      "3"
+     ],
+     [
+      "socks",
+      "3"
+     ],
+     [
+      "hat",
+      "4"
+     ]
+    ],
+    "label": "search 'red shoes'",
+    "hi": [
+     0,
+     1
+    ],
+    "dim": [
+     2,
+     3,
+     4,
+     5
+    ],
+    "say": "Search 'red shoes': jump straight to 2 rows. red -> 1, 3 and shoes -> 1, 2. No product text is read."
+   },
+   {
+    "rows": [
+     [
+      "red",
+      "1, 3"
+     ],
+     [
+      "shoes",
+      "1, 2"
+     ],
+     [
+      "blue",
+      "2, 4"
+     ],
+     [
+      "wool",
+      "3"
+     ],
+     [
+      "socks",
+      "3"
+     ],
+     [
+      "hat",
+      "4"
+     ]
+    ],
+    "label": "search 'red shoes'",
+    "ok": [
+     0,
+     1
+    ],
+    "dim": [
+     2,
+     3,
+     4,
+     5
+    ],
+    "out": "in both lists -> doc 1",
+    "say": "Keep the ids that are in both lists: doc 1. Then rank the hits, for example by how rare each matched word is."
+   }
+  ]
+ },
+ "when": [
+  "Search by words inside text",
+  "Autocomplete or product search",
+  "LIKE '%word%' queries are too slow",
+  "Rank results by how well they match"
+ ],
+ "python": "from collections import defaultdict\ndocs = {1: \"red shoes\", 2: \"blue shoes\", 3: \"red wool socks\", 4: \"blue hat\"}\n\nindex = defaultdict(set)\nfor doc_id, text in docs.items():\n    for word in text.lower().split():\n        index[word].add(doc_id)\n\ndef search(query):\n    lists = [index.get(word, set()) for word in query.lower().split()]\n    return sorted(set.intersection(*lists)) if lists else []\n\nprint({word: sorted(ids) for word, ids in sorted(index.items())})\nprint(search(\"red shoes\"), search(\"Blue\"), search(\"green\"))",
+ "output": "{'blue': [2, 4], 'hat': [4], 'red': [1, 3], 'shoes': [1, 2], 'socks': [3], 'wool': [3]}\n[1] [2, 4] []",
+ "cost": [
+  [
+   "Find the docs for one word",
+   "O(1) to reach its list"
+  ],
+  [
+   "AND of two words",
+   "O(a + b), the two list sizes"
+  ],
+  [
+   "Add a document",
+   "O(words in it)"
+  ],
+  [
+   "Search with no index",
+   "O(all text): seconds at 50M docs"
+  ]
+ ],
+ "watch": [
+  "Clean words the same way when indexing and searching: lowercase, strip punctuation, 'running' -> 'run'.",
+  "Very common words (the, a) have huge lists: skip them or treat them specially.",
+  "The index is a copy that lags a second or so behind; the database stays the source of truth."
+ ],
+ "interview": [
+  "Design a search engine",
+  "Design search autocomplete",
+  "Design product search for an online store"
+ ],
+ "related": [
+  "database-index",
+  "sharding",
+  "batch-vs-stream",
+  "trie"
+ ]
+}

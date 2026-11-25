@@ -1,0 +1,250 @@
+{
+ "id": "rate-limiting",
+ "title": "Rate limiting",
+ "group": "Reliability & correctness",
+ "tagline": "Cap how fast each caller can use an API, to stop abuse, control cost and protect what sits behind it.",
+ "why": "<p>Without a limit, one buggy script or one attacker can use all your capacity, run up a bill, or lock real users out. Rate limiting gives each caller (user, API key, IP, phone number) a budget, and rejects requests over it with <code>429 Too Many Requests</code>.</p><p>Some limits protect money and people rather than servers. Every OTP SMS costs money, and unlimited OTP attempts let an attacker guess a 6-digit code. So an OTP design limits sends per phone number and verify attempts per code, not just requests per IP.</p><p>A NodeFlair listing names \"design a rate limiter API\" as a GovTech system design question (reported, unverified: seen only as a search snippet). Even when it is not the whole question, rate limiting shows up in almost every public-facing design.</p>",
+ "how": "<p><b>Where it runs.</b> Usually in the API gateway or a middleware in front of every service, keyed by the caller. Limits can be layered: per IP at the edge, per user or API key at the gateway, and per action (OTP sends per phone) in the service.</p><p><b>Algorithms.</b></p><ul><li><b>Token bucket</b>: a bucket holds up to B tokens and refills at r per second; each request spends one. Allows bursts up to B, then a steady r per second. Stored as two numbers per key. This is what the sim above shows: capacity is the burst, refill rate is the sustained limit.</li><li><b>Leaky bucket</b>: requests join a queue that drains at a fixed rate. Smooths output to a constant rate, good in front of a fragile downstream (an SMS provider), but adds waiting instead of rejecting.</li><li><b>Fixed window counter</b>: <code>INCR user:42:202611191034</code> with a 60 s expiry; reject past 100. Cheapest, but a caller can send 100 at 10:34:59 and 100 more at 10:35:00, double the limit in 2 seconds.</li><li><b>Sliding log</b>: keep the timestamp of every request in a sorted set and count the ones in the last 60 s. Exact, but stores one entry per request.</li><li><b>Sliding window counter</b>: keep this window's and the previous window's counts and weight the previous by how much of it still overlaps. Close to exact with two counters.</li></ul><p><b>Distributed counters.</b> With 20 API servers, each server's local count is wrong. Keep the counter in Redis and update it atomically (a Lua script for token bucket, or <code>INCR</code> plus <code>EXPIRE</code>). Shard Redis by the limit key if one node is not enough. For very high rates, let each server take a small batch of tokens locally and sync, trading a little accuracy for fewer round trips.</p><p><b>When Redis is down</b>, decide per limit: <b>fail open</b> (allow, for general API limits, so the limiter cannot cause an outage) or <b>fail closed</b> (deny, for OTP sends and login attempts, where the limit is the security control).</p><p><b>Tell the client.</b> Return 429 with <code>Retry-After</code>, and optionally headers with the limit and remaining count, so well-behaved clients back off.</p>",
+ "sim": "bucket",
+ "diagram": {
+  "w": 960,
+  "h": 380,
+  "nodes": [
+   {
+    "id": "user",
+    "label": "Callers",
+    "sub": "per user / key / IP",
+    "kind": "user",
+    "x": 92,
+    "y": 180
+   },
+   {
+    "id": "g1",
+    "label": "API server 1",
+    "sub": "limiter middleware",
+    "kind": "gateway",
+    "x": 340,
+    "y": 90
+   },
+   {
+    "id": "g2",
+    "label": "API server 2",
+    "sub": "limiter middleware",
+    "kind": "gateway",
+    "x": 340,
+    "y": 280
+   },
+   {
+    "id": "redis",
+    "label": "Redis",
+    "sub": "one bucket per key",
+    "kind": "cache",
+    "x": 600,
+    "y": 320
+   },
+   {
+    "id": "svc",
+    "label": "Backend service",
+    "sub": "protected",
+    "kind": "service",
+    "x": 840,
+    "y": 185
+   }
+  ],
+  "edges": [
+   {
+    "id": "u-g1",
+    "from": "user",
+    "to": "g1",
+    "label": "request"
+   },
+   {
+    "id": "u-g2",
+    "from": "user",
+    "to": "g2",
+    "label": "request"
+   },
+   {
+    "id": "g1-r",
+    "from": "g1",
+    "to": "redis",
+    "label": "take 1 token"
+   },
+   {
+    "id": "g2-r",
+    "from": "g2",
+    "to": "redis",
+    "label": "same key"
+   },
+   {
+    "id": "g1-s",
+    "from": "g1",
+    "to": "svc",
+    "label": "allowed"
+   },
+   {
+    "id": "g2-s",
+    "from": "g2",
+    "to": "svc",
+    "label": "allowed"
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "ok",
+   "name": "Allowed request",
+   "desc": "Token available.",
+   "steps": [
+    {
+     "edge": "u-g1",
+     "note": "User 42 calls the API through server 1."
+    },
+    {
+     "edge": "g1-r",
+     "note": "One atomic Lua script refills bucket <code>rl:user:42</code> for the time elapsed, then takes a token if one is there. About 0.5 ms."
+    },
+    {
+     "edge": "g1-s",
+     "note": "A token was available, so the request goes to the backend."
+    },
+    {
+     "edge": "u-g1",
+     "rev": true,
+     "note": "Response, optionally with headers saying how many requests remain."
+    }
+   ]
+  },
+  {
+   "id": "shared",
+   "name": "Burst across two servers",
+   "desc": "Why the counter must be shared.",
+   "steps": [
+    {
+     "edge": "u-g2",
+     "note": "User 42's next requests land on server 2, because the load balancer spreads them."
+    },
+    {
+     "edge": "g2-r",
+     "note": "Server 2 checks the <b>same</b> Redis key. If each server kept its own local bucket, 20 servers would let the user through at 20 times the limit."
+    },
+    {
+     "node": "redis",
+     "note": "The bucket is empty. The script returns 0 tokens and how long until the next one."
+    },
+    {
+     "edge": "u-g2",
+     "rev": true,
+     "note": "Return <code>429 Too Many Requests</code> with <code>Retry-After: 1</code>. The backend never sees the request."
+    },
+    {
+     "edge": "g2-s",
+     "note": "With a refill of 1 token per second, the retry a second later finds a token, and server 2 passes it to the backend. The backend sees at most the sustained rate."
+    }
+   ]
+  }
+ ],
+ "tradeoffs": [
+  {
+   "option": "Token bucket",
+   "pro": "Allows short bursts but caps the sustained rate; two numbers per key; widely used.",
+   "con": "Two parameters to tune, and a full bucket lets a burst through at once."
+  },
+  {
+   "option": "Leaky bucket (queue)",
+   "pro": "Perfectly smooth output rate, ideal in front of a provider with a strict send rate.",
+   "con": "Requests wait instead of failing fast; a full queue still has to reject."
+  },
+  {
+   "option": "Fixed window counter",
+   "pro": "One INCR and one EXPIRE; trivial to build and explain.",
+   "con": "Up to 2× the limit in a short burst across a window boundary."
+  },
+  {
+   "option": "Sliding log",
+   "pro": "Exact count over any rolling window.",
+   "con": "Memory grows with the limit: one entry per request per key."
+  },
+  {
+   "option": "Sliding window counter",
+   "pro": "Nearly exact with two counters per key; no boundary burst.",
+   "con": "An approximation; assumes requests in the previous window were evenly spread."
+  }
+ ],
+ "numbers": [
+  "Token bucket: the most a caller can send in T seconds is <b>B + r × T</b>. B = 10, r = 1/s gives at most 70 requests in a minute.",
+  "Fixed window boundary: a limit of 100/min allows <b>200</b> requests in about 2 s (end of one window plus start of the next).",
+  "State per key: token bucket is 2 numbers; 1M active users at about 100 bytes each in Redis is roughly <b>100 MB</b>.",
+  "Sliding log at 1,000 requests/hour keeps up to <b>1,000</b> timestamps per user, tens of KB per user; fine for small limits, costly for large ones.",
+  "Each check is one Redis round trip, about <b>0.2 to 1 ms</b> in the same AZ."
+ ],
+ "say": [
+  "I'll use a token bucket per user in Redis, updated with one atomic Lua script, so all API servers share the same budget. Capacity sets the burst and the refill rate sets the sustained limit.",
+  "Over-limit requests get a 429 with Retry-After. If Redis is down, general API limits fail open, but OTP sends and login attempts fail closed, because there the limit is the security control.",
+  "For OTP I'd limit per phone number and per code, not just per IP, because an attacker can rotate IPs but each guess still hits the same code."
+ ],
+ "pitfalls": [
+  "Counting in each server's memory behind a load balancer. With N servers the real limit is N times what you set.",
+  "Read-then-write without atomicity (<code>GET</code>, check, then <code>SET</code>). Concurrent requests all read the old value and all pass. Use INCR or a Lua script.",
+  "Limiting only by IP. Many users share one IP (offices, mobile carriers, government networks), and attackers rotate IPs. Combine IP with user, API key or phone number.",
+  "Making the limiter a single point of failure with no decision about fail open or fail closed.",
+  "Returning 429 without <code>Retry-After</code>, so clients retry immediately in a tight loop and make it worse."
+ ],
+ "quiz": [
+  {
+   "q": "You want to allow short bursts of up to 20 requests but a steady average of 5 per second. Which algorithm fits most directly?",
+   "options": [
+    "Fixed window counter",
+    "Token bucket with capacity 20 and refill 5/s",
+    "Sliding log of 5 entries",
+    "Leaky bucket that drains 20/s"
+   ],
+   "answer": 1,
+   "why": "Capacity is the burst size and refill rate is the sustained rate, exactly the two numbers in the requirement."
+  },
+  {
+   "q": "A limit of 100 requests per minute uses a fixed window. What is the worst case a client can send in about 2 seconds?",
+   "options": [
+    "100",
+    "101",
+    "200",
+    "It cannot exceed 100"
+   ],
+   "answer": 2,
+   "why": "100 at the end of one window and 100 at the start of the next both pass. Sliding windows or a token bucket close this gap."
+  },
+  {
+   "q": "You run 10 API servers, each with its own in-memory limit of 50 requests/min per user. What is the effective limit?",
+   "options": [
+    "Up to 500 requests/min per user",
+    "50 requests/min per user",
+    "5 requests/min per user",
+    "Unlimited"
+   ],
+   "answer": 0,
+   "why": "Each server counts separately, and the load balancer spreads the user's requests across all 10. Use a shared counter such as Redis."
+  },
+  {
+   "q": "Redis holding the counters goes down. Which limit should fail closed?",
+   "options": [
+    "Search requests per user",
+    "Image downloads per IP",
+    "Public page views",
+    "OTP SMS sends per phone number"
+   ],
+   "answer": 3,
+   "why": "The OTP limit protects cost and stops code guessing, so allowing unlimited sends during an outage is the bigger risk. General traffic limits usually fail open so the limiter cannot cause an outage."
+  }
+ ],
+ "used_in": [
+  "rate-limiter",
+  "otp-login",
+  "url-shortener",
+  "bulk-messaging",
+  "form-builder",
+  "llm-guardrails",
+  "vaccination-booking",
+  "web-crawler",
+  "csv-ingest"
+ ]
+}

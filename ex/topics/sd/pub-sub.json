@@ -1,0 +1,461 @@
+{
+ "id": "pub-sub",
+ "track": "sd",
+ "order": 14,
+ "title": "Pub/sub",
+ "short": "Publish one event; every interested service gets its own copy.",
+ "what": "In publish/subscribe, a sender publishes an event to a named topic and moves on. Any number of services subscribe to that topic, and each one gets every event. Unlike a work queue, where each job goes to one worker, here every subscriber hears everything.",
+ "analogy": "A newspaper. The paper prints each edition once; every subscriber gets a copy at their door, and new readers can sign up without the editor changing anything.",
+ "viz": {
+  "kind": "sd",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "c",
+      "label": "Checkout",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "em",
+      "label": "Email",
+      "sub": "sends receipt",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "st",
+      "label": "Stock",
+      "sub": "count - 1",
+      "x": 100,
+      "y": 33
+     },
+     {
+      "id": "an",
+      "label": "Analytics",
+      "sub": "adds a sale",
+      "x": 100,
+      "y": 66
+     }
+    ],
+    "edges": [
+     [
+      "c",
+      "em"
+     ],
+     [
+      "c",
+      "st"
+     ],
+     [
+      "c",
+      "an"
+     ]
+    ],
+    "say": "A shop's checkout must tell 3 other services about every order: email, stock and analytics. Here it calls each one directly."
+   },
+   {
+    "nodes": [
+     {
+      "id": "c",
+      "label": "Checkout",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "em",
+      "label": "Email",
+      "sub": "down",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "st",
+      "label": "Stock",
+      "sub": "count - 1",
+      "x": 100,
+      "y": 33
+     },
+     {
+      "id": "an",
+      "label": "Analytics",
+      "sub": "adds a sale",
+      "x": 100,
+      "y": 66
+     }
+    ],
+    "edges": [
+     [
+      "c",
+      "em"
+     ],
+     [
+      "c",
+      "st"
+     ],
+     [
+      "c",
+      "an"
+     ]
+    ],
+    "hi": [
+     "c"
+    ],
+    "bad": [
+     "em"
+    ],
+    "say": "Email is down, so checkout waits on it or fails. And adding a fourth service means changing checkout's code again."
+   },
+   {
+    "nodes": [
+     {
+      "id": "c",
+      "label": "Checkout",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "t",
+      "label": "orders topic",
+      "x": 45,
+      "y": 50
+     },
+     {
+      "id": "em",
+      "label": "Email",
+      "sub": "sends receipt",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "st",
+      "label": "Stock",
+      "sub": "count - 1",
+      "x": 100,
+      "y": 33
+     },
+     {
+      "id": "an",
+      "label": "Analytics",
+      "sub": "adds a sale",
+      "x": 100,
+      "y": 66
+     }
+    ],
+    "edges": [
+     [
+      "c",
+      "t",
+      "order 812"
+     ],
+     [
+      "t",
+      "em"
+     ],
+     [
+      "t",
+      "st"
+     ],
+     [
+      "t",
+      "an"
+     ]
+    ],
+    "hi": [
+     "t"
+    ],
+    "edgeHi": [
+     [
+      "c",
+      "t"
+     ]
+    ],
+    "say": "Instead, checkout publishes one event, 'order 812 placed', to a topic named orders. It doesn't know or care who listens."
+   },
+   {
+    "nodes": [
+     {
+      "id": "c",
+      "label": "Checkout",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "t",
+      "label": "orders topic",
+      "x": 45,
+      "y": 50
+     },
+     {
+      "id": "em",
+      "label": "Email",
+      "sub": "sends receipt",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "st",
+      "label": "Stock",
+      "sub": "count - 1",
+      "x": 100,
+      "y": 33
+     },
+     {
+      "id": "an",
+      "label": "Analytics",
+      "sub": "adds a sale",
+      "x": 100,
+      "y": 66
+     }
+    ],
+    "edges": [
+     [
+      "c",
+      "t"
+     ],
+     [
+      "t",
+      "em",
+      "",
+      "async"
+     ],
+     [
+      "t",
+      "st",
+      "",
+      "async"
+     ],
+     [
+      "t",
+      "an",
+      "",
+      "async"
+     ]
+    ],
+    "ok": [
+     "em",
+     "st",
+     "an"
+    ],
+    "edgeHi": [
+     [
+      "t",
+      "em"
+     ],
+     [
+      "t",
+      "st"
+     ],
+     [
+      "t",
+      "an"
+     ]
+    ],
+    "say": "Every subscriber gets its own copy: email sends a receipt, stock lowers the count, analytics records the sale."
+   },
+   {
+    "nodes": [
+     {
+      "id": "c",
+      "label": "Checkout",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "t",
+      "label": "orders topic",
+      "x": 45,
+      "y": 50
+     },
+     {
+      "id": "em",
+      "label": "Email",
+      "sub": "down, copies wait",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "st",
+      "label": "Stock",
+      "sub": "count - 1",
+      "x": 100,
+      "y": 33
+     },
+     {
+      "id": "an",
+      "label": "Analytics",
+      "sub": "adds a sale",
+      "x": 100,
+      "y": 66
+     }
+    ],
+    "edges": [
+     [
+      "c",
+      "t"
+     ],
+     [
+      "t",
+      "em",
+      "",
+      "async"
+     ],
+     [
+      "t",
+      "st",
+      "",
+      "async"
+     ],
+     [
+      "t",
+      "an",
+      "",
+      "async"
+     ]
+    ],
+    "ok": [
+     "st",
+     "an",
+     "c"
+    ],
+    "bad": [
+     "em"
+    ],
+    "edgeHi": [
+     [
+      "t",
+      "st"
+     ],
+     [
+      "t",
+      "an"
+     ]
+    ],
+    "say": "Email goes down for 5 minutes. Checkout and the others carry on. Email's copies wait, and it catches up when it's back."
+   },
+   {
+    "nodes": [
+     {
+      "id": "c",
+      "label": "Checkout",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "t",
+      "label": "orders topic",
+      "x": 45,
+      "y": 50
+     },
+     {
+      "id": "em",
+      "label": "Email",
+      "sub": "sends receipt",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "st",
+      "label": "Stock",
+      "sub": "count - 1",
+      "x": 100,
+      "y": 33
+     },
+     {
+      "id": "an",
+      "label": "Analytics",
+      "sub": "adds a sale",
+      "x": 100,
+      "y": 66
+     },
+     {
+      "id": "fr",
+      "label": "Fraud check",
+      "sub": "new team",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "c",
+      "t"
+     ],
+     [
+      "t",
+      "em",
+      "",
+      "async"
+     ],
+     [
+      "t",
+      "st",
+      "",
+      "async"
+     ],
+     [
+      "t",
+      "an",
+      "",
+      "async"
+     ],
+     [
+      "t",
+      "fr",
+      "",
+      "async"
+     ]
+    ],
+    "ok": [
+     "fr"
+    ],
+    "edgeHi": [
+     [
+      "t",
+      "fr"
+     ]
+    ],
+    "say": "A fraud team adds a new subscriber. Checkout's code didn't change at all: senders and listeners never need to know each other."
+   }
+  ]
+ },
+ "when": [
+  "One event must trigger several separate actions",
+  "Teams keep adding new reactions to the same event",
+  "The sender must not wait for or depend on the receivers",
+  "Live updates fan out to many listeners"
+ ],
+ "python": "subscribers = {}\n\ndef subscribe(topic, name):\n    subscribers.setdefault(topic, []).append(name)\n\ndef publish(topic, event):\n    for name in subscribers.get(topic, []):     # every subscriber gets a copy\n        print(f\"{name:<9} got {event}\")\n\nfor name in [\"email\", \"stock\", \"analytics\"]:\n    subscribe(\"orders\", name)\npublish(\"orders\", \"order 812 placed\")\nsubscribe(\"orders\", \"fraud\")                    # added later; checkout unchanged\npublish(\"orders\", \"order 813 placed\")",
+ "output": "email     got order 812 placed\nstock     got order 812 placed\nanalytics got order 812 placed\nemail     got order 813 placed\nstock     got order 813 placed\nanalytics got order 813 placed\nfraud     got order 813 placed",
+ "cost": [
+  [
+   "Publish one event",
+   "O(1) for the sender"
+  ],
+  [
+   "Deliver",
+   "one copy per subscriber"
+  ],
+  [
+   "Typical delay",
+   "a few ms to a second"
+  ]
+ ],
+ "watch": [
+  "Events can arrive twice or out of order; subscribers must cope with both.",
+  "A queue gives each message to one worker; pub/sub gives it to every subscriber. Pick the one you mean.",
+  "Put the key facts (order id, total) in the event, or every subscriber calls checkout back."
+ ],
+ "interview": [
+  "Design a notification system",
+  "Design a news feed",
+  "Design a chat app"
+ ],
+ "related": [
+  "message-queue",
+  "websockets",
+  "microservices",
+  "batch-vs-stream"
+ ]
+}

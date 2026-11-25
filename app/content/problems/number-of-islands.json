@@ -1,0 +1,281 @@
+{
+ "id": "number-of-islands",
+ "title": "Number of Islands",
+ "pattern": "greedy-sim",
+ "level": "medium",
+ "statement": "<p>An ad dashboard draws a heat map of a city as a grid. Each cell is <code>'1'</code> if ads in that area are active right now and <code>'0'</code> if not. The ops team wants to know how many separate <b>clusters</b> of active regions there are, so each one can get its own budget alert.</p><p>The grid is a list of strings of equal length; <code>grid[r][c]</code> is row <code>r</code>, column <code>c</code>. Two active cells belong to the same cluster when they touch <b>up, down, left or right</b>. Diagonal neighbours do <b>not</b> join clusters. Everything outside the grid counts as inactive.</p><p>Write <code>def solution(grid)</code> that returns the number of clusters as an integer. An empty grid (<code>[]</code>) has 0. Maps can hold 40,000 cells in one cluster, so use an explicit queue or stack, not recursion.</p>",
+ "examples": [
+  {
+   "input": "grid = [\"11110\", \"11010\", \"11000\", \"00000\"]",
+   "output": "1",
+   "why": "The LeetCode 200 example 1. Every <code>'1'</code> is reachable from the top-left one by side steps."
+  },
+  {
+   "input": "grid = [\"11000\", \"11000\", \"00100\", \"00011\"]",
+   "output": "3",
+   "why": "The LeetCode 200 example 2: a 2 x 2 block, a single cell in the middle, and a pair at the bottom right."
+  },
+  {
+   "input": "grid = [\"101\", \"010\", \"101\"]",
+   "output": "5",
+   "why": "The diagonal trap. Each <code>'1'</code> touches the others only at corners, so each is its own cluster."
+  }
+ ],
+ "constraints": [
+  "0 &le; rows &le; 200, and 1 &le; columns &le; 200 when rows &ge; 1",
+  "every row has the same length",
+  "every character is <code>'1'</code> or <code>'0'</code> (strings, not integers)"
+ ],
+ "starter": "def solution(grid):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "What exactly is one cluster?",
+   "a": "A maximal group of <code>'1'</code> cells where you can walk from any cell to any other using only up, down, left and right steps on <code>'1'</code>s. In graph terms: cells are nodes, side-touching land cells share an edge, and you are counting <b>connected components</b>."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Count <code>[\"110\", \"011\", \"001\"]</code> by hand. How did you avoid counting a cluster twice?",
+   "a": "Scan row by row. At (0, 0) you find new land: count 1, then colour everything it reaches: (0, 1), (1, 1), (1, 2), (2, 2). The rest of the scan only sees coloured cells, so the answer is 1. The trick is the colouring: once a cluster is marked, later cells of it are skipped."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first idea that works?",
+   "a": "For every land cell, flood its whole cluster from scratch and count the cell only if it is the first cell of that cluster in reading order. Correct, but one big cluster of k cells is flooded k times: O((rows x cols)^2)."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Which pattern?",
+   "a": "<b>Scan plus flood fill</b> (graph traversal on a grid). Scan every cell once; each unvisited land cell starts a new cluster, and a BFS with <code>collections.deque</code> (or a DFS with a list as a stack) marks the whole cluster visited. Every cell is enqueued at most once, so the total is O(rows x cols)."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li>If the grid is empty, return 0.</li><li><code>seen</code> = a rows x cols grid of <code>False</code>.</li><li>For each cell: if it is <code>'1'</code> and not seen, add 1 to the count, mark it, put it in a deque.</li><li>While the deque is not empty: pop a cell, look at its 4 neighbours, and mark and enqueue each in-bounds, unseen <code>'1'</code>.</li><li>Return the count.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "Empty grid. One cell, land or water. All water (0) and all land (1). Diagonal-only contact (must stay separate). One row or one column (bounds checks on one axis). A ring with a separate cell inside it. A spiral that forces the fill to go up and left, not only down and right. A 40,000-cell cluster, which overflows Python's default recursion limit of 1,000 if you recurse."
+  }
+ ],
+ "hints": [
+  "Treat the map as a graph: each land cell is a node, side-touching land cells are connected. You are counting connected components.",
+  "Scan every cell. When you find land you have not visited, that is a new cluster: count it, then visit every cell of it so the scan never counts it again.",
+  "Use <code>deque([(r, c)])</code> and <code>popleft()</code>. Mark a cell as seen when you <b>enqueue</b> it, not when you pop it, or the same cell can enter the queue several times."
+ ],
+ "solution": "from collections import deque\n\ndef solution(grid):\n    if not grid:\n        return 0\n    rows, cols = len(grid), len(grid[0])\n    seen = [[False] * cols for _ in range(rows)]   # strings are immutable, so mark visits here\n    count = 0\n    for r0 in range(rows):\n        for c0 in range(cols):\n            if grid[r0][c0] != '1' or seen[r0][c0]:\n                continue\n            count += 1                       # a new cluster starts here\n            seen[r0][c0] = True              # mark when you enqueue, not when you pop\n            queue = deque([(r0, c0)])\n            while queue:\n                r, c = queue.popleft()\n                for nr, nc in ((r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)):\n                    if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] == '1' and not seen[nr][nc]:\n                        seen[nr][nc] = True\n                        queue.append((nr, nc))\n    return count\n",
+ "brute": "def island_of(grid, r0, c0):\n    # Flood fill from scratch and return every cell of this island.\n    rows, cols = len(grid), len(grid[0])\n    found = {(r0, c0)}\n    stack = [(r0, c0)]\n    while stack:\n        r, c = stack.pop()\n        for nr, nc in ((r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)):\n            if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] == '1' and (nr, nc) not in found:\n                found.add((nr, nc))\n                stack.append((nr, nc))\n    return found\n\ndef solution(grid):\n    # Count land cells that are the first cell (row-major) of their island.\n    # Re-floods the whole island for every land cell: O((rows * cols)^2) worst case.\n    count = 0\n    for r in range(len(grid)):\n        for c in range(len(grid[r])):\n            if grid[r][c] == '1' and min(island_of(grid, r, c)) == (r, c):\n                count += 1\n    return count\n",
+ "explain": "<p>Example 2, <code>[\"11000\", \"11000\", \"00100\", \"00011\"]</code>:</p><ul><li>(0, 0) is new land: count = 1. The BFS marks (0, 0), (0, 1), (1, 0), (1, 1) and stops, because every other neighbour is <code>'0'</code>.</li><li>The scan passes (0, 1), (1, 0), (1, 1): already seen, skipped.</li><li>(2, 2) is new land: count = 2. Its 4 neighbours are all water, so the BFS ends at once. (1, 1) and (3, 3) touch it only diagonally.</li><li>(3, 3) is new land: count = 3. The BFS adds (3, 4).</li></ul><p>Return <b>3</b>. Each cell is scanned once and enqueued at most once, so the work is O(rows x cols) however the clusters are shaped. The <code>seen</code> grid exists because Python strings are immutable; the other common answer copies the grid with <code>[list(row) for row in grid]</code> and 'sinks' land to <code>'0'</code> as it is visited.</p>",
+ "complexity": "O(rows x cols) time, O(rows x cols) extra space for the seen grid and the queue",
+ "tests": [
+  {
+   "args": [
+    [
+     "11110",
+     "11010",
+     "11000",
+     "00000"
+    ]
+   ],
+   "expected": 1,
+   "label": "example 1 (LeetCode 200)",
+   "cat": "example",
+   "why": "one cluster with a gap in it"
+  },
+  {
+   "args": [
+    [
+     "11000",
+     "11000",
+     "00100",
+     "00011"
+    ]
+   ],
+   "expected": 3,
+   "label": "example 2 (LeetCode 200)",
+   "cat": "example",
+   "why": "three separate clusters"
+  },
+  {
+   "args": [
+    [
+     "101",
+     "010",
+     "101"
+    ]
+   ],
+   "expected": 5,
+   "label": "example 3 (diagonal trap)",
+   "cat": "example",
+   "why": "corner contact does not join clusters"
+  },
+  {
+   "args": [
+    []
+   ],
+   "expected": 0,
+   "label": "empty map",
+   "cat": "empty",
+   "why": "no rows means no clusters"
+  },
+  {
+   "args": [
+    [
+     "1"
+    ]
+   ],
+   "expected": 1,
+   "label": "one active cell",
+   "cat": "single",
+   "why": "a single land cell is one cluster"
+  },
+  {
+   "args": [
+    [
+     "0"
+    ]
+   ],
+   "expected": 0,
+   "label": "one inactive cell",
+   "cat": "zero",
+   "why": "no land at all"
+  },
+  {
+   "args": [
+    [
+     "0000",
+     "0000",
+     "0000"
+    ]
+   ],
+   "expected": 0,
+   "label": "all inactive",
+   "cat": "zero",
+   "why": "a scan that finds no land returns 0"
+  },
+  {
+   "args": [
+    [
+     "111",
+     "111",
+     "111"
+    ]
+   ],
+   "expected": 1,
+   "label": "all active",
+   "cat": "boundary",
+   "why": "the whole map is one cluster"
+  },
+  {
+   "args": [
+    [
+     "1011011101"
+    ]
+   ],
+   "expected": 4,
+   "label": "single row",
+   "cat": "edge",
+   "why": "four runs split by zeros; bounds on the row axis"
+  },
+  {
+   "args": [
+    [
+     "1",
+     "0",
+     "1",
+     "1",
+     "0",
+     "1"
+    ]
+   ],
+   "expected": 3,
+   "label": "single column",
+   "cat": "edge",
+   "why": "three vertical runs; bounds on the column axis"
+  },
+  {
+   "args": [
+    [
+     "11111",
+     "10001",
+     "10101",
+     "10001",
+     "11111"
+    ]
+   ],
+   "expected": 2,
+   "label": "ring with a cell inside",
+   "cat": "edge",
+   "why": "the inner cell is inside the ring but does not touch it"
+  },
+  {
+   "args": [
+    [
+     "11111",
+     "00001",
+     "11101",
+     "10001",
+     "11111"
+    ]
+   ],
+   "expected": 1,
+   "label": "spiral",
+   "cat": "medium",
+   "why": "the fill must turn up and left to reach the inner arm"
+  },
+  {
+   "args": [
+    [
+     "1010",
+     "0101",
+     "1010",
+     "0101"
+    ]
+   ],
+   "expected": 8,
+   "label": "checkerboard",
+   "cat": "medium",
+   "why": "eight cells, none sharing a side"
+  },
+  {
+   "args": [
+    [
+     "110011",
+     "100001",
+     "001100",
+     "001100",
+     "100001",
+     "110011"
+    ]
+   ],
+   "expected": 5,
+   "label": "corners and centre",
+   "cat": "medium",
+   "why": "four corner clusters plus a 2 x 2 block"
+  }
+ ],
+ "perf": {
+  "label": "performance: a 140 x 140 map with one long snake-shaped cluster and hundreds of small ones",
+  "gen": "[[''.join('1' if (y % 2 == 0 or x == (0 if y % 4 == 1 else 139)) and not (y >= 105 and (x + y) % 3 == 0) else '0' for x in range(140)) for y in range(140)]]",
+  "expected": 800
+ },
+ "al": {
+  "kind": "fundamentals",
+  "from": "LC 200 Number of Islands",
+  "talk": [
+   "O(rows x cols) time: the outer scan touches each cell once and each land cell enters the deque at most once, because I mark it when I enqueue it.",
+   "I use <code>collections.deque</code> and <code>popleft()</code>, which is O(1); <code>list.pop(0)</code> is O(n) and turns a big cluster into quadratic work.",
+   "No recursion: a 200 x 200 all-land map is a 40,000-cell cluster and Python's default recursion limit is 1,000. An explicit deque or stack has no such limit.",
+   "Strings are immutable, so I keep a <code>seen</code> grid. If I am allowed to change the input, I copy it to a list of lists and overwrite visited land with <code>'0'</code>, which saves the extra grid.",
+   "Neighbours as a tuple of four <code>(nr, nc)</code> pairs with one bounds check <code>0 &lt;= nr &lt; rows and 0 &lt;= nc &lt; cols</code> keeps the edge handling in one place."
+  ],
+  "extensions": [
+   "Return the size of the largest cluster (LC 695 Max Area of Island): count cells inside each BFS and keep the maximum.",
+   "Treat diagonal neighbours as touching too: which line changes, and what is example 3's answer then?",
+   "Regions switch on one at a time and you must report the cluster count after each one (LC 305): why is re-running the BFS too slow, and how does union-find fix it?",
+   "Count clusters with distinct shapes (LC 694): record each cluster's cells relative to its first cell and put that tuple in a set.",
+   "The map is too large for memory and arrives row by row: keep only the previous row's cluster labels and merge labels with union-find."
+  ]
+ }
+}

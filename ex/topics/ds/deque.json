@@ -1,0 +1,147 @@
+{
+ "id": "deque",
+ "track": "ds",
+ "order": 8,
+ "title": "Deque",
+ "short": "A line you can add to or take from at both ends.",
+ "what": "A deque (said \"deck\") is a double-ended queue. You can add or remove items at the front and at the back, each in one step. It can also hold a fixed number of items and drop the oldest when a new one arrives.",
+ "analogy": "A train where carriages can be hooked on or off at either end, but never in the middle.",
+ "viz": {
+  "kind": "queue",
+  "frames": [
+   {
+    "items": [
+     2,
+     3,
+     4
+    ],
+    "label": "d",
+    "say": "d = deque([2, 3, 4]). Both ends are open for adding and removing."
+   },
+   {
+    "items": [
+     1,
+     2,
+     3,
+     4
+    ],
+    "hi": [
+     0
+    ],
+    "label": "d",
+    "say": "d.appendleft(1) puts 1 at the front. On a list, insert(0, 1) would shift every item; here nothing moves."
+   },
+   {
+    "items": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "hi": [
+     4
+    ],
+    "label": "d",
+    "say": "d.append(5) adds at the back, the same as on a list."
+   },
+   {
+    "items": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "ok": [
+     0,
+     4
+    ],
+    "label": "d",
+    "out": "popleft() -> 1, pop() -> 5",
+    "say": "d.popleft() takes 1 from the front and d.pop() takes 5 from the back. Both are O(1)."
+   },
+   {
+    "items": [
+     2,
+     3,
+     4
+    ],
+    "label": "recent, maxlen=3",
+    "say": "A second deque, made with maxlen=3, keeps only the 3 newest items. It is full with 2, 3, 4."
+   },
+   {
+    "items": [
+     2,
+     3,
+     4,
+     6
+    ],
+    "bad": [
+     0
+    ],
+    "hi": [
+     3
+    ],
+    "label": "recent, maxlen=3",
+    "say": "append(6) on a full deque pushes the oldest item, 2, out of the front by itself."
+   },
+   {
+    "items": [
+     3,
+     4,
+     6
+    ],
+    "ok": [
+     0,
+     1,
+     2
+    ],
+    "label": "recent, maxlen=3",
+    "say": "Now it holds the last 3 values: 3, 4, 6. Handy for \"the last k events\" and moving windows."
+   }
+  ]
+ },
+ "when": [
+  "Add or remove at both ends",
+  "Keep only the last k items",
+  "Sliding window maximum or minimum",
+  "A fast queue for BFS"
+ ],
+ "python": "from collections import deque\n\nd = deque([2, 3, 4])\nd.appendleft(1)\nd.append(5)\nprint(d)\nprint(d.popleft(), d.pop())\n\nrecent = deque([2, 3, 4], maxlen=3)\nrecent.append(6)\nprint(recent)\nprint(recent[0], recent[-1])",
+ "output": "deque([1, 2, 3, 4, 5])\n1 5\ndeque([3, 4, 6], maxlen=3)\n3 6",
+ "cost": [
+  [
+   "Add or remove at either end",
+   "O(1)"
+  ],
+  [
+   "Read d[0] or d[-1]",
+   "O(1)"
+  ],
+  [
+   "Read d[i] in the middle",
+   "O(n)"
+  ],
+  [
+   "Insert in the middle",
+   "O(n)"
+  ]
+ ],
+ "watch": [
+  "Reading the middle with d[i] walks to it, so it is slow. Use a list if you index a lot.",
+  "Slices like d[1:3] fail. Convert with list(d) first.",
+  "With maxlen, items fall off the other end without any warning."
+ ],
+ "interview": [
+  "LC 239 Sliding Window Maximum",
+  "LC 641 Design Circular Deque",
+  "LC 1438 Longest Continuous Subarray With Absolute Diff Less Than or Equal to Limit"
+ ],
+ "related": [
+  "queue",
+  "stack",
+  "sliding-window",
+  "monotonic-stack"
+ ]
+}

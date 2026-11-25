@@ -1,0 +1,234 @@
+{
+ "id": "backspace-compare",
+ "title": "Backspace String Compare",
+ "pattern": "two-pointers",
+ "level": "easy",
+ "statement": "<p>The comment box in a feed app records every keystroke so drafts can be synced between devices. A log is a string: a letter means \"type this letter\", and <code>#</code> means \"backspace\", which deletes the most recent character still in the box. A backspace on an empty box does nothing.</p><p>Two devices sent logs <code>s</code> and <code>t</code> for the same comment. Write <code>def solution(s, t)</code> that returns <code>True</code> if both logs produce the same final text, otherwise <code>False</code>.</p><p>The simple answer uses O(n) extra space. Try for <b>O(1) extra space</b>.</p>",
+ "examples": [
+  {
+   "input": "s = \"ab#c\", t = \"ad#c\"",
+   "output": "True",
+   "why": "Both become <code>\"ac\"</code>."
+  },
+  {
+   "input": "s = \"ab##\", t = \"c#d#\"",
+   "output": "True",
+   "why": "Both become the empty string."
+  },
+  {
+   "input": "s = \"a#c\", t = \"b\"",
+   "output": "False",
+   "why": "<code>\"c\"</code> is not <code>\"b\"</code>."
+  }
+ ],
+ "constraints": [
+  "0 &le; len(s), len(t) &le; 10^5",
+  "<code>s</code> and <code>t</code> contain only lowercase letters and <code>#</code>"
+ ],
+ "starter": "def solution(s, t):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "What does <code>#</code> do, and what if the box is empty?",
+   "a": "It deletes the latest character still in the box. On an empty box it does nothing, so <code>\"#a\"</code> is just <code>\"a\"</code>. You only compare the <b>final</b> texts; how each device got there does not matter."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Replay <code>\"ab##\"</code> and <code>\"c#d#\"</code>.",
+   "a": "<code>\"ab##\"</code>: a, ab, a, empty. <code>\"c#d#\"</code>: c, empty, d, empty. Both end empty, so <code>True</code>."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first idea that works?",
+   "a": "Replay each log with a <b>stack</b> (a Python list): append letters, <code>pop()</code> on <code>#</code> if the list is not empty, then compare <code>\"\".join(...)</code>. O(n) time and O(n) space. This is a fine first answer to say out loud."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "How do you get O(1) space?",
+   "a": "<b>Two pointers from the end.</b> Reading right to left, a <code>#</code> tells you before you reach a character whether it will be deleted: keep a <code>skip</code> count per string. Move each pointer to its next surviving character and compare them one pair at a time."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li>Helper <code>next_kept(text, i)</code>: walk left; on <code>#</code> do <code>skip += 1</code>; on a letter with <code>skip &gt; 0</code> do <code>skip -= 1</code>; otherwise return <code>i</code>. Return -1 if you fall off the start.</li><li>Start <code>i</code>, <code>j</code> at the last kept characters.</li><li>While both are valid: if the characters differ, return <code>False</code>; else step both to their next kept characters.</li><li>Return <code>True</code> only if both reached -1 together.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "More backspaces than letters (<code>\"a##c\"</code>). Both texts empty. One text is a prefix or suffix of the other (<code>\"ab\"</code> vs <code>\"b\"</code>): the loop ends with one pointer still valid. Deletions that span earlier backspaces (<code>\"bxj##tw\"</code> vs <code>\"bxo#j##tw\"</code>). Empty logs."
+  }
+ ],
+ "hints": [
+  "First get it right: build the final text with a list as a stack (<code>append</code> letters, <code>pop</code> on <code>#</code>) and compare.",
+  "For O(1) space, read from the right. When you see <code>#</code>, you know the next letter to the left (that is not itself cancelled) will be deleted. Count pending backspaces in <code>skip</code>.",
+  "Write a helper that returns the index of the next surviving character to the left (or -1). Compare <code>s[i]</code> and <code>t[j]</code>, then move both. At the end both must be -1; if only one is, the lengths differ."
+ ],
+ "solution": "def next_kept(text, i):\n    # Walk left from index i to the next character that survives the backspaces.\n    # Returns its index, or -1 if nothing before i survives.\n    skip = 0                     # backspaces seen but not yet applied\n    while i >= 0:\n        if text[i] == \"#\":\n            skip += 1\n        elif skip > 0:\n            skip -= 1            # this character is deleted by a later '#'\n        else:\n            return i\n        i -= 1\n    return -1\n\ndef solution(s, t):\n    # Compare from the end: a '#' only affects characters to its left,\n    # so reading right-to-left tells us immediately what is deleted. O(1) space.\n    i = next_kept(s, len(s) - 1)\n    j = next_kept(t, len(t) - 1)\n    while i >= 0 and j >= 0:\n        if s[i] != t[j]:\n            return False\n        i = next_kept(s, i - 1)\n        j = next_kept(t, j - 1)\n    return i < 0 and j < 0       # equal only if both run out together\n",
+ "brute": "def final_text(log):\n    # Replay the edits with a list used as a stack. O(n) time, O(n) extra space.\n    kept = []\n    for ch in log:\n        if ch == \"#\":\n            if kept:             # backspace on an empty box does nothing\n                kept.pop()\n        else:\n            kept.append(ch)\n    return \"\".join(kept)\n\ndef solution(s, t):\n    return final_text(s) == final_text(t)\n",
+ "explain": "<p>Example 1, <code>s = \"ab#c\"</code>, <code>t = \"ad#c\"</code>:</p><ul><li>Last kept characters: <code>s[3] = c</code>, <code>t[3] = c</code>. Equal.</li><li>Step left in <code>s</code>: index 2 is <code>#</code>, <code>skip = 1</code>; index 1 <code>b</code> is skipped; index 0 <code>a</code> is kept. Same in <code>t</code>: <code>d</code> is skipped, <code>a</code> is kept. Equal.</li><li>Both helpers return -1 next. Both ran out together, so <code>True</code>.</li></ul><p>Why from the end: going left to right you cannot know whether a letter survives until you see the future. Going right to left, every <code>#</code> that could delete a letter has already been seen. Each index is visited once, so it is O(n + m) time with a few integers of space. The stack version is easier to get right in an interview; say it first, then offer this.</p>",
+ "complexity": "O(n + m) time, O(1) extra space (the stack version is O(n + m) space)",
+ "al": {
+  "kind": "fundamentals",
+  "from": "LC 844 Backspace String Compare",
+  "talk": [
+   "First answer: a list as a stack, <code>append</code> on a letter, <code>pop()</code> on <code>#</code> only if the list is not empty, then compare the joined strings. O(n) time and space.",
+   "O(1) space: two pointers from the end with a <code>skip</code> counter per string. A <code>#</code> only affects characters to its left, so reading right to left I always know whether the next letter survives.",
+   "I put the skip logic in one helper, <code>next_kept(text, i)</code>, so both strings use the same code and the main loop stays three lines.",
+   "Termination check: after the loop both indices must be -1. If one string still has a kept character, the texts have different lengths.",
+   "Avoid <code>text = text[:-1]</code> in a loop: each slice copies the string, so it is O(n^2) in the worst case. A list with <code>pop()</code> is O(1) per key."
+  ],
+  "extensions": [
+   "Add a \"delete word\" key that removes back to the previous space. How does the right-to-left scan change?",
+   "The logs arrive as two live streams. Can you still compare in O(1) space, or do you now need a stack?",
+   "Add an undo key that restores the last deleted character. Which approach still works?",
+   "Return the final text for one log in O(n) time without a list (hint: write into a list of characters in place, the classic two-pointer compaction)."
+  ]
+ },
+ "tests": [
+  {
+   "args": [
+    "ab#c",
+    "ad#c"
+   ],
+   "expected": true,
+   "label": "example 1",
+   "cat": "example",
+   "why": "both become ac"
+  },
+  {
+   "args": [
+    "ab##",
+    "c#d#"
+   ],
+   "expected": true,
+   "label": "example 2",
+   "cat": "example",
+   "why": "both become empty"
+  },
+  {
+   "args": [
+    "a#c",
+    "b"
+   ],
+   "expected": false,
+   "label": "example 3",
+   "cat": "example",
+   "why": "c is not b"
+  },
+  {
+   "args": [
+    "",
+    ""
+   ],
+   "expected": true,
+   "label": "both logs empty",
+   "cat": "empty",
+   "why": "nothing typed on either device"
+  },
+  {
+   "args": [
+    "",
+    "a#"
+   ],
+   "expected": true,
+   "label": "empty vs typed and deleted",
+   "cat": "empty",
+   "why": "both final texts are empty"
+  },
+  {
+   "args": [
+    "a",
+    "a"
+   ],
+   "expected": true,
+   "label": "one letter each",
+   "cat": "single",
+   "why": "same single character"
+  },
+  {
+   "args": [
+    "a",
+    "b"
+   ],
+   "expected": false,
+   "label": "different single letters",
+   "cat": "single",
+   "why": "smallest unequal case"
+  },
+  {
+   "args": [
+    "a##c",
+    "#a#c"
+   ],
+   "expected": true,
+   "label": "backspace on an empty box",
+   "cat": "edge",
+   "why": "extra backspaces do nothing; both become c"
+  },
+  {
+   "args": [
+    "ab",
+    "b"
+   ],
+   "expected": false,
+   "label": "suffix match only",
+   "cat": "edge",
+   "why": "the last characters match but s has one more"
+  },
+  {
+   "args": [
+    "bxj##tw",
+    "bxo#j##tw"
+   ],
+   "expected": true,
+   "label": "deletions spanning earlier backspaces",
+   "cat": "medium",
+   "why": "both become btw"
+  },
+  {
+   "args": [
+    "bxj##tw",
+    "bxj###tw"
+   ],
+   "expected": false,
+   "label": "one extra backspace",
+   "cat": "medium",
+   "why": "btw vs tw"
+  },
+  {
+   "args": [
+    "nzp#o#g",
+    "b#nzp#o#g"
+   ],
+   "expected": true,
+   "label": "leading delete",
+   "cat": "small",
+   "why": "both become nzg"
+  },
+  {
+   "args": [
+    "aaa#",
+    "aa"
+   ],
+   "expected": true,
+   "label": "repeated letters",
+   "cat": "dupes",
+   "why": "aa vs aa"
+  },
+  {
+   "args": [
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc##################################################################################################################################################################################################################################################################################################################################################################################################################################################################",
+    "abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcx#"
+   ],
+   "expected": true,
+   "label": "long logs, many backspaces",
+   "cat": "large",
+   "why": "900 letters, 450 deleted, matches 450 letters"
+  }
+ ],
+ "perf": {
+  "label": "performance: logs of 120,001 and 60,001 keystrokes whose final texts differ only in the first character",
+  "gen": "[\"x\" + \"ab#c\" * 30000, \"y\" + \"ac\" * 30000]",
+  "expected": false
+ }
+}

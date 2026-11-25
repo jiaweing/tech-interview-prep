@@ -1,0 +1,156 @@
+{
+ "id": "py-sorting",
+ "track": "py",
+ "order": 7,
+ "title": "Sorting",
+ "short": "sort or sorted, by any rule you give with key=.",
+ "what": "sorted(x) returns a new sorted list; x.sort() sorts the list itself and returns None. key= tells Python what to compare, and a tuple key sorts by one thing, then breaks ties with the next.",
+ "analogy": "Lining up a class: first by height, and when two kids are the same height, by name. The key is the question you ask each kid.",
+ "viz": {
+  "kind": "array",
+  "frames": [
+   {
+    "cells": [
+     "pear",
+     "fig",
+     "apple",
+     "kiwi"
+    ],
+    "label": "words",
+    "say": "Four words, in no order. sorted(words) makes a new sorted list and leaves words alone."
+   },
+   {
+    "cells": [
+     "apple",
+     "fig",
+     "kiwi",
+     "pear"
+    ],
+    "label": "sorted(words)",
+    "ok": [
+     0,
+     1,
+     2,
+     3
+    ],
+    "say": "With no key, strings sort alphabetically: a, f, k, p. Numbers would sort smallest first."
+   },
+   {
+    "cells": [
+     "fig",
+     "pear",
+     "kiwi",
+     "apple"
+    ],
+    "label": "sorted(words, key=len)",
+    "hi": [
+     1,
+     2
+    ],
+    "say": "key=len sorts by length. pear and kiwi tie at 4 and keep their old order: Python's sort is stable."
+   },
+   {
+    "cells": [
+     "apple",
+     "pear",
+     "kiwi",
+     "fig"
+    ],
+    "label": "key=len, reverse=True",
+    "hi": [
+     1,
+     2
+    ],
+    "say": "reverse=True flips it: longest first. The tie still keeps pear before kiwi."
+   },
+   {
+    "cells": [
+     "fig",
+     "kiwi",
+     "pear",
+     "apple"
+    ],
+    "label": "key=lambda w: (len(w), w)",
+    "ok": [
+     1,
+     2
+    ],
+    "say": "key=lambda w: (len(w), w) sorts by length, then A to Z on ties. Tuples compare item by item."
+   },
+   {
+    "cells": [
+     "apple",
+     "kiwi",
+     "pear",
+     "fig"
+    ],
+    "label": "key=lambda w: (-len(w), w)",
+    "ok": [
+     1,
+     2
+    ],
+    "say": "Longest first but ties A to Z? Negate the number: (-len(w), w). reverse=True would flip both parts."
+   },
+   {
+    "cells": [
+     "apple",
+     "fig",
+     "kiwi",
+     "pear"
+    ],
+    "label": "x = words.sort()",
+    "ok": [
+     0,
+     1,
+     2,
+     3
+    ],
+    "out": "x -> None",
+    "say": "words.sort() sorts in place and returns None. x = words.sort() leaves x = None, a common bug."
+   }
+  ]
+ },
+ "when": [
+  "Sort intervals by start",
+  "Order by one thing, then another",
+  "Largest first",
+  "Compare two strings as anagrams",
+  "Closest k points"
+ ],
+ "python": "words = [\"pear\", \"fig\", \"apple\", \"kiwi\"]\nprint(sorted(words))\nprint(sorted(words, key=len))\nprint(sorted(words, key=len, reverse=True))\nprint(sorted(words, key=lambda w: (len(w), w)))\nprint(sorted(words, key=lambda w: (-len(w), w)))\nx = words.sort()\nprint(x, words)\npairs = [[1, 9], [0, 3], [1, 2]]\npairs.sort()\nprint(pairs)\nprint(sorted(\"dcab\"), \"\".join(sorted(\"dcab\")))",
+ "output": "['apple', 'fig', 'kiwi', 'pear']\n['fig', 'pear', 'kiwi', 'apple']\n['apple', 'pear', 'kiwi', 'fig']\n['fig', 'kiwi', 'pear', 'apple']\n['apple', 'kiwi', 'pear', 'fig']\nNone ['apple', 'fig', 'kiwi', 'pear']\n[[0, 3], [1, 2], [1, 9]]\n['a', 'b', 'c', 'd'] abcd",
+ "cost": [
+  [
+   "Sort n items",
+   "O(n log n)"
+  ],
+  [
+   "Already sorted input",
+   "O(n)"
+  ],
+  [
+   "sorted() makes a copy",
+   "O(n) extra memory"
+  ],
+  [
+   "Sort by a key",
+   "key runs once per item"
+  ]
+ ],
+ "watch": [
+  "list.sort() returns None. nums = nums.sort() throws your list away.",
+  "sorted(\"dcab\") returns a list of characters. Use \"\".join(sorted(s)) for a string.",
+  "reverse=True flips every part of the key. To flip only a number, negate it."
+ ],
+ "interview": [
+  "LC 56 Merge Intervals",
+  "LC 242 Valid Anagram",
+  "LC 973 K Closest Points to Origin"
+ ],
+ "related": [
+  "sorting-overview",
+  "merge-intervals",
+  "py-tuples",
+  "py-heapq"
+ ]
+}

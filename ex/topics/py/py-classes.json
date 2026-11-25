@@ -1,0 +1,153 @@
+{
+ "id": "py-classes",
+ "track": "py",
+ "order": 10,
+ "title": "Classes: ListNode, TreeNode",
+ "short": "Read and build the node classes LeetCode hands you.",
+ "what": "A class is a blueprint for objects that bundle data with functions. __init__ runs when you create one and stores values on self. LeetCode gives you ListNode and TreeNode classes like this, and you add __lt__ when objects must go in a heap.",
+ "analogy": "A form template. Each object is one filled-in copy: same boxes (val, next), different answers.",
+ "viz": {
+  "kind": "list",
+  "frames": [
+   {
+    "nodes": [
+     1
+    ],
+    "ptr": {
+     "head": 0
+    },
+    "hi": [
+     0
+    ],
+    "label": "head = ListNode(1)",
+    "say": "ListNode(1) builds an object and runs __init__. It stores self.val = 1 and self.next = None."
+   },
+   {
+    "nodes": [
+     1,
+     2
+    ],
+    "ptr": {
+     "head": 0
+    },
+    "hi": [
+     1
+    ],
+    "label": "head.next = ListNode(2)",
+    "say": "head.next = ListNode(2) links a second node. val and next are attributes: names stored on each object."
+   },
+   {
+    "nodes": [
+     1,
+     2,
+     3
+    ],
+    "ptr": {
+     "head": 0
+    },
+    "hi": [
+     2
+    ],
+    "label": "1 -> 2 -> 3",
+    "say": "One more: ListNode(1, ListNode(2, ListNode(3))) builds the same chain in one line. It ends where next is None."
+   },
+   {
+    "nodes": [
+     1,
+     2,
+     3
+    ],
+    "ptr": {
+     "head": 0,
+     "cur": 0
+    },
+    "hi": [
+     0
+    ],
+    "label": "while cur:",
+    "say": "cur = head, then while cur: ... cur = cur.next walks the chain. Each node only knows the next one."
+   },
+   {
+    "nodes": [
+     1,
+     2,
+     3
+    ],
+    "ptr": {
+     "head": 0,
+     "cur": 2
+    },
+    "ok": [
+     0,
+     1,
+     2
+    ],
+    "label": "while cur:",
+    "out": "vals -> [1, 2, 3]",
+    "say": "cur moves to 2, then 3, then None, which is false, so the loop ends. vals collected every value."
+   },
+   {
+    "nodes": [
+     1,
+     2,
+     3
+    ],
+    "ptr": {
+     "head": 0,
+     "head.next": 1
+    },
+    "ok": [
+     0
+    ],
+    "hi": [
+     1
+    ],
+    "label": "def __lt__(self, other)",
+    "out": "min(head.next, head).val -> 1",
+    "say": "__lt__ says what a < b means for two nodes. min(head.next, head) uses it and picks 1. sorted() and heapq use it too."
+   }
+  ]
+ },
+ "when": [
+  "The problem gives you a ListNode or TreeNode",
+  "Build a small test list or tree yourself",
+  "Put custom objects in a heap",
+  "Group related data with methods"
+ ],
+ "python": "class ListNode:\n    def __init__(self, val=0, next=None):\n        self.val, self.next = val, next\n    def __lt__(self, other):\n        return self.val < other.val\nclass TreeNode:\n    def __init__(self, val=0, left=None, right=None):\n        self.val, self.left, self.right = val, left, right\nhead = ListNode(1, ListNode(2, ListNode(3)))\nroot = TreeNode(2, TreeNode(1), TreeNode(3))\ncur, vals = head, []\nwhile cur:\n    vals.append(cur.val)\n    cur = cur.next\nprint(vals, root.left.val, root.right.val, min(head.next, head).val)",
+ "output": "[1, 2, 3] 1 3 1",
+ "cost": [
+  [
+   "Create an object",
+   "O(1)"
+  ],
+  [
+   "Read or set node.next",
+   "O(1)"
+  ],
+  [
+   "Walk n nodes",
+   "O(n)"
+  ],
+  [
+   "Compare two nodes with <",
+   "O(1)"
+  ]
+ ],
+ "watch": [
+  "Every method takes self first, and you store data with self.val = val, not val = val.",
+  "heapq compares items with <. Pushing nodes with no __lt__ raises TypeError on a tie, so push (val, i, node).",
+  "cur.next.val crashes when cur.next is None. Check it before you reach through."
+ ],
+ "interview": [
+  "LC 206 Reverse Linked List",
+  "LC 23 Merge k Sorted Lists",
+  "LC 226 Invert Binary Tree"
+ ],
+ "related": [
+  "linked-list",
+  "binary-tree",
+  "py-heapq",
+  "py-functions"
+ ]
+}

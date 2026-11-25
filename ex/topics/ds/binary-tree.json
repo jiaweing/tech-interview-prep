@@ -1,0 +1,201 @@
+{
+ "id": "binary-tree",
+ "track": "ds",
+ "order": 10,
+ "title": "Binary tree",
+ "short": "Nodes that branch into at most two children.",
+ "what": "A binary tree starts at one node, the root. Each node has at most two children, left and right, and a node with no children is a leaf. Most tree answers come from asking the children first and combining what they say.",
+ "analogy": "A family tree drawn upside down, where every parent has at most two kids.",
+ "viz": {
+  "kind": "tree",
+  "frames": [
+   {
+    "nodes": [
+     3,
+     9,
+     20,
+     null,
+     null,
+     15,
+     7
+    ],
+    "tag": {
+     "0": "root",
+     "1": "leaf",
+     "5": "leaf",
+     "6": "leaf"
+    },
+    "say": "3 is the root. It has two children, 9 and 20. 9, 15 and 7 have no children: they are leaves."
+   },
+   {
+    "nodes": [
+     3,
+     9,
+     20,
+     null,
+     null,
+     15,
+     7
+    ],
+    "hi": [
+     0
+    ],
+    "say": "How deep is the tree? A node's depth is 1 + the deeper of its two subtrees. So the root asks its children first."
+   },
+   {
+    "nodes": [
+     3,
+     9,
+     20,
+     null,
+     null,
+     15,
+     7
+    ],
+    "hi": [
+     0
+    ],
+    "ok": [
+     1
+    ],
+    "edge": [
+     1
+    ],
+    "tag": {
+     "1": "1"
+    },
+    "say": "9 is a leaf. Its missing children count as 0, so 9 answers 1 + 0 = 1."
+   },
+   {
+    "nodes": [
+     3,
+     9,
+     20,
+     null,
+     null,
+     15,
+     7
+    ],
+    "hi": [
+     0,
+     2
+    ],
+    "ok": [
+     1,
+     5,
+     6
+    ],
+    "edge": [
+     5,
+     6
+    ],
+    "tag": {
+     "1": "1",
+     "5": "1",
+     "6": "1"
+    },
+    "say": "20 asks its own children. 15 and 7 are leaves, so each answers 1."
+   },
+   {
+    "nodes": [
+     3,
+     9,
+     20,
+     null,
+     null,
+     15,
+     7
+    ],
+    "hi": [
+     0
+    ],
+    "ok": [
+     1,
+     2,
+     5,
+     6
+    ],
+    "edge": [
+     2
+    ],
+    "tag": {
+     "1": "1",
+     "2": "2",
+     "5": "1",
+     "6": "1"
+    },
+    "say": "20 answers 1 + max(1, 1) = 2 back up to the root."
+   },
+   {
+    "nodes": [
+     3,
+     9,
+     20,
+     null,
+     null,
+     15,
+     7
+    ],
+    "ok": [
+     0,
+     1,
+     2,
+     5,
+     6
+    ],
+    "tag": {
+     "0": "3",
+     "1": "1",
+     "2": "2",
+     "5": "1",
+     "6": "1"
+    },
+    "out": "max depth = 3",
+    "say": "The root answers 1 + max(1, 2) = 3. Each node was visited once, so the work is O(n)."
+   }
+  ]
+ },
+ "when": [
+  "The input is a TreeNode root",
+  "Depth, height, diameter or path sum",
+  "Visit the tree level by level",
+  "A node's answer depends on its children's answers"
+ ],
+ "python": "class Node:\n    def __init__(self, val, left=None, right=None):\n        self.val, self.left, self.right = val, left, right\n\ndef depth(node):\n    if node is None:\n        return 0\n    return 1 + max(depth(node.left), depth(node.right))\n\ndef preorder(node):\n    if node is None:\n        return []\n    return [node.val] + preorder(node.left) + preorder(node.right)\nroot = Node(3, Node(9), Node(20, Node(15), Node(7)))\nprint(depth(root), preorder(root))",
+ "output": "3 [3, 9, 20, 15, 7]",
+ "cost": [
+  [
+   "Visit every node",
+   "O(n)"
+  ],
+  [
+   "Height of a balanced tree",
+   "O(log n)"
+  ],
+  [
+   "Height of a lopsided tree",
+   "up to O(n)"
+  ],
+  [
+   "Extra memory for recursion",
+   "O(height)"
+  ]
+ ],
+ "watch": [
+  "Handle the None child first. It is the base case that stops the recursion.",
+  "A binary tree is not sorted by itself. A sorted one is a binary search tree.",
+  "A very lopsided tree is as deep as a linked list, and deep recursion can hit Python's limit of about 1000 calls."
+ ],
+ "interview": [
+  "LC 104 Maximum Depth of Binary Tree",
+  "LC 226 Invert Binary Tree",
+  "LC 102 Binary Tree Level Order Traversal"
+ ],
+ "related": [
+  "bst",
+  "heap",
+  "recursion",
+  "dfs",
+  "bfs"
+ ]
+}

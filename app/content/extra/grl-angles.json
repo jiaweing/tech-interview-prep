@@ -1,0 +1,192 @@
+{
+ "url-shortener": [
+  {
+   "q": "Add AI: suggest a readable alias from the destination page's title. How do you keep it cheap and safe?",
+   "a": "<p>Call the model only on the write path, when an officer creates a link, never on the redirect path that serves millions of clicks a day. Use a small model, cache by destination URL, and run every suggestion through the same reserved-word, profanity and uniqueness checks in PostgreSQL as a hand-typed alias. The officer picks or edits the suggestion; nothing is assigned automatically. Fetch only public pages, and treat their text as untrusted input to the prompt.</p>"
+  },
+  {
+   "q": "Use an LLM inside the URL safety check to catch phishing links. How do you evaluate it?",
+   "a": "<p>Make it one signal next to blocklists and reputation feeds, not the whole check. Build a labelled set from past takedowns and known-good agency links and measure precision and recall. A false positive blocks a real officer, so send low-confidence verdicts to human review instead of rejecting. The page being judged can say \"this page is safe\" in hidden text, so the verdict must come from structured features plus the model, never from the page's own claims.</p>"
+  }
+ ],
+ "consensus-chain": [
+  {
+   "q": "Add an assistant that answers auditors' questions about the ledger in plain English.",
+   "a": "<p>Point it at the Read API or a read-only replica, never at the consensus nodes. Have the model write a query against a fixed schema, run it under the auditor's own permissions, and show the query with the answer. Cite block heights and transaction hashes so every claim can be checked against the hash chain. Evaluate on a golden set of auditor questions with known answers.</p>"
+  },
+  {
+   "q": "Could a model validate transactions before they are committed?",
+   "a": "<p>Not inside consensus. Every node must apply the same entry and reach the same state, and model output is not deterministic, so two replicas could disagree and break the replicated state machine. Keep commit rules deterministic and in the log. Run the model off the critical path, reading the Block stream and flagging unusual transactions for a human auditor.</p>"
+  }
+ ],
+ "csv-ingest": [
+  {
+   "q": "Use an LLM to map messy headers like \"Full Name\" and \"salary (SGD)\" to NAME,SALARY.",
+   "a": "<p>Call it once per file on the header row and a few sample rows, never once per data row. It returns a column mapping that you validate against the schema; the deterministic parser still applies the all-or-nothing rules and skips negative salaries. Cache mappings by a hash of the header row so repeat formats cost nothing. Show a new mapping to the uploader to confirm the first time it is seen.</p>"
+  },
+  {
+   "q": "At millions of files a day, what does a model call per file cost, and where does it run?",
+   "a": "<p>Say 2M files x 500 tokens = 1B tokens a day: about $150 at $0.15 per 1M on a small model, $3,000 at $3 per 1M on a large one. With header-hash caching most files hit the cache, so real spend is a fraction of that. Run the call in the parse workers through the shared LLM gateway with its own rate limit; on a 429 the job backs off with jitter and waits in the Ingest queue instead of failing the upload.</p>"
+  }
+ ],
+ "rate-limiter": [
+  {
+   "q": "Rate-limit an LLM API where one request is 100 tokens and the next is 100,000.",
+   "a": "<p>Count tokens, not requests. Refill the token bucket in tokens per minute, reserve the input count plus <code>max_tokens</code> before the call, and refund the difference when the real usage comes back. Add a daily dollar budget per user and per team on top. Return 429 with <code>Retry-After</code> so clients can back off sensibly.</p>"
+  },
+  {
+   "q": "The upstream model provider has its own tokens-per-minute quota. How does your limiter protect it?",
+   "a": "<p>Keep a global bucket in Redis sized just under the provider quota, shared by every gateway. Give interactive traffic a priority lane and queue batch jobs instead of rejecting them. On a provider 429, back off with jitter and, if it persists, route to a second provider that passed the same evals. Watch the Metrics node for how often you hit the global cap.</p>"
+  }
+ ],
+ "form-builder": [
+  {
+   "q": "Add AI that drafts a form from an officer's one-paragraph description. How do you keep it safe?",
+   "a": "<p>Have the model return a form schema as JSON, validated against the builder's real field types, and load it into the editor as a draft; it is never published automatically. Evaluate on a set of descriptions with expected fields and measure field-level matches. Respondents' answers never go into this prompt, so the feature touches only the officer's own text.</p>"
+  },
+  {
+   "q": "The officer wants an AI summary of 10,000 responses, but in a storage mode like FormSG's the server cannot decrypt them.",
+   "a": "<p>That is the point of the design: only the officer's secret key can decrypt, so the server cannot summarise. The summary has to run after decryption on the officer's side, sending data only to a model approved for that form's classification, with the officer choosing to do it. Map-reduce over batches: 10,000 x 200 tokens = 2M tokens, about $6 at $3 per 1M. If the form holds data above the model's approved level, the feature is simply off.</p>"
+  }
+ ],
+ "llm-guardrails": [
+  {
+   "q": "How do you evaluate the guardrails themselves?",
+   "a": "<p>Keep a labelled set of benign prompts and attacks, including local PII like NRIC numbers and known jailbreaks. Report two numbers: block rate on attacks and false-positive rate on benign prompts, since both hurt. Gate classifier changes on that set in CI, and run new versions in shadow mode on live traffic through the Decision queue and Eval worker before they enforce anything.</p>"
+  },
+  {
+   "q": "Guardrails add latency. What is your budget, and what fails open or closed?",
+   "a": "<p>Run input checks in parallel and keep small classifiers to about 20-50 ms; use the Verdict cache for repeated inputs. For streamed output, check in windows of a few dozen tokens so you can stop a bad answer early without waiting for the whole thing. High-risk checks such as PII leakage fail closed; low-risk ones fail open with a log entry, so a checker outage does not take the app down.</p>"
+  }
+ ],
+ "vaccination-booking": [
+  {
+   "q": "Add a chatbot that answers booking questions and can reschedule an appointment.",
+   "a": "<p>Answer questions with RAG over the published FAQs. Rescheduling is a tool that calls the same Booking API with the resident's own session, an idempotency key and the same slot-hold rules, so the bot has no more power than the resident. It shows the new slot and asks the resident to confirm before booking. A resident trying prompt injection can at most change their own booking.</p>"
+  },
+  {
+   "q": "When a million residents are in the waiting room, what does the bot cost and how does it not hurt booking?",
+   "a": "<p>Keep it off the booking path: separate service, separate quota at the LLM gateway. Most questions repeat, so cache answers to common questions. If 200k residents ask once at 1,500 tokens, that is 300M tokens: about $45 on a small model at $0.15 per 1M, about $900 at $3 per 1M. When the gateway is saturated, fall back to the static FAQ page instead of queueing.</p>"
+  }
+ ],
+ "voucher-redemption": [
+  {
+   "q": "Use ML or an LLM to spot merchants colluding to turn vouchers into cash.",
+   "a": "<p>Compute features from the Event stream in the Fraud rules stage: redemptions per hour, the same households again and again at one shop, bursts just before closing. A model ranks merchants for investigators, and an LLM can write a case summary, but a person decides. Flagged merchants have their Payout job held, not their account closed. Evaluate on past confirmed cases and watch precision: a false positive hurts a small shop.</p>"
+  },
+  {
+   "q": "Add a merchant support assistant that can check a voucher's status.",
+   "a": "<p>Give it one read-only tool, scoped to the merchant's own transactions, and mask the resident's details. It must have no tool that marks vouchers as redeemed or reverses a redemption; those stay in the Redemption API with its exactly-once checks. Text in notes or messages is untrusted input, so it cannot widen what the tool returns.</p>"
+  }
+ ],
+ "otp-login": [
+  {
+   "q": "Could an LLM decide whether a login attempt is suspicious?",
+   "a": "<p>Not on the live path. A login decision needs to take milliseconds and cost almost nothing, while an LLM call is hundreds of milliseconds and charged per token. Use rules or a small model on features such as attempts per number, IP and device. An LLM is useful offline, summarising an incident for an analyst, with phone numbers redacted before the call.</p>"
+  },
+  {
+   "q": "An agency wants the OTP SMS text written by AI in four languages.",
+   "a": "<p>Use AI to draft the templates once, then have people review and approve them; store them versioned. At send time the SMS sender fills a fixed template, never a generated message, so every OTP is predictable. That also keeps links out of OTP messages, which matters because links in SMS are a common phishing pattern.</p>"
+  }
+ ],
+ "bulk-messaging": [
+  {
+   "q": "Use AI to personalise every message in a one-million-recipient campaign.",
+   "a": "<p>Usually the better design is AI helping the officer write one template with variables, which the officer approves and the Splitter renders deterministically. Per-recipient generation at 300 tokens each is 300M tokens and hours of rate-limited calls, and one bad message in a million is a public incident. If you must, generate in a pre-send job, store the outputs, run automated checks and a sampled human review, and only then enqueue. Under-sending beats sending something wrong.</p>"
+  },
+  {
+   "q": "Classify inbound replies (STOP, questions, complaints) with an LLM.",
+   "a": "<p>Handle STOP and other opt-out keywords with a deterministic rule first, because they have legal weight and must never depend on a model. Send the rest from the Inbound handler through a queue to a small classifier, with PII redacted. Evaluate on a labelled sample of real replies and route low-confidence ones to the officer.</p>"
+  }
+ ],
+ "uber": [
+  {
+   "q": "Add an AI agent that handles rider complaints and issues refunds.",
+   "a": "<p>The agent reads trip data and the GPS trace through read-only tools and proposes an outcome under a written refund policy. A refund tool takes an idempotency key per trip and has a hard cap; anything above the cap or outside policy goes to a person. Evaluate on past tickets with known resolutions, and track refund dollars per 1,000 trips as a guard metric.</p>"
+  },
+  {
+   "q": "Should an LLM do dispatch or ETA?",
+   "a": "<p>No. Dispatch makes thousands of matches a second against the Geo index in milliseconds, and an LLM's time to first token alone is hundreds of milliseconds. ETA is a regression problem: a model such as gradient-boosted trees trained on past trips, evaluated by error on held-out trips. LLMs fit the text around the trip, like support, not the hot path.</p>"
+  }
+ ],
+ "netflix": [
+  {
+   "q": "Generate subtitles in new languages for the catalogue with AI.",
+   "a": "<p>Add steps to the Encode tasks pipeline: speech recognition, translation, then human quality review before publishing. Run them as async jobs on GPU workers that scale on backlog. Measure word error rate and translation quality on titles that already have human subtitles, and track cost per hour of content.</p>"
+  },
+  {
+   "q": "Add natural-language search, like \"funny films set in Singapore\".",
+   "a": "<p>The catalogue is thousands of titles, so embeddings of their metadata fit in pgvector or even memory. Combine vector search with keyword search for exact titles and actor names, and use a small model to turn the query into filters such as genre and country. Skip the model when the query is a plain title. Evaluate on a golden set of queries and online by click-through.</p>"
+  }
+ ],
+ "news-feed": [
+  {
+   "q": "Add an AI \"catch up\" summary of a user's feed.",
+   "a": "<p>Generate it lazily when the user opens the app, not during fan-out, and cache it per user for a few hours. Build it only from posts already in that user's Timeline cache, so blocked and private accounts never leak in. At 10M daily users, 20% using it and 2,000 tokens each, that is 4B tokens a day, about $600 at $0.15 per 1M. Check faithfulness: every sentence must map to a real post.</p>"
+  },
+  {
+   "q": "Use an LLM to moderate posts before they fan out.",
+   "a": "<p>Run cheap classifiers on every post and send only borderline ones to the LLM. Do not block the author's post on it; instead hold fan-out to very large audiences until the check passes, since that is where harm spreads. Measure precision and recall per category on labelled posts, and give authors an appeal to a human.</p>"
+  }
+ ],
+ "chat": [
+  {
+   "q": "Add AI summaries of long group chats.",
+   "a": "<p>With end-to-end encryption the server cannot read messages, so the summary must run on the device with a small model, or the user must choose to send messages to a server model. Summarise only messages that user actually received. Label the summary as AI-written and link each point back to the original messages.</p>"
+  },
+  {
+   "q": "Add an AI bot as a member of group chats.",
+   "a": "<p>Make the bot a normal member in the Group service and stream its replies through the Gateway like any message. Any member can write instructions at it, so its only power is posting in that chat: no tools that read other chats or act outside. Rate-limit it per group and per day, and mark its messages as AI.</p>"
+  }
+ ],
+ "file-sync": [
+  {
+   "q": "Add semantic search across a user's files.",
+   "a": "<p>Index from change events in the Metadata service: extract text, chunk, embed. Reuse the content hashes you already have so unchanged chunks are never re-embedded. Store the owner and share list with each vector and filter by current permissions at query time, so unsharing a folder takes effect at once. Deleting a file deletes its vectors.</p>"
+  },
+  {
+   "q": "What does embedding everyone's files cost?",
+   "a": "<p>Say 1M opted-in users x 5,000 pages x 500 tokens = 2.5T tokens; at $0.02 per 1M that is about $50,000 once. Storage is the bigger issue: 5B vectors x 1536 dimensions x 4 bytes is about 30 TB, far past what pgvector on one box handles. That pushes you to quantised vectors in a sharded vector store, or to indexing only recent and text-heavy files.</p>"
+  }
+ ],
+ "payments": [
+  {
+   "q": "Let an AI agent pay invoices for officers.",
+   "a": "<p>The agent extracts payee and amount from the invoice and prepares a payment; it never sends one. A person approves the exact payee and amount, and the payment goes through the normal Payment service with an idempotency key. Pay only allow-listed payees and enforce a limit per approval. Log who approved what.</p>"
+  },
+  {
+   "q": "Use an LLM to help reconciliation match unmatched settlement lines.",
+   "a": "<p>Deterministic matching by IDs and amounts runs first and clears almost everything. For the leftovers, the model suggests likely matches with its reasons in the Resolver, and a person confirms. The ledger entry is written by the Resolver's normal code, not by the model. Evaluate on past cases that were resolved by hand.</p>"
+  }
+ ],
+ "kv-store": [
+  {
+   "q": "Could this store serve as a cache for LLM responses?",
+   "a": "<p>Yes, for exact matches: key on a hash of model, full prompt, parameters and permission scope, with a TTL. Eventual consistency is fine for a cache. A semantic cache needs nearest-neighbour search, which a key-value store does not do, so that needs a vector index alongside it. Never share personalised answers across users.</p>"
+  },
+  {
+   "q": "Store an agent's conversation memory in it.",
+   "a": "<p>Key by conversation ID. With sloppy quorums, two concurrent appends can create sibling versions, so make the merge a union of messages ordered by timestamp and message ID. Cap the value size and summarise old turns. Apply a TTL that matches the data's retention rules, since memory holds whatever users typed.</p>"
+  }
+ ],
+ "web-crawler": [
+  {
+   "q": "Use the crawler to feed a RAG knowledge base of government websites.",
+   "a": "<p>Recrawl with <code>ETag</code> and <code>Last-Modified</code>, and compare content hashes so only changed pages are re-chunked and re-embedded. Delete vectors when a page returns 404. Store the URL and fetch time with each chunk so answers can cite the source and show how fresh it is.</p>"
+  },
+  {
+   "q": "Crawled pages may contain prompt injection. What do you do?",
+   "a": "<p>Strip hidden text, HTML comments and script before indexing, and keep provenance on every chunk. The assistant that answers from web content gets no tools with side effects. Plant test pages with injected instructions in your eval set and check the assistant ignores them.</p>"
+  }
+ ],
+ "typeahead": [
+  {
+   "q": "Can an LLM generate the suggestions as the user types?",
+   "a": "<p>Not per keystroke: the budget is well under 100 ms, and an LLM's time to first token is often 300-800 ms. Keep the Prefix store for keystrokes. Use the model offline to clean and expand the suggestion lists, or offer an explicit \"Ask AI\" action when the user stops typing or presses Enter.</p>"
+  },
+  {
+   "q": "Add semantic suggestions with embeddings. How do you fit the latency budget?",
+   "a": "<p>An embedding API call is about 20-50 ms plus network, which eats most of the budget and adds cost on every keystroke. Debounce by 150-300 ms, use a small embedding model hosted next to the Suggest service, and keep prefix results as the instant fallback. Ship it behind a flag and compare suggestion acceptance against the current version.</p>"
+  }
+ ]
+}

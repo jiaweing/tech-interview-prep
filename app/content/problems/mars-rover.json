@@ -1,0 +1,205 @@
+{
+ "id": "mars-rover",
+ "title": "Mars Rover",
+ "pattern": "greedy-sim",
+ "level": "medium",
+ "statement": "<p>NASA lands rovers on a rectangular plateau. The plateau is a grid from <code>(0, 0)</code> (bottom-left) to <code>(X, Y)</code>. A rover has a position and a heading: <code>N</code>, <code>E</code>, <code>S</code> or <code>W</code>.</p><p>Commands: <code>L</code> and <code>R</code> turn 90&deg; left or right on the spot. <code>M</code> moves one cell forward. North is <code>y + 1</code>, east is <code>x + 1</code>.</p><p>Write <code>def solution(spec)</code>. <code>spec</code> is the text input: the first line is <code>X Y</code>, then two lines per rover: its start <code>x y H</code> and its command string. Rovers move one after another. Return each rover's final <code>x y H</code>, one per line, joined with <code>\\n</code>.</p><p>In this first version, rovers never leave the plateau.</p>",
+ "examples": [
+  {
+   "input": "spec = \"5 5\\n1 2 N\\nLMLMLMLMM\\n3 3 E\\nMMRMMRMRRM\"",
+   "output": "\"1 3 N\\n5 1 E\"",
+   "why": "The original kata input. Rover 1 loops a square and moves up one; rover 2 zig-zags to the east edge."
+  },
+  {
+   "input": "spec = \"5 5\\n0 0 N\\nMMRMM\"",
+   "output": "\"2 2 E\"",
+   "why": "Up two, turn right to face east, across two."
+  },
+  {
+   "input": "spec = \"3 3\\n1 1 E\\n\"",
+   "output": "\"1 1 E\"",
+   "why": "An empty command line: the rover stays where it landed."
+  }
+ ],
+ "constraints": [
+  "1 &le; number of rovers &le; 100",
+  "0 &le; X, Y &le; 1,000",
+  "each command string has 0..100,000 characters from L, R, M",
+  "lines may have stray spaces or blank lines between them"
+ ],
+ "starter": "def solution(spec):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "What state does one rover have, and what changes it?",
+   "a": "Three things: <code>x</code>, <code>y</code>, heading. <code>L</code>/<code>R</code> change only the heading; <code>M</code> changes only the position, in the direction of the heading."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Rover at <code>1 2 N</code>, commands <code>LM</code>?",
+   "a": "<code>L</code>: N turns to W. <code>M</code>: west means <code>x - 1</code>. Result <code>0 2 W</code>."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What's the first thing you'd write?",
+   "a": "A big if/elif for every heading and every command (16 branches). It works but is easy to get wrong and hard to extend when the interviewer adds a command."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Clue words?",
+   "a": "\"commands\", \"one after another\", \"final position\" &rarr; <b>simulation</b>. The trick is to make turning data, not code: keep <code>'NESW'</code> in clockwise order, so <code>R</code> is index + 1 and <code>L</code> is index - 1, both mod 4. A dict maps each heading to its <code>(dx, dy)</code>."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li>Split into non-blank, stripped lines.</li><li>For every pair of lines after the first: parse <code>x y H</code>, then loop over the commands.</li><li><code>L</code>/<code>R</code>: rotate with the index trick. <code>M</code>: add <code>STEP[H]</code>.</li><li>Collect <code>f'{x} {y} {H}'</code>; join with <code>\\n</code>.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "Empty command line. A rover with no command line at all (last line missing). Four turns in a row (back to the start heading). Extra spaces and blank lines. A 0 x 0 plateau."
+  }
+ ],
+ "hints": [
+  "Keep the headings in clockwise order: <code>DIRS = 'NESW'</code>. Turning right is <code>DIRS[(i + 1) % 4]</code>, turning left is <code>DIRS[(i - 1) % 4]</code>.",
+  "Store how each heading moves: <code>STEP = {'N': (0, 1), 'E': (1, 0), 'S': (0, -1), 'W': (-1, 0)}</code>.",
+  "Parse with <code>[ln.strip() for ln in spec.strip().split('\\n') if ln.strip()]</code> and walk the rover lines two at a time: <code>range(1, len(lines), 2)</code>."
+ ],
+ "solution": "DIRS = 'NESW'                      # clockwise, so R = +1, L = -1\nSTEP = {'N': (0, 1), 'E': (1, 0), 'S': (0, -1), 'W': (-1, 0)}\n\ndef solution(spec):\n    lines = [ln.strip() for ln in spec.strip().split('\\n') if ln.strip()]\n    # line 0 is the plateau corner; the classic version never leaves it\n    out = []\n    for i in range(1, len(lines), 2):\n        x, y, d = lines[i].split()\n        x, y = int(x), int(y)\n        for c in lines[i + 1] if i + 1 < len(lines) else '':\n            if c == 'L':\n                d = DIRS[(DIRS.index(d) - 1) % 4]\n            elif c == 'R':\n                d = DIRS[(DIRS.index(d) + 1) % 4]\n            elif c == 'M':\n                dx, dy = STEP[d]\n                x, y = x + dx, y + dy\n        out.append(f'{x} {y} {d}')\n    return '\\n'.join(out)\n",
+ "brute": "def solution(spec):\n    # Straightforward version: track the heading as an angle and use if/elif for each move\n    lines = [ln.strip() for ln in spec.strip().split('\\n') if ln.strip()]\n    result = []\n    for i in range(1, len(lines), 2):\n        x, y, d = lines[i].split()\n        x, y = int(x), int(y)\n        angle = {'N': 90, 'E': 0, 'S': 270, 'W': 180}[d]\n        cmds = lines[i + 1] if i + 1 < len(lines) else ''\n        for c in cmds:\n            if c == 'L':\n                angle = (angle + 90) % 360\n            elif c == 'R':\n                angle = (angle - 90) % 360\n            elif c == 'M':\n                if angle == 0: x += 1\n                elif angle == 90: y += 1\n                elif angle == 180: x -= 1\n                else: y -= 1\n        result.append(str(x) + ' ' + str(y) + ' ' + {90: 'N', 0: 'E', 270: 'S', 180: 'W'}[angle])\n    return '\\n'.join(result)\n",
+ "explain": "<p>The whole kata is one loop per rover. The only clever bit is turning: with headings in clockwise order <code>N E S W</code>, a right turn is the next letter and a left turn the previous one, wrapping with <code>% 4</code>. Moving is a table lookup of <code>(dx, dy)</code>.</p><ul><li><code>1 2 N</code> + <code>L</code> &rarr; W, <code>M</code> &rarr; <code>0 2</code>, <code>L</code> &rarr; S, <code>M</code> &rarr; <code>0 1</code>, <code>L</code> &rarr; E, <code>M</code> &rarr; <code>1 1</code>, <code>L</code> &rarr; N, <code>M M</code> &rarr; <code>1 3 N</code>.</li></ul><p>In a pair-programming round, say this out loud, write a test for the classic input first, then make turning data-driven so the next extension is a one-line change.</p>",
+ "complexity": "O(total commands) time, O(rovers) extra space for the output",
+ "tests": [
+  {
+   "args": [
+    "5 5\n1 2 N\nLMLMLMLMM\n3 3 E\nMMRMMRMRRM"
+   ],
+   "expected": "1 3 N\n5 1 E",
+   "label": "example 1 (the classic)",
+   "cat": "example",
+   "why": "two rovers, the original NASA-kata input"
+  },
+  {
+   "args": [
+    "5 5\n0 0 N\nMMRMM"
+   ],
+   "expected": "2 2 E",
+   "label": "example 2",
+   "cat": "example",
+   "why": "up two, turn right, across two"
+  },
+  {
+   "args": [
+    "3 3\n1 1 E\n"
+   ],
+   "expected": "1 1 E",
+   "label": "example 3 (no commands)",
+   "cat": "example",
+   "why": "a rover with an empty command line stays put"
+  },
+  {
+   "args": [
+    "0 0\n0 0 N\nLLLL"
+   ],
+   "expected": "0 0 N",
+   "label": "one-cell plateau",
+   "cat": "single",
+   "why": "spin on the spot: four lefts face north again"
+  },
+  {
+   "args": [
+    "5 5\n2 2 N\nRRRR"
+   ],
+   "expected": "2 2 N",
+   "label": "full turn right",
+   "cat": "small",
+   "why": "four rights end facing the same way"
+  },
+  {
+   "args": [
+    "5 5\n2 2 S\nLMLMLMLM"
+   ],
+   "expected": "2 2 S",
+   "label": "square loop",
+   "cat": "small",
+   "why": "a loop of four left turns returns to start"
+  },
+  {
+   "args": [
+    "10 10\n0 0 E\nMMMMMMMMMM\n10 10 W\nMMMMMMMMMM"
+   ],
+   "expected": "10 0 E\n0 10 W",
+   "label": "edge to edge",
+   "cat": "boundary",
+   "why": "rovers drive along the plateau edges"
+  },
+  {
+   "args": [
+    "5 5\n1 2 N\nLMLMLMLMM\n1 2 N\nLMLMLMLMM\n1 2 N\nLMLMLMLMM"
+   ],
+   "expected": "1 3 N\n1 3 N\n1 3 N",
+   "label": "same rover 3 times",
+   "cat": "dupes",
+   "why": "each rover is independent"
+  },
+  {
+   "args": [
+    "  5 5 \n\n 1 2 N \n LMLMLMLMM \n"
+   ],
+   "expected": "1 3 N",
+   "label": "messy whitespace",
+   "cat": "edge",
+   "why": "trim lines and skip blank ones"
+  },
+  {
+   "args": [
+    "20 20\n10 4 W\nMLLMLRMLMLLLRRLLLMRLMLLMMMLMMR\n10 14 W\nRRLLMLLMRMRRMRRMLLMRLRLRRLMLMM\n10 10 S\nMRMRLLRRMMLLMMRMMMRRMRMRLRRLML\n15 1 E\nRLMLRRRLLRRMRLRMRMRRMRLLLLLLML"
+   ],
+   "expected": "13 4 S\n11 16 N\n6 8 S\n15 1 E",
+   "label": "random 1",
+   "cat": "medium",
+   "why": "several rovers, 30 commands each"
+  },
+  {
+   "args": [
+    "20 20\n15 15 S\nLLLMRMRRMLMLLMRLMMLMRMLMRMRLRL\n17 17 S\nMLMLLRMLLMRRMLLRRRLMMRRMRRLLLL\n18 10 S\nMRLLMRRMMMRMLMLMMLRLMLLLLRMMLM\n5 7 E\nMRMRRRLRRLMRLRMRRMLRRMMRMLLLLL\n8 8 N\nLRLRMRRLMMMRMRLRLMLRLRLMLRLMLL"
+   ],
+   "expected": "10 13 W\n18 18 N\n17 6 E\n9 5 E\n12 8 S",
+   "label": "random 2",
+   "cat": "medium",
+   "why": "several rovers, 30 commands each"
+  },
+  {
+   "args": [
+    "20 20\n8 3 W\nLRMRRMLLMMLLLRLLLRMRMLRRMMLRRL\n0 1 E\nMRLRRMLMLMMMLRRLRLMMMLMMLMMRRL\n8 7 E\nLMMRRRLRMRLMMMLLMLRRMMMRMMLLRL\n15 8 N\nMLMRRMMRRRRLMLRLRLRRLMRRRLLLML\n4 16 S\nRLMMMRLMRLRRRLLLRMRRRMLRRRRLRL\n10 10 W\nLLMLMRRRLRRMLRRRLRLLMRMLLRRMRL"
+   ],
+   "expected": "7 4 E\n4 2 N\n3 6 E\n16 12 W\n3 11 N\n13 13 E",
+   "label": "random 3",
+   "cat": "medium",
+   "why": "several rovers, 30 commands each"
+  }
+ ],
+ "perf": {
+  "label": "performance: 2 rovers \u00d7 50,000 commands",
+  "gen": "['999 999\\n0 0 N\\n' + 'MRMLM' * 10000 + '\\n999 999 S\\n' + 'MLMRM' * 10000]",
+  "expected": "10000 20000 N\n10999 -19001 S"
+ },
+ "govtech": {
+  "round": "live",
+  "tag": "reported",
+  "source": "GovTech SWE: HackerRank \"Roving on Mars\" and live video round (2026)",
+  "evidence": "Glassdoor GovTech Software Engineer reviews (2026) list \"Roving on Mars hacker rank\" next to \"Design a chain of consensus system\"; another 2026 SWE report says Mars Rover came up in the video-call round after the HackerRank test.",
+  "extensions": [
+   "A move that would leave the plateau, or hit another rover or a rock, must stop the rover: see <a href=\"#p-mars-rover-obstacles\">Mars Rover II</a>.",
+   "Make the planet round: driving off one edge brings you back on the opposite edge: see <a href=\"#p-mars-rover-wrap\">Mars Rover III</a>.",
+   "Add a <code>B</code> (move backward) command. With the data-driven STEP table this is <code>x -= dx</code>.",
+   "Refactor into a <code>Rover</code> class with <code>turn_left()</code>, <code>turn_right()</code>, <code>move()</code>, and a <code>Plateau</code> that answers <code>is_free(x, y)</code>. Interviewers watch whether new rules land in one place.",
+   "Validate input: reject unknown commands or headings with a clear error instead of crashing."
+  ],
+  "viz": {
+   "kind": "rover",
+   "mode": "classic",
+   "input": "5 5\n1 2 N\nLMLMLMLMM\n3 3 E\nMMRMMRMRRM"
+  }
+ }
+}

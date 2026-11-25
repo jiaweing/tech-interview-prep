@@ -1,0 +1,1789 @@
+{
+ "id": "transcript-merge",
+ "title": "Merge Transcript Segments",
+ "pattern": "sorting",
+ "level": "medium",
+ "statement": "<p>A speech engine streams a meeting transcript as short segments. Each segment is <code>[speaker, start_ms, end_ms, text]</code>. Segments can arrive out of order (the engine finishes some audio chunks before others), and one person talking for a minute shows up as many small pieces. Before you show the transcript, or send it to a model to pull out decisions, you want one row per speaking <i>turn</i>.</p><p>Write <code>def solution(segments)</code> that returns the merged turns as a list of <code>[speaker, start_ms, end_ms, text]</code>:</p><ol><li>Sort the segments by <code>start_ms</code>. Segments with the same <code>start_ms</code> keep their input order.</li><li>Walk them in that order. A segment joins the previous turn when it has the <b>same speaker</b> and its gap is at most 1500 ms: <code>start_ms - turn_end &le; 1500</code>. An overlap (negative gap) also joins.</li><li>When a segment joins, the turn keeps its start, its end becomes <code>max(turn_end, end_ms)</code>, and the text becomes <code>turn_text + \" \" + text</code>.</li><li>Otherwise the segment starts a new turn. A different speaker always starts a new turn, even if the earlier speaker talks again right after.</li></ol><p>Return the turns in time order. An empty input returns <code>[]</code>.</p>",
+ "examples": [
+  {
+   "input": "segments = [[\"B\", 1400, 2000, \"yes\"], [\"A\", 0, 1000, \"can we\"], [\"A\", 1100, 1300, \"ship it\"]]",
+   "output": "[[\"A\", 0, 1300, \"can we ship it\"], [\"B\", 1400, 2000, \"yes\"]]",
+   "why": "Sort by start: A@0, A@1100, B@1400. The two A pieces are 100 ms apart, so they join. B is a different speaker, so it starts a new turn."
+  },
+  {
+   "input": "segments = [[\"A\", 0, 1000, \"first\"], [\"A\", 2500, 3000, \"second\"], [\"A\", 4501, 5000, \"third\"]]",
+   "output": "[[\"A\", 0, 3000, \"first second\"], [\"A\", 4501, 5000, \"third\"]]",
+   "why": "The gap 2500 - 1000 = 1500 is allowed, so \"second\" joins. The next gap is 4501 - 3000 = 1501, one over the limit, so \"third\" starts a new turn."
+  },
+  {
+   "input": "segments = [[\"A\", 0, 5000, \"long point\"], [\"A\", 1000, 2000, \"um\"], [\"B\", 2500, 3000, \"sure\"], [\"A\", 3200, 4000, \"so\"]]",
+   "output": "[[\"A\", 0, 5000, \"long point um\"], [\"B\", 2500, 3000, \"sure\"], [\"A\", 3200, 4000, \"so\"]]",
+   "why": "\"um\" overlaps the first turn and ends earlier, so the turn keeps end 5000. B speaks next, which closes A's turn; A talking again at 3200 is a third turn."
+  }
+ ],
+ "constraints": [
+  "0 &le; len(segments) &le; 20,000",
+  "0 &le; start_ms &le; end_ms &le; 10^8",
+  "speaker is a non-empty string; text is a non-empty string with no leading or trailing spaces",
+  "segments may overlap in time, including segments from different speakers"
+ ],
+ "starter": "def solution(segments):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "What is the output, in one sentence?",
+   "a": "The same segments, sorted by start, with runs of one speaker glued together whenever the pause between pieces is 1500 ms or less."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Segments <code>[A, 0, 900, \"hi\"]</code>, <code>[A, 2000, 2500, \"all\"]</code>, <code>[A, 1200, 1800, \"there\"]</code>?",
+   "a": "Sort: 0, 1200, 2000. <code>1200 - 900 = 300</code>: join, end 1800, text \"hi there\". <code>2000 - 1800 = 200</code>: join, end 2500. Result <code>[[A, 0, 2500, \"hi there all\"]]</code>."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What would you write first?",
+   "a": "For each segment, search all the others for the next one by the same speaker. That is O(n^2) and it gets the \"a different speaker breaks the run\" rule wrong, because it skips over other speakers."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Clue words?",
+   "a": "\"out of order\", \"consecutive\", \"gap\" &rarr; <b>sort, then one linear merge pass</b>. It is the same shape as merging overlapping intervals: after sorting, each item only needs to look at the last output row."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li><code>sorted(segments, key=start)</code>.</li><li>For each segment: if the last turn has the same speaker and <code>start - last_end &le; 1500</code>, extend it.</li><li>Else append a copy of the segment as a new turn.</li><li>Return the turns.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "Empty input. A gap of exactly 1500 (joins) and 1501 (splits). An overlapping segment that ends <i>before</i> the turn ends (the end must not shrink). Same start time twice. A, B, A with short gaps (three turns, not two). Mutating the caller's lists by accident."
+  }
+ ],
+ "hints": [
+  "Sort first: <code>sorted(segments, key=lambda seg: seg[1])</code>. Python's sort is stable, which gives you the tie rule for free.",
+  "After sorting you only ever compare a segment with the <b>last</b> turn you produced, never with older ones.",
+  "When you extend a turn use <code>max(last_end, end)</code>: an overlapping short segment can end before the turn does. Append <code>[speaker, start, end, text]</code> as a new list so you never edit the input."
+ ],
+ "solution": "MAX_GAP_MS = 1500   # a pause longer than this starts a new turn\n\ndef solution(segments):\n    # 1. Put the segments in time order. sorted() is stable, so two segments\n    #    with the same start keep the order the engine sent them in.\n    ordered = sorted(segments, key=lambda seg: seg[1])\n\n    turns = []\n    for speaker, start, end, text in ordered:\n        if turns:\n            last = turns[-1]\n            # 2. Same speaker as the previous turn, and the pause is short\n            #    (an overlap gives a negative gap, which also counts as short)\n            if last[0] == speaker and start - last[2] <= MAX_GAP_MS:\n                last[2] = max(last[2], end)      # never move the end backwards\n                last[3] = last[3] + ' ' + text\n                continue\n        # 3. Otherwise this segment opens a new turn (copy it: never mutate input)\n        turns.append([speaker, start, end, text])\n    return turns\n",
+ "brute": "def solution(segments):\n    # Brute force: selection sort by start (O(n^2)), then merge with a second pass.\n    items = [list(seg) for seg in segments]\n    ordered = []\n    while items:\n        best = 0\n        for i in range(1, len(items)):\n            if items[i][1] < items[best][1]:   # strict <, so ties keep input order\n                best = i\n        ordered.append(items.pop(best))\n    result = []\n    for seg in ordered:\n        if result and result[-1][0] == seg[0] and seg[1] - result[-1][2] <= 1500:\n            prev = result[-1]\n            result[-1] = [prev[0], prev[1], max(prev[2], seg[2]), prev[3] + ' ' + seg[3]]\n        else:\n            result.append(seg)\n    return result\n",
+ "explain": "<p>Sorting turns a messy stream into a problem you can solve in one pass. Once segments are in start order, a segment can only join the turn right before it, so you keep a list of turns and look at <code>turns[-1]</code>.</p><ul><li>Input <code>[B, 1400, 2000, \"yes\"]</code>, <code>[A, 0, 1000, \"can we\"]</code>, <code>[A, 1100, 1300, \"ship it\"]</code>.</li><li>Sorted: A@0, A@1100, B@1400.</li><li>A@1100: same speaker, gap 100 &rarr; turn A becomes <code>[A, 0, 1300, \"can we ship it\"]</code>.</li><li>B@1400: different speaker &rarr; new turn.</li></ul><p>In a live round, name the two rules that are easy to get wrong before you code: the end must use <code>max</code>, and another speaker in between always splits. Then write those as tests.</p>",
+ "complexity": "O(n log n) time for the sort, O(n) for the output",
+ "tests": [
+  {
+   "args": [
+    [
+     [
+      "B",
+      1400,
+      2000,
+      "yes"
+     ],
+     [
+      "A",
+      0,
+      1000,
+      "can we"
+     ],
+     [
+      "A",
+      1100,
+      1300,
+      "ship it"
+     ]
+    ]
+   ],
+   "expected": [
+    [
+     "A",
+     0,
+     1300,
+     "can we ship it"
+    ],
+    [
+     "B",
+     1400,
+     2000,
+     "yes"
+    ]
+   ],
+   "label": "example 1",
+   "cat": "example",
+   "why": "out of order; same speaker joins, new speaker splits"
+  },
+  {
+   "args": [
+    [
+     [
+      "A",
+      0,
+      1000,
+      "first"
+     ],
+     [
+      "A",
+      2500,
+      3000,
+      "second"
+     ],
+     [
+      "A",
+      4501,
+      5000,
+      "third"
+     ]
+    ]
+   ],
+   "expected": [
+    [
+     "A",
+     0,
+     3000,
+     "first second"
+    ],
+    [
+     "A",
+     4501,
+     5000,
+     "third"
+    ]
+   ],
+   "label": "example 2 (gap boundary)",
+   "cat": "example",
+   "why": "gap of exactly 1500 joins, 1501 splits"
+  },
+  {
+   "args": [
+    [
+     [
+      "A",
+      0,
+      5000,
+      "long point"
+     ],
+     [
+      "A",
+      1000,
+      2000,
+      "um"
+     ],
+     [
+      "B",
+      2500,
+      3000,
+      "sure"
+     ],
+     [
+      "A",
+      3200,
+      4000,
+      "so"
+     ]
+    ]
+   ],
+   "expected": [
+    [
+     "A",
+     0,
+     5000,
+     "long point um"
+    ],
+    [
+     "B",
+     2500,
+     3000,
+     "sure"
+    ],
+    [
+     "A",
+     3200,
+     4000,
+     "so"
+    ]
+   ],
+   "label": "example 3 (overlap and interleave)",
+   "cat": "example",
+   "why": "end uses max; another speaker in between always splits"
+  },
+  {
+   "args": [
+    []
+   ],
+   "expected": [],
+   "label": "empty transcript",
+   "cat": "empty",
+   "why": "no segments, no turns"
+  },
+  {
+   "args": [
+    [
+     [
+      "A",
+      10,
+      20,
+      "ok"
+     ]
+    ]
+   ],
+   "expected": [
+    [
+     "A",
+     10,
+     20,
+     "ok"
+    ]
+   ],
+   "label": "one segment",
+   "cat": "single",
+   "why": "a single segment is one turn"
+  },
+  {
+   "args": [
+    [
+     [
+      "A",
+      0,
+      100,
+      "a"
+     ],
+     [
+      "B",
+      100,
+      200,
+      "b"
+     ],
+     [
+      "A",
+      200,
+      300,
+      "c"
+     ],
+     [
+      "B",
+      300,
+      400,
+      "d"
+     ]
+    ]
+   ],
+   "expected": [
+    [
+     "A",
+     0,
+     100,
+     "a"
+    ],
+    [
+     "B",
+     100,
+     200,
+     "b"
+    ],
+    [
+     "A",
+     200,
+     300,
+     "c"
+    ],
+    [
+     "B",
+     300,
+     400,
+     "d"
+    ]
+   ],
+   "label": "ping-pong",
+   "cat": "small",
+   "why": "speakers alternate, so nothing merges"
+  },
+  {
+   "args": [
+    [
+     [
+      "A",
+      500,
+      600,
+      "x"
+     ],
+     [
+      "A",
+      0,
+      100,
+      "w"
+     ],
+     [
+      "A",
+      500,
+      700,
+      "y"
+     ]
+    ]
+   ],
+   "expected": [
+    [
+     "A",
+     0,
+     700,
+     "w x y"
+    ]
+   ],
+   "label": "same start time",
+   "cat": "dupes",
+   "why": "ties keep input order: x before y"
+  },
+  {
+   "args": [
+    [
+     [
+      "A",
+      0,
+      1000,
+      "a"
+     ],
+     [
+      "A",
+      2500,
+      2600,
+      "b"
+     ],
+     [
+      "A",
+      4100,
+      4200,
+      "c"
+     ],
+     [
+      "A",
+      5700,
+      5800,
+      "d"
+     ],
+     [
+      "A",
+      7301,
+      7400,
+      "e"
+     ]
+    ]
+   ],
+   "expected": [
+    [
+     "A",
+     0,
+     5800,
+     "a b c d"
+    ],
+    [
+     "A",
+     7301,
+     7400,
+     "e"
+    ]
+   ],
+   "label": "chain at the limit",
+   "cat": "boundary",
+   "why": "each gap is exactly 1500 until the last (1501)"
+  },
+  {
+   "args": [
+    [
+     [
+      "A",
+      0,
+      0,
+      "blip"
+     ],
+     [
+      "A",
+      0,
+      0,
+      "blip"
+     ]
+    ]
+   ],
+   "expected": [
+    [
+     "A",
+     0,
+     0,
+     "blip blip"
+    ]
+   ],
+   "label": "zero-length segments",
+   "cat": "zero",
+   "why": "start == end, gap 0, identical text is still joined"
+  },
+  {
+   "args": [
+    [
+     [
+      "A",
+      1000,
+      9000,
+      "talk"
+     ],
+     [
+      "B",
+      2000,
+      3000,
+      "mm"
+     ],
+     [
+      "A",
+      4000,
+      5000,
+      "more"
+     ]
+    ]
+   ],
+   "expected": [
+    [
+     "A",
+     1000,
+     9000,
+     "talk"
+    ],
+    [
+     "B",
+     2000,
+     3000,
+     "mm"
+    ],
+    [
+     "A",
+     4000,
+     5000,
+     "more"
+    ]
+   ],
+   "label": "backchannel",
+   "cat": "edge",
+   "why": "B says \"mm\" during A; sorted order is A, B, A so there are three turns"
+  },
+  {
+   "args": [
+    [
+     [
+      "C",
+      9000,
+      9500,
+      "end"
+     ],
+     [
+      "A",
+      0,
+      400,
+      "one"
+     ],
+     [
+      "B",
+      3000,
+      3400,
+      "three"
+     ],
+     [
+      "A",
+      1000,
+      1500,
+      "two"
+     ],
+     [
+      "B",
+      4000,
+      4100,
+      "four"
+     ],
+     [
+      "C",
+      6000,
+      6400,
+      "five"
+     ],
+     [
+      "C",
+      7500,
+      8000,
+      "six"
+     ]
+    ]
+   ],
+   "expected": [
+    [
+     "A",
+     0,
+     1500,
+     "one two"
+    ],
+    [
+     "B",
+     3000,
+     4100,
+     "three four"
+    ],
+    [
+     "C",
+     6000,
+     9500,
+     "five six end"
+    ]
+   ],
+   "label": "three speakers shuffled",
+   "cat": "medium",
+   "why": "sorting plus merging across a shuffled meeting"
+  },
+  {
+   "args": [
+    [
+     [
+      "A",
+      0,
+      100000000,
+      "all day"
+     ],
+     [
+      "A",
+      100000000,
+      100000000,
+      "bye"
+     ]
+    ]
+   ],
+   "expected": [
+    [
+     "A",
+     0,
+     100000000,
+     "all day bye"
+    ]
+   ],
+   "label": "large times",
+   "cat": "large",
+   "why": "times up to 10^8 ms (about 28 hours)"
+  }
+ ],
+ "perf": {
+  "label": "performance: 5,003 shuffled segments",
+  "gen": "[[['AB'[((i * 1847) % 5003) // 100 % 2], ((i * 1847) % 5003) * 1000 + ((i * 1847) % 5003) // 25 * 2000, ((i * 1847) % 5003) * 1000 + ((i * 1847) % 5003) // 25 * 2000 + 900, 'w'] for i in range(5003)]]",
+  "expected": [
+   [
+    "A",
+    0,
+    24900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    27000,
+    51900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    54000,
+    78900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    81000,
+    105900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    108000,
+    132900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    135000,
+    159900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    162000,
+    186900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    189000,
+    213900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    216000,
+    240900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    243000,
+    267900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    270000,
+    294900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    297000,
+    321900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    324000,
+    348900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    351000,
+    375900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    378000,
+    402900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    405000,
+    429900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    432000,
+    456900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    459000,
+    483900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    486000,
+    510900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    513000,
+    537900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    540000,
+    564900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    567000,
+    591900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    594000,
+    618900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    621000,
+    645900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    648000,
+    672900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    675000,
+    699900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    702000,
+    726900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    729000,
+    753900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    756000,
+    780900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    783000,
+    807900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    810000,
+    834900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    837000,
+    861900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    864000,
+    888900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    891000,
+    915900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    918000,
+    942900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    945000,
+    969900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    972000,
+    996900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    999000,
+    1023900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    1026000,
+    1050900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    1053000,
+    1077900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    1080000,
+    1104900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    1107000,
+    1131900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    1134000,
+    1158900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    1161000,
+    1185900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    1188000,
+    1212900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    1215000,
+    1239900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    1242000,
+    1266900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    1269000,
+    1293900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    1296000,
+    1320900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    1323000,
+    1347900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    1350000,
+    1374900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    1377000,
+    1401900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    1404000,
+    1428900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    1431000,
+    1455900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    1458000,
+    1482900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    1485000,
+    1509900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    1512000,
+    1536900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    1539000,
+    1563900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    1566000,
+    1590900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    1593000,
+    1617900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    1620000,
+    1644900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    1647000,
+    1671900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    1674000,
+    1698900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    1701000,
+    1725900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    1728000,
+    1752900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    1755000,
+    1779900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    1782000,
+    1806900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    1809000,
+    1833900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    1836000,
+    1860900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    1863000,
+    1887900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    1890000,
+    1914900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    1917000,
+    1941900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    1944000,
+    1968900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    1971000,
+    1995900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    1998000,
+    2022900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    2025000,
+    2049900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    2052000,
+    2076900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    2079000,
+    2103900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    2106000,
+    2130900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    2133000,
+    2157900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    2160000,
+    2184900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    2187000,
+    2211900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    2214000,
+    2238900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    2241000,
+    2265900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    2268000,
+    2292900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    2295000,
+    2319900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    2322000,
+    2346900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    2349000,
+    2373900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    2376000,
+    2400900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    2403000,
+    2427900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    2430000,
+    2454900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    2457000,
+    2481900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    2484000,
+    2508900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    2511000,
+    2535900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    2538000,
+    2562900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    2565000,
+    2589900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    2592000,
+    2616900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    2619000,
+    2643900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    2646000,
+    2670900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    2673000,
+    2697900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    2700000,
+    2724900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    2727000,
+    2751900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    2754000,
+    2778900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    2781000,
+    2805900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    2808000,
+    2832900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    2835000,
+    2859900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    2862000,
+    2886900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    2889000,
+    2913900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    2916000,
+    2940900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    2943000,
+    2967900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    2970000,
+    2994900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    2997000,
+    3021900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    3024000,
+    3048900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    3051000,
+    3075900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    3078000,
+    3102900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    3105000,
+    3129900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    3132000,
+    3156900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    3159000,
+    3183900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    3186000,
+    3210900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    3213000,
+    3237900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    3240000,
+    3264900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    3267000,
+    3291900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    3294000,
+    3318900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    3321000,
+    3345900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    3348000,
+    3372900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    3375000,
+    3399900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    3402000,
+    3426900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    3429000,
+    3453900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    3456000,
+    3480900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    3483000,
+    3507900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    3510000,
+    3534900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    3537000,
+    3561900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    3564000,
+    3588900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    3591000,
+    3615900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    3618000,
+    3642900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    3645000,
+    3669900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    3672000,
+    3696900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    3699000,
+    3723900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    3726000,
+    3750900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    3753000,
+    3777900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    3780000,
+    3804900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    3807000,
+    3831900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    3834000,
+    3858900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    3861000,
+    3885900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    3888000,
+    3912900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    3915000,
+    3939900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    3942000,
+    3966900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    3969000,
+    3993900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    3996000,
+    4020900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    4023000,
+    4047900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    4050000,
+    4074900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    4077000,
+    4101900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    4104000,
+    4128900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    4131000,
+    4155900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    4158000,
+    4182900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    4185000,
+    4209900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    4212000,
+    4236900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    4239000,
+    4263900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    4266000,
+    4290900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    4293000,
+    4317900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    4320000,
+    4344900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    4347000,
+    4371900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    4374000,
+    4398900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    4401000,
+    4425900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    4428000,
+    4452900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    4455000,
+    4479900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    4482000,
+    4506900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    4509000,
+    4533900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    4536000,
+    4560900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    4563000,
+    4587900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    4590000,
+    4614900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    4617000,
+    4641900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    4644000,
+    4668900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    4671000,
+    4695900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    4698000,
+    4722900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    4725000,
+    4749900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    4752000,
+    4776900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    4779000,
+    4803900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    4806000,
+    4830900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    4833000,
+    4857900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    4860000,
+    4884900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    4887000,
+    4911900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    4914000,
+    4938900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    4941000,
+    4965900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    4968000,
+    4992900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    4995000,
+    5019900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    5022000,
+    5046900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    5049000,
+    5073900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    5076000,
+    5100900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    5103000,
+    5127900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    5130000,
+    5154900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    5157000,
+    5181900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    5184000,
+    5208900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    5211000,
+    5235900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    5238000,
+    5262900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    5265000,
+    5289900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    5292000,
+    5316900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    5319000,
+    5343900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    5346000,
+    5370900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "B",
+    5373000,
+    5397900,
+    "w w w w w w w w w w w w w w w w w w w w w w w w w"
+   ],
+   [
+    "A",
+    5400000,
+    5402900,
+    "w w w"
+   ]
+  ]
+ },
+ "govtech": {
+  "round": "live",
+  "tag": "domain",
+  "source": "Giant Robots Labs-style practice",
+  "evidence": "Practice shaped like the lab's public products (Transcribe X); not a reported interview question.",
+  "extensions": [
+   "Make the 1500 ms gap a parameter, and add a second rule: also split a turn once it is longer than 60 seconds, so the UI never shows a wall of text.",
+   "The engine now sends a <code>confidence</code> per segment. Drop segments under 0.4 before merging, and explain why you filter before you sort and merge.",
+   "Segments now stream in live. Write a <code>TurnBuilder</code> class with <code>add(segment)</code> that returns the turns that can no longer change. When is a turn safe to emit if segments can arrive up to 5 seconds late?",
+   "Two speakers talk over each other for 3 seconds. Should the overlap stay as two turns, or be shown as an interruption? Write the test that pins down the behaviour you choose."
+  ]
+ },
+ "grl": true
+}

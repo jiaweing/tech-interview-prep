@@ -1,0 +1,290 @@
+{
+ "id": "valid-bst",
+ "title": "Validate a Binary Search Tree",
+ "pattern": "stack",
+ "level": "medium",
+ "statement": "<p>A feed service keeps post ids in a binary search tree so it can answer \"posts between id A and id B\" quickly. After a bad migration, you must check the tree is still a valid BST before it serves traffic.</p><p>Trees use LeetCode's list format: <code>tree[0]</code> is the root, then the children of each node, left before right, level by level. <code>None</code> marks a missing child, and missing nodes list no children. Trailing <code>None</code>s may be left off, and <code>[]</code> is the empty tree.</p><p>A tree is a valid BST when, for <b>every</b> node, all values in its left subtree are <b>strictly less</b> than the node's value and all values in its right subtree are <b>strictly greater</b>. Equal values are not allowed. The empty tree is valid.</p><p>Write <code>def solution(tree)</code> that returns <code>True</code> or <code>False</code>. Trees can be 10,000 levels deep, so avoid recursion.</p>",
+ "examples": [
+  {
+   "input": "tree = [2, 1, 3]",
+   "output": "True",
+   "why": "1 &lt; 2 &lt; 3."
+  },
+  {
+   "input": "tree = [5, 1, 4, None, None, 3, 6]",
+   "output": "False",
+   "why": "The LeetCode 98 example: 4 is the root's right child but 4 &lt; 5."
+  },
+  {
+   "input": "tree = [5, 4, 6, None, None, 3, 7]",
+   "output": "False",
+   "why": "The trap: 3 is a fine left child of 6, but it sits in the root's right subtree and 3 &lt; 5. Checking only parent and child misses this."
+  }
+ ],
+ "constraints": [
+  "0 &le; number of nodes &le; 20,001",
+  "-2^31 &le; node value &le; 2^31 - 1",
+  "the tree can be 10,000 levels deep"
+ ],
+ "starter": "def solution(tree):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "Is it enough to check each node against its two children?",
+   "a": "No. Every node must respect <b>all</b> its ancestors. In <code>[5, 4, 6, None, None, 3, 7]</code> each parent-child pair looks right, but 3 is in the right subtree of 5. You need either bounds passed down, or a global property."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "What do you get if you read a valid BST in order (left, node, right)?",
+   "a": "The values in <b>strictly increasing</b> order. <code>[2, 1, 3]</code> reads 1, 2, 3. The trap tree reads 4, 5, 3, 6, 7: the drop from 5 to 3 exposes it. And the converse holds: a strictly increasing in-order reading means the tree is a valid BST."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first idea that works?",
+   "a": "For each node, collect every value in its left and right subtrees and compare them all with the node. Correct, but a chain makes that O(n^2)."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Which pattern?",
+   "a": "<b>In-order traversal on an explicit stack</b>, comparing each value with the previous one. Push left children all the way down, pop one, check it, then move to its right child. No recursion, so a 10,000-deep tree is fine."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li>Build the nodes; <code>stack = []</code>, <code>prev = None</code>, <code>node = root</code>.</li><li>While <code>node</code> or the stack: push <code>node</code> and go left until <code>None</code>.</li><li>Pop. If <code>prev is not None</code> and <code>value &lt;= prev</code>, return <code>False</code>.</li><li>Set <code>prev</code>, go to the right child.</li><li>Return <code>True</code>.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "Duplicates (<code>[1, None, 1]</code> is invalid). A violation deep in a subtree, not at the parent. Values at the 32-bit limits (do not use <code>2^31 - 1</code> as a sentinel for 'no bound'). A value of 0 or a first value that is falsy (use <code>prev is not None</code>). Empty tree."
+  }
+ ],
+ "hints": [
+  "Checking each node only against its parent is not enough. Try <code>[5, 4, 6, None, None, 3, 7]</code>.",
+  "An in-order walk of a valid BST produces strictly increasing values. Track the previous value and fail on the first value that is not larger.",
+  "Iterative in-order: <code>while node is not None or stack:</code> first push lefts down to <code>None</code>, then pop, check, and set <code>node = node.right</code>."
+ ],
+ "solution": "from collections import deque\n\nclass Node:\n    def __init__(self, val):\n        self.val = val\n        self.left = None\n        self.right = None\n\ndef build(tree):\n    # LeetCode list -> linked nodes. Each popped parent takes the next two slots.\n    if not tree or tree[0] is None:\n        return None\n    root = Node(tree[0])\n    queue = deque([root])\n    i = 1\n    while queue and i < len(tree):\n        node = queue.popleft()\n        if i < len(tree) and tree[i] is not None:\n            node.left = Node(tree[i])\n            queue.append(node.left)\n        i += 1\n        if i < len(tree) and tree[i] is not None:\n            node.right = Node(tree[i])\n            queue.append(node.right)\n        i += 1\n    return root\n\ndef solution(tree):\n    root = build(tree)\n    stack = []\n    prev = None          # last value seen in order; None = nothing yet\n    node = root\n    while node is not None or stack:\n        while node is not None:        # go as far left as possible\n            stack.append(node)\n            node = node.left\n        node = stack.pop()\n        if prev is not None and node.val <= prev:\n            return False               # in-order must be strictly increasing\n        prev = node.val\n        node = node.right\n    return True\n",
+ "brute": "from collections import deque\n\nclass Node:\n    def __init__(self, val):\n        self.val = val\n        self.left = None\n        self.right = None\n\ndef build(tree):\n    # LeetCode list -> linked nodes. Each popped parent takes the next two slots.\n    if not tree or tree[0] is None:\n        return None\n    root = Node(tree[0])\n    queue = deque([root])\n    i = 1\n    while queue and i < len(tree):\n        node = queue.popleft()\n        if i < len(tree) and tree[i] is not None:\n            node.left = Node(tree[i])\n            queue.append(node.left)\n        i += 1\n        if i < len(tree) and tree[i] is not None:\n            node.right = Node(tree[i])\n            queue.append(node.right)\n        i += 1\n    return root\n\ndef subtree_values(node):\n    values = []\n    stack = [node] if node is not None else []\n    while stack:\n        cur = stack.pop()\n        values.append(cur.val)\n        for child in (cur.left, cur.right):\n            if child is not None:\n                stack.append(child)\n    return values\n\ndef solution(tree):\n    # Check every node against every value in both subtrees: O(n^2) on a chain.\n    root = build(tree)\n    stack = [root] if root is not None else []\n    while stack:\n        node = stack.pop()\n        if any(v >= node.val for v in subtree_values(node.left)):\n            return False\n        if any(v <= node.val for v in subtree_values(node.right)):\n            return False\n        for child in (node.left, node.right):\n            if child is not None:\n                stack.append(child)\n    return True\n",
+ "explain": "<p>Example 3, <code>[5, 4, 6, None, None, 3, 7]</code>: 5 has children 4 and 6; 6 has children 3 and 7.</p><ul><li>Push 5, push 4, 4 has no left. Pop 4: first value, <code>prev = 4</code>. 4 has no right.</li><li>Pop 5: 5 &gt; 4, <code>prev = 5</code>. Go right to 6.</li><li>Push 6, push 3. Pop 3: 3 &lt;= 5, return <b>False</b>.</li></ul><p>The in-order check catches a violation anywhere, because every ancestor's value lies between its left and right subtrees in the reading. The other standard answer passes <code>(low, high)</code> bounds down a stack of <code>(node, low, high)</code>; both are O(n). For the bounds version, use <code>None</code> or <code>float('inf')</code> for 'no bound'. Python ints never overflow, so there is no edge case at the largest value.</p>",
+ "complexity": "O(n) time, O(height) extra space for the stack",
+ "tests": [
+  {
+   "args": [
+    [
+     2,
+     1,
+     3
+    ]
+   ],
+   "expected": true,
+   "label": "example 1",
+   "cat": "example",
+   "why": "a three-node valid BST"
+  },
+  {
+   "args": [
+    [
+     5,
+     1,
+     4,
+     null,
+     null,
+     3,
+     6
+    ]
+   ],
+   "expected": false,
+   "label": "example 2 (LeetCode 98)",
+   "cat": "example",
+   "why": "the right child is smaller than the root"
+  },
+  {
+   "args": [
+    [
+     5,
+     4,
+     6,
+     null,
+     null,
+     3,
+     7
+    ]
+   ],
+   "expected": false,
+   "label": "example 3 (grandparent trap)",
+   "cat": "example",
+   "why": "3 is fine under 6 but breaks the rule for 5"
+  },
+  {
+   "args": [
+    []
+   ],
+   "expected": true,
+   "label": "empty tree",
+   "cat": "empty",
+   "why": "the empty tree is a valid BST"
+  },
+  {
+   "args": [
+    [
+     1
+    ]
+   ],
+   "expected": true,
+   "label": "one node",
+   "cat": "single",
+   "why": "a single node is valid"
+  },
+  {
+   "args": [
+    [
+     0,
+     null,
+     -1
+    ]
+   ],
+   "expected": false,
+   "label": "zero root, smaller right child",
+   "cat": "zero",
+   "why": "right child -1 is not greater than 0"
+  },
+  {
+   "args": [
+    [
+     1,
+     null,
+     1
+    ]
+   ],
+   "expected": false,
+   "label": "equal right child",
+   "cat": "dupes",
+   "why": "strict: equal values are not allowed"
+  },
+  {
+   "args": [
+    [
+     2,
+     2,
+     3
+    ]
+   ],
+   "expected": false,
+   "label": "equal left child",
+   "cat": "dupes",
+   "why": "strict on the left side too"
+  },
+  {
+   "args": [
+    [
+     0,
+     -5,
+     5,
+     -10,
+     -1
+    ]
+   ],
+   "expected": true,
+   "label": "negatives",
+   "cat": "negative",
+   "why": "a valid BST with negative values"
+  },
+  {
+   "args": [
+    [
+     -2147483648,
+     null,
+     2147483647
+    ]
+   ],
+   "expected": true,
+   "label": "32-bit limits",
+   "cat": "boundary",
+   "why": "values at the limits must not collide with sentinels"
+  },
+  {
+   "args": [
+    [
+     2147483647,
+     2147483647
+    ]
+   ],
+   "expected": false,
+   "label": "limit duplicate",
+   "cat": "boundary",
+   "why": "an equal value at the limit is still invalid"
+  },
+  {
+   "args": [
+    [
+     8,
+     4,
+     12,
+     2,
+     6,
+     10,
+     14,
+     1,
+     3,
+     5,
+     7,
+     9,
+     11,
+     13,
+     15
+    ]
+   ],
+   "expected": true,
+   "label": "balanced 15",
+   "cat": "medium",
+   "why": "a full valid BST of 1..15"
+  },
+  {
+   "args": [
+    [
+     8,
+     4,
+     12,
+     2,
+     6,
+     10,
+     14,
+     1,
+     3,
+     5,
+     9,
+     7,
+     11,
+     13,
+     15
+    ]
+   ],
+   "expected": false,
+   "label": "two values swapped",
+   "cat": "medium",
+   "why": "9 and 7 swapped deep in the tree"
+  }
+ ],
+ "perf": {
+  "label": "performance: a 10,001-node chain with a duplicate at the very bottom",
+  "gen": "[[i if j == 0 else None for i in range(10000) for j in range(2)] + [9999]]",
+  "expected": false
+ },
+ "al": {
+  "kind": "fundamentals",
+  "from": "LC 98 Validate Binary Search Tree",
+  "talk": [
+   "O(n) time, O(height) stack space: an in-order walk visits each node once and the stack only holds the current left spine.",
+   "The key fact: a tree is a valid BST if and only if its in-order reading is strictly increasing. That turns a tree property into a one-number comparison.",
+   "Parent-child checks are the classic bug: every node must respect all ancestors. <code>[5, 4, 6, None, None, 3, 7]</code> is my go-to counterexample.",
+   "Edge cases: duplicates are invalid (strict), values at the 32-bit limits, a falsy first value (<code>prev is not None</code>), the empty tree, and a 10,000-deep chain, hence no recursion."
+  ],
+  "extensions": [
+   "Allow duplicates on the right only (<code>left &lt; node &lt;= right</code>): which comparison changes, and why can in-order alone no longer tell <code>[1, 1]</code> from <code>[1, None, 1]</code>?",
+   "Two nodes were swapped by mistake (LC 99): find them during the same in-order walk (the first and last 'drops') and swap them back.",
+   "Return the k-th smallest value (LC 230): stop the in-order walk after k pops.",
+   "Range query: count post ids between A and B in O(height + answer) by skipping subtrees that lie outside the range."
+  ]
+ }
+}

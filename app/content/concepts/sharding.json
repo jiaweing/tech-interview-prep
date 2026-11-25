@@ -1,0 +1,105 @@
+{
+ "id": "sharding",
+ "title": "Sharding (partitioning)",
+ "group": "Data",
+ "tagline": "Split one big dataset across many independent databases by a key, so writes and storage scale out.",
+ "why": "<p>Read replicas scale reads, but every write still goes to one primary, and every replica still stores all the data. When the data no longer fits on one machine, or the write rate is more than one primary can take, you split the rows across several databases. Each piece is a <b>shard</b> (or partition), and each shard holds only its own rows.</p><p>The hard part is the <b>shard key</b>: the field that decides which shard a row lives on. A good key spreads writes evenly and keeps the rows a request needs on one shard. A bad key gives you one hot shard doing all the work, or turns every query into a fan-out to all shards.</p><p>Sharding is a cost, not a feature. In an interview, show you know when you do <i>not</i> need it yet (a few hundred GB and a few thousand writes per second fit on one well-sized primary) and what you would shard by when you do.</p>",
+ "how": "<p><b>Ways to map a key to a shard.</b></p><ul><li><b>Range</b>: shard 0 holds keys 0 to 249, shard 1 holds 250 to 499, and so on. Range scans are cheap (\"all orders this week\"). But time-ordered or increasing keys all land on the one shard that holds the newest range, as the sim above shows: every insert piles onto one bar while the others stay idle.</li><li><b>Hash</b>: <code>shard = hash(key) % S</code>, or consistent hashing. Writes spread evenly, but a range query must ask every shard.</li><li><b>Directory (lookup table)</b>: a small service maps each tenant or key range to a shard. Most flexible (move one big tenant on its own) but the directory is one more thing to keep available and cached.</li></ul><p><b>Pick the key from the access pattern.</b> Chat messages: <code>conversation_id</code>, so one conversation's history is on one shard. Multi-tenant SaaS: <code>tenant_id</code>. A compound key such as <code>(user_id, month)</code> limits how big one user's partition grows.</p><p><b>Routing.</b> The app (a client library), a proxy (Vitess for MySQL, Citus for Postgres) or the database itself (DynamoDB, Cassandra, MongoDB) turns a key into a shard. Queries that do not include the shard key become scatter-gather across every shard; keep a secondary index or a separate read model for them.</p><p><b>Hot partitions.</b> Even with hashing, one key can be hot: a celebrity's profile, a ministry's announcement. Add a suffix to split it (<code>key#1</code> to <code>key#N</code>, read all N), cache it, or give it its own shard.</p><p><b>Resharding.</b> Create many more <b>logical</b> shards than machines from day one (say 1,024 logical on 8 physical). Growing then means moving whole logical shards to new machines: copy, catch up from the change log, switch routing, delete the old copy. Never re-hash every row under <code>% S</code> with a new S.</p>",
+ "sim": "shard",
+ "tradeoffs": [
+  {
+   "option": "Range partitioning",
+   "pro": "Ordered scans and time-range queries hit one or a few shards; easy to split a hot range.",
+   "con": "Sequential keys (timestamps, auto-increment IDs) all write to the newest shard."
+  },
+  {
+   "option": "Hash partitioning",
+   "pro": "Even writes and storage with no tuning.",
+   "con": "Range queries fan out to every shard, and changing the shard count is painful without consistent hashing or logical shards."
+  },
+  {
+   "option": "Directory / lookup service",
+   "pro": "Place and move any tenant or key independently; handles very uneven tenants.",
+   "con": "An extra hop and an extra critical service; cache the map and keep it highly available."
+  },
+  {
+   "option": "Not sharding yet (bigger box + replicas)",
+   "pro": "Joins, transactions and unique constraints keep working; far less operational work.",
+   "con": "Has a ceiling; plan the shard key early so the later migration is a move, not a redesign."
+  }
+ ],
+ "numbers": [
+  "DynamoDB documents per-partition limits of <b>3,000 read units/s</b>, <b>1,000 write units/s</b> and about <b>10 GB</b>; one hot key can be throttled while the table total looks fine.",
+  "Logical shards: <b>1,024</b> logical on <b>8</b> machines is 128 each; adding 8 more machines means moving half the logical shards, no re-hashing.",
+  "Fan-out queries are as slow as the <b>slowest</b> shard: if each shard has a 1% chance of a 100 ms stall, a query touching 50 shards hits one about <b>40%</b> of the time.",
+  "Celebrity split: one key at 20,000 writes/s split into <b>10</b> suffixes is 2,000/s per sub-key, at the cost of reading 10 keys."
+ ],
+ "say": [
+  "I'll shard by conversation_id with hashing, so all messages for one chat live on one shard and writes spread evenly. Queries by user go through a separate index table.",
+  "I'd start with many logical shards, say 1,024 mapped onto a handful of machines, so resharding later is moving whole shards, not re-hashing every row.",
+  "Hashing doesn't fix a single hot key, so for very hot items I'd add a suffix to split the key, or put a cache in front."
+ ],
+ "pitfalls": [
+  "Sharding by a monotonically increasing key with range partitioning. Every new row hits the shard holding the newest range.",
+  "Choosing a key that does not match the main query, so the hottest request becomes scatter-gather across every shard.",
+  "Assuming cross-shard transactions and unique constraints still work. They do not without extra machinery (two-phase commit, sagas, a separate uniqueness table).",
+  "Using <code>hash % S</code> on physical machines, so adding one machine forces moving almost all data.",
+  "Sharding a system that fits on one primary. It adds complexity with no benefit; say when you would shard and why."
+ ],
+ "quiz": [
+  {
+   "q": "Orders are range-sharded by <code>order_id</code>, an increasing number. Writes are slow and one shard is at 100% CPU. Why?",
+   "options": [
+    "Hash collisions",
+    "Every new order has the highest ID, so all writes go to the last range",
+    "The shard key is too random",
+    "Replication lag"
+   ],
+   "answer": 1,
+   "why": "Increasing keys under range partitioning all land in the newest range. Hash the key, or prefix it, to spread writes."
+  },
+  {
+   "q": "Messages are sharded by <code>conversation_id</code>. A new screen lists every message a user sent across all chats. What happens?",
+   "options": [
+    "One shard answers it",
+    "It is impossible",
+    "The query must ask every shard, unless you keep a separate index by user_id",
+    "The database reshards automatically"
+   ],
+   "answer": 2,
+   "why": "The user is not the shard key, so their rows are everywhere. Use a secondary index or a read model keyed by user."
+  },
+  {
+   "q": "Which setup makes adding machines cheapest later?",
+   "options": [
+    "Many logical shards mapped onto fewer physical machines",
+    "hash(key) % number_of_machines",
+    "One shard per machine, fixed forever",
+    "Range sharding by creation time"
+   ],
+   "answer": 0,
+   "why": "With logical shards you move whole shards to new machines and update the map; no row is re-hashed."
+  },
+  {
+   "q": "With hash sharding, one celebrity's profile still overloads its shard. What helps most?",
+   "options": [
+    "Adding more shards",
+    "Switching to range sharding",
+    "Bigger disks",
+    "Splitting the key with suffixes, or caching that key"
+   ],
+   "answer": 3,
+   "why": "Adding shards spreads keys, not the traffic of one key. Split it into key#1..key#N, or put the hot reads in a cache."
+  }
+ ],
+ "used_in": [
+  "kv-store",
+  "chat",
+  "news-feed",
+  "uber",
+  "file-sync",
+  "web-crawler",
+  "csv-ingest",
+  "rate-limiter"
+ ]
+}

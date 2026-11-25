@@ -1,0 +1,273 @@
+{
+ "id": "grid-shortest-path",
+ "title": "Shortest Path in a Binary Grid",
+ "pattern": "greedy-sim",
+ "level": "medium",
+ "statement": "<p>An ad delivery service models a data centre floor as an <code>n x n</code> grid of racks. A request must travel from the rack in the top-left corner to the rack in the bottom-right corner, hopping between neighbouring racks. Some racks are down for maintenance and cannot be used.</p><p>The grid is a list of <code>n</code> strings, each of length <code>n</code>. <code>grid[r][c]</code> is <code>'0'</code> if that rack is open and <code>'1'</code> if it is blocked. From an open cell you can move to any of its <b>8 neighbours</b> (up, down, left, right and the 4 diagonals) if that neighbour is open and inside the grid.</p><p>Write <code>def solution(grid)</code> that returns the number of <b>cells</b> on the shortest path from <code>(0, 0)</code> to <code>(n - 1, n - 1)</code>, counting both ends. Return <code>-1</code> if there is no such path, including when the start or the end cell is blocked. A 1 x 1 open grid returns 1.</p>",
+ "examples": [
+  {
+   "input": "grid = [\"01\", \"10\"]",
+   "output": "2",
+   "why": "The LeetCode 1091 example 1. One diagonal step: 2 cells."
+  },
+  {
+   "input": "grid = [\"000\", \"110\", \"110\"]",
+   "output": "4",
+   "why": "The LeetCode 1091 example 2. (0, 0), (0, 1), (1, 2), (2, 2): the middle hop is diagonal."
+  },
+  {
+   "input": "grid = [\"100\", \"110\", \"110\"]",
+   "output": "-1",
+   "why": "The LeetCode 1091 example 3. The start cell is blocked, so there is no path at all."
+  }
+ ],
+ "constraints": [
+  "1 &le; n &le; 150",
+  "<code>len(grid[r]) == n</code> for every row",
+  "every character is <code>'0'</code> (open) or <code>'1'</code> (blocked)"
+ ],
+ "starter": "def solution(grid):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "What does the answer count, and what are the moves?",
+   "a": "It counts <b>cells</b>, not moves: a path of k moves has k + 1 cells. Each move goes to one of 8 neighbours, so a diagonal step costs the same as a side step. Every move costs 1, which is the property the right algorithm depends on."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Find the answer for <code>[\"000\", \"110\", \"110\"]</code> by growing rings outward from the start.",
+   "a": "Ring 1: {(0, 0)}. Ring 2: its open neighbours, {(0, 1)}. Ring 3: new open neighbours of ring 2, {(0, 2), (1, 2)}. Ring 4: {(2, 2)}, the target. So the answer is 4. You never needed to try a path twice: the ring a cell first appears in is its distance."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the first idea that works?",
+   "a": "Give every cell a distance of 'infinity' except the start (1), then sweep the whole grid over and over, lowering each neighbour to <code>dist + 1</code> when that is smaller, until a sweep changes nothing. It is correct, but a winding maze needs one sweep per bend: O(cells^2). Trying every path with DFS is worse: exponential."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Which pattern?",
+   "a": "<b>Breadth-first search</b>. When every move costs the same, BFS explores cells in order of distance: all cells at distance d leave the queue before any cell at distance d + 1. So the first time BFS reaches a cell, it got there along a shortest path, and it never needs to revisit it. That is O(cells x 8)."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li>If <code>grid[0][0]</code> or <code>grid[n-1][n-1]</code> is <code>'1'</code>, return -1.</li><li><code>dist</code> = n x n of 0 (0 = not reached); <code>dist[0][0] = 1</code>; deque with <code>(0, 0)</code>.</li><li>Pop a cell. If it is the target, return its <code>dist</code>.</li><li>For each of the 8 offsets: if the neighbour is in bounds, open and unreached, set its <code>dist</code> to this cell's + 1 and enqueue it.</li><li>When the queue is empty, return -1.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "Start blocked, end blocked. A 1 x 1 open grid (answer 1, not 0) and a 1 x 1 blocked grid. A wall that cuts the grid in two. A path that only exists through a diagonal gap between two blocked cells. An open grid, where the answer is n because diagonals are allowed. A serpentine maze where the path is much longer than n."
+  }
+ ],
+ "hints": [
+  "Every move costs 1, so the shortest path is the one with the fewest moves. Which traversal visits cells in order of how many moves away they are?",
+  "BFS from <code>(0, 0)</code> with a <code>deque</code>. Store each cell's distance (in cells) when you first reach it; the start is 1, not 0.",
+  "Mark a cell when you <b>enqueue</b> it, so it is never queued twice. The 8 moves are every <code>(dr, dc)</code> with <code>dr, dc</code> in -1, 0, 1 except <code>(0, 0)</code>. Check both corners before you start."
+ ],
+ "solution": "from collections import deque\n\ndef solution(grid):\n    n = len(grid)\n    if n == 0 or grid[0][0] != '0' or grid[n - 1][n - 1] != '0':\n        return -1\n    dist = [[0] * n for _ in range(n)]      # 0 = not reached yet; else cells on the path so far\n    dist[0][0] = 1\n    queue = deque([(0, 0)])\n    steps = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]\n    while queue:\n        r, c = queue.popleft()\n        if r == n - 1 and c == n - 1:\n            return dist[r][c]                # first time BFS reaches it = fewest cells\n        for dr, dc in steps:\n            nr, nc = r + dr, c + dc\n            if 0 <= nr < n and 0 <= nc < n and grid[nr][nc] == '0' and dist[nr][nc] == 0:\n                dist[nr][nc] = dist[r][c] + 1  # set on enqueue so no cell is queued twice\n                queue.append((nr, nc))\n    return -1\n",
+ "brute": "def solution(grid):\n    # Relax every cell from its neighbours, sweep after sweep, until nothing changes.\n    # Correct (Bellman-Ford on a grid) but up to O(cells) sweeps of O(cells) work each.\n    n = len(grid)\n    if n == 0 or grid[0][0] != '0' or grid[n - 1][n - 1] != '0':\n        return -1\n    big = n * n + 1\n    dist = [[big] * n for _ in range(n)]\n    dist[0][0] = 1\n    changed = True\n    while changed:\n        changed = False\n        for r in range(n):\n            for c in range(n):\n                if grid[r][c] != '0' or dist[r][c] == big:\n                    continue\n                for dr in (-1, 0, 1):\n                    for dc in (-1, 0, 1):\n                        nr, nc = r + dr, c + dc\n                        if 0 <= nr < n and 0 <= nc < n and grid[nr][nc] == '0' and dist[r][c] + 1 < dist[nr][nc]:\n                            dist[nr][nc] = dist[r][c] + 1\n                            changed = True\n    return dist[n - 1][n - 1] if dist[n - 1][n - 1] < big else -1\n",
+ "explain": "<p>Example 2, <code>[\"000\", \"110\", \"110\"]</code>:</p><ul><li>Start: <code>dist[0][0] = 1</code>, queue = [(0, 0)].</li><li>Pop (0, 0). Open, unreached neighbours: (0, 1). Set it to 2. (1, 0) and (1, 1) are blocked.</li><li>Pop (0, 1). New neighbours: (0, 2) and (1, 2), both set to 3.</li><li>Pop (0, 2): nothing new. Pop (1, 2): (2, 2) set to 4.</li><li>Pop (2, 2): it is the target, return <b>4</b>.</li></ul><p>Why BFS and not DFS: the queue is first in, first out, so it always holds cells of distance d followed by cells of distance d + 1. A cell's first visit therefore comes along a shortest route, and the target's first pop is the answer. A DFS follows one direction as deep as it can, so the first path it finds to the target can be far longer than the best one; making DFS exact means trying every path. If the moves had different costs, BFS would stop being exact and you would switch to Dijkstra with <code>heapq</code>.</p>",
+ "complexity": "O(n^2) time (each cell is enqueued once and checks 8 neighbours), O(n^2) extra space",
+ "tests": [
+  {
+   "args": [
+    [
+     "01",
+     "10"
+    ]
+   ],
+   "expected": 2,
+   "label": "example 1 (LeetCode 1091)",
+   "cat": "example",
+   "why": "a single diagonal hop"
+  },
+  {
+   "args": [
+    [
+     "000",
+     "110",
+     "110"
+    ]
+   ],
+   "expected": 4,
+   "label": "example 2 (LeetCode 1091)",
+   "cat": "example",
+   "why": "the route bends around a block"
+  },
+  {
+   "args": [
+    [
+     "100",
+     "110",
+     "110"
+    ]
+   ],
+   "expected": -1,
+   "label": "example 3 (LeetCode 1091)",
+   "cat": "example",
+   "why": "the start cell is blocked"
+  },
+  {
+   "args": [
+    [
+     "0"
+    ]
+   ],
+   "expected": 1,
+   "label": "1 x 1 open",
+   "cat": "single",
+   "why": "start is the end: one cell, not zero"
+  },
+  {
+   "args": [
+    [
+     "1"
+    ]
+   ],
+   "expected": -1,
+   "label": "1 x 1 blocked",
+   "cat": "single",
+   "why": "start is blocked"
+  },
+  {
+   "args": [
+    [
+     "00",
+     "01"
+    ]
+   ],
+   "expected": -1,
+   "label": "end blocked",
+   "cat": "edge",
+   "why": "the target itself is down"
+  },
+  {
+   "args": [
+    [
+     "0000",
+     "0000",
+     "0000",
+     "0000"
+    ]
+   ],
+   "expected": 4,
+   "label": "open 4 x 4",
+   "cat": "small",
+   "why": "the straight diagonal: n cells"
+  },
+  {
+   "args": [
+    [
+     "010",
+     "010",
+     "010"
+    ]
+   ],
+   "expected": -1,
+   "label": "wall splits the grid",
+   "cat": "edge",
+   "why": "column 1 is blocked top to bottom"
+  },
+  {
+   "args": [
+    [
+     "0110",
+     "1011",
+     "1101",
+     "1110"
+    ]
+   ],
+   "expected": 4,
+   "label": "diagonal corridor",
+   "cat": "edge",
+   "why": "only the main diagonal is open"
+  },
+  {
+   "args": [
+    [
+     "00000",
+     "11110",
+     "00000",
+     "01111",
+     "00000"
+    ]
+   ],
+   "expected": 13,
+   "label": "serpentine 5 x 5",
+   "cat": "medium",
+   "why": "the path zig-zags; DFS could find a longer route first"
+  },
+  {
+   "args": [
+    [
+     "0000000",
+     "0111110",
+     "0100010",
+     "0101010",
+     "0100010",
+     "0111110",
+     "0000000"
+    ]
+   ],
+   "expected": 12,
+   "label": "box in the middle",
+   "cat": "medium",
+   "why": "go around the frame; the hole inside does not help"
+  },
+  {
+   "args": [
+    [
+     "00010000",
+     "01010110",
+     "01010010",
+     "01011010",
+     "01000010",
+     "01111110",
+     "00000010",
+     "11111000"
+    ]
+   ],
+   "expected": 13,
+   "label": "maze 8 x 8",
+   "cat": "medium",
+   "why": "a winding maze with dead ends"
+  },
+  {
+   "args": [
+    [
+     "0000",
+     "0000",
+     "0011",
+     "0010"
+    ]
+   ],
+   "expected": -1,
+   "label": "target walled in",
+   "cat": "edge",
+   "why": "the end cell is open but its three neighbours are blocked"
+  }
+ ],
+ "perf": {
+  "label": "performance: a 149 x 149 serpentine maze whose shortest path has 11,101 cells",
+  "gen": "[[''.join('1' if ((y % 4 == 1 and x != 148) or (y % 4 == 3 and x != 0)) else '0' for x in range(149)) for y in range(149)]]",
+  "expected": 11101
+ },
+ "al": {
+  "kind": "fundamentals",
+  "from": "LC 1091 Shortest Path in Binary Matrix",
+  "talk": [
+   "Why BFS gives the shortest path: every move costs 1, and a FIFO <code>deque</code> pops all cells at distance d before any at d + 1. So the first time I reach a cell, no shorter route to it exists, and the first time I pop the target I can return.",
+   "Why not DFS: DFS commits to one direction, so the first path it finds is just a path. To make DFS exact I would have to try every path (exponential) or keep re-relaxing cells, which is the slow sweep version.",
+   "I set <code>dist</code> when I enqueue, not when I pop; otherwise one cell can enter the queue up to 8 times. The <code>dist</code> grid doubles as the visited set, with 0 meaning unreached.",
+   "Off-by-one: the answer counts cells, so the start is 1. I check both corners up front, which also makes the 1 x 1 cases fall out: <code>[\"0\"]</code> is 1 and <code>[\"1\"]</code> is -1.",
+   "O(n^2) time and space: each cell is enqueued once and looks at 8 offsets, kept in one list of <code>(dr, dc)</code> pairs."
+  ],
+  "extensions": [
+   "Return the path itself, not just its length: store a parent for each cell when you enqueue it, then walk back from the target.",
+   "Racks have different hop costs (latency in ms): why does BFS stop being exact, and how does Dijkstra with <code>heapq</code> fix it?",
+   "Speed it up on a 10,000 x 10,000 floor: bidirectional BFS from both corners, or A* with the Chebyshev distance <code>max(|dr|, |dc|)</code> as the heuristic.",
+   "You may unblock up to k racks (LC 1293): make the BFS state <code>(r, c, removals_left)</code>.",
+   "Only 4-directional moves are allowed: what changes in the code, and what is example 1's answer then?"
+  ]
+ }
+}

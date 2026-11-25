@@ -1,0 +1,554 @@
+{
+ "id": "horizontal-scaling",
+ "track": "sd",
+ "order": 4,
+ "title": "Horizontal scaling",
+ "short": "Handle more users by adding machines, not a bigger one.",
+ "what": "When one server can't keep up, you can buy a bigger machine (vertical scaling, or scaling up) or add more machines of the same size (horizontal scaling, or scaling out). Scaling out works only if any server can answer any request, so servers keep no user data in their own memory.",
+ "analogy": "A supermarket at rush hour opens more checkout lanes. It doesn't look for one cashier who scans four times faster.",
+ "viz": {
+  "kind": "sd",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "u",
+      "label": "Users",
+      "sub": "600 req/s",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "lb",
+      "label": "Load balancer",
+      "x": 33,
+      "y": 50
+     },
+     {
+      "id": "s1",
+      "label": "Server 1",
+      "sub": "1,000 req/s max",
+      "x": 70,
+      "y": 0
+     }
+    ],
+    "edges": [
+     [
+      "u",
+      "lb"
+     ],
+     [
+      "lb",
+      "s1"
+     ]
+    ],
+    "ok": [
+     "s1"
+    ],
+    "say": "A ticket site runs on one server that can handle 1,000 requests per second. A normal day brings 600. Fine."
+   },
+   {
+    "nodes": [
+     {
+      "id": "u",
+      "label": "Users",
+      "sub": "4,000 req/s",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "lb",
+      "label": "Load balancer",
+      "x": 33,
+      "y": 50
+     },
+     {
+      "id": "s1",
+      "label": "Server 1",
+      "sub": "overloaded",
+      "x": 70,
+      "y": 0
+     }
+    ],
+    "edges": [
+     [
+      "u",
+      "lb"
+     ],
+     [
+      "lb",
+      "s1"
+     ]
+    ],
+    "bad": [
+     "s1"
+    ],
+    "edgeHi": [
+     [
+      "u",
+      "lb"
+     ],
+     [
+      "lb",
+      "s1"
+     ]
+    ],
+    "say": "Tickets for a big concert go on sale: 4,000 requests per second. One server can't keep up, and pages start timing out."
+   },
+   {
+    "nodes": [
+     {
+      "id": "u",
+      "label": "Users",
+      "sub": "4,000 req/s",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "lb",
+      "label": "Load balancer",
+      "x": 33,
+      "y": 50
+     },
+     {
+      "id": "s1",
+      "label": "Huge server",
+      "sub": "4x price, 1 box",
+      "x": 70,
+      "y": 0
+     }
+    ],
+    "edges": [
+     [
+      "u",
+      "lb"
+     ],
+     [
+      "lb",
+      "s1"
+     ]
+    ],
+    "hi": [
+     "s1"
+    ],
+    "say": "Option 1, scale up: buy a 4x bigger machine. It costs far more, has a ceiling, and it is still one box that can die."
+   },
+   {
+    "nodes": [
+     {
+      "id": "u",
+      "label": "Users",
+      "sub": "4,000 req/s",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "lb",
+      "label": "Load balancer",
+      "x": 33,
+      "y": 50
+     },
+     {
+      "id": "s1",
+      "label": "Server 1",
+      "sub": "1,000 req/s",
+      "x": 70,
+      "y": 0
+     },
+     {
+      "id": "s2",
+      "label": "Server 2",
+      "sub": "1,000 req/s",
+      "x": 70,
+      "y": 33
+     },
+     {
+      "id": "s3",
+      "label": "Server 3",
+      "sub": "1,000 req/s",
+      "x": 70,
+      "y": 66
+     },
+     {
+      "id": "s4",
+      "label": "Server 4",
+      "sub": "1,000 req/s",
+      "x": 70,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "u",
+      "lb"
+     ],
+     [
+      "lb",
+      "s1"
+     ],
+     [
+      "lb",
+      "s2"
+     ],
+     [
+      "lb",
+      "s3"
+     ],
+     [
+      "lb",
+      "s4"
+     ]
+    ],
+    "ok": [
+     "s1",
+     "s2",
+     "s3",
+     "s4"
+    ],
+    "edgeHi": [
+     [
+      "lb",
+      "s1"
+     ],
+     [
+      "lb",
+      "s2"
+     ],
+     [
+      "lb",
+      "s3"
+     ],
+     [
+      "lb",
+      "s4"
+     ]
+    ],
+    "say": "Option 2, scale out: run 4 copies of the same server behind the load balancer. Each one gets about 1,000 requests per second."
+   },
+   {
+    "nodes": [
+     {
+      "id": "u",
+      "label": "Users",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "lb",
+      "label": "Load balancer",
+      "x": 33,
+      "y": 50
+     },
+     {
+      "id": "s1",
+      "label": "Server 1",
+      "sub": "Ana's cart here",
+      "x": 70,
+      "y": 0
+     },
+     {
+      "id": "s2",
+      "label": "Server 2",
+      "sub": "1,000 req/s",
+      "x": 70,
+      "y": 33
+     },
+     {
+      "id": "s3",
+      "label": "Server 3",
+      "sub": "who is Ana?",
+      "x": 70,
+      "y": 66
+     },
+     {
+      "id": "s4",
+      "label": "Server 4",
+      "sub": "1,000 req/s",
+      "x": 70,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "u",
+      "lb"
+     ],
+     [
+      "lb",
+      "s1"
+     ],
+     [
+      "lb",
+      "s2"
+     ],
+     [
+      "lb",
+      "s3"
+     ],
+     [
+      "lb",
+      "s4"
+     ]
+    ],
+    "hi": [
+     "s1"
+    ],
+    "bad": [
+     "s3"
+    ],
+    "edgeHi": [
+     [
+      "lb",
+      "s3"
+     ]
+    ],
+    "say": "The catch: Ana's cart was kept in Server 1's memory. Her next click lands on Server 3, which has never heard of her. Empty cart."
+   },
+   {
+    "nodes": [
+     {
+      "id": "u",
+      "label": "Users",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "lb",
+      "label": "Load balancer",
+      "x": 33,
+      "y": 50
+     },
+     {
+      "id": "s1",
+      "label": "Server 1",
+      "sub": "1,000 req/s",
+      "x": 70,
+      "y": 0
+     },
+     {
+      "id": "s2",
+      "label": "Server 2",
+      "sub": "1,000 req/s",
+      "x": 70,
+      "y": 33
+     },
+     {
+      "id": "s3",
+      "label": "Server 3",
+      "sub": "finds Ana's cart",
+      "x": 70,
+      "y": 66
+     },
+     {
+      "id": "s4",
+      "label": "Server 4",
+      "sub": "1,000 req/s",
+      "x": 70,
+      "y": 100
+     },
+     {
+      "id": "st",
+      "label": "Cart store",
+      "sub": "shared, in memory",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "u",
+      "lb"
+     ],
+     [
+      "lb",
+      "s1"
+     ],
+     [
+      "lb",
+      "s2"
+     ],
+     [
+      "lb",
+      "s3"
+     ],
+     [
+      "lb",
+      "s4"
+     ],
+     [
+      "s1",
+      "st"
+     ],
+     [
+      "s2",
+      "st"
+     ],
+     [
+      "s3",
+      "st"
+     ],
+     [
+      "s4",
+      "st"
+     ]
+    ],
+    "ok": [
+     "st",
+     "s3"
+    ],
+    "edgeHi": [
+     [
+      "lb",
+      "s3"
+     ],
+     [
+      "s3",
+      "st"
+     ]
+    ],
+    "say": "Fix: keep carts in one shared store that every server reads. Servers become stateless, so any of them can answer Ana."
+   },
+   {
+    "nodes": [
+     {
+      "id": "u",
+      "label": "Users",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "lb",
+      "label": "Load balancer",
+      "x": 33,
+      "y": 50
+     },
+     {
+      "id": "s1",
+      "label": "Server 1",
+      "sub": "600 req/s",
+      "x": 70,
+      "y": 0
+     },
+     {
+      "id": "s2",
+      "label": "Server 2",
+      "sub": "removed",
+      "x": 70,
+      "y": 33
+     },
+     {
+      "id": "s3",
+      "label": "Server 3",
+      "sub": "removed",
+      "x": 70,
+      "y": 66
+     },
+     {
+      "id": "s4",
+      "label": "Server 4",
+      "sub": "removed",
+      "x": 70,
+      "y": 100
+     },
+     {
+      "id": "st",
+      "label": "Cart store",
+      "sub": "shared, in memory",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "u",
+      "lb"
+     ],
+     [
+      "lb",
+      "s1"
+     ],
+     [
+      "lb",
+      "s2"
+     ],
+     [
+      "lb",
+      "s3"
+     ],
+     [
+      "lb",
+      "s4"
+     ],
+     [
+      "s1",
+      "st"
+     ],
+     [
+      "s2",
+      "st"
+     ],
+     [
+      "s3",
+      "st"
+     ],
+     [
+      "s4",
+      "st"
+     ]
+    ],
+    "ok": [
+     "s1",
+     "st"
+    ],
+    "dim": [
+     "s2",
+     "s3",
+     "s4"
+    ],
+    "say": "After the sale, remove 3 servers. You pay for 4 only during the rush. Autoscaling can add and remove them for you based on load."
+   }
+  ]
+ },
+ "when": [
+  "Traffic is too much for one machine",
+  "Traffic has peaks and quiet times",
+  "One machine dying must not take the site down",
+  "The question says millions of users"
+ ],
+ "python": "import math\ncarts = {}                                  # shared store, outside every server\nservers = [\"S1\", \"S2\", \"S3\", \"S4\"]\n\ndef handle(n, user, item):\n    server = servers[n % len(servers)]      # the load balancer picks any server\n    carts.setdefault(user, []).append(item)\n    print(f\"request {n} on {server}: {user} has {carts[user]}\")\n\nfor n, item in enumerate([\"ticket\", \"parking\", \"t-shirt\"]):\n    handle(n, \"ana\", item)\nprint(\"servers for 4,000 req/s:\", math.ceil(4000 / 1000))",
+ "output": "request 0 on S1: ana has ['ticket']\nrequest 1 on S2: ana has ['ticket', 'parking']\nrequest 2 on S3: ana has ['ticket', 'parking', 't-shirt']\nservers for 4,000 req/s: 4",
+ "cost": [
+  [
+   "Capacity",
+   "grows about linearly with servers"
+  ],
+  [
+   "Start a new cloud server",
+   "~1-3 minutes"
+  ],
+  [
+   "Scale-up limit",
+   "the biggest machine you can buy"
+  ],
+  [
+   "Pick a server per request",
+   "O(1)"
+  ]
+ ],
+ "watch": [
+  "Servers must be stateless: carts and logins go in a shared store or database.",
+  "The database usually becomes the next bottleneck; more app servers don't fix it.",
+  "Keep 20-30% spare capacity, because new servers take minutes to start."
+ ],
+ "interview": [
+  "Design Ticketmaster",
+  "Scale a web app from 1 to 1 million users",
+  "Design Twitter"
+ ],
+ "related": [
+  "load-balancer",
+  "caching",
+  "replication",
+  "sharding"
+ ]
+}

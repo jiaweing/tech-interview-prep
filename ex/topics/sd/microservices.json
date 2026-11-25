@@ -1,0 +1,457 @@
+{
+ "id": "microservices",
+ "track": "sd",
+ "order": 19,
+ "title": "Microservices",
+ "short": "Split one big app into small services that ship on their own.",
+ "what": "A monolith is one app that does everything. Microservices split it into small services, each owning one business area and its own data, talking over the network. Teams can ship and scale their piece alone, at the price of network calls that can fail.",
+ "analogy": "A food court instead of one big kitchen. Each stall runs itself; if the pizza oven breaks, you can still buy noodles.",
+ "viz": {
+  "kind": "sd",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "Phone app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "mono",
+      "label": "Monolith",
+      "x": 45,
+      "y": 50,
+      "sub": "orders, pay, menu"
+     },
+     {
+      "id": "db",
+      "label": "One database",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "mono"
+     ],
+     [
+      "mono",
+      "db"
+     ]
+    ],
+    "say": "FoodNow starts as one app: orders, payments and menus share one codebase, one database and one deploy. Great for a team of 5."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "Phone app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "mono",
+      "label": "Monolith",
+      "x": 45,
+      "y": 50,
+      "sub": "1 deploy a week"
+     },
+     {
+      "id": "db",
+      "label": "One database",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "mono"
+     ],
+     [
+      "mono",
+      "db"
+     ]
+    ],
+    "bad": [
+     "mono"
+    ],
+    "say": "At 60 engineers, everyone waits for the same weekly deploy, and a crash in payment code takes the menu down too."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "Phone app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "menu",
+      "label": "Menu svc",
+      "x": 45,
+      "y": 0,
+      "sub": "own database"
+     },
+     {
+      "id": "ord",
+      "label": "Orders svc",
+      "x": 45,
+      "y": 100,
+      "sub": "own database"
+     },
+     {
+      "id": "note",
+      "label": "Notify svc",
+      "x": 100,
+      "y": 50
+     },
+     {
+      "id": "pay",
+      "label": "Payments svc",
+      "x": 100,
+      "y": 100,
+      "sub": "own database"
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "menu"
+     ],
+     [
+      "app",
+      "ord"
+     ],
+     [
+      "ord",
+      "pay"
+     ],
+     [
+      "ord",
+      "note",
+      "",
+      "async"
+     ]
+    ],
+    "say": "Split it by business area. Each service has its own team and its own database, and they talk over the network."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "Phone app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "menu",
+      "label": "Menu svc",
+      "x": 45,
+      "y": 0,
+      "sub": "own database"
+     },
+     {
+      "id": "ord",
+      "label": "Orders svc",
+      "x": 45,
+      "y": 100,
+      "sub": "own database"
+     },
+     {
+      "id": "note",
+      "label": "Notify svc",
+      "x": 100,
+      "y": 50
+     },
+     {
+      "id": "pay",
+      "label": "Payments svc",
+      "x": 100,
+      "y": 100,
+      "sub": "own database"
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "menu"
+     ],
+     [
+      "app",
+      "ord",
+      "POST /orders"
+     ],
+     [
+      "ord",
+      "pay"
+     ],
+     [
+      "ord",
+      "note",
+      "",
+      "async"
+     ]
+    ],
+    "hi": [
+     "ord"
+    ],
+    "edgeHi": [
+     [
+      "app",
+      "ord"
+     ]
+    ],
+    "say": "You order ramen. The app sends POST /orders to the Orders service, the only one that owns order data."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "Phone app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "menu",
+      "label": "Menu svc",
+      "x": 45,
+      "y": 0,
+      "sub": "own database"
+     },
+     {
+      "id": "ord",
+      "label": "Orders svc",
+      "x": 45,
+      "y": 100,
+      "sub": "own database"
+     },
+     {
+      "id": "note",
+      "label": "Notify svc",
+      "x": 100,
+      "y": 50
+     },
+     {
+      "id": "pay",
+      "label": "Payments svc",
+      "x": 100,
+      "y": 100,
+      "sub": "own database"
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "menu"
+     ],
+     [
+      "app",
+      "ord"
+     ],
+     [
+      "ord",
+      "pay",
+      "charge $24"
+     ],
+     [
+      "ord",
+      "note",
+      "",
+      "async"
+     ]
+    ],
+    "hi": [
+     "ord"
+    ],
+    "ok": [
+     "pay"
+    ],
+    "edgeHi": [
+     [
+      "ord",
+      "pay"
+     ]
+    ],
+    "say": "Orders asks Payments to charge $24. It's a network call now: about 1 ms, and it can fail, unlike a function call."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "Phone app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "menu",
+      "label": "Menu svc",
+      "x": 45,
+      "y": 0,
+      "sub": "own database"
+     },
+     {
+      "id": "ord",
+      "label": "Orders svc",
+      "x": 45,
+      "y": 100,
+      "sub": "own database"
+     },
+     {
+      "id": "note",
+      "label": "Notify svc",
+      "x": 100,
+      "y": 50
+     },
+     {
+      "id": "pay",
+      "label": "Payments svc",
+      "x": 100,
+      "y": 100,
+      "sub": "own database"
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "menu"
+     ],
+     [
+      "app",
+      "ord"
+     ],
+     [
+      "ord",
+      "pay"
+     ],
+     [
+      "ord",
+      "note",
+      "order placed",
+      "async"
+     ]
+    ],
+    "hi": [
+     "note"
+    ],
+    "edgeHi": [
+     [
+      "ord",
+      "note"
+     ]
+    ],
+    "say": "Orders then posts an 'order placed' event to a queue. Notify texts you a minute later; Orders doesn't wait for it."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "Phone app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "menu",
+      "label": "Menu svc",
+      "x": 45,
+      "y": 0,
+      "sub": "still works"
+     },
+     {
+      "id": "ord",
+      "label": "Orders svc",
+      "x": 45,
+      "y": 100,
+      "sub": "own database"
+     },
+     {
+      "id": "note",
+      "label": "Notify svc",
+      "x": 100,
+      "y": 50
+     },
+     {
+      "id": "pay",
+      "label": "Payments svc",
+      "x": 100,
+      "y": 100,
+      "sub": "down"
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "menu"
+     ],
+     [
+      "app",
+      "ord"
+     ],
+     [
+      "ord",
+      "pay"
+     ],
+     [
+      "ord",
+      "note",
+      "",
+      "async"
+     ]
+    ],
+    "bad": [
+     "pay"
+    ],
+    "ok": [
+     "menu"
+    ],
+    "edgeHi": [
+     [
+      "app",
+      "menu"
+     ]
+    ],
+    "say": "If Payments crashes, the menu still loads and you can browse. Only checkout fails, and only the payments team ships the fix."
+   }
+  ]
+ },
+ "when": [
+  "Many teams step on each other in one codebase",
+  "Parts of the app need very different scaling",
+  "One failing feature shouldn't take down the rest",
+  "Monolith or microservices: which and why?"
+ ],
+ "python": "events = []                                  # a queue Notify reads later\ndef payments(amount, up):                    # another service, over the network\n    if not up:\n        raise ConnectionError(\"payments is down\")\n    return \"charged $\" + str(amount)\ndef orders(item, amount, payments_up=True):\n    try:\n        receipt = payments(amount, payments_up)\n    except ConnectionError as err:\n        return \"checkout failed: \" + str(err)\n    events.append((\"order_placed\", item))\n    return item + \", \" + receipt\nprint(orders(\"ramen\", 24))\nprint(orders(\"pad thai\", 18, payments_up=False))\nprint(\"events for Notify:\", events)",
+ "output": "ramen, charged $24\ncheckout failed: payments is down\nevents for Notify: [('order_placed', 'ramen')]",
+ "cost": [
+  [
+   "Function call inside a monolith",
+   "~0.0001 ms"
+  ],
+  [
+   "Call to another service",
+   "~1 ms in one data center"
+  ],
+  [
+   "Deploys",
+   "each team, any time"
+  ]
+ ],
+ "watch": [
+  "Don't start here. A small team moves faster with one app; split when teams get in each other's way.",
+  "Each service owns its data. Two services sharing one database are still one app.",
+  "Every network call can be slow or fail: add timeouts, retries and circuit breakers."
+ ],
+ "interview": [
+  "Design a food delivery app",
+  "Design Netflix's backend",
+  "When would you split a monolith?"
+ ],
+ "related": [
+  "api-gateway",
+  "message-queue",
+  "circuit-breaker",
+  "observability"
+ ]
+}

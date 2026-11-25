@@ -1,0 +1,502 @@
+{
+ "id": "replication",
+ "track": "sd",
+ "order": 9,
+ "title": "Replication",
+ "short": "Keep copies of your data on several machines.",
+ "what": "Replication keeps the same data on more than one database server. One copy, the primary, takes the writes and sends each change to the others, the replicas. Replicas serve reads and can take over if the primary dies.",
+ "analogy": "A teacher writes on the main whiteboard and assistants copy it onto boards at the back of a big hall. Students read the nearest board; only the teacher writes.",
+ "viz": {
+  "kind": "sd",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "a",
+      "label": "App",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "p",
+      "label": "Primary DB",
+      "sub": "takes all writes",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "r1",
+      "label": "Replica 1",
+      "sub": "read-only copy",
+      "x": 50,
+      "y": 100
+     },
+     {
+      "id": "r2",
+      "label": "Replica 2",
+      "sub": "read-only copy",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "a",
+      "p"
+     ],
+     [
+      "p",
+      "r1"
+     ],
+     [
+      "p",
+      "r2"
+     ],
+     [
+      "a",
+      "r1"
+     ],
+     [
+      "a",
+      "r2"
+     ]
+    ],
+    "say": "A social app does 10,000 reads and 500 writes a second, too much for one database. So it keeps copies: one primary and two replicas."
+   },
+   {
+    "nodes": [
+     {
+      "id": "a",
+      "label": "App",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "p",
+      "label": "Primary DB",
+      "sub": "bio = loves tea",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "r1",
+      "label": "Replica 1",
+      "sub": "read-only copy",
+      "x": 50,
+      "y": 100
+     },
+     {
+      "id": "r2",
+      "label": "Replica 2",
+      "sub": "read-only copy",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "a",
+      "p",
+      "update bio"
+     ],
+     [
+      "p",
+      "r1"
+     ],
+     [
+      "p",
+      "r2"
+     ],
+     [
+      "a",
+      "r1"
+     ],
+     [
+      "a",
+      "r2"
+     ]
+    ],
+    "hi": [
+     "p"
+    ],
+    "edgeHi": [
+     [
+      "a",
+      "p"
+     ]
+    ],
+    "say": "Ana changes her bio. Every write goes to the primary, the only copy allowed to change data."
+   },
+   {
+    "nodes": [
+     {
+      "id": "a",
+      "label": "App",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "p",
+      "label": "Primary DB",
+      "sub": "takes all writes",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "r1",
+      "label": "Replica 1",
+      "sub": "read-only copy",
+      "x": 50,
+      "y": 100
+     },
+     {
+      "id": "r2",
+      "label": "Replica 2",
+      "sub": "read-only copy",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "a",
+      "p"
+     ],
+     [
+      "p",
+      "r1",
+      "copy",
+      "async"
+     ],
+     [
+      "p",
+      "r2",
+      "copy",
+      "async"
+     ],
+     [
+      "a",
+      "r1"
+     ],
+     [
+      "a",
+      "r2"
+     ]
+    ],
+    "hi": [
+     "r1",
+     "r2"
+    ],
+    "edgeHi": [
+     [
+      "p",
+      "r1"
+     ],
+     [
+      "p",
+      "r2"
+     ]
+    ],
+    "say": "In the background the primary sends the change to each replica. They apply it a few milliseconds later."
+   },
+   {
+    "nodes": [
+     {
+      "id": "a",
+      "label": "App",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "p",
+      "label": "Primary DB",
+      "sub": "takes all writes",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "r1",
+      "label": "Replica 1",
+      "sub": "5,000 reads/s",
+      "x": 50,
+      "y": 100
+     },
+     {
+      "id": "r2",
+      "label": "Replica 2",
+      "sub": "5,000 reads/s",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "a",
+      "p"
+     ],
+     [
+      "p",
+      "r1"
+     ],
+     [
+      "p",
+      "r2"
+     ],
+     [
+      "a",
+      "r1"
+     ],
+     [
+      "a",
+      "r2"
+     ]
+    ],
+    "ok": [
+     "r1",
+     "r2"
+    ],
+    "edgeHi": [
+     [
+      "a",
+      "r1"
+     ],
+     [
+      "a",
+      "r2"
+     ]
+    ],
+    "say": "Reads are spread over the replicas: 5,000 a second each. The primary is left free for the 500 writes."
+   },
+   {
+    "nodes": [
+     {
+      "id": "a",
+      "label": "App",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "p",
+      "label": "Primary DB",
+      "sub": "takes all writes",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "r1",
+      "label": "Replica 1",
+      "sub": "read-only copy",
+      "x": 50,
+      "y": 100
+     },
+     {
+      "id": "r2",
+      "label": "Replica 2",
+      "sub": "still old bio",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "a",
+      "p"
+     ],
+     [
+      "p",
+      "r1"
+     ],
+     [
+      "p",
+      "r2",
+      "late",
+      "async"
+     ],
+     [
+      "a",
+      "r1"
+     ],
+     [
+      "a",
+      "r2"
+     ]
+    ],
+    "bad": [
+     "r2"
+    ],
+    "edgeHi": [
+     [
+      "a",
+      "r2"
+     ]
+    ],
+    "say": "Under heavy load Replica 2 falls 2 seconds behind. Ana refreshes, her read lands there, and she sees her old bio. This is replication lag."
+   },
+   {
+    "nodes": [
+     {
+      "id": "a",
+      "label": "App",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "p",
+      "label": "Primary DB",
+      "sub": "Ana's reads, 5 s",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "r1",
+      "label": "Replica 1",
+      "sub": "read-only copy",
+      "x": 50,
+      "y": 100
+     },
+     {
+      "id": "r2",
+      "label": "Replica 2",
+      "sub": "read-only copy",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "a",
+      "p"
+     ],
+     [
+      "p",
+      "r1"
+     ],
+     [
+      "p",
+      "r2"
+     ],
+     [
+      "a",
+      "r1"
+     ],
+     [
+      "a",
+      "r2"
+     ]
+    ],
+    "ok": [
+     "p"
+    ],
+    "edgeHi": [
+     [
+      "a",
+      "p"
+     ]
+    ],
+    "say": "A common fix: for a few seconds after you write, your own reads go to the primary. Everyone else keeps using replicas."
+   },
+   {
+    "nodes": [
+     {
+      "id": "a",
+      "label": "App",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "p",
+      "label": "Primary DB",
+      "sub": "machine died",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "r1",
+      "label": "New primary",
+      "sub": "takes writes",
+      "x": 50,
+      "y": 100
+     },
+     {
+      "id": "r2",
+      "label": "Replica 2",
+      "sub": "read-only copy",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "a",
+      "r1"
+     ],
+     [
+      "r1",
+      "r2",
+      "copy",
+      "async"
+     ],
+     [
+      "a",
+      "r2"
+     ]
+    ],
+    "ok": [
+     "r1"
+    ],
+    "bad": [
+     "p"
+    ],
+    "edgeHi": [
+     [
+      "a",
+      "r1"
+     ]
+    ],
+    "say": "The primary's machine dies. Replica 1 is promoted to primary within seconds and takes the writes. The app keeps running."
+   }
+  ]
+ },
+ "when": [
+  "Many more reads than writes",
+  "The database must survive a machine dying",
+  "Users in other regions need fast reads",
+  "Reads can be a moment out of date"
+ ],
+ "python": "primary, replicas = {}, [{}, {}]\npending = []                          # changes not yet copied to the replicas\n\ndef write(key, value):\n    primary[key] = value\n    pending.append((key, value))\ndef replicate():                      # runs in the background, a few ms later\n    for key, value in pending:\n        for replica in replicas:\n            replica[key] = value\n    pending.clear()\nwrite(\"ana.bio\", \"loves tea\")\nprint(\"replica before copy:\", replicas[1].get(\"ana.bio\"))\nreplicate()\nprint(\"replica after copy: \", replicas[1].get(\"ana.bio\"))",
+ "output": "replica before copy: None\nreplica after copy:  loves tea",
+ "cost": [
+  [
+   "Read capacity",
+   "x number of replicas"
+  ],
+  [
+   "Write capacity",
+   "one primary's worth"
+  ],
+  [
+   "Replication lag",
+   "ms usually, seconds under load"
+  ],
+  [
+   "Failover to a replica",
+   "seconds to a minute"
+  ]
+ ],
+ "watch": [
+  "Replicas don't help writes: every write still lands on the one primary.",
+  "With async copying, the last few writes can be lost if the primary dies before sending them.",
+  "Lag makes reads stale; send a user's own reads to the primary right after they write."
+ ],
+ "interview": [
+  "Design Instagram",
+  "Design a key-value store that survives machine failures",
+  "Design a global leaderboard"
+ ],
+ "related": [
+  "sharding",
+  "cap-theorem",
+  "leader-election",
+  "horizontal-scaling"
+ ]
+}

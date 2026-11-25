@@ -1,0 +1,189 @@
+{
+ "id": "py-lists",
+ "track": "py",
+ "order": 3,
+ "title": "Lists",
+ "short": "The everyday container: add, remove, index, slice, copy.",
+ "what": "A list keeps values in order, numbered from 0. It grows and shrinks at the end cheaply. Changing the front or the middle means shifting everything after it.",
+ "analogy": "A row of numbered lockers. Adding one at the end is easy. Squeezing one in at the front means everyone moves down a locker.",
+ "viz": {
+  "kind": "array",
+  "frames": [
+   {
+    "cells": [
+     3,
+     8,
+     5
+    ],
+    "label": "nums = [3, 8, 5]",
+    "ptr": {
+     "[0]": 0
+    },
+    "hi": [
+     0
+    ],
+    "out": "len(nums) -> 3",
+    "say": "nums = [3, 8, 5]. Indexes start at 0: nums[0] is 3, nums[2] is 5, and len(nums) is 3."
+   },
+   {
+    "cells": [
+     3,
+     8,
+     5,
+     1
+    ],
+    "label": "nums.append(1)",
+    "hi": [
+     3
+    ],
+    "say": "nums.append(1) adds to the end. Nothing else moves, so it takes the same tiny time however long the list is."
+   },
+   {
+    "cells": [
+     3,
+     8,
+     5,
+     1
+    ],
+    "label": "negative index",
+    "ptr": {
+     "[-1]": 3,
+     "[-2]": 2
+    },
+    "ok": [
+     3
+    ],
+    "out": "nums[-1] -> 1",
+    "say": "nums[-1] is the last item, nums[-2] the one before it. No len(nums) - 1 arithmetic needed."
+   },
+   {
+    "cells": [
+     9,
+     3,
+     8,
+     5,
+     1
+    ],
+    "label": "nums.insert(0, 9)",
+    "hi": [
+     0
+    ],
+    "out": "4 items moved right",
+    "say": "nums.insert(0, 9) puts 9 at the front. Every other item shifts one place right, so it costs O(n)."
+   },
+   {
+    "cells": [
+     9,
+     3,
+     8,
+     5,
+     1
+    ],
+    "label": "nums.pop()",
+    "bad": [
+     4
+    ],
+    "out": "pop() -> 1",
+    "say": "nums.pop() removes the last item and returns it. O(1). pop(0) also works but shifts everything left: O(n)."
+   },
+   {
+    "cells": [
+     9,
+     3,
+     8,
+     5
+    ],
+    "label": "nums[1:3]",
+    "band": [
+     1,
+     2
+    ],
+    "hi": [
+     1,
+     2
+    ],
+    "out": "nums[1:3] -> [3, 8]",
+    "say": "nums[1:3] copies from index 1 up to, but not including, 3. A slice is a new list."
+   },
+   {
+    "cells": [
+     9,
+     3,
+     8,
+     5
+    ],
+    "label": "8 in nums",
+    "ptr": {
+     "found": 2
+    },
+    "ok": [
+     2
+    ],
+    "out": "8 in nums -> True",
+    "say": "8 in nums checks the items one by one until it meets 8. Fine once, slow inside a loop: O(n) each time."
+   },
+   {
+    "cells": [
+     9,
+     3,
+     8,
+     5,
+     7
+    ],
+    "label": "b = nums; c = nums[:]; nums.append(7)",
+    "hi": [
+     4
+    ],
+    "out": "b ends in 7, c does not",
+    "say": "b = nums copies nothing: both names point at one list, so b sees the new 7. c = nums[:] is a real copy and does not."
+   }
+  ]
+ },
+ "when": [
+  "Keep items in order",
+  "Read any position by index",
+  "Use it as a stack: append and pop",
+  "Take a piece with a slice"
+ ],
+ "python": "nums = [3, 8, 5]\nnums.append(1)\nprint(nums, len(nums), nums[-1])\nnums.insert(0, 9)\nprint(nums.pop(), nums)\nprint(nums[1:3], nums[::-1], 8 in nums)\nb = nums\nc = nums[:]\nnums.append(7)\nprint(b, c)",
+ "output": "[3, 8, 5, 1] 4 1\n1 [9, 3, 8, 5]\n[3, 8] [5, 8, 3, 9] True\n[9, 3, 8, 5, 7] [9, 3, 8, 5]",
+ "cost": [
+  [
+   "Read nums[i] or nums[-1]",
+   "O(1)"
+  ],
+  [
+   "append / pop() at the end",
+   "O(1)"
+  ],
+  [
+   "insert(0, x) / pop(0)",
+   "O(n)"
+  ],
+  [
+   "x in list",
+   "O(n)"
+  ],
+  [
+   "Slice of k items",
+   "O(k)"
+  ]
+ ],
+ "watch": [
+  "nums[len(nums)] raises IndexError. The last index is len(nums) - 1, or -1.",
+  "b = nums shares one list. Copy with nums[:] or list(nums).",
+  "pop(0) in a loop is O(n²). For a queue, use collections.deque."
+ ],
+ "interview": [
+  "LC 26 Remove Duplicates from Sorted Array",
+  "LC 189 Rotate Array",
+  "LC 238 Product of Array Except Self"
+ ],
+ "related": [
+  "array",
+  "stack",
+  "py-loops",
+  "py-gotchas",
+  "py-collections"
+ ]
+}

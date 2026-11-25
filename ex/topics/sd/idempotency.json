@@ -1,0 +1,430 @@
+{
+ "id": "idempotency",
+ "track": "sd",
+ "order": 20,
+ "title": "Idempotency",
+ "short": "Make retries safe: doing it twice has the same effect as once.",
+ "what": "Networks drop replies, so clients retry. A request is idempotent if repeating it changes nothing after the first time. For actions like payments, the client sends a unique idempotency key, and the server remembers the result for that key instead of doing the work again.",
+ "analogy": "An elevator button. Pressing it five times still calls one elevator.",
+ "viz": {
+  "kind": "sd",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "phone",
+      "label": "Phone app",
+      "x": 0,
+      "y": 50,
+      "sub": "key k-81f3"
+     },
+     {
+      "id": "api",
+      "label": "Payments API",
+      "x": 50,
+      "y": 50
+     },
+     {
+      "id": "keys",
+      "label": "Key store",
+      "x": 50,
+      "y": 100
+     },
+     {
+      "id": "card",
+      "label": "Card network",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "phone",
+      "api",
+      "POST /pay $50"
+     ],
+     [
+      "api",
+      "keys"
+     ],
+     [
+      "api",
+      "card"
+     ]
+    ],
+    "hi": [
+     "phone"
+    ],
+    "edgeHi": [
+     [
+      "phone",
+      "api"
+     ]
+    ],
+    "say": "You tap Pay on a $50 order. The app makes one random key for this order, k-81f3, and sends it with POST /pay."
+   },
+   {
+    "nodes": [
+     {
+      "id": "phone",
+      "label": "Phone app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "api",
+      "label": "Payments API",
+      "x": 50,
+      "y": 50
+     },
+     {
+      "id": "keys",
+      "label": "Key store",
+      "x": 50,
+      "y": 100,
+      "sub": "not found: new"
+     },
+     {
+      "id": "card",
+      "label": "Card network",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "phone",
+      "api"
+     ],
+     [
+      "api",
+      "keys",
+      "k-81f3?"
+     ],
+     [
+      "api",
+      "card"
+     ]
+    ],
+    "hi": [
+     "api",
+     "keys"
+    ],
+    "edgeHi": [
+     [
+      "api",
+      "keys"
+     ]
+    ],
+    "say": "The API looks up k-81f3 in its key store. It has never seen it, so this is a new payment."
+   },
+   {
+    "nodes": [
+     {
+      "id": "phone",
+      "label": "Phone app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "api",
+      "label": "Payments API",
+      "x": 50,
+      "y": 50
+     },
+     {
+      "id": "keys",
+      "label": "Key store",
+      "x": 50,
+      "y": 100,
+      "sub": "k-81f3: rcpt 9921"
+     },
+     {
+      "id": "card",
+      "label": "Card network",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "phone",
+      "api"
+     ],
+     [
+      "api",
+      "keys"
+     ],
+     [
+      "api",
+      "card",
+      "charge $50"
+     ]
+    ],
+    "ok": [
+     "card"
+    ],
+    "edgeHi": [
+     [
+      "api",
+      "card"
+     ]
+    ],
+    "say": "It charges the card $50 and saves k-81f3 with its answer, receipt 9921, in the key store before replying."
+   },
+   {
+    "nodes": [
+     {
+      "id": "phone",
+      "label": "Phone app",
+      "x": 0,
+      "y": 50,
+      "sub": "timeout at 10 s"
+     },
+     {
+      "id": "api",
+      "label": "Payments API",
+      "x": 50,
+      "y": 50
+     },
+     {
+      "id": "keys",
+      "label": "Key store",
+      "x": 50,
+      "y": 100,
+      "sub": "k-81f3: rcpt 9921"
+     },
+     {
+      "id": "card",
+      "label": "Card network",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "api",
+      "phone",
+      "reply lost"
+     ],
+     [
+      "api",
+      "keys"
+     ],
+     [
+      "api",
+      "card"
+     ]
+    ],
+    "bad": [
+     "phone"
+    ],
+    "say": "The reply is lost on a flaky network. After 10 seconds the app gives up, and it can't tell whether you were charged."
+   },
+   {
+    "nodes": [
+     {
+      "id": "phone",
+      "label": "Phone app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "api",
+      "label": "Payments API",
+      "x": 50,
+      "y": 50
+     },
+     {
+      "id": "keys",
+      "label": "Key store",
+      "x": 50,
+      "y": 100,
+      "sub": "k-81f3: rcpt 9921"
+     },
+     {
+      "id": "card",
+      "label": "Card network",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "phone",
+      "api",
+      "retry, k-81f3"
+     ],
+     [
+      "api",
+      "keys"
+     ],
+     [
+      "api",
+      "card"
+     ]
+    ],
+    "hi": [
+     "api"
+    ],
+    "edgeHi": [
+     [
+      "phone",
+      "api"
+     ]
+    ],
+    "say": "So it sends the same request again with the same key. Without a key, the server would see a new payment and charge $50 twice."
+   },
+   {
+    "nodes": [
+     {
+      "id": "phone",
+      "label": "Phone app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "api",
+      "label": "Payments API",
+      "x": 50,
+      "y": 50
+     },
+     {
+      "id": "keys",
+      "label": "Key store",
+      "x": 50,
+      "y": 100,
+      "sub": "found: rcpt 9921"
+     },
+     {
+      "id": "card",
+      "label": "Card network",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "phone",
+      "api"
+     ],
+     [
+      "api",
+      "keys",
+      "k-81f3?"
+     ],
+     [
+      "api",
+      "card"
+     ]
+    ],
+    "ok": [
+     "keys"
+    ],
+    "dim": [
+     "card"
+    ],
+    "edgeHi": [
+     [
+      "api",
+      "keys"
+     ]
+    ],
+    "say": "This time the key is in the store. The API skips the charge and sends back the saved answer, receipt 9921."
+   },
+   {
+    "nodes": [
+     {
+      "id": "phone",
+      "label": "Phone app",
+      "x": 0,
+      "y": 50,
+      "sub": "charged once"
+     },
+     {
+      "id": "api",
+      "label": "Payments API",
+      "x": 50,
+      "y": 50
+     },
+     {
+      "id": "keys",
+      "label": "Key store",
+      "x": 50,
+      "y": 100,
+      "sub": "k-81f3: rcpt 9921"
+     },
+     {
+      "id": "card",
+      "label": "Card network",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "api",
+      "phone",
+      "receipt 9921"
+     ],
+     [
+      "api",
+      "keys"
+     ],
+     [
+      "api",
+      "card"
+     ]
+    ],
+    "ok": [
+     "phone"
+    ],
+    "edgeHi": [
+     [
+      "api",
+      "phone"
+     ]
+    ],
+    "say": "You see one receipt, and your card has one $50 charge. Retrying is now always safe, which is the whole point."
+   }
+  ]
+ },
+ "when": [
+  "Payments, orders, or anything that must not happen twice",
+  "Clients retry after timeouts",
+  "A queue may deliver the same message twice",
+  "Exactly-once processing"
+ ],
+ "python": "seen = {}          # idempotency key -> the answer we sent\ncharges = []\n\ndef pay(key, amount):\n    if key in seen:\n        return seen[key]               # repeat: same answer, no new charge\n    charges.append(amount)\n    seen[key] = \"receipt \" + str(9920 + len(charges))\n    return seen[key]\n\nkey = \"k-81f3\"     # made once per order, e.g. str(uuid.uuid4())\nprint(pay(key, 50))\nprint(pay(key, 50))  # the app retries after a timeout\nprint(\"charges:\", charges)",
+ "output": "receipt 9921\nreceipt 9921\ncharges: [50]",
+ "cost": [
+  [
+   "Check a key",
+   "O(1) lookup"
+  ],
+  [
+   "Storage per key",
+   "~100 bytes, kept ~24 hours"
+  ],
+  [
+   "Extra charges from retries",
+   "0"
+  ]
+ ],
+ "watch": [
+  "Make the key once per user action, not once per retry, or every retry looks new.",
+  "Check and save the key in one atomic step (a unique index), or two retries at once both get through.",
+  "GET, PUT and DELETE are idempotent by design. POST is not, so it needs the key."
+ ],
+ "interview": [
+  "Design a payment system",
+  "Design a ride booking flow",
+  "How do you process each queue message exactly once?"
+ ],
+ "related": [
+  "rest-api",
+  "message-queue",
+  "circuit-breaker",
+  "rate-limiting"
+ ]
+}

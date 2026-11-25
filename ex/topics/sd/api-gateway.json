@@ -1,0 +1,445 @@
+{
+ "id": "api-gateway",
+ "track": "sd",
+ "order": 16,
+ "title": "API gateway",
+ "short": "One front door that checks every request, then routes it.",
+ "what": "Big apps are split into many services, but the phone app shouldn't need to know them all. An API gateway is the one address every request goes to. It checks who you are, applies limits, and forwards the request to the right service.",
+ "analogy": "The front desk of an office building. Visitors sign in once at the desk and get sent to the right floor. Each office doesn't run its own security.",
+ "viz": {
+  "kind": "sd",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "Phone app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "gw",
+      "label": "API gateway",
+      "x": 50,
+      "y": 50
+     },
+     {
+      "id": "us",
+      "label": "Users svc",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "os",
+      "label": "Orders svc",
+      "x": 100,
+      "y": 50
+     },
+     {
+      "id": "ss",
+      "label": "Search svc",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "gw"
+     ],
+     [
+      "gw",
+      "us",
+      "/users/*"
+     ],
+     [
+      "gw",
+      "os",
+      "/orders/*"
+     ],
+     [
+      "gw",
+      "ss",
+      "/search/*"
+     ]
+    ],
+    "say": "Three services sit behind one gateway. The phone app only knows one address, api.shop.com. Each path prefix maps to a service."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "Phone app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "gw",
+      "label": "API gateway",
+      "x": 50,
+      "y": 50,
+      "sub": "token ok: user 7"
+     },
+     {
+      "id": "us",
+      "label": "Users svc",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "os",
+      "label": "Orders svc",
+      "x": 100,
+      "y": 50
+     },
+     {
+      "id": "ss",
+      "label": "Search svc",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "gw",
+      "GET /orders/42"
+     ],
+     [
+      "gw",
+      "us"
+     ],
+     [
+      "gw",
+      "os"
+     ],
+     [
+      "gw",
+      "ss"
+     ]
+    ],
+    "hi": [
+     "gw"
+    ],
+    "edgeHi": [
+     [
+      "app",
+      "gw"
+     ]
+    ],
+    "say": "GET /orders/42 arrives with a login token. The gateway checks the token first, so no service has to repeat that work."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "Phone app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "gw",
+      "label": "API gateway",
+      "x": 50,
+      "y": 50,
+      "sub": "38 of 100 / min"
+     },
+     {
+      "id": "us",
+      "label": "Users svc",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "os",
+      "label": "Orders svc",
+      "x": 100,
+      "y": 50
+     },
+     {
+      "id": "ss",
+      "label": "Search svc",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "gw",
+      "GET /orders/42"
+     ],
+     [
+      "gw",
+      "us"
+     ],
+     [
+      "gw",
+      "os"
+     ],
+     [
+      "gw",
+      "ss"
+     ]
+    ],
+    "ok": [
+     "gw"
+    ],
+    "edgeHi": [
+     [
+      "app",
+      "gw"
+     ]
+    ],
+    "say": "Next, the rate limit. User 7 has made 38 of the 100 calls allowed per minute, so the request may go on."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "Phone app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "gw",
+      "label": "API gateway",
+      "x": 50,
+      "y": 50
+     },
+     {
+      "id": "us",
+      "label": "Users svc",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "os",
+      "label": "Orders svc",
+      "x": 100,
+      "y": 50
+     },
+     {
+      "id": "ss",
+      "label": "Search svc",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "gw",
+      "GET /orders/42"
+     ],
+     [
+      "gw",
+      "us"
+     ],
+     [
+      "gw",
+      "os",
+      "/orders/*"
+     ],
+     [
+      "gw",
+      "ss"
+     ]
+    ],
+    "hi": [
+     "gw",
+     "os"
+    ],
+    "edgeHi": [
+     [
+      "app",
+      "gw"
+     ],
+     [
+      "gw",
+      "os"
+     ]
+    ],
+    "say": "The path starts with /orders, so the gateway forwards it to the Orders service. The app never learns where Orders really lives."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "Phone app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "gw",
+      "label": "API gateway",
+      "x": 50,
+      "y": 50
+     },
+     {
+      "id": "us",
+      "label": "Users svc",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "os",
+      "label": "Orders svc",
+      "x": 100,
+      "y": 50
+     },
+     {
+      "id": "ss",
+      "label": "Search svc",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "gw",
+      "GET /search/shoe"
+     ],
+     [
+      "gw",
+      "us"
+     ],
+     [
+      "gw",
+      "os"
+     ],
+     [
+      "gw",
+      "ss",
+      "/search/*"
+     ]
+    ],
+    "hi": [
+     "gw"
+    ],
+    "ok": [
+     "ss"
+    ],
+    "edgeHi": [
+     [
+      "app",
+      "gw"
+     ],
+     [
+      "gw",
+      "ss"
+     ]
+    ],
+    "say": "GET /search/shoe goes to Search. If Search is later split in two, only the gateway's route table changes, not the app."
+   },
+   {
+    "nodes": [
+     {
+      "id": "app",
+      "label": "Phone app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "gw",
+      "label": "API gateway",
+      "x": 50,
+      "y": 50,
+      "sub": "401 / 429"
+     },
+     {
+      "id": "us",
+      "label": "Users svc",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "os",
+      "label": "Orders svc",
+      "x": 100,
+      "y": 50
+     },
+     {
+      "id": "ss",
+      "label": "Search svc",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "app",
+      "gw",
+      "no token"
+     ],
+     [
+      "gw",
+      "us"
+     ],
+     [
+      "gw",
+      "os"
+     ],
+     [
+      "gw",
+      "ss"
+     ]
+    ],
+    "bad": [
+     "gw"
+    ],
+    "dim": [
+     "us",
+     "os",
+     "ss"
+    ],
+    "edgeHi": [
+     [
+      "app",
+      "gw"
+     ]
+    ],
+    "say": "A request with no valid token stops here with 401. A user over 100 calls a minute gets 429. The services never see either one."
+   }
+  ]
+ },
+ "when": [
+  "Many services behind one public address",
+  "Every request needs the same login and rate limit checks",
+  "Phone and web clients call the same backend",
+  "You want to move or split services without changing the app"
+ ],
+ "python": "routes = {\"/users\": \"users-svc\", \"/orders\": \"orders-svc\", \"/search\": \"search-svc\"}\ncalls = {}\n\ndef gateway(path, token, limit=3):\n    if token is None:\n        return \"401 no token\"\n    calls[token] = calls.get(token, 0) + 1\n    if calls[token] > limit:\n        return \"429 too many calls\"\n    prefix = \"/\" + path.split(\"/\")[1]\n    return routes.get(prefix, \"404 no such route\")\n\nfor path, token in [(\"/orders/42\", \"t7\"), (\"/search/shoe\", \"t7\"), (\"/orders/42\", None),\n                    (\"/users/7\", \"t7\"), (\"/orders/43\", \"t7\"), (\"/cart\", \"t9\")]:\n    print(f\"{path:13}\", gateway(path, token))",
+ "output": "/orders/42    orders-svc\n/search/shoe  search-svc\n/orders/42    401 no token\n/users/7      users-svc\n/orders/43    429 too many calls\n/cart         404 no such route",
+ "cost": [
+  [
+   "Extra time per request",
+   "1-10 ms"
+  ],
+  [
+   "Find the route for a path",
+   "O(1) dict lookup"
+  ],
+  [
+   "Places that check logins",
+   "1 instead of every service"
+  ]
+ ],
+ "watch": [
+  "The gateway is one door for everything: run several copies behind a load balancer.",
+  "Keep business logic out of it. It routes and checks; the services decide.",
+  "Every request pays one extra hop, so keep its work small and fast."
+ ],
+ "interview": [
+  "Design an online store backend with many services",
+  "Design a rate limiter",
+  "Design the backend for a ride-sharing app"
+ ],
+ "related": [
+  "load-balancer",
+  "rate-limiting",
+  "microservices",
+  "auth-tokens"
+ ]
+}

@@ -1,0 +1,481 @@
+{
+ "id": "health-checks",
+ "track": "sd",
+ "order": 21,
+ "title": "Health checks",
+ "short": "Ask each server 'are you OK?' and stop using the ones that aren't.",
+ "what": "A health check is a small endpoint, often /health, that a load balancer calls every few seconds. If a server fails a few checks in a row, traffic stops going to it; after a few passes, it comes back. A good check tests what the server needs, like its database connection.",
+ "analogy": "A supervisor walking the floor every few minutes. A worker who doesn't answer twice gets their tasks moved to someone else.",
+ "viz": {
+  "kind": "sd",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "lb",
+      "label": "Load balancer",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "w1",
+      "label": "Web 1",
+      "x": 45,
+      "y": 0
+     },
+     {
+      "id": "w2",
+      "label": "Web 2",
+      "x": 45,
+      "y": 50
+     },
+     {
+      "id": "w3",
+      "label": "Web 3",
+      "x": 45,
+      "y": 100
+     },
+     {
+      "id": "db",
+      "label": "Database",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "lb",
+      "w1",
+      "GET /health"
+     ],
+     [
+      "lb",
+      "w2",
+      "GET /health"
+     ],
+     [
+      "lb",
+      "w3",
+      "GET /health"
+     ],
+     [
+      "w1",
+      "db"
+     ],
+     [
+      "w2",
+      "db"
+     ],
+     [
+      "w3",
+      "db"
+     ]
+    ],
+    "say": "The load balancer calls GET /health on each web server every 5 seconds. Each check also tests that server's database connection."
+   },
+   {
+    "nodes": [
+     {
+      "id": "lb",
+      "label": "Load balancer",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "w1",
+      "label": "Web 1",
+      "x": 45,
+      "y": 0
+     },
+     {
+      "id": "w2",
+      "label": "Web 2",
+      "x": 45,
+      "y": 50
+     },
+     {
+      "id": "w3",
+      "label": "Web 3",
+      "x": 45,
+      "y": 100
+     },
+     {
+      "id": "db",
+      "label": "Database",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "lb",
+      "w1",
+      "200"
+     ],
+     [
+      "lb",
+      "w2",
+      "200"
+     ],
+     [
+      "lb",
+      "w3",
+      "200"
+     ],
+     [
+      "w1",
+      "db"
+     ],
+     [
+      "w2",
+      "db"
+     ],
+     [
+      "w3",
+      "db"
+     ]
+    ],
+    "ok": [
+     "w1",
+     "w2",
+     "w3"
+    ],
+    "edgeHi": [
+     [
+      "lb",
+      "w1"
+     ],
+     [
+      "lb",
+      "w2"
+     ],
+     [
+      "lb",
+      "w3"
+     ]
+    ],
+    "say": "All three answer 200 OK in a few milliseconds, so each gets a third of the user traffic."
+   },
+   {
+    "nodes": [
+     {
+      "id": "lb",
+      "label": "Load balancer",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "w1",
+      "label": "Web 1",
+      "x": 45,
+      "y": 0
+     },
+     {
+      "id": "w2",
+      "label": "Web 2",
+      "x": 45,
+      "y": 50,
+      "sub": "DB link broken"
+     },
+     {
+      "id": "w3",
+      "label": "Web 3",
+      "x": 45,
+      "y": 100
+     },
+     {
+      "id": "db",
+      "label": "Database",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "lb",
+      "w1"
+     ],
+     [
+      "lb",
+      "w2"
+     ],
+     [
+      "lb",
+      "w3"
+     ],
+     [
+      "w1",
+      "db"
+     ],
+     [
+      "w3",
+      "db"
+     ]
+    ],
+    "hi": [
+     "w2"
+    ],
+    "say": "Web 2 loses its database connection. Its process still runs, so a check that only asks 'are you up?' would say yes."
+   },
+   {
+    "nodes": [
+     {
+      "id": "lb",
+      "label": "Load balancer",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "w1",
+      "label": "Web 1",
+      "x": 45,
+      "y": 0
+     },
+     {
+      "id": "w2",
+      "label": "Web 2",
+      "x": 45,
+      "y": 50,
+      "sub": "fail 1 of 2"
+     },
+     {
+      "id": "w3",
+      "label": "Web 3",
+      "x": 45,
+      "y": 100
+     },
+     {
+      "id": "db",
+      "label": "Database",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "lb",
+      "w1"
+     ],
+     [
+      "lb",
+      "w2",
+      "503"
+     ],
+     [
+      "lb",
+      "w3"
+     ],
+     [
+      "w1",
+      "db"
+     ],
+     [
+      "w3",
+      "db"
+     ]
+    ],
+    "hi": [
+     "w2"
+    ],
+    "edgeHi": [
+     [
+      "lb",
+      "w2"
+     ]
+    ],
+    "say": "Its /health tries the database, fails, and answers 503. One failure could be a blip, so Web 2 stays in for now."
+   },
+   {
+    "nodes": [
+     {
+      "id": "lb",
+      "label": "Load balancer",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "w1",
+      "label": "Web 1",
+      "x": 45,
+      "y": 0
+     },
+     {
+      "id": "w2",
+      "label": "Web 2",
+      "x": 45,
+      "y": 50,
+      "sub": "fail 2 of 2: out"
+     },
+     {
+      "id": "w3",
+      "label": "Web 3",
+      "x": 45,
+      "y": 100
+     },
+     {
+      "id": "db",
+      "label": "Database",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "lb",
+      "w1"
+     ],
+     [
+      "lb",
+      "w2",
+      "checks only",
+      "async"
+     ],
+     [
+      "lb",
+      "w3"
+     ],
+     [
+      "w1",
+      "db"
+     ],
+     [
+      "w3",
+      "db"
+     ]
+    ],
+    "bad": [
+     "w2"
+    ],
+    "ok": [
+     "w1",
+     "w3"
+    ],
+    "edgeHi": [
+     [
+      "lb",
+      "w1"
+     ],
+     [
+      "lb",
+      "w3"
+     ]
+    ],
+    "say": "A second 503 in a row, 10 s after the break. Users stop going to Web 2; only checks do. Web 1 and 3 share the load."
+   },
+   {
+    "nodes": [
+     {
+      "id": "lb",
+      "label": "Load balancer",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "w1",
+      "label": "Web 1",
+      "x": 45,
+      "y": 0
+     },
+     {
+      "id": "w2",
+      "label": "Web 2",
+      "x": 45,
+      "y": 50,
+      "sub": "pass 3 of 3: in"
+     },
+     {
+      "id": "w3",
+      "label": "Web 3",
+      "x": 45,
+      "y": 100
+     },
+     {
+      "id": "db",
+      "label": "Database",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "lb",
+      "w1"
+     ],
+     [
+      "lb",
+      "w2",
+      "200"
+     ],
+     [
+      "lb",
+      "w3"
+     ],
+     [
+      "w1",
+      "db"
+     ],
+     [
+      "w2",
+      "db"
+     ],
+     [
+      "w3",
+      "db"
+     ]
+    ],
+    "ok": [
+     "w2"
+    ],
+    "edgeHi": [
+     [
+      "lb",
+      "w2"
+     ],
+     [
+      "w2",
+      "db"
+     ]
+    ],
+    "say": "Web 2 is restarted and reconnects. After 3 passing checks in a row (15 s) it gets user traffic again."
+   }
+  ]
+ },
+ "when": [
+  "Servers can die or hang without anyone noticing",
+  "A load balancer must skip broken servers",
+  "Restart crashed instances on their own",
+  "How fast do you detect a failure?"
+ ],
+ "python": "FAIL_LIMIT, PASS_LIMIT = 2, 3\nresults = [200, 200, 503, 503, 503, 200, 200, 200]   # Web 2's /health, every 5 s\nin_service, fails, passes = True, 0, 0\nfor i, code in enumerate(results):\n    if code == 200:\n        passes, fails = passes + 1, 0\n        if not in_service and passes >= PASS_LIMIT:\n            in_service = True\n    else:\n        fails, passes = fails + 1, 0\n        if in_service and fails >= FAIL_LIMIT:\n            in_service = False\n    print(f\"t={i * 5:>2}s {code} ->\", \"in service\" if in_service else \"OUT\")",
+ "output": "t= 0s 200 -> in service\nt= 5s 200 -> in service\nt=10s 503 -> in service\nt=15s 503 -> OUT\nt=20s 503 -> OUT\nt=25s 200 -> OUT\nt=30s 200 -> OUT\nt=35s 200 -> in service",
+ "cost": [
+  [
+   "One check",
+   "1-5 ms, every 5 s"
+  ],
+  [
+   "Time to notice a broken server",
+   "interval x fail limit = 10 s"
+  ],
+  [
+   "Load the checks add",
+   "tiny: 12 calls a minute per server"
+  ]
+ ],
+ "watch": [
+  "A /health that returns 200 without checking anything hides real failures.",
+  "Don't make it too deep: if a shared database blips, every server fails at once and none is left.",
+  "Separate 'restart me' (liveness) from 'don't send me traffic yet' (readiness)."
+ ],
+ "interview": [
+  "Design a highly available web service",
+  "How do you detect and replace failed servers?",
+  "Design a URL shortener with 99.99% uptime"
+ ],
+ "related": [
+  "load-balancer",
+  "circuit-breaker",
+  "observability",
+  "leader-election"
+ ]
+}

@@ -1,0 +1,475 @@
+{
+ "id": "url-shortener",
+ "title": "URL shortener",
+ "tagline": "Turn long links into short ones and redirect millions of clicks a day, fast.",
+ "govtech": true,
+ "govtech_label": "GovTech-relevant",
+ "mirrors": "go.gov.sg",
+ "featured": true,
+ "difficulty": "easy",
+ "govtech_note": "<p>OGP runs <b>go.gov.sg</b>, the official government link shortener. Its public README describes Postgres for the short-to-long mappings with a <b>read replica serving redirects</b>, Redis for sessions, OTPs, click stats and hot links, and officers logging in with <b>email OTP</b>. Public reports give about <b>190M clicks (~2.1M a day) and 8.7M links</b> as of Q3 2026.</p><p>A URL shortener is also a common GovTech TAP / intern and OGP intern <b>take-home</b>; a GovTech blog says it was once used as an interview exercise and later dropped. Expect follow-ups on who may create links, phishing targets and click analytics.</p>",
+ "summary": "<p>Reads dominate: one link is created once and clicked thousands of times. So the design is a small write path that mints a unique key, and a very hot read path that answers <code>GET /abc123</code> from cache in a millisecond and returns a <b>301/302 redirect</b>.</p>",
+ "requirements": {
+  "functional": [
+   "Create a short link for a long URL (optionally a custom alias)",
+   "Redirect <code>/alias</code> to the long URL",
+   "Owner can edit or deactivate their links",
+   "Click counts per link"
+  ],
+  "nonfunctional": [
+   "Redirect p99 under ~50 ms; reads are ~100× writes",
+   "Highly available: a dead redirect breaks every printed poster",
+   "Short keys must be unique and hard to guess",
+   "Durable: links live for years"
+  ],
+  "out_of_scope": [
+   "Full analytics dashboards (just counts)",
+   "Link previews and QR styling"
+  ]
+ },
+ "estimates": [
+  {
+   "label": "Clicks per day",
+   "calc": "public go.gov.sg figure, Q3 2026",
+   "value": "~2.1M"
+  },
+  {
+   "label": "Redirect QPS (average)",
+   "calc": "2.1M ÷ 86,400 s",
+   "value": "~25/s"
+  },
+  {
+   "label": "Redirect QPS (peak)",
+   "calc": "× 20 when a link goes out in a national SMS blast",
+   "value": "~500/s"
+  },
+  {
+   "label": "Links stored",
+   "calc": "public figure, Q3 2026",
+   "value": "8.7M"
+  },
+  {
+   "label": "Storage for links",
+   "calc": "8.7M × ~500 B per row",
+   "value": "~4.4 GB"
+  },
+  {
+   "label": "Key space, 7 base62 chars",
+   "calc": "62^7",
+   "value": "3.5 trillion"
+  }
+ ],
+ "api": [
+  {
+   "method": "POST",
+   "path": "/api/links {longUrl, alias?}",
+   "desc": "Auth required. Returns {shortUrl}. 409 if alias taken."
+  },
+  {
+   "method": "GET",
+   "path": "/{alias}",
+   "desc": "Public. 302 to longUrl, 404 if unknown or deactivated."
+  },
+  {
+   "method": "PATCH",
+   "path": "/api/links/{alias} {longUrl?, active?}",
+   "desc": "Owner only."
+  },
+  {
+   "method": "GET",
+   "path": "/api/links/{alias}/stats",
+   "desc": "Click counts per day."
+  }
+ ],
+ "data": [
+  {
+   "name": "links",
+   "store": "PostgreSQL",
+   "fields": [
+    "alias PK",
+    "long_url",
+    "owner_id",
+    "active",
+    "created_at"
+   ],
+   "note": "Unique index on alias makes custom-alias races safe."
+  },
+  {
+   "name": "clicks_daily",
+   "store": "PostgreSQL",
+   "fields": [
+    "alias",
+    "day",
+    "count"
+   ],
+   "note": "Written in batches by the click worker, never on the redirect path."
+  },
+  {
+   "name": "alias → long_url",
+   "store": "Redis",
+   "fields": [
+    "key: alias",
+    "value: long_url",
+    "TTL 24h"
+   ],
+   "note": "Cache-aside. Deleted on edit or deactivate."
+  }
+ ],
+ "diagram": {
+  "w": 960,
+  "h": 450,
+  "groups": [
+   {
+    "label": "Redirect path (hot)",
+    "x": 20,
+    "y": 16,
+    "w": 920,
+    "h": 160
+   },
+   {
+    "label": "Create path",
+    "x": 20,
+    "y": 206,
+    "w": 700,
+    "h": 234
+   }
+  ],
+  "nodes": [
+   {
+    "id": "user",
+    "label": "Visitor",
+    "sub": "go.gov.sg/abc",
+    "kind": "user",
+    "x": 90,
+    "y": 95
+   },
+   {
+    "id": "cdn",
+    "label": "CDN / edge",
+    "sub": "caches 301s",
+    "kind": "cdn",
+    "x": 300,
+    "y": 95
+   },
+   {
+    "id": "redir",
+    "label": "Redirect service",
+    "sub": "stateless × N",
+    "kind": "service",
+    "x": 520,
+    "y": 95
+   },
+   {
+    "id": "cache",
+    "label": "Redis",
+    "sub": "alias → URL",
+    "kind": "cache",
+    "x": 800,
+    "y": 55
+   },
+   {
+    "id": "q",
+    "label": "Click queue",
+    "sub": "SQS",
+    "kind": "queue",
+    "x": 800,
+    "y": 140
+   },
+   {
+    "id": "officer",
+    "label": "Officer",
+    "sub": "email OTP",
+    "kind": "client",
+    "x": 82,
+    "y": 300
+   },
+   {
+    "id": "api",
+    "label": "Link API",
+    "sub": "auth + validation",
+    "kind": "service",
+    "x": 320,
+    "y": 300
+   },
+   {
+    "id": "scan",
+    "label": "URL safety check",
+    "sub": "Safe Browsing API",
+    "kind": "ext",
+    "x": 320,
+    "y": 400
+   },
+   {
+    "id": "db",
+    "label": "PostgreSQL",
+    "sub": "primary + replica",
+    "kind": "db",
+    "x": 600,
+    "y": 300
+   },
+   {
+    "id": "worker",
+    "label": "Click worker",
+    "sub": "batches counts",
+    "kind": "worker",
+    "x": 860,
+    "y": 300
+   }
+  ],
+  "edges": [
+   {
+    "id": "u-cdn",
+    "from": "user",
+    "to": "cdn",
+    "label": "GET /abc"
+   },
+   {
+    "id": "cdn-r",
+    "from": "cdn",
+    "to": "redir",
+    "label": "miss"
+   },
+   {
+    "id": "r-c",
+    "from": "redir",
+    "to": "cache",
+    "label": "GET abc"
+   },
+   {
+    "id": "r-db",
+    "from": "redir",
+    "to": "db",
+    "label": "on cache miss"
+   },
+   {
+    "id": "r-q",
+    "from": "redir",
+    "to": "q",
+    "label": "click event",
+    "dashed": true
+   },
+   {
+    "id": "o-api",
+    "from": "officer",
+    "to": "api",
+    "label": "POST /links"
+   },
+   {
+    "id": "api-scan",
+    "from": "api",
+    "to": "scan",
+    "label": "is URL safe?"
+   },
+   {
+    "id": "api-db",
+    "from": "api",
+    "to": "db",
+    "label": "INSERT alias"
+   },
+   {
+    "id": "q-w",
+    "from": "q",
+    "to": "worker",
+    "dashed": true
+   },
+   {
+    "id": "w-db",
+    "from": "worker",
+    "to": "db",
+    "label": "UPSERT count"
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "hit",
+   "name": "Redirect (cache hit)",
+   "desc": "The 99% case.",
+   "steps": [
+    {
+     "edge": "u-cdn",
+     "note": "Visitor opens <code>go.gov.sg/abc</code>. DNS points at the CDN edge in Singapore."
+    },
+    {
+     "edge": "cdn-r",
+     "note": "Edge has no cached response for <code>/abc</code> (or it expired), so it forwards to any redirect replica behind the load balancer."
+    },
+    {
+     "edge": "r-c",
+     "note": "Service looks up <code>abc</code> in Redis: <b>hit</b>, ~1 ms."
+    },
+    {
+     "edge": "r-q",
+     "note": "Fire-and-forget a click event onto the queue. Never block the redirect on analytics."
+    },
+    {
+     "edge": "cdn-r",
+     "rev": true,
+     "note": "Return <b>302 Found</b> with <code>Location: long URL</code>. 302 (not 301) so browsers re-ask and edits take effect and clicks are counted."
+    },
+    {
+     "edge": "u-cdn",
+     "rev": true,
+     "note": "Browser follows the redirect. Total server time: a few milliseconds."
+    }
+   ]
+  },
+  {
+   "id": "miss",
+   "name": "Redirect (cache miss)",
+   "desc": "First click after a cold start or eviction.",
+   "steps": [
+    {
+     "edge": "u-cdn",
+     "note": "Request arrives at the edge."
+    },
+    {
+     "edge": "cdn-r",
+     "note": "Forwarded to a redirect replica."
+    },
+    {
+     "edge": "r-c",
+     "note": "Redis <b>miss</b>."
+    },
+    {
+     "edge": "r-db",
+     "note": "Read the row from a Postgres <b>read replica</b> by primary key."
+    },
+    {
+     "edge": "r-c",
+     "note": "Write <code>abc → URL</code> back to Redis with a TTL (cache-aside). The next click is a hit."
+    },
+    {
+     "edge": "cdn-r",
+     "rev": true,
+     "note": "Return the 302."
+    }
+   ]
+  },
+  {
+   "id": "create",
+   "name": "Create a link",
+   "steps": [
+    {
+     "edge": "o-api",
+     "note": "Signed-in officer submits a long URL and an optional custom alias."
+    },
+    {
+     "edge": "api-scan",
+     "note": "Check the target against a malicious-URL list. Government links are a phishing magnet."
+    },
+    {
+     "edge": "api-db",
+     "note": "INSERT with a <b>unique constraint</b> on alias. Random 7-char base62 key; on the rare collision, retry. Custom alias taken → 409."
+    },
+    {
+     "edge": "o-api",
+     "rev": true,
+     "note": "Return the short URL."
+    }
+   ]
+  },
+  {
+   "id": "count",
+   "name": "Count clicks",
+   "steps": [
+    {
+     "edge": "q-w",
+     "note": "Worker pulls click events in batches of hundreds."
+    },
+    {
+     "edge": "w-db",
+     "note": "Aggregate in memory, then one UPSERT per (alias, day). The DB sees a few writes a second instead of one per click."
+    }
+   ]
+  }
+ ],
+ "deep": [
+  {
+   "title": "Generating the key",
+   "html": "<ul><li><b>Random base62, 7 chars</b> + unique constraint: simple, unguessable, collisions astronomically rare at this scale. My default.</li><li><b>Counter → base62</b> (e.g. a DB sequence or ID ranges handed to each server): no collisions, but keys are <b>sequential and guessable</b>, so people can enumerate links.</li><li><b>Hash of the URL</b> (MD5 → first 7 chars): same URL gives same key, but collisions need handling and different owners can't have separate links.</li></ul>"
+  },
+  {
+   "title": "301 or 302?",
+   "html": "<p><b>301</b> is cached by browsers forever: fewer hits on you, but you lose click counts and can never change the target. <b>302/307</b> keeps every click flowing through you. Government links get edited (wrong form version, expired page) so I'd use 302 and let the CDN cache it for a short TTL.</p>"
+  },
+  {
+   "title": "Abuse",
+   "html": "<p>Restrict creation to verified government emails, scan targets on create <b>and periodically</b> (a safe page can turn malicious), rate-limit creation per user, and show an interstitial warning for external domains.</p>",
+   "sim": "bucket"
+  }
+ ],
+ "tradeoffs": [
+  {
+   "choice": "SQL or NoSQL for links?",
+   "pick": "PostgreSQL",
+   "why": "A few GB fits easily on one Postgres primary, and the unique constraint gives free alias-collision safety. go.gov.sg's README describes exactly this, with a read replica for redirects. A key-value store (DynamoDB) is fine if you expect 100× growth."
+  },
+  {
+   "choice": "Count clicks on the redirect path?",
+   "pick": "No, async via a queue",
+   "why": "A synchronous UPDATE per click turns a read-heavy system into a write-heavy one and puts the DB on the hot path."
+  },
+  {
+   "choice": "Cache eviction",
+   "pick": "LRU with TTL",
+   "why": "Link popularity is very skewed; a small cache absorbs most traffic."
+  }
+ ],
+ "bottlenecks": [
+  {
+   "issue": "A link goes viral in an SMS blast to 5M residents",
+   "fix": "CDN caches the 302 for 60 s, Redis serves the rest, replicas autoscale. The DB never sees the spike."
+  },
+  {
+   "issue": "Redis node dies",
+   "fix": "Redirects fall back to read replicas (slower, still correct). Run Redis with a replica and failover."
+  }
+ ],
+ "followups": [
+  {
+   "q": "How do you stop someone guessing private links?",
+   "a": "<p>Random (not sequential) keys with enough entropy: 62^7 ≈ 3.5 trillion, so guessing a live one is hopeless. Add rate limiting on 404s per IP.</p>"
+  },
+  {
+   "q": "How would you support link expiry?",
+   "a": "<p>Store <code>expires_at</code>; the redirect service checks it (cache TTL ≤ time to expiry). A nightly job marks expired rows inactive.</p>"
+  },
+  {
+   "q": "What if two officers request the same custom alias at the same time?",
+   "a": "<p>Both INSERT; the unique index lets exactly one win. The other gets a constraint error → return 409. No locks or read-then-write race.</p>"
+  }
+ ],
+ "quiz": [
+  {
+   "q": "Why put click counting behind a queue?",
+   "options": [
+    "Queues are faster than databases",
+    "So the redirect never waits on a write and the DB sees batched writes",
+    "Because Redis can't count"
+   ],
+   "answer": 1,
+   "why": "The hot path stays read-only; the worker turns 1,000 clicks into one UPSERT."
+  },
+  {
+   "q": "Which key scheme lets people enumerate other links?",
+   "options": [
+    "Random base62",
+    "Auto-increment counter encoded in base62",
+    "Hash of URL + salt"
+   ],
+   "answer": 1,
+   "why": "Sequential IDs are predictable: abc1, abc2, abc3…"
+  },
+  {
+   "q": "A link was printed on 2 million letters, then the target page moved. Which redirect status lets you fix it?",
+   "options": [
+    "301 Moved Permanently",
+    "302 Found (or 307)",
+    "404 Not Found"
+   ],
+   "answer": 1,
+   "why": "Browsers cache 301s indefinitely, so an edit never reaches people who clicked before. A 302 makes every click ask the service again."
+  }
+ ]
+}

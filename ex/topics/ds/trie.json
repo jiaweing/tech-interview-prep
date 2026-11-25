@@ -1,0 +1,616 @@
+{
+ "id": "trie",
+ "track": "ds",
+ "order": 12,
+ "title": "Trie",
+ "short": "A tree of letters for fast prefix search.",
+ "what": "A trie (said \"try\") stores words one letter per step down a tree. Words that start the same share the same path, so checking a word or a prefix takes one step per letter, however many words are stored. Each node also marks whether a word ends there.",
+ "analogy": "The tabs on the side of a dictionary: go to C, then CA, then CAT, without reading any page of B.",
+ "viz": {
+  "kind": "graph",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "root",
+      "label": "root",
+      "x": 50,
+      "y": 0
+     }
+    ],
+    "edges": [],
+    "directed": true,
+    "dist": {},
+    "say": "Start with an empty root. Each step down will be one letter."
+   },
+   {
+    "ok": [
+     "car"
+    ],
+    "hi": [
+     "c",
+     "ca"
+    ],
+    "edgeHi": [
+     [
+      "root",
+      "c"
+     ],
+     [
+      "c",
+      "ca"
+     ],
+     [
+      "ca",
+      "car"
+     ]
+    ],
+    "nodes": [
+     {
+      "id": "root",
+      "label": "root",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "c",
+      "label": "c",
+      "x": 50,
+      "y": 28
+     },
+     {
+      "id": "ca",
+      "label": "a",
+      "x": 30,
+      "y": 56
+     },
+     {
+      "id": "car",
+      "label": "r",
+      "x": 15,
+      "y": 85
+     }
+    ],
+    "edges": [
+     [
+      "root",
+      "c"
+     ],
+     [
+      "c",
+      "ca"
+     ],
+     [
+      "ca",
+      "car"
+     ]
+    ],
+    "directed": true,
+    "dist": {
+     "car": "end"
+    },
+    "say": "Insert \"car\": add the path c, a, r and mark r as the end of a word."
+   },
+   {
+    "ok": [
+     "cat"
+    ],
+    "hi": [
+     "c",
+     "ca"
+    ],
+    "edgeHi": [
+     [
+      "root",
+      "c"
+     ],
+     [
+      "c",
+      "ca"
+     ],
+     [
+      "ca",
+      "cat"
+     ]
+    ],
+    "nodes": [
+     {
+      "id": "root",
+      "label": "root",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "c",
+      "label": "c",
+      "x": 50,
+      "y": 28
+     },
+     {
+      "id": "ca",
+      "label": "a",
+      "x": 30,
+      "y": 56
+     },
+     {
+      "id": "car",
+      "label": "r",
+      "x": 15,
+      "y": 85
+     },
+     {
+      "id": "cat",
+      "label": "t",
+      "x": 45,
+      "y": 85
+     }
+    ],
+    "edges": [
+     [
+      "root",
+      "c"
+     ],
+     [
+      "c",
+      "ca"
+     ],
+     [
+      "ca",
+      "car"
+     ],
+     [
+      "ca",
+      "cat"
+     ]
+    ],
+    "directed": true,
+    "dist": {
+     "car": "end",
+     "cat": "end"
+    },
+    "say": "Insert \"cat\": it shares \"ca\" with car, so it reuses those 2 nodes and only adds t."
+   },
+   {
+    "ok": [
+     "cup"
+    ],
+    "hi": [
+     "c",
+     "cu"
+    ],
+    "edgeHi": [
+     [
+      "root",
+      "c"
+     ],
+     [
+      "c",
+      "cu"
+     ],
+     [
+      "cu",
+      "cup"
+     ]
+    ],
+    "nodes": [
+     {
+      "id": "root",
+      "label": "root",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "c",
+      "label": "c",
+      "x": 50,
+      "y": 28
+     },
+     {
+      "id": "ca",
+      "label": "a",
+      "x": 30,
+      "y": 56
+     },
+     {
+      "id": "cu",
+      "label": "u",
+      "x": 70,
+      "y": 56
+     },
+     {
+      "id": "car",
+      "label": "r",
+      "x": 15,
+      "y": 85
+     },
+     {
+      "id": "cat",
+      "label": "t",
+      "x": 45,
+      "y": 85
+     },
+     {
+      "id": "cup",
+      "label": "p",
+      "x": 70,
+      "y": 85
+     }
+    ],
+    "edges": [
+     [
+      "root",
+      "c"
+     ],
+     [
+      "c",
+      "ca"
+     ],
+     [
+      "c",
+      "cu"
+     ],
+     [
+      "ca",
+      "car"
+     ],
+     [
+      "ca",
+      "cat"
+     ],
+     [
+      "cu",
+      "cup"
+     ]
+    ],
+    "directed": true,
+    "dist": {
+     "car": "end",
+     "cat": "end",
+     "cup": "end"
+    },
+    "say": "Insert \"cup\": it shares only c, so it adds u and p."
+   },
+   {
+    "ok": [
+     "cat"
+    ],
+    "hi": [
+     "c",
+     "ca"
+    ],
+    "edgeHi": [
+     [
+      "root",
+      "c"
+     ],
+     [
+      "c",
+      "ca"
+     ],
+     [
+      "ca",
+      "cat"
+     ]
+    ],
+    "out": "\"cat\" -> found",
+    "nodes": [
+     {
+      "id": "root",
+      "label": "root",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "c",
+      "label": "c",
+      "x": 50,
+      "y": 28
+     },
+     {
+      "id": "ca",
+      "label": "a",
+      "x": 30,
+      "y": 56
+     },
+     {
+      "id": "cu",
+      "label": "u",
+      "x": 70,
+      "y": 56
+     },
+     {
+      "id": "car",
+      "label": "r",
+      "x": 15,
+      "y": 85
+     },
+     {
+      "id": "cat",
+      "label": "t",
+      "x": 45,
+      "y": 85
+     },
+     {
+      "id": "cup",
+      "label": "p",
+      "x": 70,
+      "y": 85
+     }
+    ],
+    "edges": [
+     [
+      "root",
+      "c"
+     ],
+     [
+      "c",
+      "ca"
+     ],
+     [
+      "c",
+      "cu"
+     ],
+     [
+      "ca",
+      "car"
+     ],
+     [
+      "ca",
+      "cat"
+     ],
+     [
+      "cu",
+      "cup"
+     ]
+    ],
+    "directed": true,
+    "dist": {
+     "car": "end",
+     "cat": "end",
+     "cup": "end"
+    },
+    "say": "Search \"cat\": follow c, a, t. t is marked end, so cat is stored. 3 letters, 3 steps."
+   },
+   {
+    "bad": [
+     "ca"
+    ],
+    "hi": [
+     "c"
+    ],
+    "edgeHi": [
+     [
+      "root",
+      "c"
+     ],
+     [
+      "c",
+      "ca"
+     ]
+    ],
+    "out": "\"ca\" -> not a word",
+    "nodes": [
+     {
+      "id": "root",
+      "label": "root",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "c",
+      "label": "c",
+      "x": 50,
+      "y": 28
+     },
+     {
+      "id": "ca",
+      "label": "a",
+      "x": 30,
+      "y": 56
+     },
+     {
+      "id": "cu",
+      "label": "u",
+      "x": 70,
+      "y": 56
+     },
+     {
+      "id": "car",
+      "label": "r",
+      "x": 15,
+      "y": 85
+     },
+     {
+      "id": "cat",
+      "label": "t",
+      "x": 45,
+      "y": 85
+     },
+     {
+      "id": "cup",
+      "label": "p",
+      "x": 70,
+      "y": 85
+     }
+    ],
+    "edges": [
+     [
+      "root",
+      "c"
+     ],
+     [
+      "c",
+      "ca"
+     ],
+     [
+      "c",
+      "cu"
+     ],
+     [
+      "ca",
+      "car"
+     ],
+     [
+      "ca",
+      "cat"
+     ],
+     [
+      "cu",
+      "cup"
+     ]
+    ],
+    "directed": true,
+    "dist": {
+     "car": "end",
+     "cat": "end",
+     "cup": "end"
+    },
+    "say": "Search \"ca\": the path exists, but a has no end mark. So ca is only a prefix, not a stored word."
+   },
+   {
+    "hi": [
+     "c",
+     "cu"
+    ],
+    "ok": [
+     "cup"
+    ],
+    "dim": [
+     "ca",
+     "car",
+     "cat"
+    ],
+    "edgeHi": [
+     [
+      "root",
+      "c"
+     ],
+     [
+      "c",
+      "cu"
+     ]
+    ],
+    "out": "starts with \"cu\": cup",
+    "nodes": [
+     {
+      "id": "root",
+      "label": "root",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "c",
+      "label": "c",
+      "x": 50,
+      "y": 28
+     },
+     {
+      "id": "ca",
+      "label": "a",
+      "x": 30,
+      "y": 56
+     },
+     {
+      "id": "cu",
+      "label": "u",
+      "x": 70,
+      "y": 56
+     },
+     {
+      "id": "car",
+      "label": "r",
+      "x": 15,
+      "y": 85
+     },
+     {
+      "id": "cat",
+      "label": "t",
+      "x": 45,
+      "y": 85
+     },
+     {
+      "id": "cup",
+      "label": "p",
+      "x": 70,
+      "y": 85
+     }
+    ],
+    "edges": [
+     [
+      "root",
+      "c"
+     ],
+     [
+      "c",
+      "ca"
+     ],
+     [
+      "c",
+      "cu"
+     ],
+     [
+      "ca",
+      "car"
+     ],
+     [
+      "ca",
+      "cat"
+     ],
+     [
+      "cu",
+      "cup"
+     ]
+    ],
+    "directed": true,
+    "dist": {
+     "car": "end",
+     "cat": "end",
+     "cup": "end"
+    },
+    "say": "Prefix \"cu\": the path c, u exists, so some word starts with cu. Everything below u (here cup) is a match."
+   }
+  ]
+ },
+ "when": [
+  "Autocomplete or search by prefix",
+  "Many words and many lookups",
+  "Find dictionary words on a letter board",
+  "Longest common prefix"
+ ],
+ "python": "trie = {}\nfor word in [\"car\", \"cat\", \"cup\"]:\n    node = trie\n    for ch in word:\n        node = node.setdefault(ch, {})\n    node[\"$\"] = True              # a word ends here\ndef walk(s):\n    node = trie\n    for ch in s:\n        node = node.get(ch)\n        if node is None:\n            return None\n    return node\nprint(\"$\" in walk(\"cat\"), \"$\" in walk(\"ca\"))\nprint(walk(\"cu\") is not None, walk(\"dog\"))",
+ "output": "True False\nTrue None",
+ "cost": [
+  [
+   "Insert a word of length L",
+   "O(L)"
+  ],
+  [
+   "Search a word",
+   "O(L)"
+  ],
+  [
+   "Check a prefix",
+   "O(L)"
+  ],
+  [
+   "Memory",
+   "one node per distinct prefix"
+  ]
+ ],
+ "watch": [
+  "Mark where words end. A path for \"ca\" does not mean \"ca\" was inserted.",
+  "One dict per node uses a lot of memory for big word lists.",
+  "For a single prefix check on a few strings, s.startswith(p) is enough."
+ ],
+ "interview": [
+  "LC 208 Implement Trie (Prefix Tree)",
+  "LC 211 Design Add and Search Words Data Structure",
+  "LC 212 Word Search II"
+ ],
+ "related": [
+  "hash-map",
+  "string",
+  "binary-tree",
+  "backtracking"
+ ]
+}

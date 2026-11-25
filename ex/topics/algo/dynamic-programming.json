@@ -1,0 +1,206 @@
+{
+ "id": "dynamic-programming",
+ "track": "algo",
+ "order": 18,
+ "title": "Dynamic programming",
+ "short": "Solve each small problem once, save it, and reuse it.",
+ "what": "Many problems break into smaller copies of themselves, and the same small copy comes up again and again. Plain recursion solves it from scratch every time. Dynamic programming (DP) saves each answer the first time, in a dict or a list, and looks it up after that.",
+ "analogy": "Someone asks you 37 x 12. You work it out on paper. When they ask again a minute later, you read it off the paper instead of redoing it.",
+ "viz": {
+  "kind": "tree",
+  "frames": [
+   {
+    "nodes": [
+     "f4",
+     "f3",
+     "f2",
+     "f2",
+     "f1",
+     "f1",
+     "f0",
+     "f1",
+     "f0"
+    ],
+    "label": "fib(4)",
+    "say": "fib(n) = fib(n-1) + fib(n-2), so f4 calls f3 and f2. Each of those calls the two below it, until f1 = 1 and f0 = 0."
+   },
+   {
+    "nodes": [
+     "f4",
+     "f3",
+     "f2",
+     "f2",
+     "f1",
+     "f1",
+     "f0",
+     "f1",
+     "f0"
+    ],
+    "hi": [
+     3
+    ],
+    "bad": [
+     2,
+     5,
+     6
+    ],
+    "tag": {
+     "2": "again!"
+    },
+    "label": "repeated work",
+    "say": "Look: f2 is worked out on the left, then again from scratch on the right. For fib(40) this waste adds up to millions of calls."
+   },
+   {
+    "nodes": [
+     "f4",
+     "f3",
+     "f2",
+     "f2",
+     "f1",
+     "f1",
+     "f0",
+     "f1",
+     "f0"
+    ],
+    "ok": [
+     3,
+     7,
+     8
+    ],
+    "hi": [
+     3
+    ],
+    "tag": {
+     "7": "1",
+     "8": "0",
+     "3": "=1 saved"
+    },
+    "label": "with a memo",
+    "say": "Fix: keep a memo, a dict of answers. The first time f2 finishes, write it down: f2 = f1 + f0 = 1."
+   },
+   {
+    "nodes": [
+     "f4",
+     "f3",
+     "f2",
+     "f2",
+     "f1",
+     "f1",
+     "f0",
+     "f1",
+     "f0"
+    ],
+    "ok": [
+     1,
+     3,
+     4,
+     7,
+     8
+    ],
+    "hi": [
+     1
+    ],
+    "tag": {
+     "1": "=2 saved",
+     "4": "1"
+    },
+    "label": "with a memo",
+    "say": "f3 = f2 + f1 = 1 + 1 = 2. Save that too."
+   },
+   {
+    "nodes": [
+     "f4",
+     "f3",
+     "f2",
+     "f2",
+     "f1",
+     null,
+     null,
+     "f1",
+     "f0"
+    ],
+    "ok": [
+     1,
+     3,
+     4,
+     7,
+     8
+    ],
+    "hi": [
+     2
+    ],
+    "tag": {
+     "2": "memo: 1"
+    },
+    "label": "with a memo",
+    "say": "f4 now needs f2. It is in the memo, so it reads 1 at once. The branch under that f2 is never computed."
+   },
+   {
+    "nodes": [
+     "f4",
+     "f3",
+     "f2",
+     "f2",
+     "f1",
+     null,
+     null,
+     "f1",
+     "f0"
+    ],
+    "ok": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     7,
+     8
+    ],
+    "tag": {
+     "0": "= 3"
+    },
+    "label": "with a memo",
+    "out": "fib(4) = 3",
+    "say": "f4 = 2 + 1 = 3. With the memo each fib(k) is solved once: about n steps instead of about 2^n. That is dynamic programming."
+   }
+  ]
+ },
+ "when": [
+  "Count the number of ways to do something",
+  "Find the min or max cost, length or profit",
+  "Plain recursion is right but way too slow",
+  "The same smaller question gets asked many times"
+ ],
+ "python": "def fib(n, memo):\n    if n < 2:\n        return n\n    if n not in memo:\n        memo[n] = fib(n - 1, memo) + fib(n - 2, memo)\n    return memo[n]\nprint(fib(4, {}))\nprint(fib(90, {}))\n\nfrom functools import cache\n@cache  # Python keeps the memo for you\ndef fib2(n):\n    return n if n < 2 else fib2(n - 1) + fib2(n - 2)\nprint(fib2(90))",
+ "output": "3\n2880067194370816120\n2880067194370816120",
+ "cost": [
+  [
+   "fib(n) with plain recursion",
+   "O(2^n)"
+  ],
+  [
+   "fib(n) with a memo",
+   "O(n)"
+  ],
+  [
+   "Memory for the memo",
+   "O(n)"
+  ]
+ ],
+ "watch": [
+  "First write the recursive answer, then add the memo. Don't start with the table.",
+  "Write down what each saved value means in one sentence, like 'best[i] = most money from houses 0..i'.",
+  "Deep recursion can hit Python's limit (about 1000 calls). Fill a list bottom-up instead."
+ ],
+ "interview": [
+  "LC 509 Fibonacci Number",
+  "LC 70 Climbing Stairs",
+  "LC 322 Coin Change"
+ ],
+ "related": [
+  "recursion",
+  "dp-1d",
+  "dp-2d",
+  "greedy"
+ ]
+}

@@ -1,0 +1,87 @@
+[
+ {
+  "id": "grl-meeting-ai",
+  "title": "Design an AI meeting assistant: live transcripts to approved action items",
+  "source": "govtech",
+  "evidence_tag": "Role-specific practice",
+  "evidence": "<p>This mirrors a product GovTech's Giant Robots Labs lists publicly (Transcribe X, an AI meeting workspace); it is practice for that kind of team, not a reported interview question.</p>",
+  "design": "meeting-ai",
+  "minutes": 45,
+  "prompt": "<p>\"Officers spend hours writing minutes. Design a tool that shows <b>live captions</b> during a meeting and, when it ends, drafts a <b>summary, decisions and action items</b> with owners and due dates, then sends follow-ups by email and to task tools. Officers can also upload recordings. Some meetings are classified <b>RESTRICTED</b>. Walk me through it.\"</p>",
+  "clarify": [
+   {
+    "q": "How do we get the audio? Do we join Zoom or Teams calls?",
+    "a": "No bots. Audio comes from the browser (mic or a shared tab) or from an uploaded recording."
+   },
+   {
+    "q": "How many meetings at once, and how long?",
+    "a": "Assume up to 2,000 concurrent live meetings at peak, most around an hour, a few sittings of 4 hours."
+   },
+   {
+    "q": "How fast must captions be?",
+    "a": "Interim captions within about 1.5 s; it is fine if final, corrected text lags by up to 30 s."
+   },
+   {
+    "q": "Can we send follow-ups automatically?",
+    "a": "No. The organiser must review and approve before anything is sent to anyone."
+   },
+   {
+    "q": "Can we use a commercial LLM or speech API?",
+    "a": "Not for RESTRICTED data unless it is an approved, government-hosted endpoint. Assume you self-host the models on GPUs."
+   },
+   {
+    "q": "How long do we keep audio?",
+    "a": "Policy says delete audio after 90 days; approved minutes follow the agency's records rules."
+   }
+  ],
+  "steps": [
+   {
+    "title": "Requirements",
+    "minutes": "5 min",
+    "ask": "<p>Split it into the live part and the after-meeting part. What must never happen?</p>",
+    "model": "<p>Functional: live captions with speaker labels, upload a recording, draft summary, decisions and action items (owner, due date), edit and approve, send approved follow-ups, delete on request. Non-functional: interim captions ~1.5 s p95, no lost audio on a dropped connection, data up to RESTRICTED kept in approved hosting, <b>nothing sent without approval</b>, every action item traceable to transcript lines, cost per meeting hour tracked.</p>"
+   },
+   {
+    "title": "Estimates",
+    "minutes": "5 min",
+    "ask": "<p>Turn 2,000 concurrent meetings into bandwidth, GPUs, storage and cost.</p>",
+    "model": "<p>Opus at 24 kbps × 2,000 ≈ 48 Mbps in. Audio ≈ 10.8 MB per meeting hour; 10,000 meeting-hours a day × 90 days ≈ 9.7 TB. A 1-hour transcript ≈ 9,000 words ≈ 12k tokens, so one LLM call fits. If one GPU serves ~25 live streams (benchmark it), peak needs ~80 GPUs plus 20% headroom. At an assumed US$1 per GPU-hour that is ~$0.04 per meeting hour for speech, plus ~$0.03 for the LLM.</p>"
+   },
+   {
+    "title": "API & data model",
+    "minutes": "7 min",
+    "ask": "<p>What are the endpoints for the live stream, the minutes and approval? What do you store?</p>",
+    "model": "<p><code>POST /meetings</code> returns a meeting id and a short-lived WS token. <code>WS /live/{id}?resume_from=seq</code>: binary Opus frames up, JSON <code>interim|final|ack</code> down. <code>POST /meetings/{id}/end</code> → 202. <code>POST /uploads</code> → presigned URL. <code>GET/PATCH /minutes</code> with a version for optimistic locking, <code>POST /approve {version, send[]}</code>. Tables: <code>meetings</code> (classification, delete_after), <code>segments</code> (final text only, speaker, t0, t1, model_version), versioned <code>minutes</code> with actions citing segment ids, and an <code>outbox</code> with a unique idempotency key. Audio in object storage with a lifecycle rule.</p>"
+   },
+   {
+    "title": "High-level design",
+    "minutes": "10 min",
+    "ask": "<p>Draw the live path and the post-meeting path.</p>",
+    "model": "<p><b>Live</b>: browser AudioWorklet → Opus over WSS → gateway (auth, sticky by meeting) → live transcription service holding the open chunk → GPU ASR pool and a diarisation service; interim text back every ~1 s, final segments to Postgres every 30 s; raw audio to object storage. <b>After</b>: end of meeting or upload → job queue → pipeline worker (batch ASR for uploads at low priority, then an LLM call returning schema-checked JSON) → draft minutes → organiser edits and approves → outbox → send queue → connectors for email, tasks and calendar with idempotency keys.</p>"
+   },
+   {
+    "title": "Deep dive",
+    "minutes": "12 min",
+    "ask": "<p>Pick one: interim vs final captions on the live path, or keeping the LLM from inventing action items. Go deep.</p>",
+    "model": "<p><b>Live path</b>: Whisper reads up to 30 s windows, so re-decode the open chunk about once a second for interim text and finalise at 30 s; short chunks get padded and Whisper can hallucinate on padding (GovTech's Transcribe team described this publicly). Interim is shown, never stored. Route by meeting id because the chunk is in memory; on a crash the client replays from the last acked seq. Budget: ~100 ms capture, ~30 ms network, ~500 ms average wait for the tick, &lt;100 ms GPU queue, ~300 ms decode, ~100 ms back.</p><p><b>LLM</b>: JSON schema output, owners must be attendees or null, every item cites segment ids that are checked to exist and overlap, failed validation retries once then falls back to manual, and a person approves each item beside its source lines. Track edit rate as the quality metric.</p>"
+   },
+   {
+    "title": "Bottlenecks & trade-offs",
+    "minutes": "6 min",
+    "ask": "<p>What breaks first at 10 am Monday, and what did you trade away?</p>",
+    "model": "<p>The GPU pool saturates first: scale ahead of the hour from calendar data, keep warm nodes (models take minutes to load), autoscale on GPU queue wait, pause uploads before live streams, and stretch the interim cadence to 2 s before refusing anyone. Minutes jobs burst at the hour; the queue absorbs them. Trade-offs: WebSocket over WebRTC (simpler, server-side only), window re-decoding over a streaming model (accuracy for GPU cost), approval over auto-send (a little delay for trust), self-hosted models over APIs (classification first).</p>"
+   }
+  ],
+  "rubric": [
+   "Separates the latency-bound live path from the throughput-bound post-meeting path",
+   "Streams compressed audio (e.g. Opus) over a WebSocket with sequence numbers and a resume or replay story for dropped connections",
+   "Distinguishes interim captions (replaced, not stored) from final text, and explains why final text waits for a full window",
+   "Sizes the GPU pool from concurrent streams and gives a cost per meeting hour with stated assumptions",
+   "Runs minutes generation as async queued jobs and returns 202 rather than blocking on the LLM",
+   "Uses structured LLM output with owners, due dates and links back to transcript segments, validated before saving",
+   "Requires human edit and approval before any follow-up is sent, and sends through an outbox or queue with idempotency keys",
+   "Names at least two model failure modes (hallucinated text, wrong speaker, invented action item) with a mitigation for each",
+   "Addresses data classification and retention: approved hosting, encryption, access control, and deletion of audio on a schedule"
+  ]
+ }
+]

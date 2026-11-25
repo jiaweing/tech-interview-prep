@@ -1,0 +1,458 @@
+{
+ "id": "bfs",
+ "track": "algo",
+ "order": 12,
+ "title": "Breadth-first search (BFS)",
+ "short": "Explore level by level: everything 1 step away, then 2.",
+ "what": "Start at one node and visit all its neighbours first, then their neighbours, and so on, one ring at a time. A queue keeps the order: nodes found first are explored first. Because it goes ring by ring, BFS finds the fewest steps to every node.",
+ "analogy": "A drop of ink spreading on paper, or a rumour: first your friends hear it, then their friends, then theirs. Nobody 3 steps away hears before everyone 2 steps away.",
+ "viz": {
+  "kind": "graph",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "B",
+      "x": 25,
+      "y": 42
+     },
+     {
+      "id": "C",
+      "x": 72,
+      "y": 42
+     },
+     {
+      "id": "D",
+      "x": 5,
+      "y": 85
+     },
+     {
+      "id": "E",
+      "x": 42,
+      "y": 85
+     },
+     {
+      "id": "F",
+      "x": 95,
+      "y": 85
+     }
+    ],
+    "edges": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "A",
+      "C"
+     ],
+     [
+      "B",
+      "D"
+     ],
+     [
+      "B",
+      "E"
+     ],
+     [
+      "C",
+      "F"
+     ],
+     [
+      "E",
+      "F"
+     ]
+    ],
+    "label": "start at A",
+    "hi": [
+     "A"
+    ],
+    "dist": {
+     "A": "0 away"
+    },
+    "out": "queue: A",
+    "say": "Start at A and put it in a queue: first in, first out. A is 0 steps from itself."
+   },
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "B",
+      "x": 25,
+      "y": 42
+     },
+     {
+      "id": "C",
+      "x": 72,
+      "y": 42
+     },
+     {
+      "id": "D",
+      "x": 5,
+      "y": 85
+     },
+     {
+      "id": "E",
+      "x": 42,
+      "y": 85
+     },
+     {
+      "id": "F",
+      "x": 95,
+      "y": 85
+     }
+    ],
+    "edges": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "A",
+      "C"
+     ],
+     [
+      "B",
+      "D"
+     ],
+     [
+      "B",
+      "E"
+     ],
+     [
+      "C",
+      "F"
+     ],
+     [
+      "E",
+      "F"
+     ]
+    ],
+    "label": "start at A",
+    "ok": [
+     "A"
+    ],
+    "hi": [
+     "B",
+     "C"
+    ],
+    "edgeHi": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "A",
+      "C"
+     ]
+    ],
+    "dist": {
+     "A": "0 away",
+     "B": "1 away",
+     "C": "1 away"
+    },
+    "out": "queue: B C",
+    "say": "Take A from the front. Its neighbours B and C are new: mark them 1 step away and add them to the back."
+   },
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "B",
+      "x": 25,
+      "y": 42
+     },
+     {
+      "id": "C",
+      "x": 72,
+      "y": 42
+     },
+     {
+      "id": "D",
+      "x": 5,
+      "y": 85
+     },
+     {
+      "id": "E",
+      "x": 42,
+      "y": 85
+     },
+     {
+      "id": "F",
+      "x": 95,
+      "y": 85
+     }
+    ],
+    "edges": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "A",
+      "C"
+     ],
+     [
+      "B",
+      "D"
+     ],
+     [
+      "B",
+      "E"
+     ],
+     [
+      "C",
+      "F"
+     ],
+     [
+      "E",
+      "F"
+     ]
+    ],
+    "label": "start at A",
+    "ok": [
+     "A",
+     "B"
+    ],
+    "hi": [
+     "D",
+     "E"
+    ],
+    "edgeHi": [
+     [
+      "B",
+      "D"
+     ],
+     [
+      "B",
+      "E"
+     ]
+    ],
+    "dist": {
+     "A": "0 away",
+     "B": "1 away",
+     "C": "1 away",
+     "D": "2 away",
+     "E": "2 away"
+    },
+    "out": "queue: C D E",
+    "say": "Take B. Add its new neighbours D and E (2 steps). They wait behind C, so C is explored first."
+   },
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "B",
+      "x": 25,
+      "y": 42
+     },
+     {
+      "id": "C",
+      "x": 72,
+      "y": 42
+     },
+     {
+      "id": "D",
+      "x": 5,
+      "y": 85
+     },
+     {
+      "id": "E",
+      "x": 42,
+      "y": 85
+     },
+     {
+      "id": "F",
+      "x": 95,
+      "y": 85
+     }
+    ],
+    "edges": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "A",
+      "C"
+     ],
+     [
+      "B",
+      "D"
+     ],
+     [
+      "B",
+      "E"
+     ],
+     [
+      "C",
+      "F"
+     ],
+     [
+      "E",
+      "F"
+     ]
+    ],
+    "label": "start at A",
+    "ok": [
+     "A",
+     "B",
+     "C"
+    ],
+    "hi": [
+     "F"
+    ],
+    "edgeHi": [
+     [
+      "C",
+      "F"
+     ]
+    ],
+    "dist": {
+     "A": "0 away",
+     "B": "1 away",
+     "C": "1 away",
+     "D": "2 away",
+     "E": "2 away",
+     "F": "2 away"
+    },
+    "out": "queue: D E F",
+    "say": "Take C. F is new: 2 steps. The whole 1-step ring is done before any 2-step node is explored."
+   },
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "B",
+      "x": 25,
+      "y": 42
+     },
+     {
+      "id": "C",
+      "x": 72,
+      "y": 42
+     },
+     {
+      "id": "D",
+      "x": 5,
+      "y": 85
+     },
+     {
+      "id": "E",
+      "x": 42,
+      "y": 85
+     },
+     {
+      "id": "F",
+      "x": 95,
+      "y": 85
+     }
+    ],
+    "edges": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "A",
+      "C"
+     ],
+     [
+      "B",
+      "D"
+     ],
+     [
+      "B",
+      "E"
+     ],
+     [
+      "C",
+      "F"
+     ],
+     [
+      "E",
+      "F"
+     ]
+    ],
+    "label": "start at A",
+    "ok": [
+     "A",
+     "B",
+     "C",
+     "D",
+     "E",
+     "F"
+    ],
+    "dist": {
+     "A": "0 away",
+     "B": "1 away",
+     "C": "1 away",
+     "D": "2 away",
+     "E": "2 away",
+     "F": "2 away"
+    },
+    "out": "order: A B C D E F",
+    "say": "Take D, E and F. E and F are neighbours, but both are already seen, so nothing is added twice. Done."
+   }
+  ]
+ },
+ "when": [
+  "Shortest path when every step costs the same",
+  "Fewest moves, fewest steps, nearest exit",
+  "Process a tree level by level",
+  "Spread from many starting points at once (rotting oranges)"
+ ],
+ "python": "from collections import deque\ngraph = {\"A\": [\"B\", \"C\"], \"B\": [\"A\", \"D\", \"E\"], \"C\": [\"A\", \"F\"],\n         \"D\": [\"B\"], \"E\": [\"B\", \"F\"], \"F\": [\"C\", \"E\"]}\n\ndef bfs(start):\n    steps = {start: 0}\n    queue = deque([start])\n    while queue:\n        node = queue.popleft()\n        for nxt in graph[node]:\n            if nxt not in steps:\n                steps[nxt] = steps[node] + 1\n                queue.append(nxt)\n    return steps\n\nprint(bfs(\"A\"))",
+ "output": "{'A': 0, 'B': 1, 'C': 1, 'D': 2, 'E': 2, 'F': 2}",
+ "cost": [
+  [
+   "Visit every node (V) and edge (E)",
+   "O(V + E)"
+  ],
+  [
+   "Queue and seen memory",
+   "O(V)"
+  ],
+  [
+   "Shortest path, equal steps",
+   "O(V + E)"
+  ]
+ ],
+ "watch": [
+  "Mark a node seen when you add it to the queue, not when you take it out, or it gets added twice.",
+  "Use deque.popleft(). list.pop(0) is O(n) each time.",
+  "If steps have different costs, BFS is wrong: use Dijkstra."
+ ],
+ "interview": [
+  "LC 102 Binary Tree Level Order Traversal",
+  "LC 994 Rotting Oranges",
+  "LC 127 Word Ladder"
+ ],
+ "related": [
+  "dfs",
+  "queue",
+  "graph",
+  "dijkstra"
+ ]
+}

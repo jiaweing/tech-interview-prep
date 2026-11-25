@@ -1,0 +1,433 @@
+{
+ "id": "blob-storage",
+ "track": "sd",
+ "order": 22,
+ "title": "Blob storage",
+ "short": "Keep big files by key, and only the key in your database.",
+ "what": "Photos, videos and backups are big blobs of bytes that you never search inside. Blob storage (object storage, like S3) keeps each file under a key, copies it to several disks, and serves it over HTTP. Your database keeps only the key and a few details.",
+ "analogy": "A coat check for files. The big coat stays in the back; you keep a small ticket in your wallet.",
+ "viz": {
+  "kind": "sd",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "phone",
+      "label": "Phone app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "api",
+      "label": "API server",
+      "x": 40,
+      "y": 0
+     },
+     {
+      "id": "db",
+      "label": "Database",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "blob",
+      "label": "Blob store",
+      "x": 40,
+      "y": 100
+     },
+     {
+      "id": "cdn",
+      "label": "CDN",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "phone",
+      "api"
+     ],
+     [
+      "api",
+      "db"
+     ],
+     [
+      "phone",
+      "blob"
+     ],
+     [
+      "cdn",
+      "blob"
+     ]
+    ],
+    "say": "You post a 4 MB photo. At 1 million photos a day that's 4 TB a day, far too much to keep inside the database."
+   },
+   {
+    "nodes": [
+     {
+      "id": "phone",
+      "label": "Phone app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "api",
+      "label": "API server",
+      "x": 40,
+      "y": 0,
+      "sub": "signs a URL"
+     },
+     {
+      "id": "db",
+      "label": "Database",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "blob",
+      "label": "Blob store",
+      "x": 40,
+      "y": 100
+     },
+     {
+      "id": "cdn",
+      "label": "CDN",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "phone",
+      "api",
+      "upload link?"
+     ],
+     [
+      "api",
+      "db"
+     ],
+     [
+      "phone",
+      "blob"
+     ],
+     [
+      "cdn",
+      "blob"
+     ]
+    ],
+    "hi": [
+     "api"
+    ],
+    "edgeHi": [
+     [
+      "phone",
+      "api"
+     ]
+    ],
+    "say": "The app asks the API server for an upload link. It gets a signed URL for the key photos/u7/a1b2.jpg, valid for 15 minutes."
+   },
+   {
+    "nodes": [
+     {
+      "id": "phone",
+      "label": "Phone app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "api",
+      "label": "API server",
+      "x": 40,
+      "y": 0
+     },
+     {
+      "id": "db",
+      "label": "Database",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "blob",
+      "label": "Blob store",
+      "x": 40,
+      "y": 100
+     },
+     {
+      "id": "cdn",
+      "label": "CDN",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "phone",
+      "api"
+     ],
+     [
+      "api",
+      "db"
+     ],
+     [
+      "phone",
+      "blob",
+      "PUT 4 MB"
+     ],
+     [
+      "cdn",
+      "blob"
+     ]
+    ],
+    "hi": [
+     "blob"
+    ],
+    "edgeHi": [
+     [
+      "phone",
+      "blob"
+     ]
+    ],
+    "say": "The phone uploads the 4 MB straight to the blob store. The API server never touches the bytes, so it stays fast."
+   },
+   {
+    "nodes": [
+     {
+      "id": "phone",
+      "label": "Phone app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "api",
+      "label": "API server",
+      "x": 40,
+      "y": 0
+     },
+     {
+      "id": "db",
+      "label": "Database",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "blob",
+      "label": "Blob store",
+      "x": 40,
+      "y": 100,
+      "sub": "3 copies"
+     },
+     {
+      "id": "cdn",
+      "label": "CDN",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "phone",
+      "api"
+     ],
+     [
+      "api",
+      "db"
+     ],
+     [
+      "phone",
+      "blob"
+     ],
+     [
+      "cdn",
+      "blob"
+     ]
+    ],
+    "ok": [
+     "blob"
+    ],
+    "say": "The blob store keeps the file as one object under its key and copies it to 3 disks, so one dead disk loses nothing."
+   },
+   {
+    "nodes": [
+     {
+      "id": "phone",
+      "label": "Phone app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "api",
+      "label": "API server",
+      "x": 40,
+      "y": 0
+     },
+     {
+      "id": "db",
+      "label": "Database",
+      "x": 100,
+      "y": 0,
+      "sub": "~100 bytes"
+     },
+     {
+      "id": "blob",
+      "label": "Blob store",
+      "x": 40,
+      "y": 100,
+      "sub": "3 copies"
+     },
+     {
+      "id": "cdn",
+      "label": "CDN",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "phone",
+      "api"
+     ],
+     [
+      "api",
+      "db",
+      "key + size"
+     ],
+     [
+      "phone",
+      "blob"
+     ],
+     [
+      "cdn",
+      "blob"
+     ]
+    ],
+    "ok": [
+     "db"
+    ],
+    "edgeHi": [
+     [
+      "api",
+      "db"
+     ]
+    ],
+    "say": "The API saves only the key, size and owner in the database: about 100 bytes instead of 4 MB."
+   },
+   {
+    "nodes": [
+     {
+      "id": "phone",
+      "label": "Phone app",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "api",
+      "label": "API server",
+      "x": 40,
+      "y": 0
+     },
+     {
+      "id": "db",
+      "label": "Database",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "blob",
+      "label": "Blob store",
+      "x": 40,
+      "y": 100,
+      "sub": "3 copies"
+     },
+     {
+      "id": "cdn",
+      "label": "CDN",
+      "x": 100,
+      "y": 100
+     },
+     {
+      "id": "fr",
+      "label": "Friends",
+      "x": 100,
+      "y": 50
+     }
+    ],
+    "edges": [
+     [
+      "phone",
+      "api"
+     ],
+     [
+      "api",
+      "db"
+     ],
+     [
+      "phone",
+      "blob"
+     ],
+     [
+      "cdn",
+      "blob",
+      "first view only"
+     ],
+     [
+      "fr",
+      "cdn",
+      "GET photo"
+     ]
+    ],
+    "ok": [
+     "cdn"
+    ],
+    "edgeHi": [
+     [
+      "fr",
+      "cdn"
+     ],
+     [
+      "cdn",
+      "blob"
+     ]
+    ],
+    "say": "Friends load it through a CDN. The first view fetches it from the blob store; the next million come from caches near them."
+   }
+  ]
+ },
+ "when": [
+  "Users upload photos, videos or documents",
+  "Files are big and read far more than written",
+  "Design Instagram, YouTube or Dropbox",
+  "Backups, logs and archive files"
+ ],
+ "python": "import hashlib\nblobs = {}       # blob store: key -> bytes\nposts = {}       # database: post id -> small row\n\nphoto = bytes(4_000_000)                           # a 4 MB photo\nkey = \"photos/u7/\" + hashlib.md5(photo).hexdigest()[:8] + \".jpg\"\nblobs[key] = photo                                 # the phone uploads here directly\nposts[88] = {\"user\": 7, \"key\": key, \"size\": len(photo)}\n\nprint(posts[88])\nprint(\"db row ~\", len(str(posts[88])), \"bytes, blob\", len(blobs[key]), \"bytes\")\nprint(\"1M photos a day:\", 1_000_000 * len(photo) // 10**12, \"TB a day\")",
+ "output": "{'user': 7, 'key': 'photos/u7/90b741f9.jpg', 'size': 4000000}\ndb row ~ 61 bytes, blob 4000000 bytes\n1M photos a day: 4 TB a day",
+ "cost": [
+  [
+   "Store or read one object",
+   "O(1) by key, ~20-100 ms to first byte"
+  ],
+  [
+   "Price",
+   "about $0.02 per GB per month"
+  ],
+  [
+   "Biggest single object",
+   "up to 5 TB"
+  ]
+ ],
+ "watch": [
+  "Don't stream big uploads through your API servers: hand out signed URLs.",
+  "Objects are replaced whole, not edited in place. Keep searchable details in a database.",
+  "Buckets are private by default for a reason: never make one public by accident."
+ ],
+ "interview": [
+  "Design Instagram",
+  "Design Dropbox or Google Drive",
+  "Design YouTube"
+ ],
+ "related": [
+  "cdn",
+  "sql-vs-nosql",
+  "replication",
+  "back-of-envelope"
+ ]
+}

@@ -1,0 +1,267 @@
+{
+ "id": "backtracking",
+ "track": "algo",
+ "order": 16,
+ "title": "Backtracking",
+ "short": "Try every choice, undo it, and try the next one.",
+ "what": "Some problems ask for all the ways to do something: every subset, every order, every valid board. Backtracking builds an answer one choice at a time. When it reaches the end, or a dead end, it undoes the last choice and tries the next option. It's recursion with an undo step.",
+ "analogy": "Walking a maze with a rule: at each fork take the first path, and when you hit a wall, walk back to the last fork and take the next path.",
+ "viz": {
+  "kind": "tree",
+  "frames": [
+   {
+    "nodes": [
+     "[]",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "hi": [
+     0
+    ],
+    "label": "subsets of [1, 2, 3]",
+    "say": "List every subset of [1, 2, 3]. At each number you choose: take it or skip it. Start with an empty path []."
+   },
+   {
+    "nodes": [
+     "[]",
+     "1",
+     null,
+     "1,2",
+     null,
+     null,
+     null,
+     "1,2,3",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "hi": [
+     0,
+     1,
+     3
+    ],
+    "ok": [
+     7
+    ],
+    "edge": [
+     1,
+     3,
+     7
+    ],
+    "tag": {
+     "1": "take 1",
+     "3": "take 2",
+     "7": "take 3"
+    },
+    "label": "go deep",
+    "say": "Go down the left side: take 1, take 2, take 3. No numbers left, so record the path [1, 2, 3]."
+   },
+   {
+    "nodes": [
+     "[]",
+     "1",
+     null,
+     "1,2",
+     null,
+     null,
+     null,
+     "1,2,3",
+     "1,2",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    "hi": [
+     0,
+     1,
+     3
+    ],
+    "ok": [
+     7,
+     8
+    ],
+    "edge": [
+     1,
+     3,
+     8
+    ],
+    "tag": {
+     "8": "skip 3"
+    },
+    "label": "undo, try other",
+    "say": "Step back: undo the 3 (pop it from the path) and try the other option, skip 3. Record [1, 2]. That undo is the backtrack."
+   },
+   {
+    "nodes": [
+     "[]",
+     "1",
+     null,
+     "1,2",
+     "1",
+     null,
+     null,
+     "1,2,3",
+     "1,2",
+     "1,3",
+     "1",
+     null,
+     null,
+     null,
+     null
+    ],
+    "hi": [
+     0,
+     1,
+     4
+    ],
+    "ok": [
+     7,
+     8,
+     9,
+     10
+    ],
+    "edge": [
+     1,
+     4,
+     9,
+     10
+    ],
+    "tag": {
+     "4": "skip 2"
+    },
+    "label": "back up two",
+    "say": "Both options under [1, 2] are done, so back up to [1] and skip 2. Taking or skipping 3 gives [1, 3] and [1]."
+   },
+   {
+    "nodes": [
+     "[]",
+     "1",
+     "[]",
+     "1,2",
+     "1",
+     "2",
+     "[]",
+     "1,2,3",
+     "1,2",
+     "1,3",
+     "1",
+     "2,3",
+     "2",
+     "3",
+     "[]"
+    ],
+    "hi": [
+     0,
+     2
+    ],
+    "ok": [
+     7,
+     8,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14
+    ],
+    "edge": [
+     2
+    ],
+    "tag": {
+     "2": "skip 1"
+    },
+    "label": "other half",
+    "say": "Back at the start, skip 1 and run the same pattern again: [2, 3], [2], [3], []."
+   },
+   {
+    "nodes": [
+     "[]",
+     "1",
+     "[]",
+     "1,2",
+     "1",
+     "2",
+     "[]",
+     "1,2,3",
+     "1,2",
+     "1,3",
+     "1",
+     "2,3",
+     "2",
+     "3",
+     "[]"
+    ],
+    "ok": [
+     7,
+     8,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14
+    ],
+    "label": "all leaves",
+    "out": "8 subsets",
+    "say": "8 leaves, 8 subsets: 2 options for each of 3 numbers is 2 x 2 x 2. If a branch can't work, stop early and skip its whole subtree."
+   }
+  ]
+ },
+ "when": [
+  "Find all subsets, permutations or combinations",
+  "Place items under rules (N-Queens, Sudoku)",
+  "Find every path or word that fits",
+  "The input is small (about 20 items or fewer)"
+ ],
+ "python": "def subsets(nums):\n    out, path = [], []\n    def go(i):\n        if i == len(nums):\n            out.append(path[:])  # copy, the path keeps changing\n            return\n        path.append(nums[i])     # choose: take nums[i]\n        go(i + 1)\n        path.pop()               # undo the choice\n        go(i + 1)                # other option: skip nums[i]\n    go(0)\n    return out\nprint(subsets([1, 2, 3]))",
+ "output": "[[1, 2, 3], [1, 2], [1, 3], [1], [2, 3], [2], [3], []]",
+ "cost": [
+  [
+   "All subsets of n items",
+   "O(2^n)"
+  ],
+  [
+   "All orderings of n items",
+   "O(n!)"
+  ],
+  [
+   "Extra memory (the path)",
+   "O(n)"
+  ]
+ ],
+ "watch": [
+  "Save a copy of the path (path[:]), not the path itself, or every answer ends up empty.",
+  "Every choice needs a matching undo right after the recursive call.",
+  "Prune: stop a branch as soon as it can't lead to a valid answer."
+ ],
+ "interview": [
+  "LC 78 Subsets",
+  "LC 46 Permutations",
+  "LC 39 Combination Sum",
+  "LC 51 N-Queens"
+ ],
+ "related": [
+  "recursion",
+  "dfs",
+  "dynamic-programming"
+ ]
+}

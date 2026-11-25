@@ -1,0 +1,1087 @@
+{
+ "id": "lru-cache",
+ "title": "LRU Cache",
+ "pattern": "hashing",
+ "level": "medium",
+ "statement": "<p>A feed service keeps the profiles it served most recently in a small in-memory cache, so a burst of views on one creator does not hit the database every time. When the cache is full, it drops the profile that was used <b>least recently</b>.</p><p>Write <code>def solution(capacity, ops)</code>. The cache holds at most <code>capacity</code> keys. <code>ops</code> is a list of operations, run in order:</p><ul><li><code>[\"put\", key, value]</code> stores <code>value</code> under <code>key</code>. If the key exists, update its value. If it is new and the cache is full, first remove the least recently used key.</li><li><code>[\"get\", key]</code> reads the value, or <code>-1</code> if the key is not cached.</li></ul><p>A successful <code>get</code> and every <code>put</code> count as a use and make that key the most recent. Return a list with the result of every <code>get</code>, in order (puts add nothing).</p>",
+ "examples": [
+  {
+   "input": "capacity = 2, ops = [[\"put\", 1, 1], [\"put\", 2, 2], [\"get\", 1], [\"put\", 3, 3], [\"get\", 2], [\"put\", 4, 4], [\"get\", 1], [\"get\", 3], [\"get\", 4]]",
+   "output": "[1, -1, -1, 3, 4]",
+   "why": "The LeetCode 146 example. <code>get 1</code> makes 1 recent, so <code>put 3</code> evicts 2. Then <code>put 4</code> evicts 1 (3 was used after it)."
+  },
+  {
+   "input": "capacity = 1, ops = [[\"put\", 7, 70], [\"get\", 7], [\"put\", 8, 80], [\"get\", 7], [\"get\", 8]]",
+   "output": "[70, -1, 80]",
+   "why": "With room for one key, every new key evicts the old one."
+  },
+  {
+   "input": "capacity = 2, ops = [[\"put\", 1, 10], [\"put\", 2, 20], [\"put\", 1, 15], [\"put\", 3, 30], [\"get\", 1], [\"get\", 2], [\"get\", 3]]",
+   "output": "[15, -1, 30]",
+   "why": "Putting key 1 again updates it to 15 and makes it recent, so key 2 is the one evicted."
+  }
+ ],
+ "constraints": [
+  "1 &le; capacity &le; 3,000",
+  "0 &le; len(ops) &le; 200,000",
+  "keys are integers, -10^9 &le; key &le; 10^9",
+  "0 &le; value &le; 10^9, so <code>-1</code> always means \"missing\""
+ ],
+ "starter": "def solution(capacity, ops):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "What does each operation need to be fast at?",
+   "a": "Two jobs: find a key's value (a lookup), and know which key was used longest ago (an order). Both <code>get</code> and <code>put</code> touch the order, so both jobs must be O(1) for the cache to be worth it."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Capacity 2: put 1, put 2, get 1, put 3. What is evicted?",
+   "a": "Order after the puts (oldest first): <code>[1, 2]</code>. <code>get 1</code> moves 1 to the end: <code>[2, 1]</code>. <code>put 3</code> is new and the cache is full, so drop the front, 2: <code>[1, 3]</code>."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What is the simplest thing that works?",
+   "a": "A dict for values plus a Python list of keys in use order. On every use, <code>list.remove(key)</code> and <code>append(key)</code>; evict with <code>pop(0)</code>. Correct, but remove and pop(0) shift the list: O(capacity) per operation."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Which pattern?",
+   "a": "<b>Hashing plus an ordered structure</b>. A hash map gives O(1) lookup; a doubly linked list gives O(1) move-to-end and remove-oldest. Python's <code>OrderedDict</code> is exactly that pair: <code>move_to_end(key)</code> and <code>popitem(last=False)</code>."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li>Make an empty <code>OrderedDict</code> and a result list.</li><li><code>get</code>: if missing, append -1. Otherwise <code>move_to_end</code> and append the value.</li><li><code>put</code>: if present, update and <code>move_to_end</code>. If new: when full, <code>popitem(last=False)</code>; then insert (new keys go at the end).</li><li>Return the results.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "Putting an existing key when full (must not evict). A <code>get</code> of a missing key (must not change the order). Capacity 1. Value 0 (falsy, but present). No gets at all (return <code>[]</code>)."
+  }
+ ],
+ "hints": [
+  "You need two things in O(1): look up a key, and find the least recently used key. One structure alone does not give you both, so pair a dict with something that keeps order.",
+  "<code>from collections import OrderedDict</code>. <code>cache.move_to_end(key)</code> marks a key as most recent; <code>cache.popitem(last=False)</code> removes the oldest.",
+  "Only evict when the key is <b>new</b> and <code>len(cache) == capacity</code>. Updating an existing key never evicts anything."
+ ],
+ "solution": "from collections import OrderedDict\n\ndef solution(capacity, ops):\n    cache = OrderedDict()          # oldest key first, most recent last\n    results = []\n    for op in ops:\n        if op[0] == \"get\":\n            key = op[1]\n            if key not in cache:\n                results.append(-1)\n                continue\n            cache.move_to_end(key)     # a hit makes the key the most recent\n            results.append(cache[key])\n        else:\n            key, value = op[1], op[2]\n            if key in cache:\n                cache.move_to_end(key)  # update in place, never evicts\n            elif len(cache) == capacity:\n                cache.popitem(last=False)  # drop the least recently used\n            cache[key] = value\n    return results\n",
+ "brute": "def solution(capacity, ops):\n    # A dict for values and a plain list for use order (oldest first).\n    # list.remove and pop(0) shift the list, so each op is O(capacity).\n    values = {}\n    order = []\n    results = []\n    for op in ops:\n        key = op[1]\n        if op[0] == \"get\":\n            if key in values:\n                order.remove(key)\n                order.append(key)\n                results.append(values[key])\n            else:\n                results.append(-1)\n        else:\n            if key in values:\n                order.remove(key)\n            elif len(order) == capacity:\n                oldest = order.pop(0)\n                del values[oldest]\n            order.append(key)\n            values[key] = op[2]\n    return results\n",
+ "explain": "<p>Walk example 1 with the order written oldest &rarr; newest:</p><ul><li><code>put 1</code>, <code>put 2</code>: <code>[1, 2]</code>.</li><li><code>get 1</code> &rarr; 1, order <code>[2, 1]</code>.</li><li><code>put 3</code>: full and 3 is new, evict the front (2): <code>[1, 3]</code>.</li><li><code>get 2</code> &rarr; -1 (no change).</li><li><code>put 4</code>: evict 1: <code>[3, 4]</code>.</li><li><code>get 1</code> &rarr; -1, <code>get 3</code> &rarr; 3, <code>get 4</code> &rarr; 4.</li></ul><p><code>OrderedDict</code> keeps a hash table for lookup and a doubly linked list for order, so moving a key to the end and dropping the front are O(1). If the interviewer bans it, build that pair yourself: a dict from key to node, and a linked list with dummy head and tail nodes.</p>",
+ "complexity": "O(1) per operation, O(capacity) extra space",
+ "tests": [
+  {
+   "args": [
+    2,
+    [
+     [
+      "put",
+      1,
+      1
+     ],
+     [
+      "put",
+      2,
+      2
+     ],
+     [
+      "get",
+      1
+     ],
+     [
+      "put",
+      3,
+      3
+     ],
+     [
+      "get",
+      2
+     ],
+     [
+      "put",
+      4,
+      4
+     ],
+     [
+      "get",
+      1
+     ],
+     [
+      "get",
+      3
+     ],
+     [
+      "get",
+      4
+     ]
+    ]
+   ],
+   "expected": [
+    1,
+    -1,
+    -1,
+    3,
+    4
+   ],
+   "label": "example 1 (LeetCode 146)",
+   "cat": "example",
+   "why": "a get refreshes key 1, so 2 and then 1 are evicted"
+  },
+  {
+   "args": [
+    1,
+    [
+     [
+      "put",
+      7,
+      70
+     ],
+     [
+      "get",
+      7
+     ],
+     [
+      "put",
+      8,
+      80
+     ],
+     [
+      "get",
+      7
+     ],
+     [
+      "get",
+      8
+     ]
+    ]
+   ],
+   "expected": [
+    70,
+    -1,
+    80
+   ],
+   "label": "example 2 (capacity 1)",
+   "cat": "example",
+   "why": "every new key evicts the previous one"
+  },
+  {
+   "args": [
+    2,
+    [
+     [
+      "put",
+      1,
+      10
+     ],
+     [
+      "put",
+      2,
+      20
+     ],
+     [
+      "put",
+      1,
+      15
+     ],
+     [
+      "put",
+      3,
+      30
+     ],
+     [
+      "get",
+      1
+     ],
+     [
+      "get",
+      2
+     ],
+     [
+      "get",
+      3
+     ]
+    ]
+   ],
+   "expected": [
+    15,
+    -1,
+    30
+   ],
+   "label": "example 3 (update refreshes)",
+   "cat": "example",
+   "why": "putting an existing key makes it recent"
+  },
+  {
+   "args": [
+    3,
+    []
+   ],
+   "expected": [],
+   "label": "no operations",
+   "cat": "empty",
+   "why": "nothing to return"
+  },
+  {
+   "args": [
+    2,
+    [
+     [
+      "get",
+      5
+     ]
+    ]
+   ],
+   "expected": [
+    -1
+   ],
+   "label": "get on an empty cache",
+   "cat": "single",
+   "why": "a miss returns -1"
+  },
+  {
+   "args": [
+    2,
+    [
+     [
+      "put",
+      1,
+      0
+     ],
+     [
+      "get",
+      1
+     ],
+     [
+      "put",
+      2,
+      0
+     ],
+     [
+      "get",
+      2
+     ],
+     [
+      "get",
+      3
+     ]
+    ]
+   ],
+   "expected": [
+    0,
+    0,
+    -1
+   ],
+   "label": "value 0",
+   "cat": "zero",
+   "why": "0 is a stored value, not a miss"
+  },
+  {
+   "args": [
+    2,
+    [
+     [
+      "put",
+      1,
+      1
+     ],
+     [
+      "put",
+      2,
+      2
+     ],
+     [
+      "get",
+      9
+     ],
+     [
+      "put",
+      3,
+      3
+     ],
+     [
+      "get",
+      1
+     ],
+     [
+      "get",
+      2
+     ],
+     [
+      "get",
+      3
+     ]
+    ]
+   ],
+   "expected": [
+    -1,
+    -1,
+    2,
+    3
+   ],
+   "label": "miss does not refresh",
+   "cat": "small",
+   "why": "a miss leaves the order alone, so 1 is still the oldest"
+  },
+  {
+   "args": [
+    2,
+    [
+     [
+      "put",
+      1,
+      1
+     ],
+     [
+      "put",
+      2,
+      2
+     ],
+     [
+      "put",
+      2,
+      5
+     ],
+     [
+      "put",
+      2,
+      6
+     ],
+     [
+      "get",
+      1
+     ],
+     [
+      "get",
+      2
+     ]
+    ]
+   ],
+   "expected": [
+    1,
+    6
+   ],
+   "label": "same key many times",
+   "cat": "dupes",
+   "why": "updating a key in a full cache must not evict anything"
+  },
+  {
+   "args": [
+    3,
+    [
+     [
+      "put",
+      -1,
+      4
+     ],
+     [
+      "put",
+      -2,
+      8
+     ],
+     [
+      "put",
+      0,
+      1
+     ],
+     [
+      "get",
+      -2
+     ],
+     [
+      "put",
+      -3,
+      9
+     ],
+     [
+      "get",
+      -1
+     ],
+     [
+      "get",
+      -2
+     ],
+     [
+      "get",
+      0
+     ],
+     [
+      "get",
+      -3
+     ]
+    ]
+   ],
+   "expected": [
+    8,
+    -1,
+    8,
+    1,
+    9
+   ],
+   "label": "negative keys",
+   "cat": "negative",
+   "why": "keys are any integers"
+  },
+  {
+   "args": [
+    3,
+    [
+     [
+      "put",
+      1,
+      1
+     ],
+     [
+      "put",
+      2,
+      2
+     ],
+     [
+      "put",
+      3,
+      3
+     ],
+     [
+      "get",
+      1
+     ],
+     [
+      "put",
+      4,
+      4
+     ],
+     [
+      "get",
+      2
+     ],
+     [
+      "get",
+      3
+     ],
+     [
+      "get",
+      1
+     ],
+     [
+      "put",
+      5,
+      5
+     ],
+     [
+      "get",
+      4
+     ],
+     [
+      "get",
+      3
+     ],
+     [
+      "get",
+      5
+     ]
+    ]
+   ],
+   "expected": [
+    1,
+    -1,
+    3,
+    1,
+    -1,
+    3,
+    5
+   ],
+   "label": "exactly full, then over",
+   "cat": "boundary",
+   "why": "the fourth key evicts the oldest untouched one"
+  },
+  {
+   "args": [
+    5,
+    [
+     [
+      "get",
+      0
+     ],
+     [
+      "put",
+      7,
+      1
+     ],
+     [
+      "put",
+      5,
+      2
+     ],
+     [
+      "get",
+      1
+     ],
+     [
+      "put",
+      1,
+      4
+     ],
+     [
+      "put",
+      8,
+      5
+     ],
+     [
+      "get",
+      2
+     ],
+     [
+      "put",
+      4,
+      7
+     ],
+     [
+      "put",
+      2,
+      8
+     ],
+     [
+      "get",
+      3
+     ],
+     [
+      "put",
+      7,
+      10
+     ],
+     [
+      "put",
+      5,
+      11
+     ],
+     [
+      "get",
+      4
+     ],
+     [
+      "put",
+      1,
+      13
+     ],
+     [
+      "put",
+      8,
+      14
+     ],
+     [
+      "get",
+      5
+     ],
+     [
+      "put",
+      4,
+      16
+     ],
+     [
+      "put",
+      2,
+      17
+     ],
+     [
+      "get",
+      6
+     ],
+     [
+      "put",
+      7,
+      19
+     ],
+     [
+      "put",
+      5,
+      20
+     ],
+     [
+      "get",
+      7
+     ],
+     [
+      "put",
+      1,
+      22
+     ],
+     [
+      "put",
+      8,
+      23
+     ],
+     [
+      "get",
+      8
+     ],
+     [
+      "put",
+      4,
+      25
+     ],
+     [
+      "put",
+      2,
+      26
+     ],
+     [
+      "get",
+      9
+     ],
+     [
+      "put",
+      7,
+      28
+     ],
+     [
+      "put",
+      5,
+      29
+     ],
+     [
+      "get",
+      10
+     ],
+     [
+      "put",
+      1,
+      31
+     ],
+     [
+      "put",
+      8,
+      32
+     ],
+     [
+      "get",
+      0
+     ],
+     [
+      "put",
+      4,
+      34
+     ],
+     [
+      "put",
+      2,
+      35
+     ],
+     [
+      "get",
+      1
+     ],
+     [
+      "put",
+      7,
+      37
+     ],
+     [
+      "put",
+      5,
+      38
+     ],
+     [
+      "get",
+      2
+     ]
+    ]
+   ],
+   "expected": [
+    -1,
+    -1,
+    -1,
+    -1,
+    7,
+    11,
+    -1,
+    19,
+    23,
+    -1,
+    -1,
+    -1,
+    31,
+    35
+   ],
+   "label": "mixed 40 ops",
+   "cat": "medium",
+   "why": "gets and puts interleaved over 9 keys"
+  },
+  {
+   "args": [
+    100,
+    [
+     [
+      "put",
+      0,
+      0
+     ],
+     [
+      "put",
+      1,
+      2
+     ],
+     [
+      "put",
+      2,
+      4
+     ],
+     [
+      "put",
+      3,
+      6
+     ],
+     [
+      "put",
+      4,
+      8
+     ],
+     [
+      "put",
+      5,
+      10
+     ],
+     [
+      "put",
+      6,
+      12
+     ],
+     [
+      "put",
+      7,
+      14
+     ],
+     [
+      "put",
+      8,
+      16
+     ],
+     [
+      "put",
+      9,
+      18
+     ],
+     [
+      "put",
+      10,
+      20
+     ],
+     [
+      "put",
+      11,
+      22
+     ],
+     [
+      "put",
+      12,
+      24
+     ],
+     [
+      "put",
+      13,
+      26
+     ],
+     [
+      "put",
+      14,
+      28
+     ],
+     [
+      "put",
+      15,
+      30
+     ],
+     [
+      "put",
+      16,
+      32
+     ],
+     [
+      "put",
+      17,
+      34
+     ],
+     [
+      "put",
+      18,
+      36
+     ],
+     [
+      "put",
+      19,
+      38
+     ],
+     [
+      "put",
+      20,
+      40
+     ],
+     [
+      "put",
+      21,
+      42
+     ],
+     [
+      "put",
+      22,
+      44
+     ],
+     [
+      "put",
+      23,
+      46
+     ],
+     [
+      "put",
+      24,
+      48
+     ],
+     [
+      "put",
+      25,
+      50
+     ],
+     [
+      "put",
+      26,
+      52
+     ],
+     [
+      "put",
+      27,
+      54
+     ],
+     [
+      "put",
+      28,
+      56
+     ],
+     [
+      "put",
+      29,
+      58
+     ],
+     [
+      "put",
+      30,
+      60
+     ],
+     [
+      "put",
+      31,
+      62
+     ],
+     [
+      "put",
+      32,
+      64
+     ],
+     [
+      "put",
+      33,
+      66
+     ],
+     [
+      "put",
+      34,
+      68
+     ],
+     [
+      "put",
+      35,
+      70
+     ],
+     [
+      "put",
+      36,
+      72
+     ],
+     [
+      "put",
+      37,
+      74
+     ],
+     [
+      "put",
+      38,
+      76
+     ],
+     [
+      "put",
+      39,
+      78
+     ],
+     [
+      "put",
+      40,
+      80
+     ],
+     [
+      "put",
+      41,
+      82
+     ],
+     [
+      "put",
+      42,
+      84
+     ],
+     [
+      "put",
+      43,
+      86
+     ],
+     [
+      "put",
+      44,
+      88
+     ],
+     [
+      "put",
+      45,
+      90
+     ],
+     [
+      "put",
+      46,
+      92
+     ],
+     [
+      "put",
+      47,
+      94
+     ],
+     [
+      "put",
+      48,
+      96
+     ],
+     [
+      "put",
+      49,
+      98
+     ],
+     [
+      "put",
+      50,
+      100
+     ],
+     [
+      "put",
+      51,
+      102
+     ],
+     [
+      "put",
+      52,
+      104
+     ],
+     [
+      "put",
+      53,
+      106
+     ],
+     [
+      "put",
+      54,
+      108
+     ],
+     [
+      "put",
+      55,
+      110
+     ],
+     [
+      "put",
+      56,
+      112
+     ],
+     [
+      "put",
+      57,
+      114
+     ],
+     [
+      "put",
+      58,
+      116
+     ],
+     [
+      "put",
+      59,
+      118
+     ],
+     [
+      "get",
+      0
+     ],
+     [
+      "get",
+      7
+     ],
+     [
+      "get",
+      14
+     ],
+     [
+      "get",
+      21
+     ],
+     [
+      "get",
+      28
+     ],
+     [
+      "get",
+      35
+     ],
+     [
+      "get",
+      42
+     ],
+     [
+      "get",
+      49
+     ],
+     [
+      "get",
+      56
+     ]
+    ]
+   ],
+   "expected": [
+    0,
+    14,
+    28,
+    42,
+    56,
+    70,
+    84,
+    98,
+    112
+   ],
+   "label": "never full",
+   "cat": "boundary",
+   "why": "capacity larger than the number of keys: nothing is evicted"
+  }
+ ],
+ "perf": {
+  "label": "performance: 25,000 ops, capacity 1,500",
+  "gen": "[1500, [['get', (i * i + 7) % 3001] if i % 25 == 0 else ['put', (i * i) % 3001, i] for i in range(25000)]]",
+  "expected": [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 360, -1, -1, -1, -1, 164, -1, 574, -1, -1, -1, -1, -1, -1, -1, -1, 559, 788, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1112, 964, 318, 1170, -1, 30, 952, 213, -1, 530, 595, -1, -1, -1, 589, -1, 905, -1, -1, 410, 216, 1043, -1, -1, 1517, 853, -1, 936, -1, 1926, 188, -1, 1642, 1717, 780, 819, 1815, 228, 1543, -1, -1, 2248, -1, -1, -1, 2001, -1, 1761, -1, 2114, -1, -1, 1883, 1510, 2338, -1, -1, 1861, -1, 1822, -1, -1, 1865, 1688, 2423, 1633, -1, -1, 2595, -1, -1, 1904, -1, 2707, 1752, 1568, -1, 2197, 2464, -1, -1, -1, -1, -1, -1, -1, 2623, 1563, -1, 2393, 3226, 3343, 2077, -1, -1, 1996, -1, 1695, -1, 3108, 1810, -1, -1, 3204, 1629, 1760, -1, -1, 1653, -1, -1, -1, -1, 3490, 3845, -1, -1, -1, 3677, -1, -1, 4030, -1, -1, 3893, 3266, -1, -1, 4060, 3639, 3446, 3851, 3806, -1, -1, 3456, 3274, -1, -1, 3094, 3657, 3248, 1952, 3617, 3142, -1, -1, -1, 4644, 4328, -1, 3938, -1, 3004, -1, 5077, 3168, 4970, 3155, 3101, -1, 4203, 5028, -1, 5109, -1, 3246, 3598, -1, 4763, -1, 3078, 4516, 5231, -1, -1, 3034, -1, 5276, 5637, -1, 3137, 5668, -1, -1, 5179, 5130, 5242, 5506, -1, -1, 5797, -1, -1, 4636, -1, -1, 4589, 5457, 5717, -1, -1, -1, 5147, 4666, -1, -1, -1, 5228, 6369, -1, -1, 4730, 3978, 4978, 5146, 6323, -1, -1, 5176, 6434, -1, 6271, 6062, 6724, -1, 6657, -1, -1, 4548, -1, -1, 6334, 6221, -1, -1, -1, 4841, 6848, -1, -1, 4748, 6297, 6210, 4604, 4549, -1, -1, 7135, 6197, -1, -1, -1, 6623, -1, 7012, 6280, 7530, 6257, 7503, -1, -1, -1, -1, -1, 6397, 6985, -1, 7642, -1, -1, -1, -1, -1, 7783, -1, 6818, -1, 7733, 6476, -1, 7990, 8208, -1, -1, -1, -1, 8378, 6431, -1, -1, 8104, -1, -1, -1, -1, -1, -1, 7560, 8231, 6269, 8494, -1, 7905, 6043, 8337, -1, 7865, 8310, 8724, -1, 8999, 7756, -1, 8095, -1, -1, 8086, -1, -1, 7633, -1, -1, -1, -1, -1, -1, -1, -1, -1, 7768, 8068, 9052, -1, 9081, -1, -1, -1, -1, 7948, 9489, 9394, -1, -1, 7784, 9649, -1, -1, -1, 7845, -1, -1, -1, -1, 9056, 10022, -1, -1, 7765, -1, 9154, -1, 9367, -1, -1, -1, 9399, 9179, -1, 10166, -1, -1, 9390, -1, -1, -1, -1, 10482, -1, -1, -1, 10651, -1, -1, -1, -1, -1, -1, -1, 10745, -1, -1, -1, 9661, 9352, 9509, 10812, 11024, -1, -1, -1, 9686, 9236, -1, 9133, 10849, 9247, -1, 11345, -1, -1, 10968, -1, -1, 9203, -1, 9054, 11116, -1, -1, 11370, 11240, -1, -1, -1, -1, -1, 10684, 11324, -1, -1, -1, -1, -1, -1, 10587, -1, -1, -1, 10582, -1, 11464, 12233, 11597, 10861, 12137, 12208, -1, -1, -1, 12080, 12328, -1, 12036, 10808, -1, -1, -1, 12666, -1, 10719, -1, 10815, 12673, -1, 12528, 12124, 12637, -1, 12029, 12453, -1, -1, -1, 12422, 12320, -1, -1, -1, 12390, 12402, 12913, 13115, -1, -1, -1, -1, 12306, 13230, -1, -1, -1, -1, 12758, 13064, -1, -1, -1, 12752, 13126, -1, -1, -1, 12332, -1, -1, 13777, 12242, 13613, 13049, -1, -1, -1, 13585, -1, -1, -1, -1, 12240, -1, 14148, -1, 13863, -1, -1, 14246, 13812, 13696, 13653, -1, -1, -1, -1, 13671, -1, 13939, -1, 14441, 12130, 12005, -1, 13749, -1, 12149, -1, 12059, 13556, 14374, 14209, 13566, -1, 14198, 14621, -1, 14568, -1, 13963, 15010, -1, -1, -1, 14176, 14666, 13919, 14543, -1, -1, 15256, -1, 13852, 13846, -1, 15116, -1, -1, -1, 13689, 15332, 15614, -1, -1, 13940, -1, -1, 15736, 13843, -1, -1, 13780, 15891, 15145, -1, -1, -1, 13624, -1, 13732, 15376, 15709, 13522, 13688, 15741, -1, 15680, 14535, 15888, 15591, 15884, -1, -1, 16241, -1, 15453, 15198, -1, 15399, -1, -1, -1, -1, -1, -1, -1, 15926, 15053, -1, 16014, 16649, -1, -1, -1, 16879, 15459, -1, 15255, -1, 15874, -1, 15377, 15438, 15118, 15716, -1, -1, -1, 17293, -1, -1, 15322, 16681, -1, -1, 17374, 16818, 17140, -1, -1, -1, -1, 17076, -1, -1, -1, -1, 16821, -1, -1, -1, -1, 17126, 17943, -1, -1, 17422, -1, 17261, 16790, 17014, -1, -1, 16532, -1, -1, 16286, 16662, -1, -1, -1, -1, -1, -1, -1, 18097, 17019, 18114, 16998, 15986, 18312, -1, -1, 16871, -1, -1, 16955, 18248, 16837, 18294, -1, -1, -1, -1, -1, 18101, -1, 18807, -1, 18549, -1, 18387, -1, -1, 19233, -1, -1, 18805, -1, -1, 19223, 18934, -1, -1, -1, -1, -1, -1, 19334, -1, -1, 18708, -1, 18498, 18466, 19032, -1, 18582, -1, 18008, -1, 18903, -1, 18352, -1, -1, 18944, 18293, 18573, -1, 18489, 18368, -1, 18079, 18749, 19678, 19897, 18616, 18419, -1, 18457, 19902, -1, -1, 18411, -1, 19785, -1, 18104, 18236, 20034, -1, 18041, 19579, 20496, 20256, -1, 19536, 20137, -1, -1, 18033, 19899, -1, -1, 20176, -1, -1, 20438, -1, 20698, 19829, -1, 19831, -1, -1, -1, 21097, -1, -1, 20059, 21271, -1, -1, 20244, -1, 20226, -1, 19572, -1, 19238, 20229, 21117, 21657, 20021, -1, 20199, -1, 21619, 19537, 20081, 21468, 21858, 19943, 21952, -1, -1, 19914, -1, -1, 19693, 21923, -1, 19749, 22212, -1, 21449, -1, 21799, 21735, -1, 21541, 21624, -1, -1, 21321, -1, 21694, -1, 21266, 21404, -1, 21956, -1, -1, -1, -1, 22790, -1, 21434, -1, 21664, 21634, -1, 21273, -1, -1, 21345, -1, -1, -1, 23126, -1, -1, -1, -1, -1, -1, -1, 23102, -1, -1, -1, 23284, 22760, -1, 23181, 23336, 23582, 23311, -1, -1, -1, -1, 22609, -1, -1, 23410, -1, 22682, 23007, -1, 23133, -1, 22748, 22729, 22696, 23754, 22946, -1, -1, 24091, -1, -1, 24177, 22854, 22710, 23270, 23298, -1, 24133, 24367, 22540, -1, -1, -1, -1, 22824, -1, -1, -1, 24537, -1, 24511, 24209, 24018, 22536, -1, 22877, -1, 24105, -1, 24676, -1]
+ },
+ "al": {
+  "kind": "fundamentals",
+  "from": "LC 146 LRU Cache",
+  "talk": [
+   "Both operations are O(1): the hash map finds the node, the doubly linked list moves it to the end or unlinks the oldest without a scan. <code>OrderedDict</code> is that pair, already built.",
+   "Why not a list or a heap: removing from the middle of a list is O(capacity); a heap of last-used times gives O(log n) and needs lazy deletion of stale entries.",
+   "Edge cases I check: put on an existing key updates and refreshes but never evicts; get of a missing key returns -1 and leaves the order alone; value 0 is a real value; capacity 1.",
+   "Without <code>OrderedDict</code>: <code>key -&gt; node</code> dict plus a linked list with dummy head and tail, so insert and unlink never special-case the ends. Four helper methods: add_to_end, unlink, move_to_end, pop_front."
+  ],
+  "extensions": [
+   "Add a TTL per entry: an expired key behaves as missing on <code>get</code>. Do you clean up lazily on read or with a background sweep?",
+   "Make it safe for many threads in one feed server: a lock around each operation, or shard the cache by key hash with one lock per shard.",
+   "Switch to LFU (LC 460): evict the least frequently used key, ties broken by least recent. Keep a count per key and an ordered bucket per count.",
+   "Cap the cache by total bytes, not by key count, because cached profiles differ in size: evict from the front until the new entry fits."
+  ]
+ }
+}

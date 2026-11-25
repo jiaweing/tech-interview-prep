@@ -1,0 +1,254 @@
+{
+ "id": "caching",
+ "title": "Caching",
+ "group": "Scale out",
+ "tagline": "Keep hot data close and in memory, so most reads never touch the database.",
+ "why": "<p>Reads are usually far more common than writes, and they are skewed: a small set of keys gets most of the traffic. A cache holds those hot keys in memory, where a lookup over the network takes under a millisecond, instead of asking the database every time.</p><p>The win is load as much as latency. At a 90% hit rate the database sees one read in ten; at 99% it sees one in a hundred. That is often the difference between one database and a sharded cluster.</p><p>The cost is that you now have two copies of the data, and they can disagree. Most of the interview discussion is about that: how you write, when entries expire, how you invalidate, and what happens when a hot key expires under load.</p>",
+ "how": "<p><b>Where.</b> Browser and CDN caches for static and public content, an in-process cache for tiny hot data, and a shared cache (Redis, Memcached) for everything the app servers share.</p><p><b>Read pattern: cache-aside</b> (lazy loading). The app reads the cache; on a miss it reads the database, writes the value to the cache with a TTL, and returns it. Only data someone asked for gets cached. This is the default in most designs, and what the sim above shows: a hit costs about 1 ms, a miss about 41 ms (database read plus cache write).</p><p><b>Write patterns.</b></p><ul><li><b>Update the DB, then delete the cache key</b> (with cache-aside). The next read refills it. Deleting is safer than writing the new value, because two racing writers can leave the older value in the cache.</li><li><b>Write-through</b>: write to the cache and the database together on every write. Reads are always warm, but every write pays both, and you cache data nobody reads.</li><li><b>Write-back</b> (write-behind): write to the cache, flush to the database later in batches. Very fast writes, but a cache crash loses data that was never flushed. Use it for counters and metrics, not money.</li></ul><p><b>Eviction and expiry.</b> When the cache is full, LRU evicts the least recently used key. A TTL bounds how stale an entry can be even if an invalidation is missed. Add a little random jitter to TTLs so keys written together do not all expire together.</p><p><b>Stampede (thundering herd).</b> A hot key expires and 5,000 requests miss at once, all hitting the database for the same row. Fixes: let one request rebuild the value while others wait or get the stale copy (a lock or request coalescing), refresh hot keys before they expire, and jitter TTLs.</p>",
+ "sim": "lru",
+ "diagram": {
+  "w": 960,
+  "h": 340,
+  "nodes": [
+   {
+    "id": "user",
+    "label": "Client",
+    "kind": "user",
+    "x": 90,
+    "y": 170
+   },
+   {
+    "id": "app",
+    "label": "App service",
+    "sub": "cache-aside logic",
+    "kind": "service",
+    "x": 345,
+    "y": 170
+   },
+   {
+    "id": "cache",
+    "label": "Redis",
+    "sub": "LRU, TTL + jitter",
+    "kind": "cache",
+    "x": 610,
+    "y": 70
+   },
+   {
+    "id": "db",
+    "label": "Database",
+    "sub": "source of truth",
+    "kind": "db",
+    "x": 610,
+    "y": 270
+   },
+   {
+    "id": "inv",
+    "label": "Invalidator",
+    "sub": "reads change stream",
+    "kind": "worker",
+    "x": 860,
+    "y": 170
+   }
+  ],
+  "edges": [
+   {
+    "id": "u-app",
+    "from": "user",
+    "to": "app",
+    "label": "GET /item/42"
+   },
+   {
+    "id": "app-c",
+    "from": "app",
+    "to": "cache",
+    "label": "GET item:42"
+   },
+   {
+    "id": "app-db",
+    "from": "app",
+    "to": "db",
+    "label": "SELECT / UPDATE"
+   },
+   {
+    "id": "db-inv",
+    "from": "db",
+    "to": "inv",
+    "label": "row changed",
+    "dashed": true
+   },
+   {
+    "id": "inv-c",
+    "from": "inv",
+    "to": "cache",
+    "label": "DEL item:42"
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "hit",
+   "name": "Read: cache hit",
+   "desc": "The common case.",
+   "steps": [
+    {
+     "edge": "u-app",
+     "note": "Request for item 42."
+    },
+    {
+     "edge": "app-c",
+     "note": "Redis has <code>item:42</code>: <b>hit</b> in under 1 ms. The database is never touched."
+    },
+    {
+     "edge": "u-app",
+     "rev": true,
+     "note": "Respond. With a 95% hit rate, the database serves only 1 read in 20."
+    }
+   ]
+  },
+  {
+   "id": "miss",
+   "name": "Read: cache miss",
+   "desc": "Cache-aside fills the cache on demand.",
+   "steps": [
+    {
+     "edge": "app-c",
+     "note": "Redis <b>miss</b>: the key was evicted, expired or never cached."
+    },
+    {
+     "edge": "app-db",
+     "note": "Read the row from the database, typically a few ms by primary key."
+    },
+    {
+     "edge": "app-c",
+     "note": "Write it back with a TTL, say 300 s plus or minus 30 s of jitter, so keys cached together do not expire together."
+    },
+    {
+     "edge": "u-app",
+     "rev": true,
+     "note": "Respond. The next read for item 42 is a hit."
+    }
+   ]
+  },
+  {
+   "id": "write",
+   "name": "Write and invalidate",
+   "desc": "Update the DB, then delete the key.",
+   "steps": [
+    {
+     "edge": "app-db",
+     "note": "<code>UPDATE item 42</code> in the database first. The database is the source of truth."
+    },
+    {
+     "edge": "db-inv",
+     "note": "A change stream (CDC) reports the change. The app could just <code>DEL</code> the key itself; invalidating from the change stream also catches writes from scripts and other services that bypass the app."
+    },
+    {
+     "edge": "inv-c",
+     "note": "<code>DEL item:42</code>. Delete rather than set: the next reader loads the current row, so two racing writers cannot leave an old value behind."
+    },
+    {
+     "node": "cache",
+     "note": "If an invalidation is lost, the TTL still caps how long the stale value can live. Always set one."
+    }
+   ]
+  }
+ ],
+ "tradeoffs": [
+  {
+   "option": "Cache-aside (lazy loading)",
+   "pro": "Only caches what is read; if the cache fails, reads fall back to the database (slower, and only safe if the database can take the load).",
+   "con": "First read of every key is a miss, and the app owns invalidation logic."
+  },
+  {
+   "option": "Write-through",
+   "pro": "Cache is always warm and consistent with what the app wrote.",
+   "con": "Every write pays for both stores, and you cache data that may never be read."
+  },
+  {
+   "option": "Write-back (write-behind)",
+   "pro": "Fastest writes; many updates to one key collapse into one database write.",
+   "con": "Data not yet flushed is lost if the cache node dies. Not for payments or bookings."
+  },
+  {
+   "option": "Short TTL vs long TTL",
+   "pro": "Short TTLs bound staleness without any invalidation code.",
+   "con": "More misses and more database load; long TTLs need reliable invalidation."
+  }
+ ],
+ "numbers": [
+  "Redis or Memcached GET over the network in one AZ: roughly <b>0.2 to 1 ms</b>. One Redis node handles on the order of <b>100k simple ops/s</b>.",
+  "Hit rate sets database load: <b>90%</b> hit leaves 10% of reads, <b>99%</b> leaves 1%. Going from 90% to 99% is a 10× cut.",
+  "Sizing: 1M hot keys × 1 KB = <b>1 GB</b> of RAM, before overhead (plan for 1.5 to 2×).",
+  "TTL jitter: add <b>±10%</b> random spread so a batch of keys written together does not expire in the same second.",
+  "Stampede math: a key read 5,000 times/s with a 50 ms rebuild sends up to <b>250</b> duplicate queries to the database if nothing coalesces them."
+ ],
+ "say": [
+  "I'll use cache-aside with Redis: read the cache, on a miss read the database and fill the cache with a TTL. On writes I update the database, then delete the key.",
+  "Every key gets a TTL with jitter, so even if an invalidation is lost, staleness is bounded and keys don't all expire at once.",
+  "For the few very hot keys I'd stop a stampede with a short lock so only one request rebuilds the value, and the rest briefly serve the stale copy."
+ ],
+ "pitfalls": [
+  "Caching without saying how entries become fresh again. Always state TTL plus an invalidation path.",
+  "Setting the new value in the cache on write instead of deleting it. Two concurrent writers can finish in the opposite order and leave the older value cached.",
+  "Using write-back for data you cannot lose. A cache node restart drops the writes that were never flushed.",
+  "Letting the whole system depend on the cache being up. If a cold or failed cache sends 100% of reads to a database sized for 5%, the database falls over too.",
+  "Caching per-user or permission-sensitive responses at a shared CDN key. One user's page gets served to another."
+ ],
+ "quiz": [
+  {
+   "q": "With cache-aside, what should a write do to the cache?",
+   "options": [
+    "Nothing; the TTL handles it",
+    "Write the new value to the cache, then the database",
+    "Update the database, then delete the cache key",
+    "Flush the whole cache"
+   ],
+   "answer": 2,
+   "why": "Deleting after the database write means the next read loads the current row. Writing the value can race with another writer and leave stale data; waiting for the TTL serves stale data meanwhile."
+  },
+  {
+   "q": "A homepage key read 10,000 times/s expires, and the database spikes to 100% CPU for a few seconds. What happened?",
+   "options": [
+    "A cache stampede (thundering herd)",
+    "LRU evicted the wrong key",
+    "Write-back lost data",
+    "Replication lag"
+   ],
+   "answer": 0,
+   "why": "Every request missed at once and rebuilt the same value. Coalesce rebuilds with a lock, refresh before expiry, or serve stale while one request refreshes."
+  },
+  {
+   "q": "Which write pattern risks losing acknowledged writes if the cache node crashes?",
+   "options": [
+    "Cache-aside",
+    "Write-through",
+    "Read-through",
+    "Write-back"
+   ],
+   "answer": 3,
+   "why": "Write-back acknowledges the write once it is in the cache and flushes to the database later. Anything not yet flushed is lost."
+  },
+  {
+   "q": "Raising the hit rate from 90% to 99% changes database read load by about how much?",
+   "options": [
+    "Down by 9%",
+    "Down 10×",
+    "Down 2×",
+    "No change"
+   ],
+   "answer": 1,
+   "why": "Misses go from 10% to 1% of reads: ten times fewer database reads."
+  }
+ ],
+ "used_in": [
+  "url-shortener",
+  "news-feed",
+  "typeahead",
+  "netflix",
+  "otp-login",
+  "vaccination-booking",
+  "llm-guardrails",
+  "kv-store",
+  "uber"
+ ]
+}

@@ -1,0 +1,838 @@
+{
+ "template-fill": [
+  [
+   "qB0zZpBJlh8",
+   394,
+   "Decode String",
+   false
+  ]
+ ],
+ "parse-key-values": [
+  [
+   "TC_xLIWl7qY",
+   929,
+   "Unique Email Addresses",
+   false
+  ]
+ ],
+ "csv-column-sum": [
+  [
+   "TC_xLIWl7qY",
+   929,
+   "Unique Email Addresses",
+   false
+  ]
+ ],
+ "compress-string": [
+  [
+   "B1k_sxOSgv8",
+   271,
+   "Encode and Decode Strings",
+   false
+  ]
+ ],
+ "first-unique-char": [
+  [
+   "9UtInBqnCgA",
+   242,
+   "Valid Anagram",
+   false
+  ]
+ ],
+ "array-jumps": [
+  [
+   "Yan0cv2cLy8",
+   55,
+   "Jump Game",
+   false
+  ]
+ ],
+ "robot-walk": [
+  [
+   "nKv2LnC_g6E",
+   1041,
+   "Robot Bounded In Circle",
+   false
+  ]
+ ],
+ "fibonacci-mod": [
+  [
+   "Y0lT9Fck7qI",
+   70,
+   "Climbing Stairs",
+   false
+  ]
+ ],
+ "odd-one-out": [
+  [
+   "qMPX1AOa83k",
+   136,
+   "Single Number",
+   false
+  ]
+ ],
+ "missing-element": [
+  [
+   "WnPLSRLSANE",
+   268,
+   "Missing Number",
+   true
+  ]
+ ],
+ "is-permutation": [
+  [
+   "WnPLSRLSANE",
+   268,
+   "Missing Number",
+   false
+  ]
+ ],
+ "distinct-values": [
+  [
+   "3OamzN90kPg",
+   217,
+   "Contains Duplicate",
+   false
+  ]
+ ],
+ "smallest-missing-positive": [
+  [
+   "8g78yfzMlao",
+   41,
+   "First Missing Positive",
+   true
+  ]
+ ],
+ "binary-gap": [
+  [
+   "5Km3utixwZs",
+   191,
+   "Number of 1 Bits",
+   false
+  ]
+ ],
+ "rotate-array": [
+  [
+   "BHr381Guz3Y",
+   189,
+   "Rotate Array",
+   true
+  ]
+ ],
+ "frog-jump": [
+  [
+   "5rHz_6s2Buw",
+   441,
+   "Arranging Coins",
+   false
+  ]
+ ],
+ "count-divisible": [
+  [
+   "wrIWye928JQ",
+   1523,
+   "Count Odd Numbers in an Interval Range",
+   false
+  ]
+ ],
+ "count-factors": [
+  [
+   "Cg_wWPHJ2Sk",
+   367,
+   "Valid Perfect Square",
+   false
+  ]
+ ],
+ "valid-palindrome": [
+  [
+   "jJXJ16kPFWg",
+   125,
+   "Valid Palindrome",
+   true
+  ]
+ ],
+ "most-common-word": [
+  [
+   "YPTqKIgVk-k",
+   347,
+   "Top K Frequent Elements",
+   false
+  ]
+ ],
+ "tape-split": [
+  [
+   "u89i60lYx8U",
+   724,
+   "Find Pivot Index",
+   false
+  ]
+ ],
+ "passing-cars": [
+  [
+   "0d7ShRoOFVE",
+   2483,
+   "Minimum Penalty for a Shop",
+   false
+  ]
+ ],
+ "range-sums": [
+  [
+   "2pndAmo_sMA",
+   303,
+   "Range Sum Query - Immutable",
+   true
+  ]
+ ],
+ "balanced-brackets": [
+  [
+   "WTzjTskDFMg",
+   20,
+   "Valid Parentheses",
+   true
+  ]
+ ],
+ "max-profit": [
+  [
+   "1pkOgXD63yU",
+   121,
+   "Best Time to Buy And Sell Stock",
+   true
+  ]
+ ],
+ "max-slice-sum": [
+  [
+   "5WZl3MMT0Eg",
+   53,
+   "Maximum Subarray",
+   true
+  ]
+ ],
+ "first-at-least": [
+  [
+   "K-RYzDZkzCI",
+   35,
+   "Search Insert Position",
+   false
+  ]
+ ],
+ "climb-stairs": [
+  [
+   "Y0lT9Fck7qI",
+   70,
+   "Climbing Stairs",
+   true
+  ]
+ ],
+ "move-zeros-stable": [
+  [
+   "aayNRwUN3Do",
+   283,
+   "Move Zeroes",
+   true
+  ]
+ ],
+ "thousands-separator": [
+  [
+   "X_vJDpCCuoA",
+   168,
+   "Excel Sheet Column Title",
+   false
+  ]
+ ],
+ "log-summary": [
+  [
+   "YPTqKIgVk-k",
+   347,
+   "Top K Frequent Elements",
+   false
+  ]
+ ],
+ "url-query-parse": [
+  [
+   "TC_xLIWl7qY",
+   929,
+   "Unique Email Addresses",
+   false
+  ]
+ ],
+ "queue-simulation": [
+  [
+   "RR1n-d4oYqE",
+   1834,
+   "Single Threaded Cpu",
+   false
+  ]
+ ],
+ "max-product-three": [
+  [
+   "jzZsG8n2R9A",
+   15,
+   "3Sum",
+   false
+  ]
+ ],
+ "triangle": [
+  [
+   "JU5XdBZZtlk",
+   1984,
+   "Minimum Difference Between Highest And Lowest of K Scores",
+   false
+  ]
+ ],
+ "dominator": [
+  [
+   "7pnhv842keE",
+   169,
+   "Majority Element",
+   false
+  ]
+ ],
+ "pair-sum-count": [
+  [
+   "KLlXCFG5TnA",
+   1,
+   "Two Sum",
+   false
+  ]
+ ],
+ "max-sum-equal-digit-sum": [
+  [
+   "lEQ8ZlLOuyQ",
+   2001,
+   "Number of Pairs of Interchangeable Rectangles",
+   false
+  ]
+ ],
+ "max-counters": [
+  [
+   "08sn_w4LWEE",
+   1094,
+   "Car Pooling",
+   false
+  ]
+ ],
+ "insert-five": [
+  [
+   "cFabMOnJaq0",
+   402,
+   "Remove K Digits",
+   false
+  ]
+ ],
+ "unique-frequencies": [
+  [
+   "h8AZEN49gTc",
+   1647,
+   "Minimum Deletions to Make Character Frequencies Unique",
+   false
+  ]
+ ],
+ "longest-unique-substring": [
+  [
+   "wiGpQwVHdE0",
+   3,
+   "Longest Substring Without Repeating Characters",
+   true
+  ]
+ ],
+ "pair-sum-sorted": [
+  [
+   "cQ1Oz4ckceM",
+   167,
+   "Two Sum II Input Array Is Sorted",
+   true
+  ]
+ ],
+ "min-max-division": [
+  [
+   "YUF3_eBdzsk",
+   410,
+   "Split Array Largest Sum",
+   true
+  ]
+ ],
+ "min-coins": [
+  [
+   "H9bfqozjoqs",
+   322,
+   "Coin Change",
+   true
+  ]
+ ],
+ "merge-intervals": [
+  [
+   "44H3cEC2fFM",
+   56,
+   "Merge Intervals",
+   true
+  ]
+ ],
+ "word-wrap": [
+  [
+   "TzMl4Z7pVh8",
+   68,
+   "Text Justification",
+   false
+  ]
+ ],
+ "anagram-groups": [
+  [
+   "vzdNOK2oB2E",
+   49,
+   "Group Anagrams",
+   true
+  ]
+ ],
+ "action-items": [
+  [
+   "TC_xLIWl7qY",
+   929,
+   "Unique Email Addresses",
+   false
+  ]
+ ],
+ "ad-ctr-window": [
+  [
+   "D8B4tKxMTnY",
+   1343,
+   "Number of Sub Arrays of Size K and Avg Greater than or Equal to Threshold",
+   false
+  ]
+ ],
+ "anagram-queries": [
+  [
+   "vzdNOK2oB2E",
+   49,
+   "Group Anagrams",
+   false
+  ]
+ ],
+ "backspace-compare": [
+  [
+   "pRyFZIaKegA",
+   2390,
+   "Removing Stars From a String",
+   false
+  ]
+ ],
+ "base62-shortener": [
+  [
+   "VyBOaboQLGc",
+   535,
+   "Encode and Decode TinyURL",
+   false
+  ]
+ ],
+ "batch-uploader": [
+  [
+   "ER_oLmdc-nw",
+   1011,
+   "Capacity to Ship Packages",
+   false
+  ]
+ ],
+ "budget-gateway": [
+  [
+   "W5QOLqXskZM",
+   1396,
+   "Design Underground System",
+   false
+  ]
+ ],
+ "chunk-text": [
+  [
+   "TzMl4Z7pVh8",
+   68,
+   "Text Justification",
+   false
+  ]
+ ],
+ "common-elements-min-count": [
+  [
+   "a4wqKR-znBE",
+   2215,
+   "Find the Difference of Two Arrays",
+   false
+  ]
+ ],
+ "common-students": [
+  [
+   "a4wqKR-znBE",
+   2215,
+   "Find the Difference of Two Arrays",
+   false
+  ]
+ ],
+ "connect-ropes": [
+  [
+   "B-QCq79-Vfw",
+   1046,
+   "Last Stone Weight",
+   false
+  ]
+ ],
+ "count-invalid-bst-nodes": [
+  [
+   "s6ATEkipzow",
+   98,
+   "Validate Binary Search Tree",
+   false
+  ]
+ ],
+ "cycle-start": [
+  [
+   "wjYnzkAhcNk",
+   287,
+   "Find The Duplicate Number",
+   false
+  ],
+  [
+   "gBTe7lFR3vc",
+   141,
+   "Linked List Cycle",
+   false
+  ]
+ ],
+ "eta-with-service": [
+  [
+   "RR1n-d4oYqE",
+   1834,
+   "Single Threaded Cpu",
+   false
+  ]
+ ],
+ "football-rankings": [
+  [
+   "WDx6Y4i4xJ8",
+   179,
+   "Largest Number",
+   false
+  ]
+ ],
+ "gift-redemption": [
+  [
+   "3OamzN90kPg",
+   217,
+   "Contains Duplicate",
+   false
+  ]
+ ],
+ "grid-shortest-path": [
+  [
+   "YnxUdAO7TAo",
+   1091,
+   "Shortest Path in Binary Matrix",
+   true
+  ]
+ ],
+ "idempotent-requests": [
+  [
+   "fu2cD_6E8Hw",
+   981,
+   "Time Based Key Value Store",
+   false
+  ]
+ ],
+ "leaderboard-topk": [
+  [
+   "hOjcdrqMoQ8",
+   703,
+   "Kth Largest Element In a Stream",
+   false
+  ]
+ ],
+ "llm-fallback": [
+  [
+   "XKA22PecuMQ",
+   1882,
+   "Process Tasks Using Servers",
+   false
+  ]
+ ],
+ "lru-cache": [
+  [
+   "7ABFKPK2hD4",
+   146,
+   "LRU Cache",
+   true
+  ]
+ ],
+ "mars-rover": [
+  [
+   "nKv2LnC_g6E",
+   1041,
+   "Robot Bounded In Circle",
+   false
+  ]
+ ],
+ "mars-rover-obstacles": [
+  [
+   "nKv2LnC_g6E",
+   1041,
+   "Robot Bounded In Circle",
+   false
+  ]
+ ],
+ "mars-rover-wrap": [
+  [
+   "nJYFh4Dl-as",
+   1260,
+   "Shift 2D Grid",
+   false
+  ]
+ ],
+ "merge-feeds": [
+  [
+   "q5a5OiGbT6Q",
+   23,
+   "Merge K Sorted Lists",
+   true
+  ]
+ ],
+ "min-window-substring": [
+  [
+   "jSto0O4AJbM",
+   76,
+   "Minimum Window Substring",
+   true
+  ]
+ ],
+ "moving-average": [
+  [
+   "D8B4tKxMTnY",
+   1343,
+   "Number of Sub Arrays of Size K and Avg Greater than or Equal to Threshold",
+   false
+  ]
+ ],
+ "nric-validate": [
+  [
+   "TC_xLIWl7qY",
+   929,
+   "Unique Email Addresses",
+   false
+  ]
+ ],
+ "number-of-islands": [
+  [
+   "pV2kpPD66nE",
+   200,
+   "Number of Islands",
+   true
+  ]
+ ],
+ "otp-service": [
+  [
+   "fu2cD_6E8Hw",
+   981,
+   "Time Based Key Value Store",
+   false
+  ]
+ ],
+ "plugin-load-order": [
+  [
+   "Akt3glAwyfY",
+   210,
+   "Course Schedule II",
+   false
+  ]
+ ],
+ "rate-limiter-log": [
+  [
+   "DfljaUwZsOk",
+   239,
+   "Sliding Window Maximum",
+   false
+  ]
+ ],
+ "retrieval-eval": [
+  [
+   "YPTqKIgVk-k",
+   347,
+   "Top K Frequent Elements",
+   false
+  ]
+ ],
+ "retrieve-topk": [
+  [
+   "rI2EBUEMfTk",
+   973,
+   "K Closest Points to Origin",
+   false
+  ]
+ ],
+ "rollout-bucket": [
+  [
+   "VymjPQUXjL8",
+   705,
+   "Design HashSet",
+   false
+  ]
+ ],
+ "salary-csv-upload": [
+  [
+   "TC_xLIWl7qY",
+   929,
+   "Unique Email Addresses",
+   false
+  ]
+ ],
+ "scheme-eligibility": [
+  [
+   "TjFXEUCMqI8",
+   36,
+   "Valid Sudoku",
+   false
+  ]
+ ],
+ "single-flight-refresh": [
+  [
+   "XKA22PecuMQ",
+   1882,
+   "Process Tasks Using Servers",
+   false
+  ]
+ ],
+ "span-tree-durations": [
+  [
+   "zdBYi0p4L5Q",
+   1376,
+   "Time Needed to Inform All Employees",
+   false
+  ]
+ ],
+ "sse-parse": [
+  [
+   "B1k_sxOSgv8",
+   271,
+   "Encode and Decode Strings",
+   false
+  ]
+ ],
+ "sum-bigger-pairs": [
+  [
+   "OKnm5oyAhWg",
+   2300,
+   "Successful Pairs of Spells and Potions",
+   false
+  ]
+ ],
+ "targeting-intersect": [
+  [
+   "P1Ic85RarKY",
+   88,
+   "Merge Sorted Array",
+   false
+  ]
+ ],
+ "teacher-notifications": [
+  [
+   "TC_xLIWl7qY",
+   929,
+   "Unique Email Addresses",
+   false
+  ]
+ ],
+ "tic-tac-toe-winner": [
+  [
+   "KxK33AcQZpQ",
+   1958,
+   "Check if Move Is Legal",
+   false
+  ]
+ ],
+ "todo-scanner": [
+  [
+   "qYlHrAKJfyA",
+   71,
+   "Simplify Path",
+   false
+  ]
+ ],
+ "token-budget": [
+  [
+   "aYqYMIqZx5s",
+   209,
+   "Minimum Size Subarray Sum",
+   false
+  ]
+ ],
+ "top-k-frequent": [
+  [
+   "YPTqKIgVk-k",
+   347,
+   "Top K Frequent Elements",
+   true
+  ]
+ ],
+ "transcript-merge": [
+  [
+   "44H3cEC2fFM",
+   56,
+   "Merge Intervals",
+   false
+  ]
+ ],
+ "trapping-rain-water": [
+  [
+   "ZI2z5pq0TqA",
+   42,
+   "Trapping Rain Water",
+   true
+  ]
+ ],
+ "tree-level-order": [
+  [
+   "6ZnyEApgFYg",
+   102,
+   "Binary Tree Level Order Traversal",
+   true
+  ]
+ ],
+ "tree-max-depth-diameter": [
+  [
+   "bkxqA8Rfv04",
+   543,
+   "Diameter of Binary Tree",
+   true
+  ],
+  [
+   "hTM3phVI6YQ",
+   104,
+   "Maximum Depth of Binary Tree",
+   true
+  ]
+ ],
+ "two-sum": [
+  [
+   "KLlXCFG5TnA",
+   1,
+   "Two Sum",
+   true
+  ]
+ ],
+ "users-query": [
+  [
+   "D4T2N0yAr20",
+   1268,
+   "Search Suggestions System",
+   false
+  ]
+ ],
+ "valid-bst": [
+  [
+   "s6ATEkipzow",
+   98,
+   "Validate Binary Search Tree",
+   true
+  ]
+ ],
+ "waypoint-order": [
+  [
+   "IvIKD_EU8BY",
+   1470,
+   "Shuffle the Array",
+   false
+  ]
+ ]
+}

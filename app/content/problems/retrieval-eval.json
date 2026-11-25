@@ -1,0 +1,457 @@
+{
+ "id": "retrieval-eval",
+ "title": "Retrieval Eval: Recall@k and MRR",
+ "pattern": "hashing",
+ "level": "easy",
+ "statement": "<p>You changed the retriever behind a knowledge-base assistant. Before you ship it, you run it on a <b>golden set</b>: questions where a person has marked which documents are relevant. Two numbers tell you if it got better.</p><p>Write <code>def solution(results, golden, k)</code>. <code>results</code> maps each query string to the list of doc ids the retriever returned, best first (ids in one list are distinct). <code>golden</code> maps each query to a non-empty list of distinct relevant doc ids.</p><ul><li><b>recall@k</b> for a query = (number of relevant ids among the first <code>k</code> results) / (number of relevant ids).</li><li><b>reciprocal rank</b> for a query = <code>1 / rank</code> of the first relevant id in the <i>whole</i> result list, with ranks starting at 1; 0 if no relevant id appears.</li></ul><p>Average each metric over the queries in <code>golden</code>. A golden query missing from <code>results</code> retrieved nothing and scores 0 on both. Queries that appear only in <code>results</code> are ignored. The average reciprocal rank is the <b>MRR</b> (mean reciprocal rank).</p><p>Return <code>[recall_at_k, mrr]</code>, each rounded with <code>round(x, 3)</code>. If <code>golden</code> is empty, return <code>[0.0, 0.0]</code>.</p>",
+ "examples": [
+  {
+   "input": "results = {\"q1\": [\"d3\", \"d1\", \"d7\"], \"q2\": [\"d5\", \"d2\", \"d9\"]}, golden = {\"q1\": [\"d1\", \"d4\"], \"q2\": [\"d9\"]}, k = 2",
+   "output": "[0.25, 0.417]",
+   "why": "q1: the top 2 are <code>d3, d1</code>; 1 of 2 relevant ids is there, recall 0.5; first relevant at rank 2, RR 0.5. q2: <code>d9</code> is at rank 3, outside the top 2, recall 0; RR 1/3. Recall = (0.5 + 0) / 2 = 0.25. MRR = (0.5 + 0.333...) / 2 = 0.41666... &rarr; 0.417."
+  },
+  {
+   "input": "results = {\"leave\": [\"a\", \"b\", \"c\"], \"budget\": [\"x\", \"y\"]}, golden = {\"leave\": [\"a\"], \"budget\": [\"y\"], \"payroll\": [\"p\"]}, k = 1",
+   "output": "[0.333, 0.5]",
+   "why": "leave: recall 1, RR 1. budget: <code>y</code> is rank 2, so recall@1 is 0 and RR 0.5. payroll is missing from results: 0 and 0. Recall = 1/3 &rarr; 0.333. MRR = 1.5/3 = 0.5."
+  }
+ ],
+ "constraints": [
+  "0 &le; number of golden queries &le; 10,000",
+  "1 &le; relevant ids per golden query &le; 100",
+  "0 &le; results per query &le; 1,000",
+  "1 &le; k &le; 1,000"
+ ],
+ "starter": "def solution(results, golden, k):\n    # write your code here\n    pass\n",
+ "think": [
+  {
+   "step": "Understand",
+   "q": "What does each metric reward?",
+   "a": "Recall@k asks \"did the top <code>k</code> contain the relevant docs?\" (the docs the model will actually read). MRR asks \"how high was the first good one?\" They disagree on purpose: a retriever can put one good doc first (high MRR) and miss the rest (low recall)."
+  },
+  {
+   "step": "Small example by hand",
+   "q": "Ranked <code>[x, a, b]</code>, relevant <code>[a, b, c]</code>, <code>k = 2</code>?",
+   "a": "Top 2 = <code>x, a</code>: 1 hit of 3, recall 0.333. First relevant is <code>a</code> at rank 2: RR 0.5."
+  },
+  {
+   "step": "Naive idea",
+   "q": "What's the first thing you'd write?",
+   "a": "Loop over <code>results</code>. That is the trap: a query the retriever dropped would vanish from the average and inflate your score. Loop over <code>golden</code>, the questions you care about, and treat missing results as empty."
+  },
+  {
+   "step": "Which pattern?",
+   "q": "Clue words?",
+   "a": "\"relevant ids among the results\" &rarr; <b>set membership</b>. Turn each golden list into a set so each check is O(1), then one pass over the top <code>k</code> and one scan for the first hit."
+  },
+  {
+   "step": "Plan in plain steps",
+   "q": "Write the steps.",
+   "a": "<ol><li>If <code>golden</code> is empty, return <code>[0.0, 0.0]</code>.</li><li>For each golden query: <code>relevant = set(...)</code>, <code>ranked = results.get(q, [])</code>.</li><li>Add <code>hits / len(relevant)</code> to the recall sum.</li><li>Walk <code>enumerate(ranked, start=1)</code>; on the first hit add <code>1 / rank</code> and stop.</li><li>Divide both sums by <code>len(golden)</code> and round to 3 places.</li></ol>"
+  },
+  {
+   "step": "Edge cases to test",
+   "q": "What could break?",
+   "a": "Empty golden set (division by zero). A golden query missing from results. An empty result list. A relevant doc at rank <code>k + 1</code> (counts for MRR, not recall). <code>k</code> longer than the list. Extra queries in results."
+  }
+ ],
+ "hints": [
+  "Iterate over <code>golden.items()</code>, not <code>results</code>, and use <code>results.get(query, [])</code> for missing queries.",
+  "Recall: <code>sum(1 for d in ranked[:k] if d in relevant) / len(relevant)</code>. Slicing past the end of a list is safe in Python.",
+  "Reciprocal rank: <code>for rank, d in enumerate(ranked, start=1):</code> and <code>break</code> on the first relevant id. Guard the empty-golden case before you divide."
+ ],
+ "solution": "def solution(results, golden, k):\n    if not golden:\n        return [0.0, 0.0]\n    recall_sum = 0.0\n    rr_sum = 0.0\n    for query, relevant_ids in golden.items():\n        relevant = set(relevant_ids)              # O(1) membership checks\n        ranked = results.get(query, [])           # a missing query retrieved nothing\n        hits = sum(1 for doc_id in ranked[:k] if doc_id in relevant)\n        recall_sum += hits / len(relevant)\n        for rank, doc_id in enumerate(ranked, start=1):\n            if doc_id in relevant:                # first relevant doc only\n                rr_sum += 1 / rank\n                break\n    n = len(golden)\n    return [round(recall_sum / n, 3), round(rr_sum / n, 3)]\n",
+ "brute": "def solution(results, golden, k):\n    # Same maths with list scans instead of sets: O(k * |relevant|) per query.\n    if len(golden) == 0:\n        return [0.0, 0.0]\n    recalls = []\n    rrs = []\n    for query in golden:\n        relevant = golden[query]\n        ranked = results[query] if query in results else []\n        hits = 0\n        for i in range(min(k, len(ranked))):\n            if ranked[i] in relevant:\n                hits += 1\n        recalls.append(hits / len(relevant))\n        rr = 0\n        i = 0\n        while i < len(ranked):\n            if ranked[i] in relevant:\n                rr = 1 / (i + 1)\n                break\n            i += 1\n        rrs.append(rr)\n    return [round(sum(recalls) / len(recalls), 3), round(sum(rrs) / len(rrs), 3)]\n",
+ "explain": "<p>An eval is a loop over the golden set with two running sums. The judgment calls are in the edges, and those are what an interviewer probes.</p><ul><li>Example 1, q1: <code>ranked[:2] = ['d3', 'd1']</code>; <code>d1</code> is relevant, 1 of 2 &rarr; 0.5. Walk the list: rank 1 <code>d3</code> no, rank 2 <code>d1</code> yes &rarr; RR 0.5.</li><li>q2: <code>ranked[:2] = ['d5', 'd2']</code>, no hit &rarr; recall 0. Keep walking for RR: rank 3 <code>d9</code> &rarr; 1/3.</li><li>Averages: recall 0.25, MRR 0.41666... &rarr; 0.417.</li></ul><p>Say why both numbers matter: an assistant that reads the top 5 chunks needs high recall@5 to have the facts at all; MRR shows whether the best chunk lands where the model pays most attention. Run the same golden set before and after every retriever change, and look at the per-query rows, not only the average.</p>",
+ "complexity": "O(total result ids scanned + total relevant ids) time, O(max relevant ids per query) extra space",
+ "perf": {
+  "label": "performance: 1,000 queries, 200 results and 60 relevant ids each",
+  "gen": "[{'q%d' % i: ['d%d' % ((i * 31 + j * 7) % 5000) for j in range(200)] for i in range(1000)}, {'q%d' % i: ['d%d' % ((i * 13 + j * 101) % 5000) for j in range(60)] for i in range(1000)}, 150]",
+  "expected": [
+   0.03,
+   0.063
+  ]
+ },
+ "govtech": {
+  "round": "live",
+  "tag": "domain",
+  "source": "Giant Robots Labs-style practice",
+  "evidence": "Practice shaped like the lab's public products (evals for GovBrain); not a reported interview question.",
+  "extensions": [
+   "Return a per-query report as well, sorted by worst recall first, so you can read the failures instead of trusting one average.",
+   "Add <b>precision@k</b> and <b>nDCG@k</b> with graded relevance (golden gives each id a score 0-3). What does nDCG reward that recall ignores?",
+   "Compare two retrievers on the same golden set: list the queries where the new one is worse. With 50 golden queries, is a 0.02 MRR gain real or noise?",
+   "The golden set has duplicate query strings with different wording (\"leave policy\" vs \"Leave Policy?\"). Normalise keys before joining, and decide what happens when two golden entries collapse into one."
+  ]
+ },
+ "tests": [
+  {
+   "args": [
+    {
+     "q1": [
+      "d3",
+      "d1",
+      "d7"
+     ],
+     "q2": [
+      "d5",
+      "d2",
+      "d9"
+     ]
+    },
+    {
+     "q1": [
+      "d1",
+      "d4"
+     ],
+     "q2": [
+      "d9"
+     ]
+    },
+    2
+   ],
+   "expected": [
+    0.25,
+    0.417
+   ],
+   "label": "example 1",
+   "cat": "example",
+   "why": "q1: recall 1/2, RR 1/2; q2: recall 0 (d9 is 3rd), RR 1/3"
+  },
+  {
+   "args": [
+    {
+     "leave": [
+      "a",
+      "b",
+      "c"
+     ],
+     "budget": [
+      "x",
+      "y"
+     ]
+    },
+    {
+     "leave": [
+      "a"
+     ],
+     "budget": [
+      "y"
+     ],
+     "payroll": [
+      "p"
+     ]
+    },
+    1
+   ],
+   "expected": [
+    0.333,
+    0.5
+   ],
+   "label": "example 2 (missing query)",
+   "cat": "example",
+   "why": "payroll has no results, so it scores 0 for both metrics but still counts in the average"
+  },
+  {
+   "args": [
+    {},
+    {},
+    5
+   ],
+   "expected": [
+    0.0,
+    0.0
+   ],
+   "label": "no golden queries",
+   "cat": "empty",
+   "why": "nothing to average: return [0.0, 0.0]"
+  },
+  {
+   "args": [
+    {
+     "q": []
+    },
+    {
+     "q": [
+      "a"
+     ]
+    },
+    3
+   ],
+   "expected": [
+    0.0,
+    0.0
+   ],
+   "label": "empty ranked list",
+   "cat": "empty",
+   "why": "the system returned nothing for q"
+  },
+  {
+   "args": [
+    {
+     "q": [
+      "a"
+     ]
+    },
+    {
+     "q": [
+      "a"
+     ]
+    },
+    1
+   ],
+   "expected": [
+    1.0,
+    1.0
+   ],
+   "label": "one perfect query",
+   "cat": "single",
+   "why": "first result is relevant: recall 1, RR 1"
+  },
+  {
+   "args": [
+    {
+     "q": [
+      "x",
+      "y",
+      "z"
+     ]
+    },
+    {
+     "q": [
+      "a",
+      "b"
+     ]
+    },
+    3
+   ],
+   "expected": [
+    0.0,
+    0.0
+   ],
+   "label": "all misses",
+   "cat": "zero",
+   "why": "no relevant id anywhere"
+  },
+  {
+   "args": [
+    {
+     "q": [
+      "x",
+      "y",
+      "a"
+     ]
+    },
+    {
+     "q": [
+      "a"
+     ]
+    },
+    2
+   ],
+   "expected": [
+    0.0,
+    0.333
+   ],
+   "label": "relevant just past k",
+   "cat": "boundary",
+   "why": "recall@2 is 0 but RR still sees rank 3"
+  },
+  {
+   "args": [
+    {
+     "q": [
+      "b",
+      "a",
+      "c",
+      "x"
+     ]
+    },
+    {
+     "q": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    10
+   ],
+   "expected": [
+    1.0,
+    1.0
+   ],
+   "label": "k larger than list",
+   "cat": "boundary",
+   "why": "top 10 of a 4-item list is the whole list"
+  },
+  {
+   "args": [
+    {
+     "q1": [
+      "a",
+      "b"
+     ],
+     "extra": [
+      "z"
+     ]
+    },
+    {
+     "q1": [
+      "b",
+      "c",
+      "d"
+     ]
+    },
+    2
+   ],
+   "expected": [
+    0.333,
+    0.5
+   ],
+   "label": "extra query in results",
+   "cat": "edge",
+   "why": "queries not in golden are ignored"
+  },
+  {
+   "args": [
+    {
+     "q1": [
+      "a",
+      "b",
+      "c"
+     ],
+     "q2": [
+      "a",
+      "b",
+      "c"
+     ],
+     "q3": [
+      "c",
+      "b",
+      "a"
+     ]
+    },
+    {
+     "q1": [
+      "c"
+     ],
+     "q2": [
+      "b",
+      "c"
+     ],
+     "q3": [
+      "c"
+     ]
+    },
+    2
+   ],
+   "expected": [
+    0.5,
+    0.611
+   ],
+   "label": "mixed ranks",
+   "cat": "small",
+   "why": "three queries with first hits at ranks 3, 2 and 1"
+  },
+  {
+   "args": [
+    {
+     "q0": [
+      "d0",
+      "d5",
+      "d10",
+      "d2",
+      "d7",
+      "d12"
+     ],
+     "q1": [
+      "d3",
+      "d8",
+      "d0",
+      "d5",
+      "d10",
+      "d2"
+     ],
+     "q2": [
+      "d6",
+      "d11",
+      "d3",
+      "d8",
+      "d0",
+      "d5"
+     ],
+     "q3": [
+      "d9",
+      "d1",
+      "d6",
+      "d11",
+      "d3",
+      "d8"
+     ],
+     "q4": [
+      "d12",
+      "d4",
+      "d9",
+      "d1",
+      "d6",
+      "d11"
+     ],
+     "q5": [
+      "d2",
+      "d7",
+      "d12",
+      "d4",
+      "d9",
+      "d1"
+     ],
+     "q6": [
+      "d5",
+      "d10",
+      "d2",
+      "d7",
+      "d12",
+      "d4"
+     ]
+    },
+    {
+     "q0": [
+      "d0"
+     ],
+     "q1": [
+      "d4",
+      "d5"
+     ],
+     "q2": [
+      "d8",
+      "d9",
+      "d10"
+     ],
+     "q3": [
+      "d12"
+     ],
+     "q4": [
+      "d3",
+      "d4"
+     ],
+     "q5": [
+      "d7",
+      "d8",
+      "d9"
+     ],
+     "q6": [
+      "d11"
+     ]
+    },
+    3
+   ],
+   "expected": [
+    0.262,
+    0.357
+   ],
+   "label": "medium mix",
+   "cat": "medium",
+   "why": "7 queries with 1-3 relevant docs each"
+  }
+ ],
+ "grl": true
+}

@@ -1,0 +1,814 @@
+{
+ "id": "uber",
+ "title": "Ride hailing (Uber)",
+ "tagline": "Track a million moving drivers and match each rider to a nearby car in seconds.",
+ "govtech": false,
+ "featured": true,
+ "difficulty": "hard",
+ "summary": "<p>Two very different workloads share one system. <b>Location</b> is a firehose of tiny writes (every driver, every 4 s) that only needs the latest value, so it lives in an <b>in-memory geo index</b> and never touches a disk database per ping. <b>Trips</b> are low-volume but must be correct: a trip is a <b>state machine</b> stored durably, and every transition is a compare-and-set so a driver is never sent to two riders and a card is never charged twice.</p><p>Everything is sharded by <b>city</b>, because riders only match drivers nearby. Payment and analytics run asynchronously after the trip.</p>",
+ "requirements": {
+  "functional": [
+   "Riders see nearby cars and a price, then request a ride",
+   "Drivers share location every ~4 s while online",
+   "Match a request to a nearby available driver; the driver accepts or declines",
+   "Both sides see live trip status and the driver's position",
+   "Charge the rider after the trip; surge pricing when demand outstrips supply"
+  ],
+  "nonfunctional": [
+   "Match within ~10 s; location in the index within ~1 s of the ping",
+   "Never assign one driver to two riders; never double-charge",
+   "Location updates at ~250k/s at peak",
+   "A city keeps working if another city's shard fails",
+   "Highly available: a failed node costs seconds, not trips"
+  ],
+  "out_of_scope": [
+   "Driver onboarding and documents",
+   "Ratings, ride pooling and scheduled rides",
+   "Building the maps/routing engine itself"
+  ]
+ },
+ "estimates": [
+  {
+   "label": "Drivers online at peak",
+   "calc": "assumption for a global service",
+   "value": "~1M"
+  },
+  {
+   "label": "Location writes",
+   "calc": "1M ÷ 4 s",
+   "value": "~250,000/s"
+  },
+  {
+   "label": "Ingress for pings",
+   "calc": "250,000/s × ~100 B",
+   "value": "~25 MB/s"
+  },
+  {
+   "label": "Geo index memory",
+   "calc": "1M drivers × ~100 B (id, lat, lng, cell, status, ts)",
+   "value": "~100 MB"
+  },
+  {
+   "label": "Trips",
+   "calc": "assume 30M/day ÷ 86,400 s ≈ 350/s; × 3 at rush hour",
+   "value": "~1,000/s peak"
+  },
+  {
+   "label": "Trip storage",
+   "calc": "30M × ~2 KB; × 365",
+   "value": "~60 GB/day, ~22 TB/yr"
+  },
+  {
+   "label": "Open WebSockets",
+   "calc": "1M drivers + ~2M riders with the app open; ÷ ~50k per gateway box",
+   "value": "~3M sockets, ~60 boxes"
+  }
+ ],
+ "api": [
+  {
+   "method": "POST",
+   "path": "/v1/fare-estimates {pickup, dropoff}",
+   "desc": "Returns {fareId, price, multiplier, expiresAt}. Quote held ~2 min."
+  },
+  {
+   "method": "POST",
+   "path": "/v1/trips {fareId}",
+   "desc": "Idempotency-Key header. Creates trip REQUESTED and starts dispatch."
+  },
+  {
+   "method": "WS",
+   "path": "/v1/driver/stream",
+   "desc": "Driver sends {lat, lng, heading, ts} every 4 s; receives offers and trip updates."
+  },
+  {
+   "method": "POST",
+   "path": "/v1/offers/{offerId}/accept",
+   "desc": "409 if the offer expired or the trip was cancelled."
+  },
+  {
+   "method": "PATCH",
+   "path": "/v1/trips/{id} {event: ARRIVED|STARTED|ENDED, version}",
+   "desc": "Driver trip events; rejected if the version is stale."
+  },
+  {
+   "method": "WS",
+   "path": "/v1/rider/stream",
+   "desc": "Trip status and driver position every 4 s."
+  }
+ ],
+ "data": [
+  {
+   "name": "trips",
+   "store": "SQL, sharded by city",
+   "fields": [
+    "trip_id PK",
+    "city_id",
+    "rider_id",
+    "driver_id",
+    "status",
+    "version",
+    "pickup, dropoff",
+    "fare_id, fare",
+    "timestamps"
+   ],
+   "note": "Every status change is a conditional update on version. Shard key city_id keeps a trip and its dispatch on one shard."
+  },
+  {
+   "name": "driver positions",
+   "store": "In-memory geo index",
+   "fields": [
+    "cell_id → set of driver_id",
+    "driver_id → lat, lng, status, ts",
+    "TTL 30 s"
+   ],
+   "note": "Latest value only. Lost on crash and rebuilt by the next round of pings."
+  },
+  {
+   "name": "fare quotes",
+   "store": "Redis",
+   "fields": [
+    "fare_id",
+    "price",
+    "multiplier",
+    "TTL 2 min"
+   ],
+   "note": "The trip locks the quote, so the rider pays what they were shown."
+  },
+  {
+   "name": "payments",
+   "store": "SQL",
+   "fields": [
+    "payment_id",
+    "trip_id UNIQUE",
+    "amount",
+    "status",
+    "provider_ref"
+   ],
+   "note": "Unique trip_id plus the provider's idempotency key make double charges impossible."
+  },
+  {
+   "name": "location history",
+   "store": "Kafka → object storage",
+   "fields": [
+    "driver_id",
+    "trip_id?",
+    "lat, lng, ts"
+   ],
+   "note": "For receipts, ETA models and disputes. Never read on the matching path."
+  }
+ ],
+ "diagram": {
+  "w": 960,
+  "h": 510,
+  "groups": [
+   {
+    "label": "Trip path",
+    "x": 6,
+    "y": 76,
+    "w": 622,
+    "h": 108
+   },
+   {
+    "label": "Location path",
+    "x": 6,
+    "y": 386,
+    "w": 626,
+    "h": 110
+   }
+  ],
+  "nodes": [
+   {
+    "id": "rider",
+    "label": "Rider app",
+    "kind": "mobile",
+    "x": 80,
+    "y": 130,
+    "sub": "request, track"
+   },
+   {
+    "id": "gw",
+    "label": "API gateway",
+    "kind": "gateway",
+    "x": 300,
+    "y": 130,
+    "sub": "auth, rate limits"
+   },
+   {
+    "id": "trip",
+    "label": "Trip service",
+    "kind": "service",
+    "x": 540,
+    "y": 130,
+    "sub": "state machine"
+   },
+   {
+    "id": "tripdb",
+    "label": "Trip DB",
+    "kind": "db",
+    "x": 815,
+    "y": 50,
+    "sub": "sharded by city"
+   },
+   {
+    "id": "pay",
+    "label": "Payment service",
+    "kind": "service",
+    "x": 815,
+    "y": 140,
+    "sub": "async, idempotent"
+   },
+   {
+    "id": "match",
+    "label": "Dispatch service",
+    "kind": "service",
+    "x": 540,
+    "y": 290,
+    "sub": "price, match, offer"
+   },
+   {
+    "id": "maps",
+    "label": "Maps / ETA",
+    "kind": "map",
+    "x": 815,
+    "y": 235,
+    "sub": "road routing"
+   },
+   {
+    "id": "surge",
+    "label": "Surge job",
+    "kind": "cron",
+    "x": 815,
+    "y": 335,
+    "sub": "every 60 s per cell"
+   },
+   {
+    "id": "geo",
+    "label": "Geo index",
+    "kind": "index",
+    "x": 815,
+    "y": 440,
+    "sub": "in-memory, H3 cells"
+   },
+   {
+    "id": "driver",
+    "label": "Driver app",
+    "kind": "mobile",
+    "x": 80,
+    "y": 440,
+    "sub": "GPS every 4 s"
+   },
+   {
+    "id": "ws",
+    "label": "WS gateway",
+    "kind": "ws",
+    "x": 300,
+    "y": 440,
+    "sub": "holds open sockets"
+   },
+   {
+    "id": "loc",
+    "label": "Location service",
+    "kind": "service",
+    "x": 540,
+    "y": 440,
+    "sub": "sharded by city"
+   }
+  ],
+  "edges": [
+   {
+    "id": "r-gw",
+    "from": "rider",
+    "to": "gw",
+    "label": "HTTPS"
+   },
+   {
+    "id": "gw-t",
+    "from": "gw",
+    "to": "trip",
+    "label": "/trips"
+   },
+   {
+    "id": "t-db",
+    "from": "trip",
+    "to": "tripdb",
+    "label": "state + version"
+   },
+   {
+    "id": "t-pay",
+    "from": "trip",
+    "to": "pay",
+    "label": "TripCompleted",
+    "dashed": true
+   },
+   {
+    "id": "t-m",
+    "from": "trip",
+    "to": "match",
+    "label": "quote, match"
+   },
+   {
+    "id": "m-maps",
+    "from": "match",
+    "to": "maps",
+    "label": "ETAs"
+   },
+   {
+    "id": "m-surge",
+    "from": "match",
+    "to": "surge",
+    "label": "multiplier"
+   },
+   {
+    "id": "m-geo",
+    "from": "match",
+    "to": "geo",
+    "label": "idle nearby"
+   },
+   {
+    "id": "s-geo",
+    "from": "surge",
+    "to": "geo",
+    "label": "count cells"
+   },
+   {
+    "id": "d-ws",
+    "from": "driver",
+    "to": "ws",
+    "label": "GPS",
+    "bi": true
+   },
+   {
+    "id": "ws-loc",
+    "from": "ws",
+    "to": "loc",
+    "label": "update"
+   },
+   {
+    "id": "loc-geo",
+    "from": "loc",
+    "to": "geo",
+    "label": "move cell"
+   },
+   {
+    "id": "m-ws",
+    "from": "match",
+    "to": "ws",
+    "label": "offer"
+   },
+   {
+    "id": "ws-t",
+    "from": "ws",
+    "to": "trip",
+    "label": "trip events"
+   },
+   {
+    "id": "ws-r",
+    "from": "ws",
+    "to": "rider",
+    "label": "live updates"
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "ping",
+   "name": "Driver location update",
+   "desc": "Happens 250,000 times a second at peak. It must be cheap.",
+   "steps": [
+    {
+     "edge": "d-ws",
+     "note": "Every 4 s the driver app sends ~100 bytes <code>{lat, lng, heading, ts}</code> over a WebSocket it keeps open. No new TCP or TLS handshake per update, which matters on a phone on 4G."
+    },
+    {
+     "edge": "ws-loc",
+     "note": "The gateway forwards to the location service shard for that <b>city</b>. Drivers and riders in one city only ever match each other, so a city is a natural shard."
+    },
+    {
+     "edge": "loc-geo",
+     "note": "Convert lat/lng to an <b>H3 cell</b> (resolution 9, about 0.1 km²). If the cell changed, move the driver id from the old cell's set to the new one, then overwrite the position. The entry has a 30 s TTL, so a driver whose phone dies disappears from search."
+    },
+    {
+     "node": "geo",
+     "note": "The whole index is small: 1M online drivers × ~100 B ≈ <b>100 MB</b>. It lives in memory and is <b>not</b> written to a disk database per ping. If a node dies, the next 4 s of pings rebuild it."
+    },
+    {
+     "node": "loc",
+     "note": "In parallel, pings go to a log (Kafka) in batches for trip receipts, ETA training and fraud checks. That path is async and can lag minutes without hurting matching."
+    }
+   ]
+  },
+  {
+   "id": "match",
+   "name": "Rider requests, gets matched",
+   "desc": "From tapping Confirm to seeing \"driver on the way\".",
+   "steps": [
+    {
+     "edge": "r-gw",
+     "note": "The rider confirms the price they were shown. <code>POST /trips {fareId}</code> with an <b>Idempotency-Key</b>, because a flaky network makes apps retry."
+    },
+    {
+     "edge": "gw-t",
+     "note": "The trip service inserts the trip as <code>REQUESTED</code>. A retry with the same key returns the same trip instead of booking two cars."
+    },
+    {
+     "edge": "t-m",
+     "note": "Hand the trip to the dispatch service for that city."
+    },
+    {
+     "edge": "m-geo",
+     "note": "Look up idle drivers in the pickup cell and its neighbours (an H3 <b>k-ring</b>). Widen the ring until there are ~10 candidates or you hit ~3 km."
+    },
+    {
+     "edge": "m-maps",
+     "note": "Straight-line distance lies: a driver 300 m away may be across an expressway. Ask the routing engine for <b>road ETAs</b> for the candidates and rank by ETA."
+    },
+    {
+     "edge": "m-ws",
+     "note": "Mark the best driver <code>OFFERED</code> with a 15 s lock (compare-and-set, so two trips cannot grab the same driver), and push the offer over the driver's socket."
+    },
+    {
+     "edge": "d-ws",
+     "rev": true,
+     "note": "The offer pops up. The driver taps Accept within 15 s; if not, the lock expires and dispatch offers the next candidate."
+    },
+    {
+     "edge": "t-m",
+     "rev": true,
+     "note": "Trip moves <code>REQUESTED → ACCEPTED</code> with a version check, so a rider cancelling at the same moment cannot also win."
+    },
+    {
+     "edge": "ws-r",
+     "note": "Push \"driver on the way\" plus the driver's position every 4 s to the rider's open socket. Typical total: 2-10 s from Confirm."
+    }
+   ]
+  },
+  {
+   "id": "pay",
+   "name": "Trip completes and is paid",
+   "desc": "The rider never waits on the card network.",
+   "steps": [
+    {
+     "edge": "d-ws",
+     "note": "The driver taps End trip at the destination."
+    },
+    {
+     "edge": "ws-t",
+     "note": "The gateway routes trip events (arrived, started, ended) to the trip service."
+    },
+    {
+     "edge": "t-db",
+     "note": "Set <code>COMPLETED</code> with the final fare from the recorded route distance and time. Conditional update on <code>version</code>, so a duplicate \"end\" is a no-op."
+    },
+    {
+     "edge": "t-pay",
+     "note": "Publish <code>TripCompleted</code> to a queue. The rider can leave the car now; payment is not on the critical path."
+    },
+    {
+     "node": "pay",
+     "note": "Charge the saved card through the payment provider with <b>idempotency key = trip id</b>. On timeout, retry with backoff: the provider dedupes, so a retry never charges twice. A unique index on <code>trip_id</code> is the last line of defence."
+    },
+    {
+     "edge": "ws-r",
+     "note": "Push the receipt. If the card fails, the trip stays <code>PAYMENT_DUE</code> and the rider must fix it before the next ride."
+    }
+   ]
+  },
+  {
+   "id": "surge",
+   "name": "Get a price (surge)",
+   "desc": "The quote shown before Confirm.",
+   "steps": [
+    {
+     "edge": "s-geo",
+     "note": "Every 60 s, per cell: count idle drivers (supply) and recent ride requests (demand). The job runs per city, so it scales with the number of cities, not riders."
+    },
+    {
+     "node": "surge",
+     "note": "If demand / supply is high, set a multiplier (for example 1.4×). <b>Smooth</b> it over a few minutes and cap it, so prices do not flicker between screens."
+    },
+    {
+     "edge": "r-gw",
+     "note": "The rider enters a destination; the app asks for a fare estimate."
+    },
+    {
+     "edge": "gw-t",
+     "note": "Forwarded to the trip side, which owns fares."
+    },
+    {
+     "edge": "t-m",
+     "note": "Dispatch prices the trip: route distance and time from maps, times the pickup cell's multiplier."
+    },
+    {
+     "edge": "m-surge",
+     "note": "Read the current multiplier for the pickup cell (a cached value, ~1 ms)."
+    },
+    {
+     "edge": "r-gw",
+     "rev": true,
+     "note": "Return <code>{fareId, price, expiresAt}</code>. The quote is held for ~2 minutes, so the rider pays what they saw even if surge moves."
+    }
+   ]
+  }
+ ],
+ "deep": [
+  {
+   "title": "Finding nearby drivers fast",
+   "html": "<p>\"Drivers within 2 km\" on a plain table is a full scan. Instead, cut the map into cells and index drivers by cell:</p><ul><li><b>Geohash</b>: base-32 string, nearby points share a prefix. Simple, works with any key-value store. Cells are rectangles that distort with latitude, and a point near a cell edge needs the 8 neighbours checked.</li><li><b>H3</b> (Uber's open-source hexagon grid): every neighbour is the same distance away, so \"ring k around my cell\" is a clean radius. Resolution 9 cells are ~0.1 km².</li><li><b>Quadtree</b>: splits dense areas finer. Good for static places; costly to rebalance when every point moves every 4 s.</li></ul><p>Query: take the pickup cell, add rings until you have enough idle drivers, then rank by road ETA. Shard by city so each index fits in one process.</p>",
+   "sim": "geo"
+  },
+  {
+   "title": "The trip state machine",
+   "html": "<p>Write the states down before anything else. Each transition has exactly one owner, and every write checks the version it read, so racing events (driver accepts while the rider cancels) resolve to exactly one winner. Terminal states never change.</p>",
+   "diagram": {
+    "w": 960,
+    "h": 300,
+    "nodes": [
+     {
+      "id": "s-req",
+      "label": "Requested",
+      "kind": "service",
+      "x": 100,
+      "y": 80,
+      "sub": "dispatching"
+     },
+     {
+      "id": "s-acc",
+      "label": "Accepted",
+      "kind": "service",
+      "x": 290,
+      "y": 80,
+      "sub": "en route"
+     },
+     {
+      "id": "s-arr",
+      "label": "Arrived",
+      "kind": "service",
+      "x": 480,
+      "y": 80,
+      "sub": "waiting"
+     },
+     {
+      "id": "s-on",
+      "label": "On trip",
+      "kind": "service",
+      "x": 670,
+      "y": 80,
+      "sub": "meter on"
+     },
+     {
+      "id": "s-done",
+      "label": "Completed",
+      "kind": "service",
+      "x": 860,
+      "y": 80,
+      "sub": "fare fixed"
+     },
+     {
+      "id": "s-none",
+      "label": "No driver",
+      "kind": "notify",
+      "x": 100,
+      "y": 225,
+      "sub": "tell rider"
+     },
+     {
+      "id": "s-can",
+      "label": "Cancelled",
+      "kind": "service",
+      "x": 385,
+      "y": 225,
+      "sub": "fee rules"
+     },
+     {
+      "id": "s-paid",
+      "label": "Paid",
+      "kind": "service",
+      "x": 860,
+      "y": 225,
+      "sub": "receipt sent"
+     }
+    ],
+    "edges": [
+     {
+      "id": "x1",
+      "from": "s-req",
+      "to": "s-acc",
+      "label": "accept"
+     },
+     {
+      "id": "x2",
+      "from": "s-acc",
+      "to": "s-arr",
+      "label": "arrive"
+     },
+     {
+      "id": "x3",
+      "from": "s-arr",
+      "to": "s-on",
+      "label": "start"
+     },
+     {
+      "id": "x4",
+      "from": "s-on",
+      "to": "s-done",
+      "label": "end"
+     },
+     {
+      "id": "x5",
+      "from": "s-done",
+      "to": "s-paid",
+      "label": "charged"
+     },
+     {
+      "id": "x6",
+      "from": "s-req",
+      "to": "s-none",
+      "label": "timeout"
+     },
+     {
+      "id": "x7",
+      "from": "s-acc",
+      "to": "s-can",
+      "label": "cancel"
+     },
+     {
+      "id": "x8",
+      "from": "s-arr",
+      "to": "s-can",
+      "label": "no-show"
+     }
+    ]
+   },
+   "flows": [
+    {
+     "id": "happy",
+     "name": "Happy path",
+     "steps": [
+      {
+       "edge": "x1",
+       "note": "Only from <code>REQUESTED</code>. The write is <code>UPDATE ... SET status=ACCEPTED, version=v+1 WHERE id=? AND version=v</code>; if another event got there first, 0 rows change and you re-read."
+      },
+      {
+       "edge": "x2",
+       "note": "The driver app (or a geofence on the pickup point) reports arrival. The waiting clock starts."
+      },
+      {
+       "edge": "x3",
+       "note": "Start trip. From here, location pings are also recorded against the trip for the fare and receipt map."
+      },
+      {
+       "edge": "x4",
+       "note": "End trip. Fare is computed once from the recorded route and stored; later reads never recompute it."
+      },
+      {
+       "edge": "x5",
+       "note": "Set by the payment consumer, not by the driver app. Only the service that owns a transition may make it."
+      }
+     ]
+    },
+    {
+     "id": "unhappy",
+     "name": "Cancellations",
+     "steps": [
+      {
+       "edge": "x6",
+       "note": "No driver accepted after ~5 offers or ~2 minutes. Tell the rider, release the quote."
+      },
+      {
+       "edge": "x7",
+       "note": "Either side cancels. A cancel fee applies only after a grace period; that rule lives here, in one place."
+      },
+      {
+       "edge": "x8",
+       "note": "Driver waited past the free waiting time: a no-show fee. Every terminal state is final; nothing moves out of it."
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Dispatch: greedy or batched?",
+   "html": "<p><b>Greedy</b>: give each request the nearest driver now. Simple, but two requests 1 minute apart can steal each other's best car.</p><p><b>Batched</b>: collect requests for ~2 s per area, then solve an assignment that minimises total ETA. A small wait buys better global matches. Uber has described batched matching publicly; in an interview, start greedy and say when you would batch.</p><p>Either way, offering a driver is a <b>lease</b>: <code>status=OFFERED, offer_expires=now+15s</code>, set with compare-and-set. No reply means the lease lapses and the driver is free again. No global lock needed.</p>"
+  },
+  {
+   "title": "Scaling and failure",
+   "html": "<ul><li><b>Shard by city</b> (large cities split into regions). Matching never crosses a shard, so shards share nothing.</li><li>A geo shard dies: its replica takes over; worst case it rebuilds from the next 4 s of pings. Location is soft state.</li><li>A WebSocket box dies: ~50k phones reconnect with jittered backoff to other boxes; missed trip updates are re-read from the trip service on reconnect.</li><li>Trip DB is the only hard state: replicate synchronously within the region, and keep trip writes small.</li></ul>",
+   "sim": "shard"
+  }
+ ],
+ "tradeoffs": [
+  {
+   "choice": "Store live locations in a database or in memory?",
+   "pick": "In memory (geo index), history to a log",
+   "why": "250k writes/s of values that are stale in 4 s do not belong in a durable database. Losing them costs one ping cycle. History goes to Kafka in batches for receipts and models."
+  },
+  {
+   "choice": "WebSockets or polling for driver updates?",
+   "pick": "WebSockets",
+   "why": "Offers must reach the driver in under a second, and polling every second from 1M phones is 1M requests/s mostly saying \"nothing new\". One open socket per phone carries both directions."
+  },
+  {
+   "choice": "Geohash, H3 or quadtree?",
+   "pick": "H3 (or geohash if simpler to explain)",
+   "why": "Hexagons have uniform neighbour distance, so ring searches approximate a circle. Geohash is fine and works with Redis GEO. Quadtrees suit static data better than points that move every 4 s."
+  },
+  {
+   "choice": "Charge the card inside the \"end trip\" request?",
+   "pick": "No, async via an event",
+   "why": "Card networks take seconds and fail transiently. The driver and rider should not wait; the payment consumer retries with the trip id as the idempotency key."
+  },
+  {
+   "choice": "Greedy or batched matching?",
+   "pick": "Greedy first, batched as an optimisation",
+   "why": "Greedy is easy to reason about. Batching a few seconds of requests reduces total pickup time in busy areas at the cost of a small delay."
+  }
+ ],
+ "bottlenecks": [
+  {
+   "issue": "A concert ends: 20,000 requests in one area in 5 minutes",
+   "fix": "Surge raises prices and pulls drivers in, batched matching avoids drivers being stolen back and forth, and the area's shard can be split. Queue requests with an honest \"looking for drivers\" state."
+  },
+  {
+   "issue": "Hot shard: a big city's geo index takes most of the writes",
+   "fix": "Split the city into regions (by H3 parent cell) with their own shards; queries near a border read two shards."
+  },
+  {
+   "issue": "WebSocket gateway box restarts",
+   "fix": "Clients reconnect with jittered backoff to any box; a registry (driver_id → box) is updated on connect, and state is re-read from services, not from the socket."
+  }
+ ],
+ "followups": [
+  {
+   "q": "How do you stop two riders getting the same driver?",
+   "a": "<p>Offer is a lease set with compare-and-set: <code>UPDATE drivers SET status=OFFERED, trip=? WHERE id=? AND status=IDLE</code> (or the same in Redis with a Lua script). Only one succeeds. The lease expires after 15 s if the driver does not answer.</p>"
+  },
+  {
+   "q": "How would you compute the ETA shown to the rider?",
+   "a": "<p>Route on the road graph with live traffic speeds (learned from the location history), then correct with a model trained on actual past pickup times. Cache ETAs between popular cell pairs for a minute.</p>"
+  },
+  {
+   "q": "The driver's phone goes offline mid-trip. What happens?",
+   "a": "<p>The trip state is on the server, so nothing is lost. The rider sees the last known position and \"connection lost\". When the phone reconnects it uploads buffered GPS points, so the fare is still computed from the full route.</p>"
+  },
+  {
+   "q": "How does surge avoid oscillating?",
+   "a": "<p>Compute per cell on a fixed interval, smooth with a moving average over several intervals, cap the step size and the maximum, and lock the price in the quote for ~2 minutes.</p>"
+  },
+  {
+   "q": "How would you add ride pooling?",
+   "a": "<p>Matching now inserts a rider into an existing trip's route if the detour for current riders stays under a limit (say 5 minutes). The trip becomes a list of stops, and the fare is per rider.</p>"
+  }
+ ],
+ "quiz": [
+  {
+   "q": "1M drivers send a location every 4 s. Roughly how many writes per second?",
+   "options": [
+    "25,000",
+    "250,000",
+    "4M"
+   ],
+   "answer": 1,
+   "why": "1,000,000 ÷ 4 = 250,000 per second."
+  },
+  {
+   "q": "Why are driver positions kept in memory rather than in the trip database?",
+   "options": [
+    "Databases cannot store coordinates",
+    "They are high-volume, overwritten every 4 s and cheap to rebuild if lost",
+    "To save money on licences"
+   ],
+   "answer": 1,
+   "why": "Only the latest value matters, and the next round of pings rebuilds a lost node."
+  },
+  {
+   "q": "What prevents a driver being offered two trips at once?",
+   "options": [
+    "A 15 s lease set with compare-and-set on the driver's status",
+    "Riders are matched in alphabetical order",
+    "The driver app ignores the second offer"
+   ],
+   "answer": 0,
+   "why": "Only one conditional update can move a driver from IDLE to OFFERED."
+  },
+  {
+   "q": "Why shard by city?",
+   "options": [
+    "Cities have equal traffic",
+    "Matches never cross cities, so shards share nothing and one city's outage stays local",
+    "It makes payments faster"
+   ],
+   "answer": 1,
+   "why": "Locality of the problem gives a natural shard key."
+  },
+  {
+   "q": "A payment call times out. What makes retrying safe?",
+   "options": [
+    "Waiting 10 seconds before retrying",
+    "Using the trip id as the idempotency key with the provider",
+    "Charging a smaller amount"
+   ],
+   "answer": 1,
+   "why": "The provider recognises the repeat key and returns the first result instead of charging again."
+  }
+ ]
+}

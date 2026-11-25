@@ -1,0 +1,107 @@
+{
+ "id": "sql-vs-nosql",
+ "title": "SQL vs NoSQL: picking a store",
+ "group": "Data",
+ "tagline": "Start from the access patterns and the consistency you need, not from the label. Postgres is the default until a number says otherwise.",
+ "why": "<p>\"SQL or NoSQL?\" is really four questions: How will I query this data? How much of it is there and how fast does it change? Which operations must be strongly consistent or transactional? Who will operate it? The answer is often \"Postgres for the core, plus Redis\", and you should be able to say why.</p><p>Relational databases give you joins, transactions across tables, constraints and ad-hoc queries, and a single modern primary handles far more than most interview scenarios need. NoSQL stores give up some of that to scale writes horizontally, keep latency flat at any size, or fit a data shape (documents, wide rows, key-value) more directly.</p><p>The sim below shows the choice that matters most once data is spread across machines: the partition key. Hash keys spread writes evenly. Time-ordered range keys pile new rows onto one shard. One celebrity key overloads its shard either way. DynamoDB and Cassandra hash the partition key, so pick one with many distinct values.</p>",
+ "how": "<p><b>PostgreSQL (relational).</b> Pick it when you need transactions across several rows or tables (bookings, ledgers, redemptions), unique constraints, joins, or you do not yet know all your queries. Scale reads with replicas, partition big tables by time, and shard (Citus, or by tenant) only when one primary is truly full. go.gov.sg's public README describes Postgres for links with a read replica for redirects; Postman.gov.sg uses a Postgres table as its job queue.</p><p><b>DynamoDB / Cassandra (wide-column, key-value at scale).</b> Pick them for very high write rates or huge data with known access patterns: chat messages by conversation, events by device, sessions. You design the table around queries: partition key spreads load, sort key orders rows within a partition (<code>PK=conv#42, SK=ts</code>). No joins and limited ad-hoc queries; secondary indexes cost extra writes. DynamoDB is managed and serverless; Cassandra is self-run (or Keyspaces), multi-region, write-optimised, with per-query consistency.</p><p><b>MongoDB (document).</b> Pick it when records are naturally nested, vary in shape, and are read whole: a form definition with its fields, a product with variable attributes. Multi-document transactions exist (since 4.0) but cost more than in Postgres. FormSG's public docs say it uses MongoDB, a good fit for forms whose fields differ per form. Postgres <code>JSONB</code> covers many of the same cases.</p><p><b>Redis (in-memory key-value).</b> Pick it for data that must be fast and can be rebuilt or may expire: caches, sessions, OTPs with a TTL, rate-limit counters, leaderboards (sorted sets), geo indexes. Treat it as a cache or a fast side store, not the only copy of records you cannot lose.</p><p><b>A quick test.</b> Write down your top 3 queries and your write rate. If a query needs a join or a multi-row transaction, lean SQL. If every query is \"get by key\" or \"range within a key\" at 50k+ writes/s, lean DynamoDB or Cassandra. If it is \"get the whole nested thing by id\", MongoDB or JSONB.</p>",
+ "sim": "shard",
+ "tradeoffs": [
+  {
+   "option": "PostgreSQL",
+   "pro": "ACID transactions, joins, constraints, flexible queries, JSONB, PostGIS. Huge ecosystem; managed on RDS/Aurora.",
+   "con": "Write scaling past one primary needs partitioning or sharding work; schema changes on huge tables need care."
+  },
+  {
+   "option": "DynamoDB",
+   "pro": "Fully managed, single-digit-ms reads at any size, scales writes by adding partitions automatically, TTL built in.",
+   "con": "Queries limited to key and sort key (plus indexes); hot partition keys throttle; ad-hoc analytics need an export."
+  },
+  {
+   "option": "Cassandra",
+   "pro": "Very high write throughput (LSM storage), multi-region active-active, tunable consistency per query.",
+   "con": "You run a cluster; one table per query pattern; no joins; deletes create tombstones that slow reads."
+  },
+  {
+   "option": "MongoDB",
+   "pro": "Flexible nested documents, rich queries on fields, easy to start, horizontal sharding.",
+   "con": "Weaker fit for many-to-many relations; schema drift if not validated; cross-document transactions are slower."
+  },
+  {
+   "option": "Redis",
+   "pro": "Sub-millisecond, rich structures (sorted sets, streams, geo), TTLs.",
+   "con": "Data must fit in RAM; durability is weaker than a disk-first database; not for ad-hoc queries."
+  }
+ ],
+ "numbers": [
+  "One Postgres primary: <b>tens of thousands</b> of simple writes/s and several TB of data on a large instance.",
+  "DynamoDB: item max <b>400 KB</b>; per-partition limits <b>3,000 reads</b> and <b>1,000 writes</b> capacity units/s; transactions up to <b>100</b> items.",
+  "MongoDB: document max <b>16 MB</b>; multi-document ACID transactions since <b>4.0 (2018)</b>.",
+  "Redis: <b>~100k+ ops/s</b> per instance at sub-millisecond latency; 10M keys &times; 100 bytes &asymp; <b>1 GB</b> plus overhead.",
+  "go.gov.sg (Q3 2026 public report): <b>8.69M</b> links, <b>~2.1M</b> clicks/day. Its public README describes Postgres with a read replica plus Redis, and that is plenty at this size."
+ ],
+ "say": [
+  "My default is Postgres: this data has relationships and needs transactions, and at our scale one primary with read replicas is plenty. I'll add Redis for caching and TTL data like OTPs.",
+  "For chat messages I'd use DynamoDB or Cassandra with the conversation id as partition key and timestamp as sort key, because every read is 'latest messages in one conversation' and writes are huge.",
+  "I'd only reach for a NoSQL store once I can name the access pattern and the number that one Postgres primary can't handle."
+ ],
+ "pitfalls": [
+  "Choosing NoSQL \"because it scales\" for a few GB of relational data. You lose transactions and constraints for no gain.",
+  "Designing a DynamoDB table before listing the queries. Changing the key later means migrating every item.",
+  "A low-cardinality or time-only partition key (status, today's date): every write hits one partition.",
+  "Using Redis as the only copy of data you cannot lose, such as payments.",
+  "Ignoring operations: a self-run Cassandra cluster is a team's worth of work; a managed service may cost less overall."
+ ],
+ "quiz": [
+  {
+   "q": "A booking system must never assign one slot to two people and must update the slot and the booking together. Best default store?",
+   "options": [
+    "Redis",
+    "PostgreSQL with a transaction and a unique constraint",
+    "Cassandra with consistency ONE",
+    "S3"
+   ],
+   "answer": 1,
+   "why": "Multi-row atomic updates and uniqueness are what relational databases do best."
+  },
+  {
+   "q": "Chat: 100k messages/s, every read is \"last 50 messages in conversation X\". Which design fits?",
+   "options": [
+    "Postgres with a join across users and messages",
+    "MongoDB with one document per user holding all messages",
+    "DynamoDB or Cassandra, partition key = conversation id, sort key = timestamp"
+   ],
+   "answer": 2,
+   "why": "The single access pattern maps to one partition read in sort order, and the write rate needs horizontal scale."
+  },
+  {
+   "q": "Which data belongs in Redis?",
+   "options": [
+    "OTPs that expire in 5 minutes and rate-limit counters",
+    "The only copy of payment records",
+    "Monthly analytics with ad-hoc SQL"
+   ],
+   "answer": 0,
+   "why": "Short-lived, fast, rebuildable data with TTLs is Redis's sweet spot."
+  },
+  {
+   "q": "Your DynamoDB table uses <code>status</code> (3 values) as the partition key and writes are throttled. Why?",
+   "options": [
+    "DynamoDB cannot store strings",
+    "Items are over 400 KB",
+    "Too many indexes",
+    "Almost all writes go to one or two partitions, each capped at about 1,000 write units/s"
+   ],
+   "answer": 3,
+   "why": "A low-cardinality key creates hot partitions. Use a high-cardinality key such as an order id."
+  }
+ ],
+ "used_in": [
+  "url-shortener",
+  "form-builder",
+  "chat",
+  "kv-store",
+  "voucher-redemption",
+  "bulk-messaging"
+ ]
+}

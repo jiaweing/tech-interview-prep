@@ -1,0 +1,202 @@
+{
+ "id": "string",
+ "track": "ds",
+ "order": 2,
+ "title": "String",
+ "short": "Text as an array of characters you can read but not change.",
+ "what": "A string is a row of characters, so it works like an array: s[0] is the first letter and len(s) is its length. One big difference: a Python string can never change. Every edit builds a new string.",
+ "analogy": "A word printed on a receipt. You can read any letter, but to fix a typo you print a new receipt.",
+ "viz": {
+  "kind": "array",
+  "frames": [
+   {
+    "cells": [
+     "r",
+     "a",
+     "c",
+     "e",
+     "c",
+     "a",
+     "r"
+    ],
+    "label": "s",
+    "say": "s = \"racecar\" is 7 characters in a row. s[0] is 'r', s[6] is 'r', and len(s) is 7."
+   },
+   {
+    "cells": [
+     "r",
+     "a",
+     "c",
+     "e",
+     "c",
+     "a",
+     "r"
+    ],
+    "label": "s",
+    "ptr": {
+     "L": 0,
+     "R": 6
+    },
+    "hi": [
+     0,
+     6
+    ],
+    "say": "Is it a palindrome, the same both ways? Put L at the start and R at the end, and compare s[0] with s[6]."
+   },
+   {
+    "cells": [
+     "r",
+     "a",
+     "c",
+     "e",
+     "c",
+     "a",
+     "r"
+    ],
+    "label": "s",
+    "ptr": {
+     "L": 1,
+     "R": 5
+    },
+    "ok": [
+     0,
+     6
+    ],
+    "hi": [
+     1,
+     5
+    ],
+    "say": "Both are 'r', a match. Step both pointers inward. s[1] and s[5] are both 'a'."
+   },
+   {
+    "cells": [
+     "r",
+     "a",
+     "c",
+     "e",
+     "c",
+     "a",
+     "r"
+    ],
+    "label": "s",
+    "ptr": {
+     "L": 2,
+     "R": 4
+    },
+    "ok": [
+     0,
+     1,
+     5,
+     6
+    ],
+    "hi": [
+     2,
+     4
+    ],
+    "say": "Match again. Step in once more: s[2] and s[4] are both 'c'."
+   },
+   {
+    "cells": [
+     "r",
+     "a",
+     "c",
+     "e",
+     "c",
+     "a",
+     "r"
+    ],
+    "label": "s",
+    "ptr": {
+     "L = R": 3
+    },
+    "ok": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "out": "palindrome: True",
+    "say": "L and R meet at 'e' in the middle. Every pair matched, so \"racecar\" is a palindrome. 3 checks for 7 letters."
+   },
+   {
+    "cells": [
+     "r",
+     "a",
+     "c",
+     "e",
+     "c",
+     "a",
+     "r"
+    ],
+    "label": "s",
+    "bad": [
+     0
+    ],
+    "out": "TypeError",
+    "say": "Try s[0] = 'R'. Python raises TypeError: strings cannot change in place."
+   },
+   {
+    "cells": [
+     "R",
+     "a",
+     "c",
+     "e",
+     "c",
+     "a",
+     "r"
+    ],
+    "label": "new string",
+    "ok": [
+     0
+    ],
+    "out": "\"Racecar\"",
+    "say": "Instead build a new string: 'R' + s[1:] glues 'R' onto a copy of the rest. s itself is untouched."
+   }
+  ]
+ },
+ "when": [
+  "Palindrome, anagram or substring",
+  "Count the letters in a word",
+  "Reverse, split or join words",
+  "Longest substring with some rule"
+ ],
+ "python": "s = \"racecar\"\nprint(len(s), s[0], s[-1])\nprint(s == s[::-1])\nprint(\"R\" + s[1:])\nwords = [\"data\", \"is\", \"fun\"]\nprint(\" \".join(words))\nprint(\"a,b,c\".split(\",\"))\nprint(sorted(\"cab\"), ord(\"a\"), chr(98))",
+ "output": "7 r r\nTrue\nRacecar\ndata is fun\n['a', 'b', 'c']\n['a', 'b', 'c'] 97 b",
+ "cost": [
+  [
+   "Read one character",
+   "O(1)"
+  ],
+  [
+   "Slice or copy k characters",
+   "O(k)"
+  ],
+  [
+   "Compare two strings",
+   "O(n)"
+  ],
+  [
+   "Join n pieces with \"\".join",
+   "O(n)"
+  ]
+ ],
+ "watch": [
+  "s[i] = 'x' fails. Turn it into a list, change the list, then \"\".join it back.",
+  "Building a string with += in a loop can copy it every time. Collect pieces in a list and join once.",
+  "s[::-1] and s[1:] make new copies, which costs O(n) time and memory."
+ ],
+ "interview": [
+  "LC 125 Valid Palindrome",
+  "LC 242 Valid Anagram",
+  "LC 3 Longest Substring Without Repeating Characters"
+ ],
+ "related": [
+  "array",
+  "hash-map",
+  "two-pointers",
+  "sliding-window"
+ ]
+}

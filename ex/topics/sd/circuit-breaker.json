@@ -1,0 +1,406 @@
+{
+ "id": "circuit-breaker",
+ "track": "sd",
+ "order": 28,
+ "title": "Circuit breaker",
+ "short": "Stop calling a failing service for a while so failure doesn't spread.",
+ "what": "When a service you depend on is down, every call waits for a timeout, requests pile up, and your service falls over too. A circuit breaker counts failures; after too many it opens and fails calls at once. After a pause it lets one test call through, and closes again if that works.",
+ "analogy": "The breaker in your house. A short circuit trips it so the wiring doesn't burn; you flip it back once the fault is fixed.",
+ "viz": {
+  "kind": "sd",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "c",
+      "label": "Closed",
+      "x": 0,
+      "y": 90,
+      "sub": "0 of 5 failures"
+     },
+     {
+      "id": "o",
+      "label": "Open",
+      "x": 50,
+      "y": 5,
+      "sub": "calls fail fast"
+     },
+     {
+      "id": "h",
+      "label": "Half-open",
+      "x": 100,
+      "y": 90,
+      "sub": "one test call"
+     }
+    ],
+    "edges": [
+     [
+      "c",
+      "o",
+      "5 timeouts in a row"
+     ],
+     [
+      "o",
+      "h",
+      "after 30 s"
+     ],
+     [
+      "h",
+      "c",
+      "test call works"
+     ]
+    ],
+    "hi": [
+     "c"
+    ],
+    "say": "A product page calls a Reviews service through a breaker. It starts Closed: every call goes through as normal."
+   },
+   {
+    "nodes": [
+     {
+      "id": "c",
+      "label": "Closed",
+      "x": 0,
+      "y": 90,
+      "sub": "3 of 5 failures"
+     },
+     {
+      "id": "o",
+      "label": "Open",
+      "x": 50,
+      "y": 5
+     },
+     {
+      "id": "h",
+      "label": "Half-open",
+      "x": 100,
+      "y": 90
+     }
+    ],
+    "edges": [
+     [
+      "c",
+      "o",
+      "5 timeouts in a row"
+     ],
+     [
+      "o",
+      "h",
+      "after 30 s"
+     ],
+     [
+      "h",
+      "c",
+      "test call works"
+     ]
+    ],
+    "hi": [
+     "c"
+    ],
+    "say": "Reviews gets overloaded. Calls time out after 2 s each, and the breaker counts failures in a row: 3 of 5 so far."
+   },
+   {
+    "nodes": [
+     {
+      "id": "c",
+      "label": "Closed",
+      "x": 0,
+      "y": 90,
+      "sub": "5 of 5 failures"
+     },
+     {
+      "id": "o",
+      "label": "Open",
+      "x": 50,
+      "y": 5,
+      "sub": "fail fast: 0 ms"
+     },
+     {
+      "id": "h",
+      "label": "Half-open",
+      "x": 100,
+      "y": 90
+     }
+    ],
+    "edges": [
+     [
+      "c",
+      "o",
+      "5 timeouts in a row"
+     ],
+     [
+      "o",
+      "h",
+      "after 30 s"
+     ],
+     [
+      "h",
+      "c",
+      "test call works"
+     ]
+    ],
+    "bad": [
+     "o"
+    ],
+    "dim": [
+     "h"
+    ],
+    "edgeHi": [
+     [
+      "c",
+      "o"
+     ]
+    ],
+    "say": "The 5th failure in a row trips the breaker to Open. Calls now fail at once instead of each hanging for 2 s."
+   },
+   {
+    "nodes": [
+     {
+      "id": "c",
+      "label": "Closed",
+      "x": 0,
+      "y": 90
+     },
+     {
+      "id": "o",
+      "label": "Open",
+      "x": 50,
+      "y": 5,
+      "sub": "page skips reviews"
+     },
+     {
+      "id": "h",
+      "label": "Half-open",
+      "x": 100,
+      "y": 90
+     }
+    ],
+    "edges": [
+     [
+      "c",
+      "o",
+      "5 timeouts in a row"
+     ],
+     [
+      "o",
+      "h",
+      "after 30 s"
+     ],
+     [
+      "h",
+      "c",
+      "test call works"
+     ]
+    ],
+    "bad": [
+     "o"
+    ],
+    "dim": [
+     "c",
+     "h"
+    ],
+    "say": "While Open, the page loads without the reviews box. Reviews gets no calls from us, which gives it room to recover."
+   },
+   {
+    "nodes": [
+     {
+      "id": "c",
+      "label": "Closed",
+      "x": 0,
+      "y": 90
+     },
+     {
+      "id": "o",
+      "label": "Open",
+      "x": 50,
+      "y": 5
+     },
+     {
+      "id": "h",
+      "label": "Half-open",
+      "x": 100,
+      "y": 90,
+      "sub": "1 test call"
+     }
+    ],
+    "edges": [
+     [
+      "c",
+      "o",
+      "5 timeouts in a row"
+     ],
+     [
+      "o",
+      "h",
+      "after 30 s"
+     ],
+     [
+      "h",
+      "c",
+      "test call works"
+     ]
+    ],
+    "hi": [
+     "h"
+    ],
+    "dim": [
+     "c"
+    ],
+    "edgeHi": [
+     [
+      "o",
+      "h"
+     ]
+    ],
+    "say": "After 30 s the breaker moves to Half-open and lets one test call through, to see if Reviews is back."
+   },
+   {
+    "nodes": [
+     {
+      "id": "c",
+      "label": "Closed",
+      "x": 0,
+      "y": 90
+     },
+     {
+      "id": "o",
+      "label": "Open",
+      "x": 50,
+      "y": 5,
+      "sub": "wait 30 s more"
+     },
+     {
+      "id": "h",
+      "label": "Half-open",
+      "x": 100,
+      "y": 90,
+      "sub": "test timed out"
+     }
+    ],
+    "edges": [
+     [
+      "c",
+      "o",
+      "5 timeouts in a row"
+     ],
+     [
+      "h",
+      "o",
+      "test call fails"
+     ],
+     [
+      "h",
+      "c",
+      "test call works"
+     ]
+    ],
+    "bad": [
+     "o"
+    ],
+    "dim": [
+     "c"
+    ],
+    "edgeHi": [
+     [
+      "h",
+      "o"
+     ]
+    ],
+    "say": "The test call times out too, so it's straight back to Open for another 30 s. A sick service never gets a flood."
+   },
+   {
+    "nodes": [
+     {
+      "id": "c",
+      "label": "Closed",
+      "x": 0,
+      "y": 90,
+      "sub": "0 of 5 failures"
+     },
+     {
+      "id": "o",
+      "label": "Open",
+      "x": 50,
+      "y": 5
+     },
+     {
+      "id": "h",
+      "label": "Half-open",
+      "x": 100,
+      "y": 90,
+      "sub": "test: 80 ms"
+     }
+    ],
+    "edges": [
+     [
+      "c",
+      "o",
+      "5 timeouts in a row"
+     ],
+     [
+      "o",
+      "h",
+      "after 30 s"
+     ],
+     [
+      "h",
+      "c",
+      "test call works"
+     ]
+    ],
+    "ok": [
+     "c"
+    ],
+    "edgeHi": [
+     [
+      "o",
+      "h"
+     ],
+     [
+      "h",
+      "c"
+     ]
+    ],
+    "say": "The next test call answers in 80 ms. The breaker closes, the count resets to 0, and the reviews come back."
+   }
+  ]
+ },
+ "when": [
+  "A service you call is slow or down",
+  "Stop one failure from spreading to every service",
+  "Microservices calling each other",
+  "Show a fallback instead of hanging"
+ ],
+ "python": "state = {\"fails\": 0, \"opened_at\": None}\ndef call(service_up, now, limit=5, wait=30):\n    opened = state[\"opened_at\"]\n    if opened is not None and now - opened < wait:\n        return \"OPEN: fail fast, 0 ms\"\n    if service_up:                               # closed, or a half-open test\n        state.update(fails=0, opened_at=None)\n        return \"ok, CLOSED again\" if opened is not None else \"ok\"\n    state[\"fails\"] += 1\n    if state[\"fails\"] >= limit or opened is not None:\n        state[\"opened_at\"] = now\n        return \"test failed, OPEN again\" if opened is not None else \"timeout, trips to OPEN\"\n    return \"timeout \" + str(state[\"fails\"]) + \" of \" + str(limit)\nfor now, up in zip([0, 2, 4, 6, 8, 9, 40, 75], [False] * 7 + [True]):\n    print(f\"t={now:>2}s ->\", call(up, now))",
+ "output": "t= 0s -> timeout 1 of 5\nt= 2s -> timeout 2 of 5\nt= 4s -> timeout 3 of 5\nt= 6s -> timeout 4 of 5\nt= 8s -> timeout, trips to OPEN\nt= 9s -> OPEN: fail fast, 0 ms\nt=40s -> test failed, OPEN again\nt=75s -> ok, CLOSED again",
+ "cost": [
+  [
+   "A call while Open",
+   "~0 ms instead of a 2 s timeout"
+  ],
+  [
+   "Extra work per call",
+   "O(1): a counter and a time"
+  ],
+  [
+   "Checking for recovery",
+   "1 test call every 30 s"
+  ]
+ ],
+ "watch": [
+  "Have a fallback for the Open state (cached data, hide the box), not a blank error page.",
+  "Count only real failures like timeouts and 500s, not a 404 from bad input.",
+  "Pair it with timeouts. Without one, a hung call never counts as a failure."
+ ],
+ "interview": [
+  "Design a resilient microservices system",
+  "What happens when a service you depend on is slow?",
+  "Design Netflix's API layer"
+ ],
+ "related": [
+  "microservices",
+  "health-checks",
+  "rate-limiting",
+  "idempotency"
+ ]
+}

@@ -1,0 +1,627 @@
+{
+ "id": "form-builder",
+ "title": "Government form submission backend",
+ "tagline": "Officers build forms in minutes; citizens submit answers and files, encrypted, even when a national announcement sends everyone at once.",
+ "govtech": true,
+ "govtech_label": "GovTech-relevant",
+ "mirrors": "FormSG",
+ "featured": true,
+ "difficulty": "medium",
+ "govtech_note": "<p>A prep guide (unverified) suggests <b>\"design the backend for a government form submission system\"</b> as a GovTech system design question. OGP runs <b>FormSG</b>, a public form builder for public officers, so this is a design like FormSG, built only from what is public: officers build forms; responses are either <b>emailed</b> to the officer or <b>stored encrypted</b> (storage mode: the browser encrypts with the form's public key and only the officer holding the secret key can decrypt); forms can take attachments, can require <b>Singpass</b> login and prefill from <b>Myinfo</b>, and storage-mode forms can send <b>webhooks</b>. Everything else here is a reasonable design, not a claim about how FormSG is built.</p><p>Clarify: how many forms and submissions, how spiky, do responses need to be readable by the server at all, attachment sizes, and where responses must go (email, an agency system, a dashboard).</p>",
+ "summary": "<p>Two very different workloads share one system. <b>Form building</b> is low volume: a few thousand officers saving JSON schemas. <b>Submission intake</b> is bursty: a scheme announced on the evening news can bring 300k submissions in an hour. So the form page and schema are served from a <b>CDN</b>, the API is stateless and autoscaled, the browser <b>encrypts answers</b> before they leave the device, files go <b>straight to object storage</b> through presigned URLs and are virus-scanned, and anything slow or flaky (email, webhooks to agency systems) goes through a <b>queue with retries</b> so it never blocks the submit button.</p>",
+ "requirements": {
+  "functional": [
+   "Officers create and edit forms: fields, validation, attachments, optional Singpass login",
+   "Citizens open a form link and submit answers and files",
+   "Responses are either emailed to the officer or stored encrypted for the officer to view and export",
+   "Optional webhook pushes each new response to an agency system",
+   "The respondent sees a reference ID on success"
+  ],
+  "nonfunctional": [
+   "Absorb spikes of 100× normal traffic without dropping submissions",
+   "Server breach must not expose stored response content (end-to-end encryption in storage mode)",
+   "Submit p99 under ~1 s excluding file upload; never lose an acknowledged submission",
+   "Attachments up to ~20 MB per form, scanned for malware before an officer opens them",
+   "Personal data handled to public-sector data protection rules: minimal collection, retention limits, audit logs"
+  ],
+  "out_of_scope": [
+   "The drag-and-drop form editor UI",
+   "Payments inside forms",
+   "Workflow approvals after submission"
+  ]
+ },
+ "estimates": [
+  {
+   "label": "Normal submissions",
+   "calc": "assume 1M/day ÷ 86,400",
+   "value": "~12/s"
+  },
+  {
+   "label": "Spike after an announcement",
+   "calc": "300k in 1 hour = 83/s avg, × 3 for the first minutes",
+   "value": "~250/s"
+  },
+  {
+   "label": "Form page loads in a spike",
+   "calc": "~10 opens per submit × 250/s",
+   "value": "~2.5k/s (CDN)"
+  },
+  {
+   "label": "Response storage",
+   "calc": "1M/day × 5 KB ciphertext × 365",
+   "value": "~1.8 TB/year"
+  },
+  {
+   "label": "Attachment storage",
+   "calc": "10% of 1M/day × 2 MB",
+   "value": "~200 GB/day (object store)"
+  },
+  {
+   "label": "Webhook workers needed",
+   "calc": "250 deliveries/s × 0.2 s each",
+   "value": "~50 in flight"
+  }
+ ],
+ "api": [
+  {
+   "method": "POST",
+   "path": "/api/forms {title, fields[], mode, publicKey, auth}",
+   "desc": "Officer only. mode = email | storage. In storage mode only the public key is sent; the secret key never leaves the officer's browser."
+  },
+  {
+   "method": "GET",
+   "path": "/api/forms/{id}",
+   "desc": "Public schema + public key. Cacheable at the CDN for ~60 s."
+  },
+  {
+   "method": "POST",
+   "path": "/api/forms/{id}/attachments/presign {name, size, sha256}",
+   "desc": "Checks size and type limits, returns a PUT URL valid for 5 minutes and an object key."
+  },
+  {
+   "method": "POST",
+   "path": "/api/forms/{id}/submissions {submissionId, encryptedContent, attachmentKeys[], captcha}",
+   "desc": "Returns 201 {referenceId}. Same submissionId again returns the same result (double-click safe)."
+  },
+  {
+   "method": "GET",
+   "path": "/api/forms/{id}/submissions?after={cursor}",
+   "desc": "Officer only. Pages of ciphertext; decrypted in the officer's browser."
+  },
+  {
+   "method": "PUT",
+   "path": "/api/forms/{id}/webhook {url}",
+   "desc": "Officer only. HTTPS only; deliveries are signed so the receiver can verify them."
+  }
+ ],
+ "data": [
+  {
+   "name": "forms",
+   "store": "Document DB (e.g. MongoDB)",
+   "fields": [
+    "_id",
+    "admin_ids[]",
+    "title",
+    "fields[]: {type, question, required, rules}",
+    "mode: email | storage",
+    "public_key",
+    "auth: none | singpass",
+    "webhook_url",
+    "version",
+    "status"
+   ],
+   "note": "Each form has a different nested shape, which suits documents. Bump <code>version</code> on every edit; responses record which version they answered."
+  },
+  {
+   "name": "submissions",
+   "store": "Document DB",
+   "fields": [
+    "_id = client submissionId",
+    "form_id",
+    "form_version",
+    "encrypted_content",
+    "attachment_keys[]",
+    "created_at"
+   ],
+   "note": "Index on (form_id, created_at) for paging. Storage mode keeps only ciphertext; email mode keeps metadata only and no answers."
+  },
+  {
+   "name": "attachments",
+   "store": "Object storage (S3)",
+   "fields": [
+    "key: form/submission/uuid",
+    "size, sha256",
+    "tag: scan = pending | clean | infected"
+   ],
+   "note": "Uploaded to a quarantine bucket; only clean objects are moved where officers can download them. Lifecycle rule deletes after the retention period."
+  },
+  {
+   "name": "delivery_jobs",
+   "store": "Queue (e.g. SQS) + dead-letter queue",
+   "fields": [
+    "submission_id",
+    "target: email | webhook",
+    "attempt",
+    "next_try_at"
+   ],
+   "note": "At-least-once. Receivers dedupe on submission_id."
+  }
+ ],
+ "diagram": {
+  "w": 960,
+  "h": 540,
+  "groups": [
+   {
+    "label": "Attachments",
+    "x": 222,
+    "y": 340,
+    "w": 260,
+    "h": 192
+   },
+   {
+    "label": "Async delivery",
+    "x": 500,
+    "y": 340,
+    "w": 455,
+    "h": 192
+   }
+  ],
+  "nodes": [
+   {
+    "id": "officer",
+    "label": "Public officer",
+    "sub": "builds, reads",
+    "kind": "client",
+    "x": 85,
+    "y": 80
+   },
+   {
+    "id": "cit",
+    "label": "Respondent",
+    "sub": "browser encrypts",
+    "kind": "user",
+    "x": 85,
+    "y": 230
+   },
+   {
+    "id": "cdn",
+    "label": "CDN + WAF",
+    "sub": "form page, JS",
+    "kind": "cdn",
+    "x": 311,
+    "y": 230
+   },
+   {
+    "id": "sp",
+    "label": "Singpass / Myinfo",
+    "sub": "login + prefill",
+    "kind": "ext",
+    "x": 530,
+    "y": 80
+   },
+   {
+    "id": "api",
+    "label": "Forms API",
+    "sub": "stateless, autoscaled",
+    "kind": "service",
+    "x": 530,
+    "y": 230
+   },
+   {
+    "id": "db",
+    "label": "Form + response DB",
+    "sub": "document DB",
+    "kind": "nosql",
+    "x": 782,
+    "y": 230
+   },
+   {
+    "id": "s3",
+    "label": "Object storage",
+    "sub": "quarantine bucket",
+    "kind": "storage",
+    "x": 311,
+    "y": 396
+   },
+   {
+    "id": "scan",
+    "label": "Virus scanner",
+    "sub": "on upload event",
+    "kind": "worker",
+    "x": 311,
+    "y": 498
+   },
+   {
+    "id": "q",
+    "label": "Delivery queue",
+    "sub": "email + webhook jobs",
+    "kind": "queue",
+    "x": 600,
+    "y": 396
+   },
+   {
+    "id": "w",
+    "label": "Delivery worker",
+    "sub": "retry with backoff",
+    "kind": "worker",
+    "x": 830,
+    "y": 396
+   },
+   {
+    "id": "mail",
+    "label": "Email relay",
+    "sub": "SMTP",
+    "kind": "notify",
+    "x": 690,
+    "y": 498
+   },
+   {
+    "id": "hook",
+    "label": "Agency system",
+    "sub": "webhook",
+    "kind": "ext",
+    "x": 875,
+    "y": 498
+   }
+  ],
+  "edges": [
+   {
+    "id": "off-api",
+    "from": "officer",
+    "to": "api",
+    "label": "build / read"
+   },
+   {
+    "id": "cit-cdn",
+    "from": "cit",
+    "to": "cdn",
+    "label": "GET form"
+   },
+   {
+    "id": "cdn-api",
+    "from": "cdn",
+    "to": "api",
+    "label": "POST"
+   },
+   {
+    "id": "api-sp",
+    "from": "api",
+    "to": "sp",
+    "label": "OIDC + Myinfo"
+   },
+   {
+    "id": "api-db",
+    "from": "api",
+    "to": "db",
+    "label": "write"
+   },
+   {
+    "id": "cit-s3",
+    "from": "cit",
+    "to": "s3",
+    "label": "PUT (presigned)"
+   },
+   {
+    "id": "api-s3",
+    "from": "api",
+    "to": "s3",
+    "label": "check tag"
+   },
+   {
+    "id": "s3-scan",
+    "from": "s3",
+    "to": "scan",
+    "label": "scan + tag",
+    "dashed": true,
+    "bi": true
+   },
+   {
+    "id": "api-q",
+    "from": "api",
+    "to": "q",
+    "label": "enqueue",
+    "dashed": true
+   },
+   {
+    "id": "q-w",
+    "from": "q",
+    "to": "w",
+    "label": "pull",
+    "dashed": true
+   },
+   {
+    "id": "w-mail",
+    "from": "w",
+    "to": "mail",
+    "label": "send"
+   },
+   {
+    "id": "w-hook",
+    "from": "w",
+    "to": "hook",
+    "label": "POST"
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "submit",
+   "name": "Submit a response (encrypted storage)",
+   "desc": "The hot path during a spike.",
+   "steps": [
+    {
+     "edge": "cit-cdn",
+     "note": "Respondent opens the form link. The page and JS come from the CDN cache, so 2.5k opens a second never touch the API."
+    },
+    {
+     "edge": "cdn-api",
+     "note": "Browser fetches the form schema and the form's <b>public key</b>. This response is cacheable for ~60 s, so even a hot form costs the API a few requests a minute."
+    },
+    {
+     "edge": "api-sp",
+     "note": "Only for Singpass forms: after login, the API exchanges the OIDC code for the verified NRIC and, with consent, Myinfo fields to prefill. Ask only for fields the form needs."
+    },
+    {
+     "node": "cit",
+     "note": "Browser validates the answers, then <b>encrypts them with the form's public key</b>. From here on the server only ever sees ciphertext."
+    },
+    {
+     "edge": "cdn-api",
+     "note": "POST the ciphertext with a client-generated <code>submissionId</code> and a CAPTCHA token. The ID makes a double-click or a retry after a timeout safe."
+    },
+    {
+     "edge": "api-db",
+     "note": "Insert ~5 KB with majority write concern: acknowledged only once it is on 2 of 3 replicas, so a node crash cannot lose it. 250 inserts/s is light for one replica set."
+    },
+    {
+     "edge": "api-q",
+     "note": "If the form has a webhook, enqueue a delivery job. Never call the agency system inline: if it is slow, the citizen's submit would hang."
+    },
+    {
+     "edge": "cdn-api",
+     "rev": true,
+     "note": "201 with a reference ID shown on screen. Total ~200-400 ms."
+    }
+   ]
+  },
+  {
+   "id": "upload",
+   "name": "Upload and scan an attachment",
+   "desc": "Files bypass the API servers.",
+   "steps": [
+    {
+     "edge": "cdn-api",
+     "note": "Browser asks for an upload URL with the file name, size and hash. The API checks the form allows files and the size is under the limit (say 20 MB)."
+    },
+    {
+     "edge": "cdn-api",
+     "rev": true,
+     "note": "API returns a <b>presigned PUT URL</b> valid for 5 minutes, bound to one object key and content length. Signing is local; no call to storage."
+    },
+    {
+     "edge": "cit-s3",
+     "note": "Browser uploads straight to object storage. API servers never stream megabytes, so a spike of uploads does not tie up API threads."
+    },
+    {
+     "edge": "s3-scan",
+     "note": "The object-created event triggers a scanner (an antivirus engine in an isolated worker). A few MB takes 1-2 s. It tags the object <code>clean</code> and copies it to the clean bucket, or tags it <code>infected</code> and deletes it."
+    },
+    {
+     "edge": "api-s3",
+     "note": "On submit, the API checks every attachment key belongs to this form and is tagged <code>clean</code>. Still pending: wait briefly or accept and hold delivery until it is."
+    },
+    {
+     "node": "scan",
+     "note": "Catch: if the browser encrypts the file end to end, the scanner cannot read it. See the deep dive for the options."
+    }
+   ]
+  },
+  {
+   "id": "deliver",
+   "name": "Deliver by email or webhook",
+   "desc": "Slow and flaky targets stay off the submit path.",
+   "steps": [
+    {
+     "edge": "api-q",
+     "note": "Every accepted submission that needs delivery puts one job on the queue: submission ID and target."
+    },
+    {
+     "edge": "q-w",
+     "note": "Workers pull jobs. ~50 deliveries in flight cover a 250/s spike at 200 ms each; the queue absorbs anything above that."
+    },
+    {
+     "edge": "w-mail",
+     "note": "Email mode: the worker renders the response into an email to the form's admin address. A temporary SMTP error (4xx) means retry, not fail."
+    },
+    {
+     "edge": "w-hook",
+     "note": "Webhook: POST the encrypted payload with a timestamp and a <b>signature</b> over the body, so the agency system can check it came from the form service and is fresh."
+    },
+    {
+     "edge": "w-hook",
+     "rev": true,
+     "note": "Timeout or non-2xx: retry with exponential backoff (1 min, 5 min, 30 min, 2 h...) for up to a day, then move to a dead-letter queue and alert the form admin."
+    },
+    {
+     "node": "w",
+     "note": "Delivery is <b>at least once</b>: a worker can crash after the POST but before marking the job done. Receivers must dedupe on submission ID."
+    }
+   ]
+  },
+  {
+   "id": "officer",
+   "name": "Officer builds a form and reads responses",
+   "desc": "Keys never leave the officer's machine.",
+   "steps": [
+    {
+     "edge": "off-api",
+     "note": "Officer creates a storage-mode form. Their browser generates a key pair, uploads only the <b>public</b> key, and has the officer save the <b>secret</b> key file."
+    },
+    {
+     "edge": "api-db",
+     "note": "Save the form document: fields, rules, public key, version 1. Editing later bumps the version so old responses still make sense."
+    },
+    {
+     "edge": "off-api",
+     "rev": true,
+     "note": "Officer gets the public link to share."
+    },
+    {
+     "edge": "off-api",
+     "note": "Later: the officer opens the responses page and pages through <code>GET /submissions?after=cursor</code>."
+    },
+    {
+     "node": "db",
+     "note": "Query uses the (form_id, created_at) index and returns 100 ciphertexts per page. The server cannot read them and does not need to."
+    },
+    {
+     "node": "officer",
+     "note": "Officer's browser decrypts with the secret key. Lose the key and the responses are unreadable: no reset, because the server never had it. That is the price of a breach-proof store."
+    }
+   ]
+  }
+ ],
+ "deep": [
+  {
+   "title": "End-to-end encryption in storage mode",
+   "html": "<p>Each form gets a key pair. The <b>public key</b> is stored with the form and sent to every respondent; the <b>secret key</b> stays with the officer. The respondent's browser encrypts answers with the public key, so the database holds only ciphertext.</p><ul><li><b>Protects against</b>: a database dump, a curious operator, a leaked backup.</li><li><b>Does not protect against</b>: a compromised server that ships a different public key or malicious JS. Mitigate with strict code release controls and subresource integrity on the scripts.</li><li><b>What the server can no longer do</b>: search or filter answers, validate content server-side, include answers in notification emails, or scan encrypted files.</li><li><b>Key loss</b> means data loss. Offer the officer to add other admins, each with access to the key, rather than server-side escrow.</li></ul><p>Email mode makes the opposite trade: the server sees plaintext long enough to email it, which is simpler for small forms but puts response data into mailboxes.</p>"
+  },
+  {
+   "title": "Surviving a national-announcement spike",
+   "sim": "queue",
+   "html": "<p>A scheme is announced at 7 pm and the form link goes out by SMS. Traffic jumps from ~12/s to ~250 submits/s and ~2.5k page opens/s within minutes.</p><ul><li><b>Static first</b>: the form page, JS and the schema are cached at the CDN, so 90% of requests never reach origin.</li><li><b>Stateless API</b>: scale out on CPU or request rate, and pre-scale before a known announcement; autoscaling takes minutes to react.</li><li><b>The DB write is small</b>: one ~5 KB insert per submit. 250/s is easy for one replica set; watch connection pool size as API pods multiply.</li><li><b>Everything slow is async</b>: emails, webhooks and scans sit behind queues, so a backlog there delays delivery but never fails a submit.</li><li><b>Keep bots out</b>: CAPTCHA and per-IP rate limits at the WAF; Singpass login where the form needs identity anyway.</li></ul>"
+  },
+  {
+   "title": "Attachments and virus scanning",
+   "html": "<p>Never stream files through the API. Presigned URLs let the browser upload straight to object storage, with the size and key fixed in the signature. Uploads land in a <b>quarantine bucket</b>; a scanner triggered by the upload event tags them, and only clean files reach the bucket officers download from.</p><p>The conflict: end-to-end encryption and server-side scanning cannot both be total. Options:</p><ul><li>Scan in an isolated, short-lived scanner that receives the plaintext over TLS, then encrypt; the plaintext exists briefly in one sealed component.</li><li>Encrypt end to end and scan on the officer's side when they download and decrypt.</li><li>Limit file types (PDF, images) and re-render them, which strips most active content.</li></ul><p>Say which you pick and why; the interviewer wants to see that you noticed the conflict.</p>"
+  },
+  {
+   "title": "Personal data handling",
+   "html": "<p>Public agencies follow public-sector data rules rather than the PDPA itself, but the same principles apply and are what an interviewer listens for:</p><ul><li><b>Collect less</b>: only the fields the form needs; take verified NRIC from Singpass rather than a free-text box.</li><li><b>Retention</b>: forms set a retention period; a scheduled job deletes old responses and a storage lifecycle rule deletes old files.</li><li><b>Access control and audit</b>: only form admins read responses; every export is logged with who and when.</li><li><b>No PII in logs</b>: log submission IDs, never answers, NRICs or file names.</li><li><b>Encryption</b>: TLS in transit, ciphertext in the DB (storage mode), encrypted volumes and buckets underneath.</li></ul>"
+  }
+ ],
+ "tradeoffs": [
+  {
+   "choice": "Email mode or encrypted storage mode?",
+   "pick": "Storage mode for sensitive or high-volume forms",
+   "why": "Email is simplest for a small form, but puts plaintext in mailboxes and breaks at volume. Storage mode keeps the server blind and supports exports and webhooks, at the cost of key management."
+  },
+  {
+   "choice": "Document DB or relational DB for forms?",
+   "pick": "Document DB",
+   "why": "Every form has a different nested field list. PostgreSQL with a JSONB column also works; the access pattern is simple key and (form_id, time) lookups either way."
+  },
+  {
+   "choice": "Upload files through the API or presigned URLs?",
+   "pick": "Presigned URLs",
+   "why": "API pods stay small and fast; object storage handles large parallel uploads. The signature pins the key, size and expiry, so the browser cannot upload anything else."
+  },
+  {
+   "choice": "Deliver webhooks inline or through a queue?",
+   "pick": "Queue with retries and a dead-letter queue",
+   "why": "An agency system being down must not fail citizens' submissions. At-least-once plus dedupe on submission ID is simpler and safer than trying for exactly once."
+  },
+  {
+   "choice": "Scan attachments before or after accepting the submit?",
+   "pick": "Accept, hold delivery until clean",
+   "why": "Scans take seconds and the respondent should not wait on them; the officer never sees an unscanned file either way."
+  }
+ ],
+ "bottlenecks": [
+  {
+   "issue": "Spike of 250 submits/s and 2.5k page opens/s after an announcement",
+   "fix": "CDN caches the page and schema, API pre-scaled and autoscaled, small inserts with a bounded connection pool, slow work behind queues."
+  },
+  {
+   "issue": "One agency's webhook endpoint is down for hours",
+   "fix": "Exponential backoff, a per-receiver concurrency cap so it cannot starve other forms' deliveries, then dead-letter and alert the admin."
+  },
+  {
+   "issue": "Officer exports 300k encrypted responses",
+   "fix": "Stream pages of ciphertext and decrypt in a background worker thread in the browser, writing a CSV as it goes, instead of one giant request."
+  },
+  {
+   "issue": "Bots flood a public form",
+   "fix": "CAPTCHA, per-IP limits at the WAF, and Singpass login for forms that need identity."
+  }
+ ],
+ "followups": [
+  {
+   "q": "The respondent double-clicks submit or retries after a timeout. What happens?",
+   "a": "<p>The browser generates <code>submissionId</code> once per attempt and reuses it on retry. It is the document's primary key, so the second insert hits a duplicate-key error and the API returns the original reference ID.</p>"
+  },
+  {
+   "q": "An officer edits a form after 10,000 responses. How do old responses still make sense?",
+   "a": "<p>Forms are versioned. Each response stores <code>form_version</code>, and old versions of the schema are kept, so the response viewer renders each answer against the questions that were actually asked.</p>"
+  },
+  {
+   "q": "The officer lost the secret key. Can you recover the responses?",
+   "a": "<p>No, and that is the point: the server never had the key. Prevent it instead: prompt officers to store the key safely and to add collaborators who also hold it.</p>"
+  },
+  {
+   "q": "How does an agency system get responses without polling?",
+   "a": "<p>Webhooks: a signed POST per submission, at least once, with retries. The receiver verifies the signature and timestamp, dedupes on submission ID, and decrypts with the form's secret key, which it holds instead of a person.</p>"
+  },
+  {
+   "q": "How do you delete responses when the retention period ends?",
+   "a": "<p>A daily job deletes submissions older than the form's retention period in batches (or a TTL index on <code>created_at</code>), and an object storage lifecycle rule deletes the matching files. Backups age out on their own schedule, which you document.</p>"
+  }
+ ],
+ "quiz": [
+  {
+   "q": "Why upload attachments with presigned URLs instead of through the API?",
+   "options": [
+    "Presigned URLs encrypt files automatically",
+    "So large files bypass the API servers and uploads scale with object storage",
+    "Because the API cannot read files",
+    "To skip virus scanning"
+   ],
+   "answer": 1,
+   "why": "The API only signs a short-lived URL; megabytes go straight to storage, so a spike of uploads does not tie up API pods."
+  },
+  {
+   "q": "In storage mode, what can the server NOT do?",
+   "options": [
+    "Count submissions per form",
+    "Store the ciphertext",
+    "Search inside answers",
+    "Return pages of responses"
+   ],
+   "answer": 2,
+   "why": "Answers are encrypted with a key the server never holds, so it can store and count them but not read or search them."
+  },
+  {
+   "q": "An agency's webhook receiver is down. What should happen to new submissions?",
+   "options": [
+    "Reject them until it recovers",
+    "Accept them; queue deliveries and retry with backoff",
+    "Email them in plaintext instead",
+    "Drop the webhook silently"
+   ],
+   "answer": 1,
+   "why": "The citizen's submit must not depend on an agency system. The queue holds the jobs and retries; after the retry window, dead-letter and alert."
+  },
+  {
+   "q": "A national announcement sends 2.5k form opens/s. Which part takes most of that load?",
+   "options": [
+    "The document DB",
+    "The CDN serving the page and cached schema",
+    "The delivery workers",
+    "Singpass"
+   ],
+   "answer": 1,
+   "why": "Opening a form is a static read: page, JS and schema are cacheable, so origin sees only a trickle."
+  },
+  {
+   "q": "Why must webhook receivers dedupe on submission ID?",
+   "options": [
+    "Because delivery is at least once, so a retry can repeat a delivered POST",
+    "Because IDs are random",
+    "Because the queue reorders messages",
+    "They don't need to"
+   ],
+   "answer": 0,
+   "why": "A worker can deliver successfully and crash before recording it; the retry sends the same submission again."
+  }
+ ]
+}

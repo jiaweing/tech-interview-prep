@@ -1,0 +1,157 @@
+{
+ "id": "top-k-heap",
+ "track": "algo",
+ "order": 25,
+ "title": "Top K with a heap",
+ "short": "Keep the k biggest items seen so far in a small heap.",
+ "what": "To find the k largest items, you don't need to sort everything. Keep a min-heap of size k: the smallest of your current top k sits on top. Each new item that beats the top pushes it out. At the end the heap holds the top k, and its top is the k-th largest.",
+ "analogy": "A top-3 leaderboard. A new score only gets on the board if it beats the lowest score shown, and that lowest score is the one that drops off.",
+ "viz": {
+  "kind": "tree",
+  "frames": [
+   {
+    "nodes": [
+     1,
+     5,
+     9
+    ],
+    "label": "k = 3",
+    "hi": [
+     0
+    ],
+    "say": "Keep the 3 biggest of 5 1 9 3 7 2 8. Put the first three in a min-heap. The smallest of them, 1, sits on top."
+   },
+   {
+    "nodes": [
+     1,
+     3,
+     9,
+     5
+    ],
+    "label": "next: 3",
+    "hi": [
+     1
+    ],
+    "tag": {
+     "0": "smallest"
+    },
+    "say": "Push 3. The heap now holds 4 items, one more than k. The heap keeps the smallest on top: still 1."
+   },
+   {
+    "nodes": [
+     3,
+     5,
+     9
+    ],
+    "label": "next: 3",
+    "ok": [
+     0
+    ],
+    "tag": {
+     "0": "1 popped"
+    },
+    "say": "Pop the top: 1 leaves. Now the heap is the top 3 so far: 3, 5, 9, and 3 is the bar to beat."
+   },
+   {
+    "nodes": [
+     5,
+     7,
+     9
+    ],
+    "label": "next: 7",
+    "ok": [
+     0
+    ],
+    "tag": {
+     "0": "3 popped"
+    },
+    "say": "7 comes in and pushes out the smallest, 3. The bar rises to 5."
+   },
+   {
+    "nodes": [
+     5,
+     7,
+     9
+    ],
+    "label": "next: 2",
+    "hi": [
+     0
+    ],
+    "tag": {
+     "0": "2 < 5, so 2 out"
+    },
+    "say": "2 comes in and is the smallest right away, so it is popped straight back out. The heap doesn't change."
+   },
+   {
+    "nodes": [
+     7,
+     8,
+     9
+    ],
+    "label": "next: 8",
+    "ok": [
+     0
+    ],
+    "tag": {
+     "0": "5 popped"
+    },
+    "say": "8 pushes out 5. The heap holds 7, 8, 9."
+   },
+   {
+    "nodes": [
+     7,
+     8,
+     9
+    ],
+    "label": "done",
+    "ok": [
+     0,
+     1,
+     2
+    ],
+    "tag": {
+     "0": "3rd largest"
+    },
+    "out": "top 3: 9, 8, 7",
+    "say": "Done. The heap holds the top 3, and its top, 7, is the 3rd largest. Each step costs log k, not log n."
+   }
+  ]
+ },
+ "when": [
+  "The k largest, smallest, closest or most frequent",
+  "The k-th largest element",
+  "A stream of data where you can't keep everything",
+  "Sorting everything would be wasteful when k is small"
+ ],
+ "python": "import heapq\ndef top_k(nums, k):\n    heap = []\n    for x in nums:\n        heapq.heappush(heap, x)\n        if len(heap) > k:\n            heapq.heappop(heap)  # drop the smallest\n    return sorted(heap, reverse=True)\nprint(top_k([5, 1, 9, 3, 7, 2, 8], 3))\nprint(heapq.nlargest(3, [5, 1, 9, 3, 7, 2, 8]))",
+ "output": "[9, 8, 7]\n[9, 8, 7]",
+ "cost": [
+  [
+   "Top k of n items",
+   "O(n log k)"
+  ],
+  [
+   "Memory",
+   "O(k)"
+  ],
+  [
+   "Sort everything instead",
+   "O(n log n)"
+  ]
+ ],
+ "watch": [
+  "For the k largest use a min-heap, not a max-heap: the top is the one to kick out.",
+  "heapq is a min-heap only. For a max-heap, push -x and flip the sign back.",
+  "To rank by a score, push tuples: (score, item)."
+ ],
+ "interview": [
+  "LC 215 Kth Largest Element in an Array",
+  "LC 347 Top K Frequent Elements",
+  "LC 973 K Closest Points to Origin"
+ ],
+ "related": [
+  "heap",
+  "sorting-overview",
+  "hash-map"
+ ]
+}

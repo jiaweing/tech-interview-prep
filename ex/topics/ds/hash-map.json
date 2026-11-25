@@ -1,0 +1,164 @@
+{
+ "id": "hash-map",
+ "track": "ds",
+ "order": 4,
+ "title": "Hash map",
+ "short": "Find anything by its name in one step.",
+ "what": "A hash map stores pairs: a key and its value. You give it the key, and it jumps straight to the value without searching. In Python it is the dict.",
+ "analogy": "A coat check. You hand over ticket 42 and the attendant walks straight to hook 42. Nobody checks every coat.",
+ "viz": {
+  "kind": "map",
+  "frames": [
+   {
+    "rows": [],
+    "label": "ages",
+    "say": "Start with an empty dict called ages."
+   },
+   {
+    "rows": [
+     [
+      "\"ann\"",
+      "31"
+     ]
+    ],
+    "hi": [
+     0
+    ],
+    "label": "ages",
+    "say": "ages[\"ann\"] = 31 stores a pair: the key \"ann\" and the value 31."
+   },
+   {
+    "rows": [
+     [
+      "\"ann\"",
+      "31"
+     ],
+     [
+      "\"bo\"",
+      "25"
+     ],
+     [
+      "\"cy\"",
+      "40"
+     ]
+    ],
+    "hi": [
+     1,
+     2
+    ],
+    "label": "ages",
+    "say": "Add two more people. Each insert takes about the same tiny time, however big the dict gets."
+   },
+   {
+    "rows": [
+     [
+      "\"ann\"",
+      "31"
+     ],
+     [
+      "\"bo\"",
+      "25"
+     ],
+     [
+      "\"cy\"",
+      "40"
+     ]
+    ],
+    "ok": [
+     1
+    ],
+    "label": "ages",
+    "out": "ages[\"bo\"] -> 25",
+    "say": "ages[\"bo\"] jumps straight to bo's row. No loop over ann first."
+   },
+   {
+    "rows": [
+     [
+      "\"ann\"",
+      "32"
+     ],
+     [
+      "\"bo\"",
+      "25"
+     ],
+     [
+      "\"cy\"",
+      "40"
+     ]
+    ],
+    "hi": [
+     0
+    ],
+    "label": "ages",
+    "say": "Writing to a key that exists replaces its value. Keys are unique, so ann still has one row."
+   },
+   {
+    "rows": [
+     [
+      "\"ann\"",
+      "32"
+     ],
+     [
+      "\"bo\"",
+      "25"
+     ],
+     [
+      "\"cy\"",
+      "40"
+     ]
+    ],
+    "bad": [],
+    "dim": [
+     0,
+     1,
+     2
+    ],
+    "label": "ages",
+    "out": "\"dee\" in ages -> False",
+    "say": "\"dee\" in ages checks for a key in one step too. Use it, or .get(), before reading a key that may be missing."
+   }
+  ]
+ },
+ "when": [
+  "Have I seen this before?",
+  "Count how many times each thing appears",
+  "Look something up by name or id",
+  "Find a partner that adds up to a target",
+  "Group items that share a key"
+ ],
+ "python": "ages = {}\nages[\"ann\"] = 31\nages[\"bo\"] = 25\nprint(ages[\"bo\"])\nprint(\"dee\" in ages)\nprint(ages.get(\"dee\", 0))\n\nfrom collections import Counter\nprint(Counter(\"banana\"))",
+ "output": "25\nFalse\n0\nCounter({'a': 3, 'n': 2, 'b': 1})",
+ "cost": [
+  [
+   "Look up a key",
+   "O(1)"
+  ],
+  [
+   "Add or update a key",
+   "O(1)"
+  ],
+  [
+   "Check if a key exists",
+   "O(1)"
+  ],
+  [
+   "Find a value without its key",
+   "O(n)"
+  ]
+ ],
+ "watch": [
+  "Reading a missing key with ages[k] raises KeyError. Use .get(k, default) or check k in ages.",
+  "Keys must be unchangeable: strings, numbers, tuples. A list cannot be a key.",
+  "O(1) is the average. Order of keys is insertion order, not sorted."
+ ],
+ "interview": [
+  "LC 1 Two Sum",
+  "LC 49 Group Anagrams",
+  "LC 347 Top K Frequent Elements"
+ ],
+ "related": [
+  "hash-set",
+  "array",
+  "two-pointers"
+ ]
+}

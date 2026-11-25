@@ -1,0 +1,588 @@
+{
+ "id": "rate-limiter",
+ "title": "Distributed rate limiter",
+ "tagline": "Let each user, IP or API key make N requests per window, across many gateways, adding about 1 ms.",
+ "govtech": true,
+ "govtech_label": "GovTech-relevant",
+ "featured": true,
+ "difficulty": "medium",
+ "govtech_note": "<p>A GovTech interview listing on NodeFlair names <b>\"design a rate limiter API\"</b>. It is also a standard question across the industry, so expect the interviewer to push past the basics. Government services make it concrete: OTP and login endpoints (stop brute force and SMS cost blow-ups), public data APIs with per-key quotas, and form or booking launches where one bot should not starve real users.</p><p>Clarify early: <b>limit by what</b> (user, IP, API key, endpoint)? <b>Hard or soft</b> limit? One region or several? Is it a library inside each service or a shared service? What should a blocked caller see?</p>",
+ "summary": "<p>Every request asks one question: <i>may this key spend one more token?</i> The gateway answers it with a single atomic call to Redis that runs a <b>token bucket</b> (or sliding window counter) in a Lua script, so many gateway replicas share one count without races. Allowed requests carry <code>RateLimit-Remaining</code> headers; blocked ones get <b>429 Too Many Requests</b> with <code>Retry-After</code>. Rules live in a small config service and are cached in every gateway. The hard parts are the edges: what to do when Redis is down (fail open or closed), hot keys, and whether a limit is per region or global.</p>",
+ "requirements": {
+  "functional": [
+   "Limit requests per key (user ID, API key, client IP) and per route, e.g. 100/min, burst 20",
+   "Different limits per tier (anonymous, signed-in, partner API key) and per endpoint (OTP: 5 per 15 min)",
+   "Blocked requests get HTTP 429 with Retry-After; allowed ones get remaining-quota headers",
+   "Operators change limits without a deploy; new rules can run in shadow mode (log, don't block)"
+  ],
+  "nonfunctional": [
+   "Adds under ~2 ms p99 to each request",
+   "Handles 50k requests/s peak across all gateways",
+   "Accurate within a few percent; a small overshoot is fine, a large one is not",
+   "A limiter outage must not take down the APIs it protects"
+  ],
+  "out_of_scope": [
+   "Full DDoS protection (volumetric attacks are stopped at the edge / WAF)",
+   "Billing and monthly quotas (a separate metering system)"
+  ]
+ },
+ "estimates": [
+  {
+   "label": "Peak API traffic",
+   "calc": "assume 50k req/s across all gateways",
+   "value": "50k/s"
+  },
+  {
+   "label": "Redis ops",
+   "calc": "1 script call per request",
+   "value": "50k ops/s"
+  },
+  {
+   "label": "Redis shards",
+   "calc": "~25k Lua calls/s per shard with headroom → 50k ÷ 25k",
+   "value": "2, run 3"
+  },
+  {
+   "label": "Memory for token buckets",
+   "calc": "10M active keys × ~100 B (key + 2 fields + overhead)",
+   "value": "~1 GB"
+  },
+  {
+   "label": "Memory if you used a sliding log",
+   "calc": "10M keys × 100 timestamps × 8 B",
+   "value": "~8 GB (why we avoid it)"
+  },
+  {
+   "label": "Rules cached per gateway",
+   "calc": "1,000 rules × 200 B",
+   "value": "~200 KB"
+  },
+  {
+   "label": "Added latency",
+   "calc": "1 in-zone Redis round trip",
+   "value": "~0.5-1 ms"
+  }
+ ],
+ "api": [
+  {
+   "method": "POST",
+   "path": "/v1/ratelimit/check {key, rule_id, cost=1}",
+   "desc": "Internal. Returns {allowed, remaining, reset_ms, retry_after_ms}. Most callers use the gateway middleware instead of calling this."
+  },
+  {
+   "method": "GET",
+   "path": "/v1/rules",
+   "desc": "Gateways fetch the full rule set on boot, then poll with ETag every 30 s (or subscribe to changes)."
+  },
+  {
+   "method": "PUT",
+   "path": "/v1/rules/{id} {match, key_by, limit, window_s, burst, mode}",
+   "desc": "Ops only, audited. mode = enforce | shadow."
+  },
+  {
+   "method": "GET",
+   "path": "/v1/usage/{key}",
+   "desc": "Current tokens and recent 429 count for one key, for support tickets."
+  },
+  {
+   "method": "GET",
+   "path": "any protected route (response contract)",
+   "desc": "200 with RateLimit-Limit / RateLimit-Remaining / RateLimit-Reset, or 429 with Retry-After: seconds."
+  }
+ ],
+ "data": [
+  {
+   "name": "rules",
+   "store": "PostgreSQL (source of truth)",
+   "fields": [
+    "id",
+    "match: route + method",
+    "key_by: user | ip | api_key",
+    "limit, window_s, burst",
+    "tier",
+    "mode: enforce | shadow"
+   ],
+   "note": "Small and rarely written. Cached in memory in every gateway; Redis is never asked for rules on the hot path."
+  },
+  {
+   "name": "token bucket",
+   "store": "Redis (hash)",
+   "fields": [
+    "key: rl:{rule}:{subject}",
+    "tokens (float)",
+    "last_refill_ms"
+   ],
+   "note": "TTL = time to refill completely, so idle keys disappear on their own. Hash-tagged on the subject so one key lives on one shard."
+  },
+  {
+   "name": "sliding window counter (alternative)",
+   "store": "Redis (string)",
+   "fields": [
+    "key: rl:{rule}:{subject}:{window_start}",
+    "count"
+   ],
+   "note": "Two counters per key; estimate = current + previous × overlap fraction. TTL 2 windows."
+  },
+  {
+   "name": "limiter metrics",
+   "store": "Prometheus / time series DB",
+   "fields": [
+    "rule",
+    "allowed / limited / shadow-limited",
+    "redis_errors"
+   ],
+   "note": "Alert on a sudden rise of 429s (bad rule) or of Redis errors (fail-open in effect)."
+  }
+ ],
+ "diagram": {
+  "w": 960,
+  "h": 520,
+  "groups": [
+   {
+    "label": "Region A",
+    "x": 10,
+    "y": 8,
+    "w": 945,
+    "h": 274
+   },
+   {
+    "label": "Global rules",
+    "x": 160,
+    "y": 288,
+    "w": 470,
+    "h": 84
+   },
+   {
+    "label": "Region B",
+    "x": 10,
+    "y": 400,
+    "w": 945,
+    "h": 112
+   }
+  ],
+  "nodes": [
+   {
+    "id": "client",
+    "label": "Client",
+    "sub": "API key / IP",
+    "kind": "client",
+    "x": 80,
+    "y": 120
+   },
+   {
+    "id": "edge",
+    "label": "Edge / WAF",
+    "sub": "coarse IP limits",
+    "kind": "cdn",
+    "x": 295,
+    "y": 120
+   },
+   {
+    "id": "gw",
+    "label": "API gateway",
+    "sub": "limiter middleware",
+    "kind": "gateway",
+    "x": 530,
+    "y": 120
+   },
+   {
+    "id": "api",
+    "label": "Backend API",
+    "sub": "only allowed traffic",
+    "kind": "service",
+    "x": 775,
+    "y": 120
+   },
+   {
+    "id": "redis",
+    "label": "Redis (region A)",
+    "sub": "Lua token bucket",
+    "kind": "cache",
+    "x": 670,
+    "y": 235
+   },
+   {
+    "id": "metrics",
+    "label": "Metrics",
+    "sub": "429s, near-limit",
+    "kind": "tsdb",
+    "x": 870,
+    "y": 235
+   },
+   {
+    "id": "admin",
+    "label": "Ops admin",
+    "sub": "edits rules",
+    "kind": "user",
+    "x": 230,
+    "y": 344
+   },
+   {
+    "id": "rules",
+    "label": "Rules service",
+    "sub": "limits per key + tier",
+    "kind": "service",
+    "x": 530,
+    "y": 344
+   },
+   {
+    "id": "client2",
+    "label": "Client",
+    "sub": "near region B",
+    "kind": "client",
+    "x": 80,
+    "y": 465
+   },
+   {
+    "id": "gw2",
+    "label": "Gateway (region B)",
+    "sub": "same middleware",
+    "kind": "gateway",
+    "x": 400,
+    "y": 465
+   },
+   {
+    "id": "redis2",
+    "label": "Redis (region B)",
+    "sub": "local counters",
+    "kind": "cache",
+    "x": 670,
+    "y": 465
+   }
+  ],
+  "edges": [
+   {
+    "id": "c-e",
+    "from": "client",
+    "to": "edge",
+    "label": "request"
+   },
+   {
+    "id": "e-gw",
+    "from": "edge",
+    "to": "gw",
+    "label": "forward"
+   },
+   {
+    "id": "gw-r",
+    "from": "gw",
+    "to": "redis",
+    "label": "EVALSHA"
+   },
+   {
+    "id": "gw-api",
+    "from": "gw",
+    "to": "api",
+    "label": "allowed"
+   },
+   {
+    "id": "gw-m",
+    "from": "gw",
+    "to": "metrics",
+    "label": "counters",
+    "dashed": true
+   },
+   {
+    "id": "adm-rules",
+    "from": "admin",
+    "to": "rules",
+    "label": "PUT /rules"
+   },
+   {
+    "id": "rules-gw",
+    "from": "rules",
+    "to": "gw",
+    "label": "push rules",
+    "dashed": true
+   },
+   {
+    "id": "rules-gw2",
+    "from": "rules",
+    "to": "gw2",
+    "label": "push rules",
+    "dashed": true
+   },
+   {
+    "id": "c2-gw2",
+    "from": "client2",
+    "to": "gw2",
+    "label": "request"
+   },
+   {
+    "id": "gw2-r2",
+    "from": "gw2",
+    "to": "redis2",
+    "label": "check"
+   },
+   {
+    "id": "r-r2",
+    "from": "redis",
+    "to": "redis2",
+    "label": "async sync",
+    "dashed": true,
+    "bi": true
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "allowed",
+   "name": "Request allowed",
+   "desc": "The 99% case: one Redis call, then on to the backend.",
+   "steps": [
+    {
+     "edge": "c-e",
+     "note": "Client calls <code>GET /v1/datasets</code> with API key <code>k_42</code>."
+    },
+    {
+     "edge": "e-gw",
+     "note": "The edge already dropped obvious floods (millions of req/s from one IP) with cheap per-IP limits. Everything else reaches the gateway."
+    },
+    {
+     "node": "gw",
+     "note": "Gateway matches the route against its <b>in-memory</b> rule cache: <code>partner keys: 100 req/min, burst 20</code>. No network call for rules."
+    },
+    {
+     "edge": "gw-r",
+     "note": "One <code>EVALSHA</code> on key <code>rl:datasets:k_42</code>. The script refills tokens for the time elapsed, takes 1 if available, and returns <code>{allowed: 1, remaining: 37}</code>. Atomic, so 40 gateway replicas never double-spend."
+    },
+    {
+     "edge": "gw-r",
+     "rev": true,
+     "note": "About 0.5 ms in the same zone. This round trip is the whole cost of the limiter."
+    },
+    {
+     "edge": "gw-api",
+     "note": "Request goes to the backend as normal."
+    },
+    {
+     "edge": "c-e",
+     "rev": true,
+     "note": "Response carries <code>RateLimit-Limit: 100</code>, <code>RateLimit-Remaining: 37</code>, <code>RateLimit-Reset: 23</code> so well-behaved clients can slow down before they hit the wall."
+    }
+   ]
+  },
+  {
+   "id": "limited",
+   "name": "Request limited (429)",
+   "desc": "The bucket is empty.",
+   "steps": [
+    {
+     "edge": "c-e",
+     "note": "A script loops on the OTP endpoint: its 6th request in 15 minutes."
+    },
+    {
+     "edge": "e-gw",
+     "note": "Forwarded: 6 requests is far too few for the edge's coarse limits to notice. Only the gateway knows per-user rules."
+    },
+    {
+     "edge": "gw-r",
+     "note": "Script finds 0 tokens and returns <code>{allowed: 0, retry_after_ms: 412000}</code>. Nothing is decremented, so a blocked caller does not dig itself deeper."
+    },
+    {
+     "edge": "gw-m",
+     "note": "Increment <code>limited{rule=otp}</code>. A sudden jump across many keys usually means a bad rule or a bot wave, and pages someone."
+    },
+    {
+     "edge": "e-gw",
+     "rev": true,
+     "note": "Gateway answers <b>429 Too Many Requests</b> with <code>Retry-After: 412</code>. The backend never saw the request: no SMS sent, no cost."
+    },
+    {
+     "edge": "c-e",
+     "rev": true,
+     "note": "Good clients back off with jitter. For OTP and login, also log the event for fraud review; 429s are a signal, not just a refusal."
+    }
+   ]
+  },
+  {
+   "id": "rules",
+   "name": "Change a limit",
+   "desc": "No deploy, no restart.",
+   "steps": [
+    {
+     "edge": "adm-rules",
+     "note": "Ops raises the public API limit from 100 to 300 req/min for a launch, first in <b>shadow</b> mode: log what would be blocked, block nothing."
+    },
+    {
+     "edge": "rules-gw",
+     "note": "Gateways poll <code>GET /v1/rules</code> with an ETag every 30 s (or get a push). A rule change reaches every gateway within one poll."
+    },
+    {
+     "edge": "rules-gw2",
+     "note": "Same rule set in every region. If the rules service is down, gateways keep their last good copy; rules are never on the hot path."
+    },
+    {
+     "node": "gw",
+     "note": "Shadow results look sane, so the rule flips to <b>enforce</b>. Existing buckets keep their token counts; the new capacity applies on the next refill."
+    }
+   ]
+  },
+  {
+   "id": "multiregion",
+   "name": "Second region and failures",
+   "desc": "Per-region counts, and what happens when Redis is down.",
+   "steps": [
+    {
+     "edge": "c2-gw2",
+     "note": "A client near region B hits that region's gateway. Cross-region Redis calls would add 30-70 ms, so each region checks its own Redis."
+    },
+    {
+     "edge": "gw2-r2",
+     "note": "Region B counts locally. Simplest version: give each region the full limit and accept that a user hitting both regions could get up to 2×."
+    },
+    {
+     "edge": "r-r2",
+     "note": "Tighter option: regions exchange counts asynchronously every second or so, and each region enforces <code>limit − other regions' usage</code>. Accurate within one sync interval, never on the request path."
+    },
+    {
+     "node": "redis2",
+     "note": "If Redis is unreachable: most routes <b>fail open</b> with an in-memory limiter per gateway (limit ÷ number of gateways), because blocking all traffic is worse than a short overshoot. OTP and login <b>fail closed</b>: abuse there costs money and accounts."
+    }
+   ]
+  }
+ ],
+ "deep": [
+  {
+   "title": "Pick an algorithm",
+   "sim": "bucket",
+   "html": "<ul><li><b>Token bucket</b>: a bucket holds up to B tokens and refills at r per second; each request takes one. Allows short bursts up to B, then a steady r. Two numbers per key. My default; AWS API Gateway and Stripe describe their limits this way.</li><li><b>Leaky bucket</b>: requests queue and drain at a fixed rate. Smooths traffic for a fragile downstream, but adds waiting.</li><li><b>Fixed window counter</b>: <code>INCR rl:key:12:05</code> with a TTL. One number, very cheap, but a client can send 2× the limit across a window boundary (100 at 12:05:59, 100 at 12:06:00).</li><li><b>Sliding window log</b>: store every timestamp; exact, but memory grows with the limit (8 GB in our estimate).</li><li><b>Sliding window counter</b>: current count + previous count × overlap fraction. Close to exact with two numbers; good when you must not allow the boundary burst.</li></ul><p>Try the simulator: set capacity 10, refill 2/s, and send a burst of 15. The first 10 pass, the next 5 get 429, then one passes every 500 ms.</p>"
+  },
+  {
+   "title": "Atomic check in Redis",
+   "html": "<p>The naive version reads the count, checks it, then writes it back. Two gateways do that at the same moment, both read 99, both allow, and the limit is broken. Fix it by doing the whole read-modify-write <b>inside Redis</b> in one Lua script, which Redis runs without interleaving other commands:</p><p><code>tokens, ts = HMGET key</code><br><code>tokens = min(B, tokens + (now − ts) × r)</code><br><code>if tokens &gt;= cost then tokens -= cost; allowed = 1</code><br><code>HSET key tokens now; PEXPIRE key ttl</code></p><ul><li>Take <code>now</code> from Redis <code>TIME</code>, not the gateway, so clock skew between 40 gateways does not leak tokens.</li><li>Load the script once (<code>SCRIPT LOAD</code>) and call it by SHA so each request sends only the key and arguments.</li><li>For a fixed window, <code>INCR</code> + <code>EXPIRE</code> in a pipeline is enough; INCR is already atomic.</li></ul>"
+  },
+  {
+   "title": "Fail open or fail closed?",
+   "html": "<p>The limiter protects the API; it must not become the reason the API is down.</p><ul><li><b>Fail open</b> (allow when Redis is unreachable): right for most read APIs. Keep a crude in-memory bucket per gateway so the overshoot stays bounded, and a circuit breaker so you stop waiting on a dead Redis (timeout ~5 ms, not seconds).</li><li><b>Fail closed</b> (deny): right where abuse is expensive: OTP sends (SMS cost), login (credential stuffing), payments.</li><li>Run Redis with a replica and automatic failover. Losing a few seconds of counts on failover is fine; counts are not ledger data.</li></ul>"
+  },
+  {
+   "title": "Hot keys and local batching",
+   "html": "<p>One big partner key sending 10k req/s puts 10k ops/s on one Redis shard (all its updates hash to one slot). Two fixes:</p><ul><li><b>Token leasing</b>: a gateway takes 100 tokens at a time and spends them locally, returning to Redis only when its lease runs out. 100× fewer Redis calls for that key, at the cost of being up to <i>gateways × 100</i> tokens loose.</li><li><b>Local pre-limit</b>: each gateway enforces <i>limit ÷ N</i> in memory first, so obviously over-limit traffic never reaches Redis.</li></ul>"
+  }
+ ],
+ "tradeoffs": [
+  {
+   "choice": "Token bucket or sliding window?",
+   "pick": "Token bucket by default",
+   "why": "Two numbers per key, allows a natural burst, easy to explain. Use a sliding window counter when the boundary 2× burst of fixed windows matters, e.g. strict partner quotas."
+  },
+  {
+   "choice": "Central Redis or in-memory per gateway?",
+   "pick": "Central Redis, with an in-memory fallback",
+   "why": "In-memory alone means each of N gateways allows the full limit, so the real limit is N×. Redis gives one shared count for ~1 ms."
+  },
+  {
+   "choice": "Where to enforce?",
+   "pick": "Gateway middleware, plus coarse limits at the edge",
+   "why": "The gateway knows the user and API key after auth; the edge only sees IPs. Services can still add their own limits for expensive operations."
+  },
+  {
+   "choice": "Fail open or fail closed?",
+   "pick": "Open for most routes, closed for OTP/login",
+   "why": "Availability matters more than exact counts for reads; for abuse-prone, costly endpoints, a short outage is the cheaper failure."
+  },
+  {
+   "choice": "Per-region or global limits?",
+   "pick": "Per-region, with async count sharing if needed",
+   "why": "A global synchronous count adds a cross-region round trip to every request. Most users stay in one region, so per-region is accurate enough."
+  }
+ ],
+ "bottlenecks": [
+  {
+   "issue": "One partner key at 10k req/s overloads a single Redis shard",
+   "fix": "Token leasing in the gateway (take 100 at a time) and a local pre-limit of limit ÷ N before calling Redis."
+  },
+  {
+   "issue": "Redis outage or latency spike",
+   "fix": "5 ms timeout + circuit breaker, then fall back to in-memory buckets (fail open) except on OTP/login (fail closed). Redis replica with automatic failover."
+  },
+  {
+   "issue": "Shared office or carrier NAT: thousands of real users behind one IP",
+   "fix": "Key by user or API key after authentication; keep IP limits loose and only for unauthenticated routes."
+  },
+  {
+   "issue": "A bad rule blocks everyone",
+   "fix": "Shadow mode before enforce, alerts on 429 rate per rule, and a one-click rollback to the previous rule version."
+  }
+ ],
+ "followups": [
+  {
+   "q": "How do you rate limit unauthenticated traffic fairly when many users share an IP?",
+   "a": "<p>Keep IP limits generous and only on unauthenticated routes. Add a cheap challenge (CAPTCHA) after a threshold instead of a hard block. Once the user signs in, switch to per-user limits.</p>"
+  },
+  {
+   "q": "How would you make the limit exact across two regions?",
+   "a": "<p>Only by putting one synchronous counter on the path for every request: one home region per key, with every request checking there. It costs a cross-region round trip (30-70 ms), so I would only do it for low-volume, high-value limits like payment attempts.</p>"
+  },
+  {
+   "q": "What headers do you return and why?",
+   "a": "<p><code>RateLimit-Limit</code>, <code>RateLimit-Remaining</code>, <code>RateLimit-Reset</code> on every response so clients can pace themselves, and <code>Retry-After</code> on a 429 so they know when to retry. Without them clients guess and retry immediately, which makes things worse.</p>"
+  },
+  {
+   "q": "How do you limit something that is not a request count, like SMS cost?",
+   "a": "<p>Use the request's <b>cost</b> as the number of tokens: an SMS to an overseas number takes 5 tokens, a local one takes 1. The same token bucket script works with <code>cost</code> as an argument.</p>"
+  },
+  {
+   "q": "Should the limiter queue excess requests instead of rejecting them?",
+   "a": "<p>Only for internal, asynchronous work (a leaky bucket in front of a slow downstream). For user-facing APIs, a fast 429 is better than a request that hangs for 30 s and then times out anyway.</p>"
+  }
+ ],
+ "quiz": [
+  {
+   "q": "Why run the token bucket as a Lua script in Redis instead of GET then SET from the gateway?",
+   "options": [
+    "Lua is faster than Python",
+    "The read-check-write must be atomic, or two gateways can both spend the last token",
+    "Redis cannot store floats",
+    "So the rules live in Redis"
+   ],
+   "answer": 1,
+   "why": "Redis runs a script without interleaving other commands, so concurrent gateways cannot both see 1 token left and both allow."
+  },
+  {
+   "q": "A fixed window of 100/min allows how many requests in the worst case over any 60-second span?",
+   "options": [
+    "100",
+    "150",
+    "200",
+    "Unlimited"
+   ],
+   "answer": 2,
+   "why": "100 at 12:05:59 and 100 more at 12:06:00: two windows' worth inside two seconds."
+  },
+  {
+   "q": "Redis is down. Which endpoint should fail closed?",
+   "options": [
+    "GET /public/holidays",
+    "POST /otp/send",
+    "GET /api/datasets",
+    "GET /health"
+   ],
+   "answer": 1,
+   "why": "Every OTP send costs an SMS and enables brute force, so a short denial is cheaper than unlimited abuse."
+  },
+  {
+   "q": "What should a blocked caller receive?",
+   "options": [
+    "500 with a stack trace",
+    "403 Forbidden",
+    "429 Too Many Requests with Retry-After",
+    "A silently dropped connection"
+   ],
+   "answer": 2,
+   "why": "429 says exactly what happened and Retry-After says when to come back, so clients back off instead of hammering."
+  },
+  {
+   "q": "Each of 20 gateways enforces 100/min in memory with no shared store. What is the real limit for one user spread across them?",
+   "options": [
+    "100/min",
+    "Up to 2,000/min",
+    "5/min",
+    "It depends on Redis"
+   ],
+   "answer": 1,
+   "why": "Each gateway counts separately, so the user can get 100 from each of 20 gateways."
+  }
+ ]
+}

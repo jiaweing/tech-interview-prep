@@ -1,0 +1,271 @@
+{
+ "id": "observability",
+ "title": "Observability and SLOs",
+ "group": "Reliability & correctness",
+ "tagline": "Logs, metrics and traces tell you what broke; SLOs tell you whether users noticed and how much failure you can still afford.",
+ "why": "<p>A design is not finished when the boxes are drawn. Interviewers ask \"how would you know it is broken?\" and \"what would you alert on?\", and for SRE and senior roles this is a core part of the round.</p><p>Each signal answers a different question. <b>Metrics</b> are cheap numbers over time: is the error rate up? <b>Traces</b> follow one request across services: where did these 2 seconds go? <b>Logs</b> are detailed events: what exactly happened to request 7f3c? You need all three, linked by a shared trace id.</p><p><b>SLOs</b> turn this into decisions. You agree a target for what users experience, measure it, and alert when you are burning through the allowed failure too fast, instead of paging someone every time a CPU graph looks high.</p>",
+ "how": "<p><b>Logs.</b> Structured (JSON), one event per line, with <code>trace_id</code>, user or request id, and no secrets or personal data. Ship them to a central store. By volume they are usually the biggest part of the bill, so sample debug logs and set retention.</p><p><b>Metrics.</b> Counters (requests, errors), gauges (queue depth, connections) and histograms (latency). Per service track <b>RED</b>: rate, errors, duration. Per resource track <b>USE</b>: utilisation, saturation, errors. Keep label cardinality low: a <code>user_id</code> label creates one time series per user.</p><p><b>Traces.</b> Each request gets a trace id, propagated in the W3C <code>traceparent</code> header; each hop records a span with start, duration and attributes. OpenTelemetry SDKs emit all three signals to a collector, which batches, samples, drops sensitive fields and forwards to the stores. Head sampling keeps a fixed share (say 5%); tail sampling decides after the fact and keeps every error and slow trace.</p><p><b>SLIs, SLOs and error budgets.</b></p><ul><li><b>SLI</b>: a ratio of good events to valid events, measured as close to the user as you can. Example: share of redirects answered with a non-5xx in under 300 ms.</li><li><b>SLO</b>: the target for that SLI over a window, e.g. 99.9% over 30 days.</li><li><b>Error budget</b>: 100% minus the SLO. 99.9% allows 0.1% bad events, about 43 minutes of full outage a month. While budget remains, ship; when it is spent, slow releases and fix reliability.</li></ul><p><b>Alert on symptoms, not causes.</b> Page when users are hurting (SLO burning fast), not when CPU is at 80% but every request is fine. Use <b>burn-rate</b> alerts: page if the last hour burned budget at 14.4× the sustainable rate (2% of a 30-day budget in an hour), open a ticket for a slow burn over days. Causes like disk filling or certificates expiring get tickets, or pages only when they will become an outage soon.</p>",
+ "diagram": {
+  "w": 960,
+  "h": 400,
+  "nodes": [
+   {
+    "id": "svc",
+    "label": "Services",
+    "kind": "service",
+    "x": 100,
+    "y": 200,
+    "sub": "OTel SDK, traceparent"
+   },
+   {
+    "id": "coll",
+    "label": "OTel collector",
+    "kind": "worker",
+    "x": 340,
+    "y": 200,
+    "sub": "batch, sample, redact"
+   },
+   {
+    "id": "logs",
+    "label": "Log store",
+    "kind": "search",
+    "x": 610,
+    "y": 320,
+    "sub": "Loki / OpenSearch"
+   },
+   {
+    "id": "met",
+    "label": "Metrics TSDB",
+    "kind": "tsdb",
+    "x": 610,
+    "y": 80,
+    "sub": "Prometheus"
+   },
+   {
+    "id": "tr",
+    "label": "Trace store",
+    "kind": "storage",
+    "x": 610,
+    "y": 200,
+    "sub": "Tempo / Jaeger"
+   },
+   {
+    "id": "alert",
+    "label": "Alerting",
+    "kind": "notify",
+    "x": 860,
+    "y": 80,
+    "sub": "SLO burn-rate rules"
+   },
+   {
+    "id": "oncall",
+    "label": "On-call engineer",
+    "kind": "user",
+    "x": 860,
+    "y": 260,
+    "sub": "paged on symptoms"
+   }
+  ],
+  "edges": [
+   {
+    "id": "svc-coll",
+    "from": "svc",
+    "to": "coll",
+    "label": "OTLP"
+   },
+   {
+    "id": "coll-logs",
+    "from": "coll",
+    "to": "logs",
+    "label": "logs"
+   },
+   {
+    "id": "coll-met",
+    "from": "coll",
+    "to": "met",
+    "label": "metrics"
+   },
+   {
+    "id": "coll-tr",
+    "from": "coll",
+    "to": "tr",
+    "label": "spans"
+   },
+   {
+    "id": "met-alert",
+    "from": "met",
+    "to": "alert",
+    "label": "SLI query"
+   },
+   {
+    "id": "alert-oncall",
+    "from": "alert",
+    "to": "oncall",
+    "label": "page"
+   },
+   {
+    "id": "oncall-tr",
+    "from": "oncall",
+    "to": "tr",
+    "label": "open trace"
+   },
+   {
+    "id": "oncall-logs",
+    "from": "oncall",
+    "to": "logs",
+    "label": "trace_id"
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "collect",
+   "name": "Collect signals",
+   "desc": "One pipeline, three stores.",
+   "steps": [
+    {
+     "edge": "svc-coll",
+     "note": "Every service runs an OpenTelemetry SDK. Incoming requests carry a <code>traceparent</code> header, so spans from different services join into one trace."
+    },
+    {
+     "node": "coll",
+     "note": "The collector batches, drops fields that look like secrets or NRICs, and applies sampling: keep all errors and slow traces, about 5% of the rest."
+    },
+    {
+     "edge": "coll-met",
+     "note": "Counters and latency histograms per route. Histograms, not averages: you cannot average p99s across 20 pods, but you can merge histograms."
+    },
+    {
+     "edge": "coll-tr",
+     "note": "Spans with timing and attributes. Traces answer \"which hop was slow\", which no metric can."
+    },
+    {
+     "edge": "coll-logs",
+     "note": "Structured logs with the same <code>trace_id</code>. Retention of 7 to 30 days for most logs keeps the bill sane; audit logs follow their own policy."
+    }
+   ]
+  },
+  {
+   "id": "alert",
+   "name": "From alert to cause",
+   "desc": "Symptom first, then drill down.",
+   "steps": [
+    {
+     "edge": "met-alert",
+     "note": "The rule computes the SLI, good requests over valid requests, for the last hour and the last 5 minutes."
+    },
+    {
+     "node": "alert",
+     "note": "Errors are 1.5% against a 99.9% SLO: a burn rate of 15×. At that pace the monthly budget lasts 2 days, so this pages. A 1.2× burn would only open a ticket."
+    },
+    {
+     "edge": "alert-oncall",
+     "note": "The page links to the SLO dashboard and a runbook. It says what users see (\"5xx on /redeem\"), not what a machine feels."
+    },
+    {
+     "edge": "oncall-tr",
+     "note": "The engineer opens a slow, failing trace: 1.9 s of a 2 s request is spent waiting on one database call."
+    },
+    {
+     "edge": "oncall-logs",
+     "note": "Filtering logs by that <code>trace_id</code> shows the exact error: connection pool exhausted after a deploy doubled the pod count."
+    }
+   ]
+  }
+ ],
+ "tradeoffs": [
+  {
+   "option": "Logs",
+   "pro": "Full detail of individual events; easy to add.",
+   "con": "Usually the biggest bill by volume; hard to aggregate; a noisy service can cost more to log than to run."
+  },
+  {
+   "option": "Metrics",
+   "pro": "Cheap, fast to query, ideal for dashboards and alerts.",
+   "con": "Aggregated, so no single-request detail; high-cardinality labels blow up cost."
+  },
+  {
+   "option": "Traces",
+   "pro": "Show where time goes across services; link straight to logs.",
+   "con": "Need context propagation in every service and sampling to control volume."
+  },
+  {
+   "option": "Alert on symptoms (SLO burn) vs causes (CPU, disk)",
+   "pro": "Symptom alerts page only when users are affected, so on-call trusts them.",
+   "con": "They fire after impact begins; keep a few cause alerts (disk nearly full, certificate expiry) as tickets."
+  }
+ ],
+ "numbers": [
+  "Error budget per 30 days: 99.9% → <b>43.2 min</b>; 99.95% → <b>21.6 min</b>; 99.99% → <b>4.3 min</b>.",
+  "Fast-burn page: <b>14.4×</b> burn over 1 h spends <b>2%</b> of a 30-day budget. Slow burn: <b>6×</b> over 6 h spends <b>5%</b>.",
+  "Each extra nine cuts allowed downtime <b>10×</b>, and usually costs much more than 10× the effort.",
+  "Cardinality: 50 routes × 5 status codes × 20 pods = <b>5,000</b> series. Add a <code>user_id</code> label with 1M users and it becomes billions.",
+  "Trace sampling: at 2,000 req/s, keeping <b>5%</b> plus all errors stores about <b>100</b> traces/s instead of 2,000."
+ ],
+ "say": [
+  "I'd define the SLI as the share of requests that succeed in under 300 ms, measured at the load balancer, with an SLO of 99.9% over 30 days, which gives about 43 minutes of error budget.",
+  "I page on symptoms with burn-rate alerts, fast burn pages and slow burn opens a ticket, rather than on CPU or memory thresholds.",
+  "Every service emits OpenTelemetry metrics, traces and structured logs with a shared trace id, so from an alert I can jump to a slow trace and then to its exact log lines."
+ ],
+ "pitfalls": [
+  "Alerting on causes like CPU over 80%. It pages at night when users are fine and stays silent when a bug returns fast 500s.",
+  "Using averages for latency. An average hides the slow tail; use p95 and p99 from histograms.",
+  "High-cardinality metric labels (user ids, request ids, raw URLs). They multiply time series and the bill; put those in logs and traces.",
+  "Logging tokens, passwords or personal data. Logs are widely readable and kept for weeks. Redact at the source and again in the collector.",
+  "Setting a 100% or 99.999% SLO. It leaves no budget for change, so every deploy becomes a violation and the target gets ignored."
+ ],
+ "quiz": [
+  {
+   "q": "Your SLO is 99.9% availability over 30 days. Roughly how much full downtime does the error budget allow?",
+   "options": [
+    "About 43 minutes",
+    "About 4 minutes",
+    "About 7 hours",
+    "About 1 day"
+   ],
+   "answer": 0,
+   "why": "0.1% of 30 days = 0.001 × 43,200 min = 43.2 min."
+  },
+  {
+   "q": "Which is the best paging alert for a public redirect service?",
+   "options": [
+    "CPU above 80% for 5 minutes",
+    "Disk 60% full",
+    "Error-budget burn rate above 14× over the last hour",
+    "Any single 500 in the logs"
+   ],
+   "answer": 2,
+   "why": "Burn rate measures user-facing failure against the SLO. CPU and disk are causes that may never affect users; a single 500 is noise."
+  },
+  {
+   "q": "A request takes 2 s and touches six services. Which signal shows where the time went?",
+   "options": [
+    "A CPU metric",
+    "A distributed trace",
+    "An uptime check",
+    "The error budget"
+   ],
+   "answer": 1,
+   "why": "A trace records one span per hop with its duration, joined by the trace id propagated in <code>traceparent</code>."
+  },
+  {
+   "q": "Your metrics bill jumped 50× after a release. What is the most likely cause?",
+   "options": [
+    "Traces are being sampled at 5%",
+    "Logs switched to JSON",
+    "The SLO was tightened",
+    "A new label with unbounded values, such as user id, on a metric"
+   ],
+   "answer": 3,
+   "why": "Every distinct label combination is a separate time series. An unbounded label creates one series per value."
+  }
+ ],
+ "used_in": [
+  "rate-limiter",
+  "llm-guardrails",
+  "url-shortener",
+  "otp-login",
+  "form-builder",
+  "csv-ingest"
+ ]
+}

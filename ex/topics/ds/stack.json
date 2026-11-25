@@ -1,0 +1,126 @@
+{
+ "id": "stack",
+ "track": "ds",
+ "order": 6,
+ "title": "Stack",
+ "short": "Last in, first out. You only touch the top.",
+ "what": "A stack is a pile. You add to the top (push) and take from the top (pop), so the last thing in is the first thing out. In Python a plain list is a stack: append pushes, pop pops.",
+ "analogy": "A stack of plates. You put clean plates on top and take the top one. Nobody pulls a plate from the bottom.",
+ "viz": {
+  "kind": "stack",
+  "frames": [
+   {
+    "items": [],
+    "label": "([]{})",
+    "say": "Task: are the brackets in \"([]{})\" matched? Read left to right with an empty stack."
+   },
+   {
+    "items": [
+     "("
+    ],
+    "hi": [
+     0
+    ],
+    "label": "([]{})",
+    "out": "read (",
+    "say": "Read '('. An opener has to wait for its closer, so push it."
+   },
+   {
+    "items": [
+     "(",
+     "["
+    ],
+    "hi": [
+     1
+    ],
+    "label": "([]{})",
+    "out": "read [",
+    "say": "Read '['. Push it on top. The top is always the bracket that must close first."
+   },
+   {
+    "items": [
+     "(",
+     "["
+    ],
+    "ok": [
+     1
+    ],
+    "label": "([]{})",
+    "out": "read ]",
+    "say": "Read ']'. The top is '[', its partner. Pop it off."
+   },
+   {
+    "items": [
+     "(",
+     "{"
+    ],
+    "hi": [
+     1
+    ],
+    "label": "([]{})",
+    "out": "read {",
+    "say": "'(' is on top again. Read '{' and push it."
+   },
+   {
+    "items": [
+     "("
+    ],
+    "ok": [
+     0
+    ],
+    "label": "([]{})",
+    "out": "read } then )",
+    "say": "Read '}': the top '{' matches, pop. Then read ')': now '(' is on top, and it matches too."
+   },
+   {
+    "items": [],
+    "label": "([]{})",
+    "out": "valid",
+    "say": "The input is done and the stack is empty, so every bracket closed in the right order. A wrong top or a leftover means invalid."
+   }
+  ]
+ },
+ "when": [
+  "Match brackets or tags",
+  "Undo the most recent thing",
+  "Find the next greater element",
+  "Evaluate an expression",
+  "Walk a tree or graph without recursion"
+ ],
+ "python": "def valid(s):\n    pairs = {\")\": \"(\", \"]\": \"[\", \"}\": \"{\"}\n    stack = []\n    for ch in s:\n        if ch in pairs:\n            if not stack or stack.pop() != pairs[ch]:\n                return False\n        else:\n            stack.append(ch)\n    return not stack\n\nprint(valid(\"([]{})\"))\nprint(valid(\"([)]\"))\nprint(valid(\"((\"))",
+ "output": "True\nFalse\nFalse",
+ "cost": [
+  [
+   "Push onto the top",
+   "O(1)"
+  ],
+  [
+   "Pop from the top",
+   "O(1)"
+  ],
+  [
+   "Look at the top (stack[-1])",
+   "O(1)"
+  ],
+  [
+   "Find something lower down",
+   "O(n)"
+  ]
+ ],
+ "watch": [
+  "Popping or reading stack[-1] on an empty stack raises IndexError. Check if stack first.",
+  "Push and pop at the end of the list. pop(0) is slow and makes it a queue.",
+  "At the end, leftover items often mean the answer is no."
+ ],
+ "interview": [
+  "LC 20 Valid Parentheses",
+  "LC 155 Min Stack",
+  "LC 739 Daily Temperatures"
+ ],
+ "related": [
+  "queue",
+  "monotonic-stack",
+  "dfs",
+  "recursion"
+ ]
+}

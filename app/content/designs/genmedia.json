@@ -1,0 +1,743 @@
+{
+ "id": "genmedia",
+ "title": "Generative media platform",
+ "tagline": "Turn a short brief into slides, narrated audio and infographics, with many model providers behind one gateway.",
+ "govtech": true,
+ "govtech_label": "Giant Robots Labs-style",
+ "mirrors": "Prism",
+ "featured": true,
+ "difficulty": "medium",
+ "govtech_note": "<p><b>Giant Robots Labs</b> is GovTech's experimental lab in the Government Technology Office. Its pilots own a product end to end, including reliability and costs, and work with AI agents. <b>Prism</b> is one of its three featured products, listed as \"a generative media platform for creating presentations, audio, diagrams, infographics, and other media\".</p><p>Nothing else about Prism is public. Everything below is a reasonable design for a product like it, not how Prism is built.</p>",
+ "summary": "<p>Generation is slow (seconds to minutes) and costly per call, so every request becomes a <b>job</b>: <code>POST /jobs</code> returns 202 and a job id, and the client follows progress by polling or SSE. An <b>orchestrator agent</b> turns the brief into a structured <b>JSON spec</b>, which is the source of truth; worker pools on a queue make images and speech, and sandboxed renderers turn the spec into PPTX, PDF and PNG.</p><p>All model calls go through an <b>LLM gateway</b> that routes between providers, retries, falls back, enforces per-agency quotas, caches identical prompts and counts every token.</p>",
+ "requirements": {
+  "functional": [
+   "Create a deck, infographic, diagram or narrated audio from a brief and a template",
+   "Show progress while a job runs (polling or SSE) and return download links",
+   "Regenerate or edit one slide without redoing the rest",
+   "Apply an agency's brand template (colours, fonts, logo, layouts) automatically",
+   "Human review and approval before an asset is shared"
+  ],
+  "nonfunctional": [
+   "Accept a job in under ~200 ms; a 12-slide deck ready in about 90 s",
+   "Survive one provider being down or rate-limited without failing jobs",
+   "Per-agency quotas and cost tracking down to the job",
+   "No PII or unsafe content in prompts sent out or in outputs shared",
+   "Generated files only reachable through short-lived signed URLs"
+  ],
+  "out_of_scope": [
+   "Training or fine-tuning our own models",
+   "Real-time collaborative editing of slides",
+   "Video generation"
+  ]
+ },
+ "estimates": [
+  {
+   "label": "Decks per day",
+   "calc": "assume 20,000 active officers × 10% make one a day",
+   "value": "~2,000"
+  },
+  {
+   "label": "Peak job rate",
+   "calc": "2,000 ÷ 28,800 s (8 h day) ≈ 0.07/s, × 5 at peak",
+   "value": "~0.35/s (~21/min)"
+  },
+  {
+   "label": "LLM tokens per deck",
+   "calc": "outline ~7k + 12 slides × ~2k",
+   "value": "~31k"
+  },
+  {
+   "label": "LLM tokens per day",
+   "calc": "2,000 × 31k",
+   "value": "~62M"
+  },
+  {
+   "label": "Concurrent image calls at peak",
+   "calc": "21 decks/min × 4 images × 10 s ÷ 60 s",
+   "value": "~14"
+  },
+  {
+   "label": "Narration audio",
+   "calc": "300 decks × 12 slides × 1 min × ~1 MB/min (128 kbps)",
+   "value": "~3.6 GB/day"
+  },
+  {
+   "label": "Deck file storage",
+   "calc": "2,000 × ~13 MB (PPTX, PDF, previews, images) = 26 GB/day × 365",
+   "value": "~9.5 TB/year"
+  }
+ ],
+ "api": [
+  {
+   "method": "POST",
+   "path": "/jobs {type, brief, templateId}",
+   "desc": "Idempotency-Key header. Returns 202 {jobId}. type: deck | infographic | diagram | audio."
+  },
+  {
+   "method": "GET",
+   "path": "/jobs/{id}",
+   "desc": "Status, progress (slides done / total), errors per slide, artefact ids."
+  },
+  {
+   "method": "GET",
+   "path": "/jobs/{id}/events",
+   "desc": "Server-Sent Events stream of progress; falls back to polling."
+  },
+  {
+   "method": "POST",
+   "path": "/decks/{id}/slides/{slideId}/regenerate {instruction, baseVersion}",
+   "desc": "202 {jobId}. Rebuilds one slide from the spec."
+  },
+  {
+   "method": "PATCH",
+   "path": "/decks/{id}/spec",
+   "desc": "JSON Patch from manual edits. If-Match: spec version; 412 on conflict."
+  },
+  {
+   "method": "POST",
+   "path": "/decks/{id}/review {decision, note}",
+   "desc": "Approve or reject. Sharing requires approval."
+  },
+  {
+   "method": "GET",
+   "path": "/artefacts/{id}",
+   "desc": "302 to a CDN signed URL valid for 15 min, after an access check."
+  }
+ ],
+ "data": [
+  {
+   "name": "jobs",
+   "store": "PostgreSQL",
+   "fields": [
+    "job_id PK",
+    "agency_id",
+    "user_id",
+    "type",
+    "status",
+    "idempotency_key",
+    "deck_id",
+    "spec_version",
+    "tokens_used",
+    "cost_cents"
+   ],
+   "note": "UNIQUE (user_id, idempotency_key). Status: QUEUED → PLANNING → GENERATING → RENDERING → DONE / FAILED."
+  },
+  {
+   "name": "specs",
+   "store": "PostgreSQL (JSONB)",
+   "fields": [
+    "deck_id",
+    "version",
+    "template_id",
+    "spec JSONB",
+    "author (agent | user)",
+    "created_at"
+   ],
+   "note": "PK (deck_id, version), append-only. The schema of <code>spec</code> is versioned too."
+  },
+  {
+   "name": "assets",
+   "store": "PostgreSQL + S3",
+   "fields": [
+    "asset_id",
+    "deck_id",
+    "slide_id",
+    "kind",
+    "content_hash",
+    "s3_key",
+    "provider",
+    "model",
+    "safety_status"
+   ],
+   "note": "Content-hash keys dedupe identical images. Provider and model kept for provenance."
+  },
+  {
+   "name": "templates",
+   "store": "PostgreSQL",
+   "fields": [
+    "template_id",
+    "agency_id",
+    "tokens {colors, fonts, logo}",
+    "layouts[]",
+    "version"
+   ],
+   "note": "Brand lives here, not in prompts."
+  },
+  {
+   "name": "prompt cache",
+   "store": "Redis",
+   "fields": [
+    "key: sha256(model, params, template ver, prompt)",
+    "value: output or asset ref",
+    "TTL 7 days"
+   ],
+   "note": "Exact-match only."
+  },
+  {
+   "name": "quotas",
+   "store": "Redis",
+   "fields": [
+    "bucket per provider",
+    "bucket per agency",
+    "monthly spend counter"
+   ],
+   "note": "Mirrored nightly to Postgres for billing reports."
+  }
+ ],
+ "diagram": {
+  "w": 960,
+  "h": 560,
+  "groups": [
+   {
+    "label": "Worker pools",
+    "x": 650,
+    "y": 236,
+    "w": 190,
+    "h": 310
+   }
+  ],
+  "nodes": [
+   {
+    "id": "user",
+    "label": "Officer",
+    "sub": "web app",
+    "kind": "client",
+    "x": 75,
+    "y": 260
+   },
+   {
+    "id": "api",
+    "label": "Jobs API",
+    "sub": "202 + job id",
+    "kind": "service",
+    "x": 290,
+    "y": 260
+   },
+   {
+    "id": "safety",
+    "label": "Safety + PII check",
+    "sub": "inputs and outputs",
+    "kind": "service",
+    "x": 290,
+    "y": 80
+   },
+   {
+    "id": "db",
+    "label": "Spec store",
+    "sub": "Postgres: jobs, specs",
+    "kind": "db",
+    "x": 290,
+    "y": 380
+   },
+   {
+    "id": "cdn",
+    "label": "CDN",
+    "sub": "signed URLs",
+    "kind": "cdn",
+    "x": 140,
+    "y": 490
+   },
+   {
+    "id": "orch",
+    "label": "Orchestrator agent",
+    "sub": "brief → JSON spec",
+    "kind": "ml",
+    "x": 510,
+    "y": 260
+   },
+   {
+    "id": "gw",
+    "label": "LLM gateway",
+    "sub": "route, retry, quota",
+    "kind": "gateway",
+    "x": 510,
+    "y": 80
+   },
+   {
+    "id": "prov",
+    "label": "Model providers",
+    "sub": "LLM, TTS, image",
+    "kind": "ext",
+    "x": 872,
+    "y": 80
+   },
+   {
+    "id": "cache",
+    "label": "Prompt cache",
+    "sub": "Redis, hash → output",
+    "kind": "cache",
+    "x": 760,
+    "y": 175
+   },
+   {
+    "id": "q",
+    "label": "Task queue",
+    "sub": "one task per asset",
+    "kind": "queue",
+    "x": 510,
+    "y": 380
+   },
+   {
+    "id": "tts",
+    "label": "TTS workers",
+    "sub": "MP3s → storage",
+    "kind": "worker",
+    "x": 760,
+    "y": 280
+   },
+   {
+    "id": "img",
+    "label": "Image workers",
+    "sub": "pictures, icons",
+    "kind": "worker",
+    "x": 740,
+    "y": 385
+   },
+   {
+    "id": "ren",
+    "label": "Render sandbox",
+    "sub": "PPTX / PDF / PNG",
+    "kind": "worker",
+    "x": 740,
+    "y": 490
+   },
+   {
+    "id": "st",
+    "label": "Object storage",
+    "sub": "S3, per-agency prefix",
+    "kind": "storage",
+    "x": 440,
+    "y": 490
+   }
+  ],
+  "edges": [
+   {
+    "id": "u-api",
+    "from": "user",
+    "to": "api",
+    "label": "POST /jobs"
+   },
+   {
+    "id": "api-safe",
+    "from": "api",
+    "to": "safety",
+    "label": "screen brief"
+   },
+   {
+    "id": "api-db",
+    "from": "api",
+    "to": "db",
+    "label": "job row"
+   },
+   {
+    "id": "api-orch",
+    "from": "api",
+    "to": "orch",
+    "label": "start",
+    "dashed": true
+   },
+   {
+    "id": "o-safe",
+    "from": "orch",
+    "to": "safety",
+    "label": "check output"
+   },
+   {
+    "id": "o-gw",
+    "from": "orch",
+    "to": "gw",
+    "label": "plan call"
+   },
+   {
+    "id": "gw-cache",
+    "from": "gw",
+    "to": "cache",
+    "label": "seen it?"
+   },
+   {
+    "id": "gw-prov",
+    "from": "gw",
+    "to": "prov",
+    "label": "routed call"
+   },
+   {
+    "id": "o-db",
+    "from": "orch",
+    "to": "db",
+    "label": "save spec"
+   },
+   {
+    "id": "o-q",
+    "from": "orch",
+    "to": "q",
+    "label": "asset tasks"
+   },
+   {
+    "id": "q-tts",
+    "from": "q",
+    "to": "tts",
+    "label": "speech",
+    "dashed": true
+   },
+   {
+    "id": "q-img",
+    "from": "q",
+    "to": "img",
+    "label": "images",
+    "dashed": true
+   },
+   {
+    "id": "q-ren",
+    "from": "q",
+    "to": "ren",
+    "label": "render",
+    "dashed": true
+   },
+   {
+    "id": "tts-gw",
+    "from": "tts",
+    "to": "gw",
+    "label": "TTS call"
+   },
+   {
+    "id": "img-gw",
+    "from": "img",
+    "to": "gw",
+    "label": "image call"
+   },
+   {
+    "id": "img-st",
+    "from": "img",
+    "to": "st",
+    "label": "PNG"
+   },
+   {
+    "id": "ren-st",
+    "from": "ren",
+    "to": "st",
+    "label": "files"
+   },
+   {
+    "id": "st-cdn",
+    "from": "st",
+    "to": "cdn",
+    "label": "origin"
+   },
+   {
+    "id": "u-cdn",
+    "from": "user",
+    "to": "cdn",
+    "label": "GET signed"
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "create",
+   "name": "Create a deck from a brief",
+   "desc": "The main path: brief in, spec out, slides rendered.",
+   "steps": [
+    {
+     "edge": "u-api",
+     "note": "Officer posts a brief, a template id and an <code>Idempotency-Key</code>. The API answers <b>202 Accepted</b> with a job id in ~100 ms; the work itself takes 30-90 s, far too long to hold an HTTP request open."
+    },
+    {
+     "edge": "api-safe",
+     "note": "Screen the brief before any model sees it: block disallowed content, and detect NRIC numbers, phone numbers and addresses so they are masked or the officer is warned."
+    },
+    {
+     "edge": "api-db",
+     "note": "Insert the job row with <code>UNIQUE (user_id, idempotency_key)</code>, so a double-click or a retry returns the same job instead of paying for a second deck."
+    },
+    {
+     "edge": "api-orch",
+     "note": "Hand the job to the orchestrator (via a queue in practice). The UI now opens an SSE stream on <code>/jobs/{id}/events</code> to show progress."
+    },
+    {
+     "edge": "o-gw",
+     "note": "Ask the model for an outline as <b>JSON matching a schema</b>: slide ids, layouts from the template, titles, bullets, image prompts. Free text would be impossible to edit one slide at a time."
+    },
+    {
+     "edge": "gw-prov",
+     "note": "The gateway picks a provider and model for this task, checks the agency's token quota, and records tokens in and out against the job."
+    },
+    {
+     "edge": "o-db",
+     "note": "Validate the JSON against the schema (retry once with the error message if it fails), then save it as <b>spec version 1</b>. Every later step reads this spec, never the chat history."
+    },
+    {
+     "edge": "o-q",
+     "note": "Fan out one task per asset: 4 images, 12 slide previews. Each task key is <code>(deck, slide, spec_version, kind)</code>, so a retried task overwrites instead of duplicating."
+    },
+    {
+     "edge": "q-ren",
+     "note": "When the image tasks finish, a render task builds PPTX, PDF and PNG previews from the spec, the template's brand tokens and the stored images. The SSE stream sends <code>done</code>."
+    }
+   ]
+  },
+  {
+   "id": "redo",
+   "name": "Regenerate slide 3",
+   "desc": "Partial regeneration works because the spec, not the file, is the source of truth.",
+   "steps": [
+    {
+     "edge": "u-api",
+     "note": "Officer clicks \"redo slide 3: shorter, add a chart\". The API creates a small job that names the deck, <code>slide_id</code> and the spec version it was based on."
+    },
+    {
+     "edge": "api-orch",
+     "note": "The orchestrator loads spec v4 and sends the model <b>only slide 3</b>, plus the deck title and the slides on either side as context. That is ~2k tokens instead of ~30k."
+    },
+    {
+     "edge": "o-gw",
+     "note": "The new slide must match the same JSON schema. The gateway still meters it against the agency quota."
+    },
+    {
+     "edge": "gw-cache",
+     "note": "A redo deliberately <b>skips the cache</b> (the officer wants a different answer), but the cache still serves the unchanged prompts if the whole deck is rebuilt."
+    },
+    {
+     "edge": "o-db",
+     "note": "Write <b>spec v5</b> with only slide 3 changed, using <code>WHERE version = 4</code> so a concurrent manual edit is not overwritten. On conflict, ask the officer to retry."
+    },
+    {
+     "edge": "o-q",
+     "note": "Enqueue tasks only for what changed: one image, one preview. The other 11 slides keep their stored assets because their content hashes did not change."
+    },
+    {
+     "edge": "q-img",
+     "note": "An image worker takes the new image task."
+    },
+    {
+     "edge": "img-st",
+     "note": "The new PNG is stored under a content-hash key, so storing the same image twice is free."
+    },
+    {
+     "edge": "ren-st",
+     "note": "Re-render the PPTX and PDF from spec v5 (~2 s; rendering is cheap, model calls are not). Old versions stay, so undo is just pointing at v4."
+    }
+   ]
+  },
+  {
+   "id": "audio",
+   "name": "Generate narrated audio",
+   "desc": "Text to speech for each slide, in parallel.",
+   "steps": [
+    {
+     "edge": "u-api",
+     "note": "Officer asks for narration in English for an approved deck. The API returns 202 and a job id."
+    },
+    {
+     "edge": "o-gw",
+     "note": "The orchestrator asks the LLM to write a ~120-word script per slide from the spec, and stores it in the spec's <code>narration</code> field so the officer can edit the words before any audio is made."
+    },
+    {
+     "edge": "o-safe",
+     "note": "Check the scripts as model output: PII the brief did not contain, unsafe content, or claims that need review. Flagged slides wait for a human."
+    },
+    {
+     "edge": "o-q",
+     "note": "One TTS task per slide. 12 slides of ~1 min each in parallel finish in about the time of the slowest one, not 12 minutes."
+    },
+    {
+     "edge": "q-tts",
+     "note": "TTS workers pull tasks. The pool size is capped to stay under the TTS provider's concurrency limit, so a big job queues instead of getting 429s."
+    },
+    {
+     "edge": "tts-gw",
+     "note": "Speech also goes through the gateway: same quotas, retries and cost tracking (TTS is billed per character, not per token)."
+    },
+    {
+     "node": "st",
+     "note": "Each slide's MP3 (~1 MB per minute at 128 kbps) lands in storage; a final step joins them into one file and embeds them in the PPTX."
+    },
+    {
+     "edge": "u-cdn",
+     "note": "The officer's player fetches the audio through a <b>signed URL</b> valid for 15 minutes, so a leaked link stops working."
+    },
+    {
+     "edge": "st-cdn",
+     "note": "On a CDN miss the edge reads from the private bucket. The bucket itself is never public."
+    }
+   ]
+  },
+  {
+   "id": "outage",
+   "name": "Provider outage triggers fallback",
+   "desc": "The image provider starts failing during a busy morning.",
+   "steps": [
+    {
+     "edge": "q-img",
+     "note": "An image worker takes a task: \"flat illustration, team meeting, brand palette\"."
+    },
+    {
+     "edge": "img-gw",
+     "note": "The worker never calls a provider directly; it calls the gateway with a task type (<code>image.illustration</code>), not a vendor name."
+    },
+    {
+     "edge": "gw-cache",
+     "note": "Same model, params and prompt seen before? Return the stored image. Here it is a miss."
+    },
+    {
+     "edge": "gw-prov",
+     "note": "Primary returns 503 twice. The gateway retries with exponential backoff and jitter (200 ms, then 400 ms) but keeps the total under the task's 30 s budget."
+    },
+    {
+     "node": "gw",
+     "note": "Error rate over 50% for 30 s <b>opens the circuit breaker</b> for that provider. New calls skip it at once instead of each waiting through retries."
+    },
+    {
+     "edge": "gw-prov",
+     "note": "Route to the next provider on the approved list for this task type (one with acceptable data-handling terms). The response records which model actually produced the asset."
+    },
+    {
+     "edge": "img-gw",
+     "rev": true,
+     "note": "The worker gets the image and runs the output safety check. Fallback images may look different, so the slide is marked for the officer to glance at."
+    },
+    {
+     "edge": "img-st",
+     "note": "Store the image and finish the task. A probe request every 30 s closes the breaker once the primary recovers."
+    }
+   ]
+  }
+ ],
+ "deep": [
+  {
+   "title": "The spec is the source of truth",
+   "html": "<p>The model never writes a PPTX. It writes a <b>JSON spec</b>: <code>{template_id, slides: [{id, layout, title, bullets, image_prompt, asset_ids, narration}]}</code>, validated against a schema. Renderers turn the spec plus the template into files.</p><ul><li><b>Partial regeneration</b>: \"redo slide 3\" replaces one object in <code>slides</code>; every other slide keeps its id and its assets.</li><li><b>Versions</b>: specs are append-only (v1, v2, ...). Each render names the version it used, so undo and \"what changed\" are free.</li><li><b>Brand</b>: colours, fonts, logo and layouts are <b>design tokens</b> on the template, not in the prompt. The model picks a layout name; it cannot pick a font. That keeps every agency's decks on brand, and changing a token re-renders old decks without a model call.</li><li><b>Manual edits</b> are JSON patches to the same spec, so human and agent edits mix cleanly.</li></ul><p>Infographics and diagrams use the same idea: the model outputs data (nodes, edges, numbers) and a deterministic renderer draws them, so labels are spelled right and numbers match.</p>"
+  },
+  {
+   "title": "Worker pools on a queue",
+   "html": "<p>Each asset type has its own queue and pool, because they differ a lot: an LLM slide call takes ~5 s, an image ~10 s, a TTS minute ~3 s, a render ~2 s and uses CPU, not a provider.</p><ul><li>A morning rush of 50 decks becomes ~200 image tasks. The queue <b>absorbs the spike</b>; the pool drains it at the rate the provider allows (14 concurrent calls in the estimates).</li><li>Workers ack a task only after the asset is stored. A crash means the task becomes visible again after its timeout and another worker redoes it. Tasks are idempotent because the output key is the task key.</li><li>After 3 failures a task goes to a <b>dead-letter queue</b> and the job shows that slide as failed with a retry button, instead of failing the whole deck.</li><li>Interactive jobs (an officer is watching) go on a higher-priority queue than bulk jobs (100 certificates overnight).</li></ul>",
+   "sim": "queue"
+  },
+  {
+   "title": "The LLM gateway: routing, quotas and cost",
+   "html": "<p>Every model call (text, image, speech) goes through one gateway. It is the only service holding provider keys.</p><ul><li><b>Routing</b>: callers name a task type; a config table maps it to an ordered list of models. Swapping a model is a config change plus an eval run, not a deploy.</li><li><b>Rate limits and quotas</b>: a token bucket per provider (stay under their limits) and per agency (monthly token budget). Over quota: queue bulk work, reject interactive work with a clear message.</li><li><b>Retries and fallbacks</b>: retry 5xx and timeouts with backoff and jitter, never retry 4xx; circuit breaker per provider; fall back only to providers approved for that data classification.</li><li><b>Cache</b>: key = SHA-256 of (model, params, template version, prompt). Exact match only; a semantic cache could return a slide about the wrong ministry.</li><li><b>Cost</b>: log tokens, characters and images per call with job, agency and task type. Dashboards show spend per agency per day and alert when a job passes its budget, which is how you catch an agent stuck in a loop.</li></ul>"
+  },
+  {
+   "title": "Safety, human review and evals",
+   "html": "<p><b>Inputs</b>: block disallowed requests and detect PII (NRIC, phone, email, address) in the brief and uploads before they leave for a third-party model. <b>Outputs</b>: run the same checks on generated text, plus an image safety classifier, because a model can invent a realistic-looking NRIC.</p><p><b>Human review</b>: nothing is shared outside the creator's workspace until a person approves it. Flagged slides show the reason.</p><p><b>Evals</b>: keep a <b>regression set</b> of ~200 briefs. On every prompt, template or model change, generate decks and grade a sample against a rubric (follows the brief, factual to the source, on-brand layout, no PII, readable) using an LLM grader that is spot-checked by humans each week. A drop of more than a few points blocks the change. Sample ~1% of production jobs into the same grading for drift.</p>"
+  }
+ ],
+ "tradeoffs": [
+  {
+   "choice": "Answer in the request or run a job?",
+   "pick": "Job: 202 + job id, SSE or polling",
+   "why": "A deck takes 30-90 s and fans out to dozens of calls. Holding a request open hits load-balancer timeouts and loses all work when the connection drops; a job survives and can be retried."
+  },
+  {
+   "choice": "Let the model write files, or a structured spec?",
+   "pick": "JSON spec + deterministic renderers",
+   "why": "A spec can be validated, versioned, diffed and partly regenerated, and brand rules are applied by code. A model-written PPTX can only be regenerated whole."
+  },
+  {
+   "choice": "Call one provider directly, or a gateway?",
+   "pick": "Gateway in front of several",
+   "why": "One place for keys, quotas, retries, fallback and cost data. Costs one extra hop (~5 ms), which is nothing next to a 5 s model call."
+  },
+  {
+   "choice": "Where to render files?",
+   "pick": "Server-side sandboxed workers",
+   "why": "Renderers parse model output and user uploads, both untrusted. Run them in containers with no network, read-only filesystem, CPU and memory limits and a 60 s timeout."
+  },
+  {
+   "choice": "Exact or semantic prompt cache?",
+   "pick": "Exact hash",
+   "why": "Exact hits are always correct. A semantic cache saves more but can return a near match about the wrong agency or date, which is worse than paying for a call."
+  }
+ ],
+ "bottlenecks": [
+  {
+   "issue": "Provider rate limits at the morning peak (429s)",
+   "fix": "Cap each worker pool below the provider limit, let the queue hold the backlog, put interactive jobs ahead of bulk ones, and spread load over a second provider."
+  },
+  {
+   "issue": "An agent loop or a 200-slide brief burns tokens",
+   "fix": "Per-job token budget and max planning steps, checked in the gateway; stop the job and tell the officer instead of spending more."
+  },
+  {
+   "issue": "A render hangs on a huge table or a malformed image",
+   "fix": "Hard timeout and memory limit per render; mark that slide failed and render the rest."
+  },
+  {
+   "issue": "Spec store gets hot from progress updates",
+   "fix": "Keep live progress in Redis and push it over SSE; write to Postgres only on state changes."
+  }
+ ],
+ "followups": [
+  {
+   "q": "How do you make \"redo slide 3\" cheap and safe?",
+   "a": "<p>Keep the spec as the source of truth. Send the model only slide 3 plus nearby context, write a new spec version with a version check, and re-render. Unchanged slides keep their assets because their content hashes match.</p>"
+  },
+  {
+   "q": "A provider changes its model and quality drops. How would you notice?",
+   "a": "<p>Pin model versions in the gateway config. Run the regression set and rubric grading before any switch, and grade ~1% of production jobs daily so drift shows up as a falling score per task type.</p>"
+  },
+  {
+   "q": "How do you stop one agency using up everyone's capacity?",
+   "a": "<p>A token bucket per agency in the gateway for both rate and monthly budget, plus fair scheduling in the queue (round-robin across agencies) so one bulk job cannot starve other users.</p>"
+  },
+  {
+   "q": "Can a brief with NRIC numbers reach a third-party model?",
+   "a": "<p>Not by default: the input check detects NRIC patterns (letter, 7 digits, checksum letter) and masks or blocks them. Routing also respects data classification, so sensitive jobs go only to approved models.</p>"
+  },
+  {
+   "q": "Why SSE and not WebSockets for progress?",
+   "a": "<p>Progress flows one way, server to browser. SSE is plain HTTP, reconnects on its own with <code>Last-Event-ID</code>, and passes through proxies easily. Polling every 2 s is the fallback.</p>"
+  }
+ ],
+ "quiz": [
+  {
+   "q": "Why does POST /jobs return 202 instead of the finished deck?",
+   "options": [
+    "202 is faster to parse",
+    "Generation takes up to minutes, so the work runs as a job the client can follow and retry",
+    "Browsers cannot download PPTX from a POST"
+   ],
+   "answer": 1,
+   "why": "Long work behind a short request hits timeouts and is lost on disconnect. A job id lets the client poll or stream progress."
+  },
+  {
+   "q": "What makes regenerating one slide possible without touching the others?",
+   "options": [
+    "A bigger context window",
+    "Keeping a versioned JSON spec with stable slide ids as the source of truth",
+    "Caching the PPTX file"
+   ],
+   "answer": 1,
+   "why": "The renderer rebuilds files from the spec, so changing one slide object changes one slide."
+  },
+  {
+   "q": "The primary image provider returns 503 on half its calls. What should the gateway do?",
+   "options": [
+    "Retry every call forever",
+    "Open a circuit breaker and route to an approved fallback provider",
+    "Fail all jobs until it recovers"
+   ],
+   "answer": 1,
+   "why": "Bounded retries with backoff, then a breaker stops wasting time on a sick provider while a fallback keeps jobs moving."
+  },
+  {
+   "q": "Which cache key is safe for identical prompts?",
+   "options": [
+    "The prompt text only",
+    "A hash of model, parameters, template version and prompt",
+    "The user id"
+   ],
+   "answer": 1,
+   "why": "The same prompt to a different model or template should give a different result, so all of them belong in the key."
+  },
+  {
+   "q": "Why put TTS and image generation on separate queues?",
+   "options": [
+    "They have different speeds and provider limits, so each pool is sized and capped on its own",
+    "Queues cannot hold mixed message types",
+    "To use fewer workers"
+   ],
+   "answer": 0,
+   "why": "One shared pool lets slow image calls block quick TTS calls and makes per-provider concurrency caps impossible."
+  }
+ ]
+}

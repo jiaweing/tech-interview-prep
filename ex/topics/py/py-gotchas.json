@@ -1,0 +1,302 @@
+{
+ "id": "py-gotchas",
+ "track": "py",
+ "order": 14,
+ "title": "Gotchas",
+ "short": "The traps that silently break correct-looking interview code.",
+ "what": "A handful of Python habits produce wrong answers with no error message. Almost all come from one fact: a name points at an object, and several names, rows or calls can end up sharing the same one.",
+ "analogy": "Three photocopies of a house key are still keys to one house. Paint the kitchen with one key and every key holder sees a painted kitchen.",
+ "viz": {
+  "kind": "table",
+  "frames": [
+   {
+    "cells": [
+     [
+      0,
+      0,
+      0
+     ],
+     [
+      0,
+      0,
+      0
+     ],
+     [
+      0,
+      0,
+      0
+     ]
+    ],
+    "rows": [
+     "row 0",
+     "row 1",
+     "row 2"
+    ],
+    "cols": [
+     "col 0",
+     "col 1",
+     "col 2"
+    ],
+    "label": "bad = [[0] * 3] * 3",
+    "say": "[[0] * 3] * 3 looks like a 3 by 3 grid of zeros. But * 3 copies a pointer to one row, not the row itself."
+   },
+   {
+    "cells": [
+     [
+      1,
+      0,
+      0
+     ],
+     [
+      1,
+      0,
+      0
+     ],
+     [
+      1,
+      0,
+      0
+     ]
+    ],
+    "rows": [
+     "row 0",
+     "row 1",
+     "row 2"
+    ],
+    "cols": [
+     "col 0",
+     "col 1",
+     "col 2"
+    ],
+    "label": "bad[0][0] = 1",
+    "bad": [
+     [
+      0,
+      0
+     ],
+     [
+      1,
+      0
+     ],
+     [
+      2,
+      0
+     ]
+    ],
+    "say": "Set bad[0][0] = 1 and every row changes. The three rows are one list seen three times."
+   },
+   {
+    "cells": [
+     [
+      1,
+      0,
+      0
+     ],
+     [
+      0,
+      0,
+      0
+     ],
+     [
+      0,
+      0,
+      0
+     ]
+    ],
+    "rows": [
+     "row 0",
+     "row 1",
+     "row 2"
+    ],
+    "cols": [
+     "col 0",
+     "col 1",
+     "col 2"
+    ],
+    "label": "good[0][0] = 1",
+    "ok": [
+     [
+      0,
+      0
+     ]
+    ],
+    "say": "Build rows with a comprehension: [[0] * 3 for _ in range(3)]. Each turn makes a new row, so one cell changes."
+   },
+   {
+    "cells": [
+     [
+      "[1]",
+      "[1, 2]"
+     ]
+    ],
+    "rows": [
+     "returns"
+    ],
+    "cols": [
+     "add(1)",
+     "add(2)"
+    ],
+    "label": "def add(x, seen=[])",
+    "bad": [
+     [
+      0,
+      1
+     ]
+    ],
+    "say": "def add(x, seen=[]) makes that list once, when def runs. Every call shares it, so add(2) still sees the 1."
+   },
+   {
+    "cells": [
+     [
+      "[1]",
+      "[2]"
+     ]
+    ],
+    "rows": [
+     "returns"
+    ],
+    "cols": [
+     "add(1)",
+     "add(2)"
+    ],
+    "label": "def add(x, seen=None)",
+    "ok": [
+     [
+      0,
+      0
+     ],
+     [
+      0,
+      1
+     ]
+    ],
+    "say": "Fix: default to None and make the list inside, with if seen is None: seen = []. Each call starts fresh."
+   },
+   {
+    "cells": [
+     [
+      0,
+      2,
+      "[4, 5, 6]"
+     ],
+     [
+      1,
+      5,
+      "[4, 5, 6]"
+     ],
+     [
+      2,
+      6,
+      "[4, 5]"
+     ]
+    ],
+    "cols": [
+     "index",
+     "x",
+     "nums after"
+    ],
+    "label": "nums = [2, 4, 5, 6]; remove evens in the loop",
+    "bad": [
+     [
+      2,
+      2
+     ]
+    ],
+    "out": "4 was never checked",
+    "say": "Removing while looping shifts items left under the loop. 4 slides into a spot already visited and is never checked."
+   },
+   {
+    "cells": [
+     [
+      "s += c",
+      "(l+r) / 2",
+      "b = a"
+     ],
+     [
+      "\"\".join(p)",
+      "(l+r) // 2",
+      "b = a[:]"
+     ]
+    ],
+    "rows": [
+     "trap",
+     "fix"
+    ],
+    "label": "slow or wrong",
+    "bad": [
+     [
+      0,
+      0
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      0,
+      2
+     ]
+    ],
+    "ok": [
+     [
+      1,
+      0
+     ],
+     [
+      1,
+      1
+     ],
+     [
+      1,
+      2
+     ]
+    ],
+    "say": "Three more: += on a string can copy it each time, / makes a float index, and b = a copies no list."
+   }
+  ]
+ },
+ "when": [
+  "Making a 2D grid or DP table",
+  "A default argument that is a list or dict",
+  "Removing items from the list you loop over",
+  "Saving a path in backtracking",
+  "Building a long string"
+ ],
+ "python": "bad = [[0] * 3] * 3\nbad[0][0] = 1\ngood = [[0] * 3 for _ in range(3)]\ngood[0][0] = 1\nprint(bad, good)\ndef add(x, seen=[]):\n    seen.append(x)\n    return seen\nprint(add(1))\nprint(add(2))\nnums = [2, 4, 5, 6]\nfor x in nums:\n    if x % 2 == 0:\n        nums.remove(x)\nprint(nums, [x for x in [2, 4, 5, 6] if x % 2], 7 / 2, 7 // 2)",
+ "output": "[[1, 0, 0], [1, 0, 0], [1, 0, 0]] [[1, 0, 0], [0, 0, 0], [0, 0, 0]]\n[1]\n[1, 2]\n[4, 5] [5] 3.5 3",
+ "cost": [
+  [
+   "s += c in a loop, n times",
+   "O(n²) worst"
+  ],
+  [
+   "\"\".join(parts)",
+   "O(n)"
+  ],
+  [
+   "nums.remove(x)",
+   "O(n)"
+  ],
+  [
+   "Copy a list with a[:]",
+   "O(n)"
+  ]
+ ],
+ "watch": [
+  "Use None as the default for a list or dict argument, then create it inside the function.",
+  "Loop over a copy (for x in nums[:]) or build a new list instead of removing as you go.",
+  "In backtracking, save res.append(path[:]), not res.append(path), or every saved answer changes later."
+ ],
+ "interview": [
+  "LC 118 Pascal's Triangle",
+  "LC 27 Remove Element",
+  "LC 78 Subsets"
+ ],
+ "related": [
+  "py-lists",
+  "py-comprehensions",
+  "py-functions",
+  "py-strings",
+  "backtracking"
+ ]
+}

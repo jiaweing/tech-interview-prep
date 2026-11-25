@@ -1,0 +1,180 @@
+{
+ "id": "array",
+ "track": "ds",
+ "order": 1,
+ "title": "Array",
+ "short": "A row of numbered boxes. Jump to any box by its number.",
+ "what": "An array is a row of boxes stored side by side in memory. Each box has a number called its index, starting at 0. Because the boxes sit next to each other, the computer can jump to any index in one step. In Python it is the list.",
+ "analogy": "Lockers in a school hallway. To open locker 2 you walk straight to it. You never open lockers 0 and 1 first.",
+ "viz": {
+  "kind": "array",
+  "frames": [
+   {
+    "cells": [
+     7,
+     3,
+     9,
+     4,
+     6
+    ],
+    "label": "nums",
+    "say": "nums holds 5 values. The small numbers under the boxes are the indexes: 0 for the first box, 4 for the last."
+   },
+   {
+    "cells": [
+     7,
+     3,
+     9,
+     4,
+     6
+    ],
+    "label": "nums",
+    "hi": [
+     2
+    ],
+    "ptr": {
+     "i": 2
+    },
+    "out": "nums[2] -> 9",
+    "say": "nums[2] reads box 2 directly. The computer works out its spot in memory, so any index takes one step."
+   },
+   {
+    "cells": [
+     7,
+     3,
+     9,
+     4,
+     6,
+     8
+    ],
+    "label": "nums",
+    "ok": [
+     5
+    ],
+    "say": "nums.append(8) puts 8 in the next free box at the end. No other box moves, so this is fast too."
+   },
+   {
+    "cells": [
+     7,
+     3,
+     9,
+     4,
+     6,
+     8
+    ],
+    "label": "nums",
+    "hi": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "say": "Now insert 5 at index 1. First, boxes 1 to 5 must each slide one place right to make room."
+   },
+   {
+    "cells": [
+     7,
+     5,
+     3,
+     9,
+     4,
+     6,
+     8
+    ],
+    "label": "nums",
+    "ok": [
+     1
+    ],
+    "dim": [
+     0
+    ],
+    "say": "5 sits at index 1, but 5 other values had to move. Inserting near the front costs O(n): more items, more moving."
+   },
+   {
+    "cells": [
+     7,
+     5,
+     3,
+     9,
+     4,
+     6,
+     8
+    ],
+    "label": "nums",
+    "dim": [
+     0,
+     1,
+     2,
+     3
+    ],
+    "ok": [
+     4
+    ],
+    "ptr": {
+     "i": 4
+    },
+    "out": "4 in nums -> True",
+    "say": "Is 4 in the list? Without its index, Python checks box after box: 7, 5, 3, 9, then 4. That search is O(n)."
+   },
+   {
+    "cells": [
+     7,
+     5,
+     3,
+     9,
+     4,
+     6
+    ],
+    "label": "nums",
+    "hi": [
+     5
+    ],
+    "out": "pop() -> 8",
+    "say": "nums.pop() removes the last box and hands back 8. Like append, it moves nothing else."
+   }
+  ]
+ },
+ "when": [
+  "Items in order, reached by position",
+  "Look at index i and its neighbors i - 1, i + 1",
+  "Read the k-th item quickly",
+  "Walk from both ends or with a moving window"
+ ],
+ "python": "nums = [7, 3, 9, 4, 6]\nprint(nums[2])\nnums.append(8)\nnums.insert(1, 5)\nprint(nums)\nprint(4 in nums, nums.index(4))\nprint(nums.pop(), nums)\nprint(nums[-1], nums[1:3], len(nums))",
+ "output": "9\n[7, 5, 3, 9, 4, 6, 8]\nTrue 4\n8 [7, 5, 3, 9, 4, 6]\n6 [5, 3] 6",
+ "cost": [
+  [
+   "Read or write by index",
+   "O(1)"
+  ],
+  [
+   "Add or remove at the end",
+   "O(1)"
+  ],
+  [
+   "Insert or remove at the front or middle",
+   "O(n)"
+  ],
+  [
+   "Find a value",
+   "O(n)"
+  ]
+ ],
+ "watch": [
+  "Indexes start at 0, so the last one is len(nums) - 1. nums[len(nums)] raises IndexError.",
+  "insert(0, x) or pop(0) inside a loop makes it O(n^2). Use collections.deque for a queue.",
+  "b = a does not copy the list: both names see the same boxes. Use a.copy() or a[:]."
+ ],
+ "interview": [
+  "LC 26 Remove Duplicates from Sorted Array",
+  "LC 283 Move Zeroes",
+  "LC 238 Product of Array Except Self"
+ ],
+ "related": [
+  "string",
+  "hash-map",
+  "two-pointers",
+  "prefix-sums"
+ ]
+}

@@ -1,0 +1,156 @@
+{
+ "id": "py-functions",
+ "track": "py",
+ "order": 9,
+ "title": "Functions and recursion",
+ "short": "def, return, defaults, inner helpers, and a free memo with @cache.",
+ "what": "def gives a block of code a name and inputs; return hands a value back. A function can live inside another and use its variables, which is how most interview recursion is written. @cache remembers answers so repeated calls are free.",
+ "analogy": "A recipe you can follow from inside another recipe. Write the result of each sub-recipe on a sticky note, and the next time it comes up you read the note instead of cooking again.",
+ "viz": {
+  "kind": "stack",
+  "frames": [
+   {
+    "items": [
+     "ways(4)"
+    ],
+    "hi": [
+     0
+    ],
+    "label": "call stack",
+    "say": "climb(4) defines ways inside it and calls ways(4). The call gets a frame on the stack with its own k = 4."
+   },
+   {
+    "items": [
+     "ways(4)",
+     "ways(3)",
+     "ways(2)"
+    ],
+    "hi": [
+     2
+    ],
+    "label": "call stack",
+    "say": "ways(4) needs ways(3) first, which needs ways(2). Each call waits on top of the one that called it."
+   },
+   {
+    "items": [
+     "ways(4)",
+     "ways(3)",
+     "ways(2)",
+     "ways(1)",
+     "ways(0) = 1"
+    ],
+    "ok": [
+     4
+    ],
+    "label": "call stack",
+    "out": "return 1",
+    "say": "The chain reaches ways(0), the base case: it returns 1 without calling anything. Its frame is popped."
+   },
+   {
+    "items": [
+     "ways(4)",
+     "ways(3)",
+     "ways(2) = 2"
+    ],
+    "ok": [
+     2
+    ],
+    "label": "call stack",
+    "out": "cached: k = -1, 0, 1, 2",
+    "say": "Back up: ways(1) = 1, then ways(2) = ways(1) + ways(0) = 2. @cache stores each answer as it returns."
+   },
+   {
+    "items": [
+     "ways(4)",
+     "ways(3) = 3"
+    ],
+    "ok": [
+     1
+    ],
+    "label": "call stack",
+    "out": "cached: k = -1 to 3",
+    "say": "ways(3) = ways(2) + ways(1) = 3. ways(1) came straight from the cache, so no new frames."
+   },
+   {
+    "items": [
+     "ways(4)",
+     "ways(2) cached"
+    ],
+    "hi": [
+     1
+    ],
+    "label": "call stack",
+    "say": "ways(4) still needs ways(2). The cache returns 2 at once instead of redoing that whole branch."
+   },
+   {
+    "items": [
+     "ways(4) = 5"
+    ],
+    "ok": [
+     0
+    ],
+    "label": "call stack",
+    "out": "climb(4) -> (5, 6)",
+    "say": "ways(4) = 3 + 2 = 5. nonlocal calls lets ways add to the outer counter: only 6 calls in total."
+   },
+   {
+    "items": [
+     "ways(3000)",
+     "ways(2999)",
+     "...",
+     "ways(1001)",
+     "ways(1000)"
+    ],
+    "bad": [
+     4
+    ],
+    "label": "without setrecursionlimit",
+    "out": "RecursionError",
+    "say": "climb(3000) nests 3000 calls. Python stops near 1000 with RecursionError, so the code raises the limit first."
+   }
+  ]
+ },
+ "when": [
+  "Same smaller problem inside the problem",
+  "Walk a tree or a grid with DFS",
+  "Recursion that repeats the same calls",
+  "A helper that updates an outer answer"
+ ],
+ "python": "import functools, sys\nsys.setrecursionlimit(10**6)\ndef climb(n, big=2):\n    calls = 0\n    @functools.cache\n    def ways(k):\n        nonlocal calls\n        calls += 1\n        if k < 0:\n            return 0\n        if k == 0:\n            return 1\n        return ways(k - 1) + ways(k - big)\n    return ways(n), calls\nprint(climb(4), climb(4, big=3), climb(3000)[0] % 1000)",
+ "output": "(5, 6) (3, 7) 1",
+ "cost": [
+  [
+   "Call a function",
+   "O(1) plus its body"
+  ],
+  [
+   "Recursion d levels deep",
+   "O(d) stack memory"
+  ],
+  [
+   "Plain recursion like ways(n)",
+   "O(2^n)"
+  ],
+  [
+   "Same with @cache",
+   "O(n)"
+  ]
+ ],
+ "watch": [
+  "Without nonlocal, calls += 1 inside the inner function raises UnboundLocalError.",
+  "@cache needs hashable arguments: pass tuples, not lists.",
+  "Deep recursion hits the 1000 limit. Call sys.setrecursionlimit, or rewrite it as a loop."
+ ],
+ "interview": [
+  "LC 70 Climbing Stairs",
+  "LC 322 Coin Change",
+  "LC 543 Diameter of Binary Tree"
+ ],
+ "related": [
+  "recursion",
+  "dp-1d",
+  "dynamic-programming",
+  "dfs",
+  "py-gotchas"
+ ]
+}

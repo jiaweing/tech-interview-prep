@@ -1,0 +1,844 @@
+{
+ "intro": "<p>Round 1 is a <b>Project Deep Dive &amp; Behavioural Interview</b>, 60 minutes, in person. The invitation says it \"assesses your project ownership, technical decision-making, problem-solving abilities and how you navigate challenges.\" You walk through 1-2 projects, \"focusing on your individual contributions, technical approach, key decisions and impact on users.\" Then they dig: \"how you overcame setbacks, managed stakeholders, incorporated user feedback and adapted your approach.\" Bring \"specific examples, including challenges faced, lessons learnt and what you would have done differently.\" The plan below is a likely shape, not a published agenda.</p><p>Giant Robots Labs raises the bar. Each product has one or two <b>pilots</b> who own it end to end: framing, users, architecture, deployment, reliability, monitoring, <b>costs</b>, and handover or a deliberate closure. A support crew helps but does not take ownership. So the panel is listening for an owner, not a ticket-taker. Say \"I decided\" and \"I measured\", show what happened after launch, name the cost, and be ready to say when you would have closed the product. Expect questions on how you work with AI agents, because the lab exists partly to test that.</p>",
+ "plan": [
+  {
+   "title": "Intros and your 60-second story",
+   "minutes": "5 min",
+   "do": "Who you are, what you build, and why an AI product lab. End by naming the 1-2 projects you will walk through, so they can steer early."
+  },
+  {
+   "title": "Project 1 walkthrough",
+   "minutes": "10 min",
+   "do": "Pitch, users and problem, your role, architecture in three sentences, one key decision, impact with a number. Stop at 8 minutes and invite questions; do not narrate for 20."
+  },
+  {
+   "title": "Project 1 drill-down",
+   "minutes": "15 min",
+   "do": "They pick threads: why that database, how you tested it, what broke in production, how it would scale 10x, how the API is secured. Draw if it helps. Say \"I don't know, here is how I'd find out\" rather than bluff."
+  },
+  {
+   "title": "Project 2 or behavioural set",
+   "minutes": "15 min",
+   "do": "A shorter second project, or STAR stories on setbacks, stakeholders and user feedback. Keep each story to about 2 minutes, then let them probe."
+  },
+  {
+   "title": "Lessons and ways of working",
+   "minutes": "8 min",
+   "do": "What you would do differently, how you judge rigour by stage, and how you use AI agents to plan, build, review and operate. Concrete tools, concrete failures."
+  },
+  {
+   "title": "Your questions",
+   "minutes": "7 min",
+   "do": "Ask 2-3 sharp questions about pilots, evals, costs and closure. Pick from the list below; do not ask anything the job page already answers."
+  }
+ ],
+ "worksheet": [
+  {
+   "key": "pitch",
+   "title": "One-line pitch",
+   "prompt": "One sentence: who it is for, what it does, and the result. No tech stack yet.",
+   "example": "Example: a web tool that lets 40 clinic administrators reschedule patient appointments by SMS, cutting no-shows from 18% to 11% in three months."
+  },
+  {
+   "key": "users",
+   "title": "Users and problem",
+   "prompt": "Who exactly used it, what they did before, and what it cost them. How you learned this.",
+   "example": "Example: clinic front-desk staff phoned each patient the day before, about 2 hours a day per clinic. I sat with two clinics for a morning each and counted the calls."
+  },
+  {
+   "key": "role",
+   "title": "My role (I vs we)",
+   "prompt": "Team size, your title, and the parts that were yours alone. Name what others owned.",
+   "example": "Example: team of 3. I owned the backend, the SMS integration and on-call. A designer owned the admin UI; a PM owned the clinic rollout. I wrote about 70% of the server code."
+  },
+  {
+   "key": "architecture",
+   "title": "Architecture in 3 sentences",
+   "prompt": "Request path, where data lives, and what runs asynchronously. Three sentences, then stop.",
+   "example": "Example: a React admin app calls a Node API on ECS behind an ALB. Appointments live in Postgres; a nightly job enqueues reminders to SQS. A worker sends SMS through a provider and a webhook records replies."
+  },
+  {
+   "key": "decisions",
+   "title": "3 key decisions, options rejected and why",
+   "prompt": "For each: the choice, 1-2 options you rejected, the reason, and whether it held up.",
+   "example": "Example: (1) Postgres over DynamoDB: relational queries by clinic and date, team knew SQL. (2) Queue plus worker over sending SMS inline: provider timeouts would have blocked requests. (3) Bought an SMS provider rather than a telco integration: two weeks versus three months."
+  },
+  {
+   "key": "setback",
+   "title": "Hardest bug or setback",
+   "prompt": "What went wrong, how you found it, the fix, and what you changed so it cannot recur.",
+   "example": "Example: some patients got the same reminder 3 times. The worker retried on timeout but the provider had already sent. I added an idempotency key per appointment and day, and an alert on duplicate sends."
+  },
+  {
+   "key": "stakeholder",
+   "title": "Stakeholder moment",
+   "prompt": "A disagreement or pressure from someone outside engineering. What each side wanted and how it ended.",
+   "example": "Example: the clinic manager wanted reminders at 7 am. Data showed replies peaked at 6 pm. We ran both for two weeks; 6 pm won by 9 points and she adopted it."
+  },
+  {
+   "key": "feedback",
+   "title": "User feedback that changed things",
+   "prompt": "A specific thing a user said or did, and the change you shipped because of it.",
+   "example": "Example: elderly patients replied \"OK lah\" instead of \"1\". 14% of replies went unparsed. I added a small list of accepted phrases and routed the rest to staff."
+  },
+  {
+   "key": "impact",
+   "title": "Impact with numbers",
+   "prompt": "Before and after, with the unit and the period. Users, time saved, errors, cost, uptime.",
+   "example": "Example: no-shows 18% to 11%; about 2 staff hours a day saved per clinic across 40 clinics; SMS cost about $0.03 per reminder, about $900 a month."
+  },
+  {
+   "key": "differently",
+   "title": "What I would do differently",
+   "prompt": "One or two honest changes, tied to a cost you actually paid.",
+   "example": "Example: I would add the idempotency key and a send log on day one. The duplicate-SMS bug cost a week and a complaint from a clinic."
+  },
+  {
+   "key": "agents",
+   "title": "What I would do with AI agents today",
+   "prompt": "Which parts of the project you would hand to agents now, which you would not, and how you would check their work.",
+   "example": "Example: an agent drafts the webhook handlers and tests from the provider docs; I review the diff and run the tests. I would use an LLM to classify free-text replies, with an eval set of 300 real replies and a fallback to staff below 90% confidence."
+  }
+ ],
+ "questions": [
+  {
+   "id": "own-1",
+   "theme": "Ownership",
+   "q": "Walk me through a project you owned end to end. What did owning it mean day to day?",
+   "probing": "Whether you carried the whole lifecycle, from problem to production to after launch, or only a slice.",
+   "strong": "<ul><li>Names the problem, the users and the outcome before any tech.</li><li>Lists concrete owner duties: deploys, alerts, cost reviews, user calls, deciding what not to build.</li><li>Shows a moment after launch where you acted without being asked.</li></ul>",
+   "red_flags": "<ul><li>Describes only the code, never users or production.</li><li>\"We\" throughout, with no clear personal part.</li></ul>",
+   "followups": [
+    "Who would have noticed first if it broke at 2 am?",
+    "What was the one metric you checked most often?",
+    "What did you hand off, and to whom?"
+   ]
+  },
+  {
+   "id": "own-2",
+   "theme": "Ownership",
+   "q": "Which parts of that project were yours alone, and which were the team's?",
+   "probing": "Whether you can separate your contribution from the team's honestly and precisely.",
+   "strong": "<ul><li>Gives team size and splits the work by component or decision.</li><li>Credits others by name or role without shrinking your own part.</li><li>Can point to a decision that would have gone differently without you.</li></ul>",
+   "red_flags": "<ul><li>Claims everything, which falls apart under drill-down.</li><li>Cannot name a single decision they made personally.</li></ul>",
+   "followups": [
+    "Which decision there was yours and someone else disagreed?",
+    "What would the project look like if you had not been on it?"
+   ]
+  },
+  {
+   "id": "own-3",
+   "theme": "Ownership",
+   "q": "Tell me about something you owned after launch: an incident, a page, a metric that dropped.",
+   "probing": "Whether you stayed accountable once the feature shipped, which GRL pilots must do.",
+   "strong": "<ul><li>Explains how you found out (alert, user report, dashboard) and the time to detect.</li><li>Describes the fix, the communication to users, and the follow-up so it does not recur.</li><li>Mentions a short write-up or post-incident review with actions you owned.</li></ul>",
+   "red_flags": "<ul><li>\"Ops handled it\" or \"another team was on call.\"</li><li>Blames the user or the platform with no changes on your side.</li></ul>",
+   "followups": [
+    "How long from the first error to the fix?",
+    "What alert did you add afterwards?",
+    "Who did you tell, and when?"
+   ]
+  },
+  {
+   "id": "own-4",
+   "theme": "Ownership",
+   "q": "Describe a time you noticed a problem nobody had asked you to fix.",
+   "probing": "Initiative and judgement about which unowned problems are worth your time.",
+   "strong": "<ul><li>Explains how you spotted it and why it mattered (users, cost, risk).</li><li>Checked with the right person before a large change, or fixed a small one directly.</li><li>States the result with a number.</li></ul>",
+   "red_flags": "<ul><li>Fixed something trivial while the real work slipped.</li><li>Went around the team without telling anyone.</li></ul>",
+   "followups": [
+    "How did you decide it was worth doing now?",
+    "What did you drop to make time for it?"
+   ]
+  },
+  {
+   "id": "own-5",
+   "theme": "Ownership",
+   "q": "The problem was vague when you started. How did you decide what to build first?",
+   "probing": "How you turn an ambiguous problem into a first shippable slice, the core of the Product Engineer role.",
+   "strong": "<ul><li>Talked to users or watched them work before building.</li><li>Wrote down the riskiest assumption and built the smallest thing that tested it.</li><li>Set a date to decide whether to continue.</li></ul>",
+   "red_flags": "<ul><li>Started with the architecture or the framework choice.</li><li>Built for months before anyone used it.</li></ul>",
+   "followups": [
+    "What did you deliberately leave out of version one?",
+    "What would have made you stop?"
+   ]
+  },
+  {
+   "id": "own-6",
+   "theme": "Ownership",
+   "q": "Tell me about a time you cut scope to ship.",
+   "probing": "Whether you can trade scope for time deliberately and explain the cost of the cut.",
+   "strong": "<ul><li>Names what was cut, why, and who agreed.</li><li>Shows the cut was based on user value or risk, not convenience.</li><li>Says whether the cut feature came back later and why or why not.</li></ul>",
+   "red_flags": "<ul><li>Cut tests or security quietly.</li><li>Never cuts scope; always works weekends instead.</li></ul>",
+   "followups": [
+    "Did anyone push back on the cut?",
+    "What did you tell users about the missing piece?"
+   ]
+  },
+  {
+   "id": "own-7",
+   "theme": "Ownership",
+   "q": "If you left tomorrow, what would your successor need? How did you prepare for handover?",
+   "probing": "Whether you build for handover or closure from the start, as GRL pilots are expected to.",
+   "strong": "<ul><li>Runbook, architecture note, alerts with owners, and known risks written down.</li><li>Infrastructure as code and a repeatable deploy, so nobody needs your laptop.</li><li>Names a real handover you did and what went wrong in it.</li></ul>",
+   "red_flags": "<ul><li>\"It's all in my head\" or \"the code is the documentation.\"</li><li>No idea what the running cost or the open risks are.</li></ul>",
+   "followups": [
+    "What was the hardest thing to hand over?",
+    "How would you close the product cleanly if asked?"
+   ]
+  },
+  {
+   "id": "own-8",
+   "theme": "Ownership",
+   "q": "How did you know the product was working, and who looked at those numbers?",
+   "probing": "Whether you defined success up front and tracked it yourself.",
+   "strong": "<ul><li>Names 1-3 metrics tied to the user problem, not vanity counts.</li><li>Explains where they came from (logs, events, survey) and how often you checked.</li><li>Shows a decision that changed because of a number.</li></ul>",
+   "red_flags": "<ul><li>Only page views or sign-ups.</li><li>\"The client was happy\" with no measure.</li></ul>",
+   "followups": [
+    "What number would have told you to stop?",
+    "How did you make sure the metric was not gamed or broken?"
+   ]
+  },
+  {
+   "id": "tech-1",
+   "theme": "Technical decisions",
+   "q": "Why that database? What else did you consider?",
+   "probing": "Whether the choice came from access patterns and constraints, not habit.",
+   "strong": "<ul><li>Starts from the queries, the data shape, the consistency need and the scale.</li><li>Names one or two rejected options and the specific reason.</li><li>Admits what the choice made harder later.</li></ul>",
+   "red_flags": "<ul><li>\"It's what we always use\" with no other reason.</li><li>Picks NoSQL for \"scale\" at a few thousand rows.</li></ul>",
+   "followups": [
+    "What is your most frequent query, and which index serves it?",
+    "What happens to that choice at 100x the data?",
+    "How do you back it up and restore it, and have you tested a restore?"
+   ]
+  },
+  {
+   "id": "tech-2",
+   "theme": "Technical decisions",
+   "q": "Walk me through the architecture. Where does one request go?",
+   "probing": "Whether you understand your system as a whole, including the parts you did not write.",
+   "strong": "<ul><li>Traces one read and one write from the client to storage and back.</li><li>Names synchronous versus asynchronous paths and why.</li><li>Mentions auth, caching and where logs and metrics come from.</li></ul>",
+   "red_flags": "<ul><li>Lists technologies without a flow.</li><li>Vague about anything outside their own service.</li></ul>",
+   "followups": [
+    "Where is the slowest hop, and how slow is it?",
+    "What happens if the queue is down?"
+   ]
+  },
+  {
+   "id": "tech-3",
+   "theme": "Technical decisions",
+   "q": "Pick one decision you would reverse today.",
+   "probing": "Self-critique and whether you learn from technical choices.",
+   "strong": "<ul><li>Names a real decision, the evidence that it was wrong, and the cost paid.</li><li>Explains why it looked right at the time with what you knew.</li><li>Says what you would choose now and what that would cost.</li></ul>",
+   "red_flags": "<ul><li>\"Nothing, it all worked.\"</li><li>Blames a decision someone else made.</li></ul>",
+   "followups": [
+    "Why have you not reversed it yet?",
+    "How would you migrate away from it safely?"
+   ]
+  },
+  {
+   "id": "tech-4",
+   "theme": "Technical decisions",
+   "q": "How did you test it?",
+   "probing": "Whether testing matched the risk: unit, integration, end to end, and what was not tested.",
+   "strong": "<ul><li>Describes layers: unit for logic, integration against a real database, a few end-to-end paths.</li><li>Says what was hard to test (third-party APIs, time, concurrency) and how you handled it.</li><li>Names a bug the tests caught, and one they missed.</li></ul>",
+   "red_flags": "<ul><li>\"QA tested it.\"</li><li>Only mocks, so nothing checks the real database or API.</li></ul>",
+   "followups": [
+    "How long did the test suite take, and did people run it?",
+    "How did you test the failure paths?",
+    "How would you test an LLM step in that pipeline?"
+   ]
+  },
+  {
+   "id": "tech-5",
+   "theme": "Technical decisions",
+   "q": "How would you scale it 10x?",
+   "probing": "Whether you know where your system breaks first and can reason with numbers.",
+   "strong": "<ul><li>Starts with current load in numbers and finds the first bottleneck.</li><li>Proposes targeted fixes: indexes, caching, read replicas, queues, horizontal workers.</li><li>Says what you would not change yet and why.</li></ul>",
+   "red_flags": "<ul><li>Jumps to microservices or Kubernetes with no bottleneck named.</li><li>No idea of current requests per second or data size.</li></ul>",
+   "followups": [
+    "What breaks first, the database, the API or a third party?",
+    "What would that cost per month?",
+    "How would you load-test it before users find out?"
+   ]
+  },
+  {
+   "id": "tech-6",
+   "theme": "Technical decisions",
+   "q": "How is your API secured?",
+   "probing": "Basic security judgement: authentication, authorisation, input handling and secrets.",
+   "strong": "<ul><li>Explains how users authenticate and how each request is authorised to a resource, not just logged in.</li><li>Mentions input validation, rate limits, and where secrets live (not in the repo).</li><li>Names a security issue you found or fixed, and how you would detect abuse.</li></ul>",
+   "red_flags": "<ul><li>\"It's behind a login\" as the whole answer.</li><li>Secrets in environment files committed to git, or no idea where they are.</li></ul>",
+   "followups": [
+    "Can user A read user B's record by changing an ID in the URL?",
+    "How do you rotate a leaked key?",
+    "How would you classify the data, and does that change where it can be stored?"
+   ]
+  },
+  {
+   "id": "tech-7",
+   "theme": "Technical decisions",
+   "q": "Tell me about a build-versus-buy decision.",
+   "probing": "Whether you weigh time to users, cost and lock-in rather than building for fun.",
+   "strong": "<ul><li>States the options, the time and cost of each, and who maintains it later.</li><li>Explains the exit plan if the vendor or library goes away.</li><li>Says whether the choice held up.</li></ul>",
+   "red_flags": "<ul><li>Always builds because it is more interesting.</li><li>Ignores data residency or procurement for a hosted service.</li></ul>",
+   "followups": [
+    "What would have made you switch?",
+    "How much did the bought option cost per month?"
+   ]
+  },
+  {
+   "id": "tech-8",
+   "theme": "Technical decisions",
+   "q": "How did you change the data model once real data was in production?",
+   "probing": "Whether you can evolve a live system safely.",
+   "strong": "<ul><li>Describes an expand-and-contract migration: add, backfill, switch reads, remove.</li><li>Mentions running it on a copy first and having a rollback plan.</li><li>Notes lock or downtime risks on large tables.</li></ul>",
+   "red_flags": "<ul><li>Ran an ALTER on a big table at peak and hoped.</li><li>Has never changed a schema with live data.</li></ul>",
+   "followups": [
+    "How long did the backfill take?",
+    "What would you do if it failed halfway?"
+   ]
+  },
+  {
+   "id": "tech-9",
+   "theme": "Technical decisions",
+   "q": "What happens when a dependency is down: the database, a third-party API, the model provider?",
+   "probing": "Whether you designed for failure, not just the happy path.",
+   "strong": "<ul><li>Names timeouts, retries with backoff and idempotency for each external call.</li><li>Explains the degraded mode users see, and how you would know it happened.</li><li>Has an actual example of a dependency failing.</li></ul>",
+   "red_flags": "<ul><li>No timeouts; the request hangs.</li><li>Retries everything forever, including non-idempotent writes.</li></ul>",
+   "followups": [
+    "What does the user see in that minute?",
+    "How do you stop retries from making the outage worse?"
+   ]
+  },
+  {
+   "id": "prob-1",
+   "theme": "Problem solving",
+   "q": "What is the hardest bug you have debugged? How did you find it?",
+   "probing": "Debugging method under uncertainty, not luck.",
+   "strong": "<ul><li>Reproduces first, then narrows with logs, bisecting or a minimal case.</li><li>States hypotheses and how each was ruled out.</li><li>Fixes the root cause and adds a test or alert.</li></ul>",
+   "red_flags": "<ul><li>Changed things at random until it worked.</li><li>Cannot explain why the fix works.</li></ul>",
+   "followups": [
+    "What was your first wrong hypothesis?",
+    "How long did it take, and what would have made it faster?"
+   ]
+  },
+  {
+   "id": "prob-2",
+   "theme": "Problem solving",
+   "q": "What broke in production, and how did you find out?",
+   "probing": "Production awareness, observability and calm under pressure.",
+   "strong": "<ul><li>Says how it was detected and how long that took.</li><li>Separates mitigation (roll back, flag off) from the root-cause fix.</li><li>Shows what changed afterwards: alert, test, process.</li></ul>",
+   "red_flags": "<ul><li>Found out from a user complaint days later and changed nothing.</li><li>Debugged in production for hours instead of rolling back.</li></ul>",
+   "followups": [
+    "Could you roll back in under 10 minutes?",
+    "What did the logs show, and what did they not show?"
+   ]
+  },
+  {
+   "id": "prob-3",
+   "theme": "Problem solving",
+   "q": "Describe a performance problem. How did you find the bottleneck?",
+   "probing": "Whether you measure before optimising.",
+   "strong": "<ul><li>Measured first: profiler, query plan, tracing, timings per hop.</li><li>Gives before and after numbers (p95, throughput, cost).</li><li>Fixed the biggest cost first and stopped when it was good enough.</li></ul>",
+   "red_flags": "<ul><li>Optimised by intuition with no measurement.</li><li>Added a cache that made data stale without thinking about it.</li></ul>",
+   "followups": [
+    "What did the query plan show?",
+    "What was the latency budget, and who set it?"
+   ]
+  },
+  {
+   "id": "prob-4",
+   "theme": "Problem solving",
+   "q": "Tell me about a time your first approach did not work.",
+   "probing": "Whether you notice failure early and switch without sunk-cost thinking.",
+   "strong": "<ul><li>Says how you knew it was failing and how quickly.</li><li>Explains what the second approach changed and why.</li><li>Keeps what was learned from the first attempt.</li></ul>",
+   "red_flags": "<ul><li>Kept pushing the first approach for weeks.</li><li>Cannot explain why the first approach failed.</li></ul>",
+   "followups": [
+    "What signal told you to stop?",
+    "How much time did the first attempt cost?"
+   ]
+  },
+  {
+   "id": "prob-5",
+   "theme": "Problem solving",
+   "q": "How do you break a big, fuzzy problem into something you can ship in two weeks?",
+   "probing": "Slicing skill: the smallest end-to-end thing that real users can try.",
+   "strong": "<ul><li>Picks one user and one job, end to end, rather than one layer across everything.</li><li>Uses manual steps or existing tools behind the scenes where it saves time.</li><li>Defines what result after two weeks would justify continuing.</li></ul>",
+   "red_flags": "<ul><li>Two weeks of backend with no UI or users.</li><li>No criterion for success.</li></ul>",
+   "followups": [
+    "What would you fake by hand in week one?",
+    "Who are the first five users?"
+   ]
+  },
+  {
+   "id": "prob-6",
+   "theme": "Problem solving",
+   "q": "Tell me about an integration with a third-party system that misbehaved.",
+   "probing": "Defensive engineering with systems you do not control.",
+   "strong": "<ul><li>Describes the actual misbehaviour: duplicates, out-of-order callbacks, silent failures.</li><li>Added idempotency, reconciliation or a dead-letter queue.</li><li>Talked to the vendor and documented the contract you rely on.</li></ul>",
+   "red_flags": "<ul><li>Assumed the vendor's docs were correct and moved on.</li><li>No way to replay or reconcile lost events.</li></ul>",
+   "followups": [
+    "How did you detect lost or duplicate events?",
+    "What did you store to make replay possible?"
+   ]
+  },
+  {
+   "id": "prob-7",
+   "theme": "Problem solving",
+   "q": "How do you handle an intermittent failure you cannot reproduce?",
+   "probing": "Persistence and method on flaky issues.",
+   "strong": "<ul><li>Adds targeted logging or tracing and waits for the next occurrence.</li><li>Looks for patterns: time, load, a specific user, a deploy.</li><li>Considers concurrency, timeouts and retries as likely causes.</li></ul>",
+   "red_flags": "<ul><li>Marks the test as flaky and ignores it.</li><li>Closes the ticket as cannot-reproduce.</li></ul>",
+   "followups": [
+    "What did you log that you were not logging before?",
+    "Was it a race condition, and how did you prove it?"
+   ]
+  },
+  {
+   "id": "set-1",
+   "theme": "Setbacks",
+   "q": "Tell me about a project that failed or was cancelled.",
+   "probing": "Honesty about failure and what you took from it.",
+   "strong": "<ul><li>Owns their part of the failure without self-flagellation.</li><li>Explains the real cause: wrong problem, no users, timing, cost.</li><li>Names a concrete change in how they work now.</li></ul>",
+   "red_flags": "<ul><li>Has never been on a failed project.</li><li>The failure was entirely someone else's fault.</li></ul>",
+   "followups": [
+    "When could you have known earlier?",
+    "What would you have needed to see to keep going?"
+   ]
+  },
+  {
+   "id": "set-2",
+   "theme": "Setbacks",
+   "q": "Tell me about a deadline you missed.",
+   "probing": "Planning, early warning and how you communicate slippage.",
+   "strong": "<ul><li>Raised the risk early with a revised date and options.</li><li>Explains the cause (estimate, scope, dependency) without excuses.</li><li>Changed how they estimate afterwards.</li></ul>",
+   "red_flags": "<ul><li>Told people on the deadline day.</li><li>Never misses deadlines because they work all night.</li></ul>",
+   "followups": [
+    "When did you first know it would slip?",
+    "What options did you offer?"
+   ]
+  },
+  {
+   "id": "set-3",
+   "theme": "Setbacks",
+   "q": "Describe a mistake you made that affected users.",
+   "probing": "Accountability and the quality of your fix and follow-up.",
+   "strong": "<ul><li>States the mistake plainly, the users affected and for how long.</li><li>Explains the immediate fix and how users were told.</li><li>Added a guard (test, review step, alert) so it cannot happen the same way.</li></ul>",
+   "red_flags": "<ul><li>Minimises the impact or picks a trivial example.</li><li>No change in process afterwards.</li></ul>",
+   "followups": [
+    "How many users, and how did you count them?",
+    "What did you say to them?"
+   ]
+  },
+  {
+   "id": "set-4",
+   "theme": "Setbacks",
+   "q": "Tell me about critical feedback you received on your work.",
+   "probing": "Coachability and whether you act on feedback.",
+   "strong": "<ul><li>Gives the actual feedback, not a disguised strength.</li><li>Explains what you changed and evidence that it stuck.</li><li>Shows you asked for more feedback afterwards.</li></ul>",
+   "red_flags": "<ul><li>\"I work too hard.\"</li><li>Argues the feedback was unfair.</li></ul>",
+   "followups": [
+    "What did you disagree with in it?",
+    "Who gave it, and how did you follow up?"
+   ]
+  },
+  {
+   "id": "set-5",
+   "theme": "Setbacks",
+   "q": "A dependency let you down: another team, a vendor, a platform. What did you do?",
+   "probing": "How you protect your users and timeline when others slip.",
+   "strong": "<ul><li>Escalated early with facts and a specific ask.</li><li>Found a workaround or reduced scope to keep users unblocked.</li><li>Stayed constructive with the other team.</li></ul>",
+   "red_flags": "<ul><li>Waited and blamed them in the retro.</li><li>Built a risky workaround without telling anyone.</li></ul>",
+   "followups": [
+    "What did you ask for, exactly?",
+    "How would you reduce that dependency next time?"
+   ]
+  },
+  {
+   "id": "set-6",
+   "theme": "Setbacks",
+   "q": "Tell me about a technical bet that turned out wrong.",
+   "probing": "Whether you can admit a wrong call and unwind it.",
+   "strong": "<ul><li>Explains the reasoning at the time and the evidence that it was wrong.</li><li>Describes how you unwound it and what it cost.</li><li>Now uses a smaller experiment before similar bets.</li></ul>",
+   "red_flags": "<ul><li>Still defends it despite the evidence.</li><li>Never makes bets.</li></ul>",
+   "followups": [
+    "How long before you admitted it?",
+    "How did you decide to unwind it rather than push on?"
+   ]
+  },
+  {
+   "id": "set-7",
+   "theme": "Setbacks",
+   "q": "Tell me about a time you were stuck for days. How did you get unstuck?",
+   "probing": "Whether you ask for help and change approach at the right time.",
+   "strong": "<ul><li>Time-boxed the effort and asked for help with a clear write-up.</li><li>Changed approach: smaller reproduction, a different tool, a spike.</li><li>Shares what they now do earlier.</li></ul>",
+   "red_flags": "<ul><li>Never asks for help.</li><li>Asks for help immediately without trying anything.</li></ul>",
+   "followups": [
+    "When do you usually ask for help?",
+    "What did the write-up say?"
+   ]
+  },
+  {
+   "id": "stake-1",
+   "theme": "Stakeholders",
+   "q": "A stakeholder wanted a feature you thought was wrong. What happened?",
+   "probing": "Whether you can disagree with evidence and still move forward.",
+   "strong": "<ul><li>Understood the need behind the request first.</li><li>Brought data or a quick test, not just opinion.</li><li>Accepted the outcome, or found a smaller version that met the need.</li></ul>",
+   "red_flags": "<ul><li>Built it silently while disagreeing.</li><li>Refused and escalated without trying to understand.</li></ul>",
+   "followups": [
+    "What was the need behind the request?",
+    "What would have changed your mind?"
+   ]
+  },
+  {
+   "id": "stake-2",
+   "theme": "Stakeholders",
+   "q": "Explain a technical trade-off you had to make to a non-technical stakeholder.",
+   "probing": "Clarity with non-engineers: policy, ops, agency leads.",
+   "strong": "<ul><li>Framed it in their terms: time, risk, cost, user impact.</li><li>Gave two or three options with a recommendation.</li><li>Checked they understood and recorded the decision.</li></ul>",
+   "red_flags": "<ul><li>Used jargon and lost them.</li><li>Decided for them without telling them.</li></ul>",
+   "followups": [
+    "Explain it to me now as you did then.",
+    "What did they choose, and did you agree?"
+   ]
+  },
+  {
+   "id": "stake-3",
+   "theme": "Stakeholders",
+   "q": "Two stakeholders asked for conflicting things. How did you decide?",
+   "probing": "Prioritisation and handling politics fairly.",
+   "strong": "<ul><li>Made the conflict visible to both, with the trade-off spelled out.</li><li>Used a clear criterion (user impact, policy, deadline) to decide or escalate.</li><li>Kept both informed afterwards.</li></ul>",
+   "red_flags": "<ul><li>Said yes to both and missed both.</li><li>Picked the more senior person's request by default.</li></ul>",
+   "followups": [
+    "Who made the final call?",
+    "How did the other stakeholder take it?"
+   ]
+  },
+  {
+   "id": "stake-4",
+   "theme": "Stakeholders",
+   "q": "Policy, legal or security asked for something that slowed you down. What did you do?",
+   "probing": "Whether you treat compliance as a design input, which matters in government.",
+   "strong": "<ul><li>Understood the risk they were managing.</li><li>Proposed a design that met it at lower cost (for example, data minimisation or redaction).</li><li>Engaged them earlier on the next project.</li></ul>",
+   "red_flags": "<ul><li>Treated them as an obstacle to route around.</li><li>Shipped without the sign-off.</li></ul>",
+   "followups": [
+    "What data classification were you handling?",
+    "What would you do differently to involve them earlier?"
+   ]
+  },
+  {
+   "id": "stake-5",
+   "theme": "Stakeholders",
+   "q": "Tell me about a disagreement with another engineer on approach.",
+   "probing": "Collaboration and technical humility.",
+   "strong": "<ul><li>Describes both positions fairly.</li><li>Resolved with a spike, data or a time-boxed trial.</li><li>Shows a case where you changed your mind.</li></ul>",
+   "red_flags": "<ul><li>They were wrong and you were right, every time.</li><li>Avoided the conflict and let it fester.</li></ul>",
+   "followups": [
+    "What was the strongest point in their position?",
+    "How did you decide in the end?"
+   ]
+  },
+  {
+   "id": "stake-6",
+   "theme": "Stakeholders",
+   "q": "How did you manage expectations when the timeline slipped?",
+   "probing": "Early, honest communication with options.",
+   "strong": "<ul><li>Told stakeholders as soon as the risk was clear, with a new estimate.</li><li>Offered options: cut scope, add time, phase the release.</li><li>Kept a regular update going until delivery.</li></ul>",
+   "red_flags": "<ul><li>Hid it until it was too late to adjust.</li><li>Promised a new date with no basis.</li></ul>",
+   "followups": [
+    "What did you cut, if anything?",
+    "How often did you update them?"
+   ]
+  },
+  {
+   "id": "stake-7",
+   "theme": "Stakeholders",
+   "q": "Users or an agency did not want to change how they worked. How did you get buy-in?",
+   "probing": "Change management, which decides whether a government product is used.",
+   "strong": "<ul><li>Found a champion and solved their pain first.</li><li>Showed a measured win from a small pilot.</li><li>Kept the old way available until the new one was trusted.</li></ul>",
+   "red_flags": "<ul><li>Mandated adoption from the top and called it done.</li><li>Blamed users for resisting.</li></ul>",
+   "followups": [
+    "Who was your first champion?",
+    "What made the sceptics change their mind?"
+   ]
+  },
+  {
+   "id": "user-1",
+   "theme": "User feedback",
+   "q": "How did you find your first users and talk to them?",
+   "probing": "Whether you engage real users directly, as GRL pilots must.",
+   "strong": "<ul><li>Names who they were and how you reached them.</li><li>Watched them use it, not just asked opinions.</li><li>Kept a regular feedback loop: calls, a channel, session recordings.</li></ul>",
+   "red_flags": "<ul><li>Never spoke to a user; the PM did that.</li><li>Only surveyed after launch.</li></ul>",
+   "followups": [
+    "What surprised you in the first session?",
+    "How many users did you speak to before building?"
+   ]
+  },
+  {
+   "id": "user-2",
+   "theme": "User feedback",
+   "q": "Tell me about feedback that changed what you built.",
+   "probing": "Whether feedback actually moves your roadmap.",
+   "strong": "<ul><li>Quotes or describes the specific feedback.</li><li>Explains the change shipped and how quickly.</li><li>Shows the effect with a number.</li></ul>",
+   "red_flags": "<ul><li>Generic \"users liked it.\"</li><li>The change was cosmetic.</li></ul>",
+   "followups": [
+    "How did you check it was not just one loud user?",
+    "What did you drop to make room?"
+   ]
+  },
+  {
+   "id": "user-3",
+   "theme": "User feedback",
+   "q": "Tell me about feedback you chose not to act on.",
+   "probing": "Judgement: separating what users ask for from what they need.",
+   "strong": "<ul><li>Explains the reason: few users, conflicts with the core job, cost.</li><li>Found the underlying need and met it another way.</li><li>Told the user why.</li></ul>",
+   "red_flags": "<ul><li>Ignores feedback by default.</li><li>Builds every request.</li></ul>",
+   "followups": [
+    "How did the user react?",
+    "Did you ever revisit it?"
+   ]
+  },
+  {
+   "id": "user-4",
+   "theme": "User feedback",
+   "q": "How did you know people were actually using it?",
+   "probing": "Measurement of real use, not launches.",
+   "strong": "<ul><li>Active users, task completion, retention or time saved, with numbers.</li><li>Instrumented events deliberately and checked they were correct.</li><li>Noticed and acted on a drop.</li></ul>",
+   "red_flags": "<ul><li>Counts sign-ups only.</li><li>No analytics at all.</li></ul>",
+   "followups": [
+    "What was weekly retention after a month?",
+    "Which feature was used least, and what did you do?"
+   ]
+  },
+  {
+   "id": "user-5",
+   "theme": "User feedback",
+   "q": "Users used your product in a way you did not expect. What did you do?",
+   "probing": "Curiosity and adaptability to real behaviour.",
+   "strong": "<ul><li>Investigated why, from data and conversations.</li><li>Decided whether to support, redirect or block the use, with reasons.</li><li>Adjusted the product or the docs.</li></ul>",
+   "red_flags": "<ul><li>Treated it as user error.</li><li>Did not notice until it broke something.</li></ul>",
+   "followups": [
+    "Was it a risk or an opportunity?",
+    "Did it change your roadmap?"
+   ]
+  },
+  {
+   "id": "user-6",
+   "theme": "User feedback",
+   "q": "How did you run a pilot or beta?",
+   "probing": "Whether you can test with real users in a controlled way.",
+   "strong": "<ul><li>Small named group, clear success criteria and an end date.</li><li>Feature flags or a separate environment to limit blast radius.</li><li>A decision at the end: expand, change or stop.</li></ul>",
+   "red_flags": "<ul><li>A beta that never ended.</li><li>No criteria, so no decision.</li></ul>",
+   "followups": [
+    "What were the success criteria?",
+    "What did you decide at the end, and why?"
+   ]
+  },
+  {
+   "id": "user-7",
+   "theme": "User feedback",
+   "q": "Which group of users did you miss at first, for example accessibility or low digital literacy?",
+   "probing": "Inclusiveness, which matters for public services.",
+   "strong": "<ul><li>Names the group and how you found the gap.</li><li>Describes the fix: accessibility audit, plain language, another channel.</li><li>Builds that check in earlier now.</li></ul>",
+   "red_flags": "<ul><li>\"Everyone could use it.\"</li><li>Accessibility left for a later phase that never came.</li></ul>",
+   "followups": [
+    "How did you test with that group?",
+    "What standard did you check against?"
+   ]
+  },
+  {
+   "id": "adapt-1",
+   "theme": "Adapting & lessons",
+   "q": "Looking back, what would you do differently?",
+   "probing": "Reflection with specifics, which the invitation asks for directly.",
+   "strong": "<ul><li>Picks one or two real changes tied to a cost you paid.</li><li>Explains why you did not do it at the time.</li><li>Shows it in a later project.</li></ul>",
+   "red_flags": "<ul><li>\"Nothing major.\"</li><li>Only things other people should have done.</li></ul>",
+   "followups": [
+    "Have you applied that since?",
+    "What stopped you doing it then?"
+   ]
+  },
+  {
+   "id": "adapt-2",
+   "theme": "Adapting & lessons",
+   "q": "Tell me about changing approach mid-project.",
+   "probing": "Adaptability when facts change.",
+   "strong": "<ul><li>Names the new information and when it arrived.</li><li>Explains the cost of switching versus continuing.</li><li>Brought the team and stakeholders along.</li></ul>",
+   "red_flags": "<ul><li>Changed direction often with no clear reason.</li><li>Refused to change despite clear signals.</li></ul>",
+   "followups": [
+    "How did you sell the change?",
+    "What did you throw away?"
+   ]
+  },
+  {
+   "id": "adapt-3",
+   "theme": "Adapting & lessons",
+   "q": "Tell me about something you learned quickly to deliver.",
+   "probing": "Learning speed, useful in a lab that keeps changing tools.",
+   "strong": "<ul><li>Says how you learned: docs, a small spike, a person, an AI assistant with checks.</li><li>Shipped something real with it in days or weeks.</li><li>Admits the gaps that remained.</li></ul>",
+   "red_flags": "<ul><li>Claims mastery after a weekend.</li><li>Avoids new tools entirely.</li></ul>",
+   "followups": [
+    "What did you get wrong at first?",
+    "How did you check your understanding?"
+   ]
+  },
+  {
+   "id": "adapt-4",
+   "theme": "Adapting & lessons",
+   "q": "How has the way you build software changed in the last year?",
+   "probing": "Whether you keep adapting, especially to AI tools.",
+   "strong": "<ul><li>Names concrete changes: tools, testing habits, review habits.</li><li>Shows evidence: faster delivery, fewer defects.</li><li>Mentions something you tried and dropped.</li></ul>",
+   "red_flags": "<ul><li>Nothing has changed.</li><li>Adopted everything new without judging it.</li></ul>",
+   "followups": [
+    "What did you stop doing?",
+    "What would you tell a new engineer to try?"
+   ]
+  },
+  {
+   "id": "adapt-5",
+   "theme": "Adapting & lessons",
+   "q": "How do you decide how much rigour a project needs at its stage?",
+   "probing": "Judging rigour by stage, which the GRL posting asks for explicitly.",
+   "strong": "<ul><li>Matches rigour to risk and stage: a throwaway prototype differs from a product handling sensitive data.</li><li>Never cuts security or data protection, even in prototypes.</li><li>Gives an example of adding rigour as usage grew.</li></ul>",
+   "red_flags": "<ul><li>Same heavy process for everything.</li><li>No tests or reviews until something breaks.</li></ul>",
+   "followups": [
+    "What did you skip in the prototype, and when did you add it back?",
+    "Where is the line for you that never moves?"
+   ]
+  },
+  {
+   "id": "adapt-6",
+   "theme": "Adapting & lessons",
+   "q": "What lesson from one project did you carry into the next?",
+   "probing": "Whether lessons turn into habits.",
+   "strong": "<ul><li>Names the lesson and the concrete practice it became.</li><li>Shows it paid off in the next project.</li><li>Admits a lesson you are still working on.</li></ul>",
+   "red_flags": "<ul><li>Abstract lessons (\"communication is key\") with no practice.</li><li>Same mistake repeated.</li></ul>",
+   "followups": [
+    "How did it show up in the next project?",
+    "Did it ever lead you wrong?"
+   ]
+  },
+  {
+   "id": "adapt-7",
+   "theme": "Adapting & lessons",
+   "q": "Tell me about simplifying something that had become too complex.",
+   "probing": "Taste and willingness to delete.",
+   "strong": "<ul><li>Describes the complexity and its cost (bugs, onboarding, speed).</li><li>Explains what you removed and how you did it safely.</li><li>Gives a result: fewer lines, faster deploys, fewer incidents.</li></ul>",
+   "red_flags": "<ul><li>Rewrote everything from scratch.</li><li>Added another abstraction layer to fix it.</li></ul>",
+   "followups": [
+    "How did you make sure nothing depended on what you removed?",
+    "Who pushed back?"
+   ]
+  },
+  {
+   "id": "ai-1",
+   "theme": "AI & ways of working",
+   "q": "How do you use AI coding assistants or agents in your work today? Be concrete.",
+   "probing": "Real, current practice with agents across planning, building, reviewing and operating.",
+   "strong": "<ul><li>Names tools and tasks: scaffolding, tests, refactors, reading unfamiliar code, writing runbooks.</li><li>Explains how you check the output: tests, review, running it.</li><li>Says where you do not use them and why.</li></ul>",
+   "red_flags": "<ul><li>Never uses them, or uses them for everything without checking.</li><li>Cannot describe a single concrete workflow.</li></ul>",
+   "followups": [
+    "Show me a prompt or task you gave an agent last week.",
+    "How do you review a large agent-written diff?",
+    "What do you not let an agent do?"
+   ]
+  },
+  {
+   "id": "ai-2",
+   "theme": "AI & ways of working",
+   "q": "Tell me about a time AI-generated code was wrong. How did you catch it?",
+   "probing": "Verification habits and healthy scepticism.",
+   "strong": "<ul><li>A specific failure: an invented API, a subtle logic error, an insecure default.</li><li>Caught by tests, review or running it, not by luck.</li><li>Changed the workflow afterwards, for example tests first.</li></ul>",
+   "red_flags": "<ul><li>\"It's always right.\"</li><li>Found it in production.</li></ul>",
+   "followups": [
+    "What check would have caught it earlier?",
+    "Do you write tests before asking for code?"
+   ]
+  },
+  {
+   "id": "ai-3",
+   "theme": "AI & ways of working",
+   "q": "How would you evaluate an AI feature before launch?",
+   "probing": "Eval design: datasets, metrics, failure analysis.",
+   "strong": "<ul><li>Builds an eval set from real or realistic inputs, including hard and adversarial cases.</li><li>Defines pass criteria per case and an overall threshold, with human labels where needed.</li><li>Reads the failures and groups them by cause before changing prompts or models.</li></ul>",
+   "red_flags": "<ul><li>Tried a few prompts by hand and it looked good.</li><li>Only one aggregate score, no failure analysis.</li></ul>",
+   "followups": [
+    "How many examples, and where did they come from?",
+    "How do you grade open-ended output?",
+    "What would block launch?"
+   ]
+  },
+  {
+   "id": "ai-4",
+   "theme": "AI & ways of working",
+   "q": "After launch, how do you know the AI feature is still working?",
+   "probing": "Monitoring of quality, not just uptime.",
+   "strong": "<ul><li>Logs inputs and outputs within data rules and samples them for review.</li><li>Tracks user signals: edits, thumbs, retries, abandonment.</li><li>Re-runs the eval set on every prompt or model change.</li></ul>",
+   "red_flags": "<ul><li>Only checks that the API returns 200.</li><li>No way to tell if a model update made it worse.</li></ul>",
+   "followups": [
+    "What happens when the provider updates the model?",
+    "Who reviews the samples, and how often?"
+   ]
+  },
+  {
+   "id": "ai-5",
+   "theme": "AI & ways of working",
+   "q": "What did your product cost to run, and how did you track it?",
+   "probing": "Cost ownership, which GRL pilots carry, including model tokens.",
+   "strong": "<ul><li>Gives a monthly figure and the main drivers.</li><li>Knows cost per request or per active user, including model token spend.</li><li>Took an action that cut cost: caching, a smaller model, batching, limits.</li></ul>",
+   "red_flags": "<ul><li>\"Finance handled that.\"</li><li>No idea of token costs on an LLM feature.</li></ul>",
+   "followups": [
+    "What was the cost per active user?",
+    "What alert would fire if spend doubled overnight?"
+   ]
+  },
+  {
+   "id": "ai-6",
+   "theme": "AI & ways of working",
+   "q": "When would you kill a product? Have you?",
+   "probing": "Willingness to close deliberately, part of a GRL pilot's job.",
+   "strong": "<ul><li>Sets kill criteria up front: usage, outcome, cost, risk.</li><li>Gives an example of stopping or narrowing something.</li><li>Closes cleanly: tells users, exports data, shuts down infrastructure, writes up the lessons.</li></ul>",
+   "red_flags": "<ul><li>Never stops anything.</li><li>Lets products decay without a decision.</li></ul>",
+   "followups": [
+    "What were the kill criteria for your last project?",
+    "How do you tell users it is closing?"
+   ]
+  },
+  {
+   "id": "ai-7",
+   "theme": "AI & ways of working",
+   "q": "How fast can you get something in front of real users? Tell me about shipping in days.",
+   "probing": "Speed with judgement: thin slices to real users.",
+   "strong": "<ul><li>A concrete example measured in days, with real users.</li><li>Explains what was cut and what was kept, especially security.</li><li>Shows what you learned from those users and what changed.</li></ul>",
+   "red_flags": "<ul><li>Months before any user saw it.</li><li>Fast but skipped access control or data rules.</li></ul>",
+   "followups": [
+    "What was in the first version?",
+    "What did the first users tell you?"
+   ]
+  },
+  {
+   "id": "ai-8",
+   "theme": "AI & ways of working",
+   "q": "How would you handle sensitive government data in an LLM-powered product?",
+   "probing": "Data classification, guardrails and human review where output acts on the world.",
+   "strong": "<ul><li>Asks the data classification first and picks the model hosting to match.</li><li>Minimises data sent, redacts where possible, logs with retention rules.</li><li>Puts human review before outputs that act on the world, and limits what tools an agent can call.</li></ul>",
+   "red_flags": "<ul><li>Sends everything to any public API.</li><li>No answer for prompt injection or wrong outputs.</li></ul>",
+   "followups": [
+    "What would you do about prompt injection in uploaded documents?",
+    "Who reviews before an output is sent to a citizen?"
+   ]
+  }
+ ],
+ "ask_them": [
+  "How do pilots decide, and with whom, whether a product continues, is handed over or is closed? Can you share one that was closed?",
+  "What does a pilot's week look like in the first three months: how much building, user time, operations and cost review?",
+  "How do you evaluate AI features here before and after launch? Is there a shared eval setup or does each pilot build their own?",
+  "Which parts of planning, building, reviewing and releasing are agents doing today, and where have you pulled them back?",
+  "How are running costs, especially model spend, tracked and reported per product?",
+  "How does the support crew (PM, design, product ops, policy) work with a pilot day to day without taking ownership?",
+  "What data classifications do your products handle, and how does that shape which models and hosting you can use?",
+  "What would make someone in this role clearly successful after six months?"
+ ],
+ "star": "<p><b>STAR</b> is Situation, Task, Action, Result. <b>CARL</b> is Context, Action, Result, Learning. Use CARL for this round: the invitation asks for \"lessons learnt and what you would have done differently\", and STAR has no slot for that.</p><p>Aim for 2 minutes. Spend about 15 seconds on context, 60-75 seconds on <b>your</b> actions, 20 seconds on the result with a number, and 15 seconds on the learning. Most weak answers spend a minute on context and say \"we\" through the action.</p><ul><li><b>Context</b>: who, what, when, the stakes. One or two sentences.</li><li><b>Action</b>: what you did, decided and said. Use \"I\". Include one option you rejected.</li><li><b>Result</b>: a number, a date, a user outcome.</li><li><b>Learning</b>: what you now do differently, and proof you did it.</li></ul><p><b>Worked example</b> (a made-up story to show the shape).</p><p><b>Context.</b> I owned the reminder service for 40 clinics. A month after launch, a clinic manager called: some patients got the same SMS three times.</p><p><b>Action.</b> I turned off retries with a feature flag within 20 minutes, which stopped the duplicates while I investigated. The send logs showed the worker retried on a provider timeout even when the provider had already sent the message. I considered lowering the retry count, but that only made duplicates rarer. Instead I added an idempotency key per appointment and day, stored before each send, and a reconciliation job against the provider's delivery report. I called the manager the same day to explain what happened and what I had changed.</p><p><b>Result.</b> Zero duplicate sends in the next 90 days across about 60,000 reminders, and retries came back on, so failed sends dropped from 2% to 0.3%.</p><p><b>Learning.</b> Any call to an external system that has a side effect gets an idempotency key on day one. On my next project I put that in the design review checklist, and it caught the same issue in a payment callback before launch.</p>"
+}

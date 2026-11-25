@@ -1,0 +1,223 @@
+{
+ "id": "py-dicts-sets",
+ "track": "py",
+ "order": 5,
+ "title": "Dicts and sets",
+ "short": "Look things up by key in one step, and drop duplicates.",
+ "what": "A dict maps keys to values: count[\"cat\"] = 2. A set is a bag of unique keys with no values. Both answer \"is this here?\" in one step instead of scanning.",
+ "analogy": "A dict is a phone book: name to number. A set is a guest list: you only care whether a name is on it, and nobody is listed twice.",
+ "viz": {
+  "kind": "map",
+  "frames": [
+   {
+    "rows": [],
+    "label": "count = {}",
+    "say": "count = {} is an empty dict. We will count the words in [\"cat\", \"dog\", \"cat\"]."
+   },
+   {
+    "rows": [
+     [
+      "\"cat\"",
+      "1"
+     ]
+    ],
+    "label": "count[w] = count.get(w, 0) + 1",
+    "hi": [
+     0
+    ],
+    "say": "\"cat\" is not a key yet, so count.get(\"cat\", 0) returns 0. Add 1 and store it under \"cat\"."
+   },
+   {
+    "rows": [
+     [
+      "\"cat\"",
+      "1"
+     ],
+     [
+      "\"dog\"",
+      "1"
+     ]
+    ],
+    "label": "count[w] = count.get(w, 0) + 1",
+    "hi": [
+     1
+    ],
+    "say": "\"dog\" is new too, so it also starts at 1."
+   },
+   {
+    "rows": [
+     [
+      "\"cat\"",
+      "2"
+     ],
+     [
+      "\"dog\"",
+      "1"
+     ]
+    ],
+    "label": "count[w] = count.get(w, 0) + 1",
+    "ok": [
+     0
+    ],
+    "out": "\"cat\" in count -> True",
+    "say": "\"cat\" again: get finds 1, so it becomes 2. \"cat\" in count is True, found in one step."
+   },
+   {
+    "rows": [
+     [
+      "3",
+      "[\"cat\", \"dog\"]"
+     ],
+     [
+      "2",
+      "[\"ox\"]"
+     ]
+    ],
+    "label": "groups.setdefault(len(w), []).append(w)",
+    "hi": [
+     0,
+     1
+    ],
+    "out": "keys: [3, 2]",
+    "say": "setdefault(k, []) returns the list under k, creating an empty one first if needed. Then append to it."
+   },
+   {
+    "rows": [
+     [
+      "1",
+      "a only"
+     ],
+     [
+      "2",
+      "a and b"
+     ],
+     [
+      "3",
+      "a and b"
+     ],
+     [
+      "4",
+      "b only"
+     ]
+    ],
+    "heads": [
+     "item",
+     "in which set"
+    ],
+    "label": "a = {1, 2, 3}; b = {2, 3, 4}",
+    "say": "A set keeps unique items, no values. a = {1, 2, 3}, b = {2, 3, 4}. a.add(3) changes nothing: 3 is already in."
+   },
+   {
+    "rows": [
+     [
+      "1",
+      "a only"
+     ],
+     [
+      "2",
+      "a and b"
+     ],
+     [
+      "3",
+      "a and b"
+     ],
+     [
+      "4",
+      "b only"
+     ]
+    ],
+    "heads": [
+     "item",
+     "in which set"
+    ],
+    "label": "a & b",
+    "ok": [
+     1,
+     2
+    ],
+    "out": "a & b -> {2, 3}",
+    "say": "a & b keeps what is in both. a | b keeps everything in either."
+   },
+   {
+    "rows": [
+     [
+      "1",
+      "a only"
+     ],
+     [
+      "2",
+      "a and b"
+     ],
+     [
+      "3",
+      "a and b"
+     ],
+     [
+      "4",
+      "b only"
+     ]
+    ],
+    "heads": [
+     "item",
+     "in which set"
+    ],
+    "label": "a - b",
+    "ok": [
+     0
+    ],
+    "bad": [
+     3
+    ],
+    "out": "a - b -> {1}",
+    "say": "a - b keeps what only a has. b.remove(4) takes 4 out; it raises KeyError if 4 is missing, discard does not."
+   }
+  ]
+ },
+ "when": [
+  "Have I seen this before?",
+  "Count how many times each thing appears",
+  "Group items that share a key",
+  "Remove duplicates",
+  "What do two lists have in common?"
+ ],
+ "python": "count = {}\nfor w in [\"cat\", \"dog\", \"cat\"]:\n    count[w] = count.get(w, 0) + 1\nprint(count, \"cat\" in count, count.get(\"emu\", 0))\nprint(list(count.items()))\ngroups = {}\nfor w in [\"cat\", \"ox\", \"dog\"]:\n    groups.setdefault(len(w), []).append(w)\nprint(groups, list(groups.keys()))\na = {1, 2, 3}\na.add(3)\nb = {2, 3, 4}\nprint(len(a), a & b, a | b, a - b)\nb.remove(4)\nprint(b, 4 in b)",
+ "output": "{'cat': 2, 'dog': 1} True 0\n[('cat', 2), ('dog', 1)]\n{3: ['cat', 'dog'], 2: ['ox']} [3, 2]\n3 {2, 3} {1, 2, 3, 4} {1}\n{2, 3} False",
+ "cost": [
+  [
+   "d[k], d.get(k), k in d",
+   "O(1)"
+  ],
+  [
+   "x in set, add, remove",
+   "O(1)"
+  ],
+  [
+   "x in list (for contrast)",
+   "O(n)"
+  ],
+  [
+   "a & b",
+   "O(min(len a, len b))"
+  ],
+  [
+   "a | b",
+   "O(len a + len b)"
+  ]
+ ],
+ "watch": [
+  "d[k] on a missing key raises KeyError. Use d.get(k, 0), or a defaultdict.",
+  "{} is an empty dict, not a set. An empty set is set().",
+  "A list cannot be a key or a set item. Turn it into a tuple first."
+ ],
+ "interview": [
+  "LC 1 Two Sum",
+  "LC 49 Group Anagrams",
+  "LC 128 Longest Consecutive Sequence"
+ ],
+ "related": [
+  "hash-map",
+  "hash-set",
+  "py-collections",
+  "py-tuples"
+ ]
+}

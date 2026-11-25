@@ -1,0 +1,122 @@
+{
+ "id": "queue",
+ "track": "ds",
+ "order": 7,
+ "title": "Queue",
+ "short": "First in, first out, like a line at a counter.",
+ "what": "A queue is a line. New items join at the back, and you serve items from the front, so things come out in the order they went in. In Python use collections.deque: append to join, popleft to serve.",
+ "analogy": "The line at a coffee shop. Whoever arrived first gets served first, and newcomers stand at the back.",
+ "viz": {
+  "kind": "queue",
+  "frames": [
+   {
+    "items": [],
+    "label": "q",
+    "say": "An empty queue q = deque(). Items join on the right (back) and leave on the left (front)."
+   },
+   {
+    "items": [
+     "ann"
+    ],
+    "hi": [
+     0
+    ],
+    "label": "q",
+    "say": "q.append(\"ann\"). Ann joins the empty line, so she is both the front and the back."
+   },
+   {
+    "items": [
+     "ann",
+     "bo",
+     "cy"
+    ],
+    "hi": [
+     1,
+     2
+    ],
+    "label": "q",
+    "say": "Bo and Cy join behind her. The queue remembers the order they arrived."
+   },
+   {
+    "items": [
+     "ann",
+     "bo",
+     "cy"
+    ],
+    "ok": [
+     0
+    ],
+    "label": "q",
+    "out": "popleft() -> ann",
+    "say": "q.popleft() serves the front: Ann, who came first. With a deque this is one step."
+   },
+   {
+    "items": [
+     "bo",
+     "cy",
+     "dee"
+    ],
+    "hi": [
+     2
+    ],
+    "label": "q",
+    "say": "Dee arrives and stands at the back. Bo is at the front now."
+   },
+   {
+    "items": [
+     "bo",
+     "cy",
+     "dee"
+    ],
+    "ok": [
+     0
+    ],
+    "label": "q",
+    "out": "served: ann, bo",
+    "say": "The next popleft() serves Bo. Everyone leaves in arrival order and nobody cuts in."
+   }
+  ]
+ },
+ "when": [
+  "Handle things in the order they arrived",
+  "Visit level by level, nearest first (BFS)",
+  "Shortest path in an unweighted graph or grid",
+  "Tasks waiting their turn"
+ ],
+ "python": "from collections import deque\n\nq = deque()\nq.append(\"ann\")\nq.append(\"bo\")\nq.append(\"cy\")\nprint(q.popleft())\nq.append(\"dee\")\nprint(q.popleft())\nprint(list(q), len(q))\nprint(q[0])",
+ "output": "ann\nbo\n['cy', 'dee'] 2\ncy",
+ "cost": [
+  [
+   "Join at the back",
+   "O(1)"
+  ],
+  [
+   "Serve from the front (deque.popleft)",
+   "O(1)"
+  ],
+  [
+   "Serve from a list with pop(0)",
+   "O(n)"
+  ],
+  [
+   "Look at the front (q[0])",
+   "O(1)"
+  ]
+ ],
+ "watch": [
+  "list.pop(0) shifts every other item left. Use deque.popleft().",
+  "popleft() on an empty deque raises IndexError. Loop with while q:.",
+  "queue.Queue is for threads. For algorithms use collections.deque."
+ ],
+ "interview": [
+  "LC 232 Implement Queue using Stacks",
+  "LC 933 Number of Recent Calls",
+  "LC 102 Binary Tree Level Order Traversal"
+ ],
+ "related": [
+  "stack",
+  "deque",
+  "bfs",
+  "message-queue"
+ ]
+}

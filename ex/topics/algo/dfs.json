@@ -1,0 +1,643 @@
+{
+ "id": "dfs",
+ "track": "algo",
+ "order": 13,
+ "title": "Depth-first search (DFS)",
+ "short": "Go as deep as you can, then back up and try another way.",
+ "what": "From the start, follow one path as far as it goes. At a dead end, back up to the last node that still has an unvisited neighbour and go deep again. A stack, or plain recursion, remembers the way back.",
+ "analogy": "Exploring a maze with one hand on the wall. You follow a corridor to its end, walk back to the last fork, and take the next corridor.",
+ "viz": {
+  "kind": "graph",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "B",
+      "x": 25,
+      "y": 42
+     },
+     {
+      "id": "C",
+      "x": 72,
+      "y": 42
+     },
+     {
+      "id": "D",
+      "x": 5,
+      "y": 85
+     },
+     {
+      "id": "E",
+      "x": 42,
+      "y": 85
+     },
+     {
+      "id": "F",
+      "x": 95,
+      "y": 85
+     }
+    ],
+    "edges": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "A",
+      "C"
+     ],
+     [
+      "B",
+      "D"
+     ],
+     [
+      "B",
+      "E"
+     ],
+     [
+      "C",
+      "F"
+     ],
+     [
+      "E",
+      "F"
+     ]
+    ],
+    "label": "start at A",
+    "hi": [
+     "A"
+    ],
+    "dist": {
+     "A": "1st"
+    },
+    "out": "stack: A",
+    "say": "Start at A. DFS dives down one path before looking sideways. The stack holds the path back."
+   },
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "B",
+      "x": 25,
+      "y": 42
+     },
+     {
+      "id": "C",
+      "x": 72,
+      "y": 42
+     },
+     {
+      "id": "D",
+      "x": 5,
+      "y": 85
+     },
+     {
+      "id": "E",
+      "x": 42,
+      "y": 85
+     },
+     {
+      "id": "F",
+      "x": 95,
+      "y": 85
+     }
+    ],
+    "edges": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "A",
+      "C"
+     ],
+     [
+      "B",
+      "D"
+     ],
+     [
+      "B",
+      "E"
+     ],
+     [
+      "C",
+      "F"
+     ],
+     [
+      "E",
+      "F"
+     ]
+    ],
+    "label": "start at A",
+    "ok": [
+     "A"
+    ],
+    "hi": [
+     "B"
+    ],
+    "edgeHi": [
+     [
+      "A",
+      "B"
+     ]
+    ],
+    "dist": {
+     "A": "1st",
+     "B": "2nd"
+    },
+    "out": "stack: A B",
+    "say": "Go to A's first neighbour, B. C waits: we keep going deeper first."
+   },
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "B",
+      "x": 25,
+      "y": 42
+     },
+     {
+      "id": "C",
+      "x": 72,
+      "y": 42
+     },
+     {
+      "id": "D",
+      "x": 5,
+      "y": 85
+     },
+     {
+      "id": "E",
+      "x": 42,
+      "y": 85
+     },
+     {
+      "id": "F",
+      "x": 95,
+      "y": 85
+     }
+    ],
+    "edges": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "A",
+      "C"
+     ],
+     [
+      "B",
+      "D"
+     ],
+     [
+      "B",
+      "E"
+     ],
+     [
+      "C",
+      "F"
+     ],
+     [
+      "E",
+      "F"
+     ]
+    ],
+    "label": "start at A",
+    "ok": [
+     "A",
+     "B"
+    ],
+    "hi": [
+     "D"
+    ],
+    "edgeHi": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "B",
+      "D"
+     ]
+    ],
+    "dist": {
+     "A": "1st",
+     "B": "2nd",
+     "D": "3rd"
+    },
+    "out": "stack: A B D",
+    "say": "From B go to D. D has no unvisited neighbours: a dead end. Pop D off the stack."
+   },
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "B",
+      "x": 25,
+      "y": 42
+     },
+     {
+      "id": "C",
+      "x": 72,
+      "y": 42
+     },
+     {
+      "id": "D",
+      "x": 5,
+      "y": 85
+     },
+     {
+      "id": "E",
+      "x": 42,
+      "y": 85
+     },
+     {
+      "id": "F",
+      "x": 95,
+      "y": 85
+     }
+    ],
+    "edges": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "A",
+      "C"
+     ],
+     [
+      "B",
+      "D"
+     ],
+     [
+      "B",
+      "E"
+     ],
+     [
+      "C",
+      "F"
+     ],
+     [
+      "E",
+      "F"
+     ]
+    ],
+    "label": "start at A",
+    "ok": [
+     "A",
+     "B",
+     "D"
+    ],
+    "hi": [
+     "E"
+    ],
+    "edgeHi": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "B",
+      "E"
+     ]
+    ],
+    "dist": {
+     "A": "1st",
+     "B": "2nd",
+     "D": "3rd",
+     "E": "4th"
+    },
+    "out": "stack: A B E",
+    "say": "Back at B, the next untried road is E. Go deep again."
+   },
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "B",
+      "x": 25,
+      "y": 42
+     },
+     {
+      "id": "C",
+      "x": 72,
+      "y": 42
+     },
+     {
+      "id": "D",
+      "x": 5,
+      "y": 85
+     },
+     {
+      "id": "E",
+      "x": 42,
+      "y": 85
+     },
+     {
+      "id": "F",
+      "x": 95,
+      "y": 85
+     }
+    ],
+    "edges": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "A",
+      "C"
+     ],
+     [
+      "B",
+      "D"
+     ],
+     [
+      "B",
+      "E"
+     ],
+     [
+      "C",
+      "F"
+     ],
+     [
+      "E",
+      "F"
+     ]
+    ],
+    "label": "start at A",
+    "ok": [
+     "A",
+     "B",
+     "D",
+     "E"
+    ],
+    "hi": [
+     "F"
+    ],
+    "edgeHi": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "B",
+      "E"
+     ],
+     [
+      "E",
+      "F"
+     ]
+    ],
+    "dist": {
+     "A": "1st",
+     "B": "2nd",
+     "D": "3rd",
+     "E": "4th",
+     "F": "5th"
+    },
+    "out": "stack: A B E F",
+    "say": "From E go to F. We are now 3 edges from A, still diving."
+   },
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "B",
+      "x": 25,
+      "y": 42
+     },
+     {
+      "id": "C",
+      "x": 72,
+      "y": 42
+     },
+     {
+      "id": "D",
+      "x": 5,
+      "y": 85
+     },
+     {
+      "id": "E",
+      "x": 42,
+      "y": 85
+     },
+     {
+      "id": "F",
+      "x": 95,
+      "y": 85
+     }
+    ],
+    "edges": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "A",
+      "C"
+     ],
+     [
+      "B",
+      "D"
+     ],
+     [
+      "B",
+      "E"
+     ],
+     [
+      "C",
+      "F"
+     ],
+     [
+      "E",
+      "F"
+     ]
+    ],
+    "label": "start at A",
+    "ok": [
+     "A",
+     "B",
+     "D",
+     "E",
+     "F"
+    ],
+    "hi": [
+     "C"
+    ],
+    "edgeHi": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "B",
+      "E"
+     ],
+     [
+      "E",
+      "F"
+     ],
+     [
+      "F",
+      "C"
+     ]
+    ],
+    "dist": {
+     "A": "1st",
+     "B": "2nd",
+     "D": "3rd",
+     "E": "4th",
+     "F": "5th",
+     "C": "6th"
+    },
+    "out": "stack: A B E F C",
+    "say": "From F go to C. C's neighbours A and F are already seen, so the whole stack unwinds."
+   },
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "x": 50,
+      "y": 0
+     },
+     {
+      "id": "B",
+      "x": 25,
+      "y": 42
+     },
+     {
+      "id": "C",
+      "x": 72,
+      "y": 42
+     },
+     {
+      "id": "D",
+      "x": 5,
+      "y": 85
+     },
+     {
+      "id": "E",
+      "x": 42,
+      "y": 85
+     },
+     {
+      "id": "F",
+      "x": 95,
+      "y": 85
+     }
+    ],
+    "edges": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "A",
+      "C"
+     ],
+     [
+      "B",
+      "D"
+     ],
+     [
+      "B",
+      "E"
+     ],
+     [
+      "C",
+      "F"
+     ],
+     [
+      "E",
+      "F"
+     ]
+    ],
+    "label": "start at A",
+    "ok": [
+     "A",
+     "B",
+     "C",
+     "D",
+     "E",
+     "F"
+    ],
+    "dist": {
+     "A": "1st",
+     "B": "2nd",
+     "D": "3rd",
+     "E": "4th",
+     "F": "5th",
+     "C": "6th"
+    },
+    "out": "order: A B D E F C",
+    "say": "Order: A B D E F C. BFS gave A B C D E F. Same graph: DFS went deep first, BFS went level by level."
+   }
+  ]
+ },
+ "when": [
+  "Count islands or connected groups",
+  "Does a path exist? Can I reach X?",
+  "Visit every node of a tree (pre, in, post order)",
+  "Explore all choices (backtracking), detect cycles"
+ ],
+ "python": "graph = {\"A\": [\"B\", \"C\"], \"B\": [\"A\", \"D\", \"E\"], \"C\": [\"A\", \"F\"],\n         \"D\": [\"B\"], \"E\": [\"B\", \"F\"], \"F\": [\"C\", \"E\"]}\n\ndef dfs(node, seen, order):\n    seen.add(node)\n    order.append(node)\n    for nxt in graph[node]:\n        if nxt not in seen:\n            dfs(nxt, seen, order)\n    return order\n\nprint(dfs(\"A\", set(), []))",
+ "output": "['A', 'B', 'D', 'E', 'F', 'C']",
+ "cost": [
+  [
+   "Visit every node (V) and edge (E)",
+   "O(V + E)"
+  ],
+  [
+   "Stack depth, worst case",
+   "O(V)"
+  ],
+  [
+   "Shortest path",
+   "not guaranteed"
+  ]
+ ],
+ "watch": [
+  "Keep a seen set, or a cycle makes it loop forever.",
+  "Recursion stops at about 1000 levels in Python. For big grids, use your own list as a stack.",
+  "DFS finds a path, not the shortest one. Use BFS for fewest steps."
+ ],
+ "interview": [
+  "LC 200 Number of Islands",
+  "LC 133 Clone Graph",
+  "LC 695 Max Area of Island"
+ ],
+ "related": [
+  "bfs",
+  "recursion",
+  "graph",
+  "backtracking"
+ ]
+}

@@ -1,0 +1,293 @@
+{
+ "id": "auth-oidc",
+ "title": "Login with OIDC, sessions and tokens",
+ "group": "Security & identity",
+ "tagline": "Let an identity provider prove who the user is, then decide how your app remembers them and how you take that back.",
+ "why": "<p>Many government and enterprise apps do not store passwords. They send the user to an identity provider (IdP) and get back a signed statement of who logged in. A design like a Singpass login works this way: the agency's app is the <b>relying party</b>, the IdP authenticates the user, and the app receives an ID token naming the user.</p><p><b>OAuth 2.0</b> is about delegated access (\"this app may call that API\"). <b>OpenID Connect (OIDC)</b> adds identity on top: an <b>ID token</b>, a signed JWT that says who the user is, for which app, and until when. The <b>authorization code flow with PKCE</b> is the current recommended flow for web and mobile apps.</p><p>After login, the second half of the question is yours: does the app keep a server-side session or hand out JWTs, how long do tokens live, and how do you log someone out everywhere right now?</p>",
+ "how": "<p><b>Authorization code + PKCE, step by step.</b></p><ol><li>The app creates a random <code>state</code> (stops login CSRF), a <code>nonce</code> (ties the ID token to this login) and a <code>code_verifier</code>. It sends the browser to the IdP with <code>code_challenge = BASE64URL(SHA256(code_verifier))</code>.</li><li>The user authenticates at the IdP (password, OTP, an app QR scan). The app never sees their credentials.</li><li>The IdP redirects back to a <b>pre-registered</b> redirect URI with a one-time, short-lived <code>code</code> and the <code>state</code>.</li><li>The backend checks <code>state</code>, then exchanges the code at the token endpoint over a back channel, sending the <code>code_verifier</code> and its own client authentication (a client secret or a signed JWT assertion). A stolen code is useless without the verifier.</li><li>The backend verifies the ID token: signature against the IdP's published keys (JWKS), <code>iss</code>, <code>aud</code> equals its client id, <code>exp</code>, and <code>nonce</code>. Then it maps the stable subject (<code>sub</code>) to a local user.</li></ol><p><b>Remembering the user.</b></p><ul><li><b>Server-side session</b>: a random session id in an <code>HttpOnly; Secure; SameSite=Lax</code> cookie, looked up in Redis on each request. Revocation is a delete.</li><li><b>Self-contained JWT</b>: any service can verify it with a public key and no lookup. But it is valid until <code>exp</code>, so keep it short (5 to 15 min) and pair it with a <b>refresh token</b>.</li></ul><p><b>Refresh tokens</b> are long-lived, stored server-side or in a secure cookie, and <b>rotated</b> on every use: each refresh returns a new one and invalidates the old. If an old one is used again, assume theft and revoke the whole family.</p><p><b>Revocation.</b> Sessions: delete the row. JWTs: wait for expiry, or check a small denylist of revoked token ids (<code>jti</code>) or a per-user \"tokens issued before\" timestamp.</p>",
+ "diagram": {
+  "w": 960,
+  "h": 420,
+  "nodes": [
+   {
+    "id": "user",
+    "label": "Browser",
+    "kind": "user",
+    "x": 90,
+    "y": 230,
+    "sub": "cookie: sid"
+   },
+   {
+    "id": "idp",
+    "label": "Identity provider",
+    "kind": "auth",
+    "x": 380,
+    "y": 70,
+    "sub": "Singpass-style OIDC"
+   },
+   {
+    "id": "app",
+    "label": "App backend (RP)",
+    "kind": "service",
+    "x": 380,
+    "y": 230,
+    "sub": "confidential client"
+   },
+   {
+    "id": "db",
+    "label": "User DB",
+    "kind": "db",
+    "x": 650,
+    "y": 120,
+    "sub": "sub → user row"
+   },
+   {
+    "id": "sess",
+    "label": "Session store",
+    "kind": "cache",
+    "x": 650,
+    "y": 350,
+    "sub": "Redis: sid → user"
+   },
+   {
+    "id": "api",
+    "label": "Resource API",
+    "kind": "service",
+    "x": 860,
+    "y": 230,
+    "sub": "checks JWT, aud, exp"
+   }
+  ],
+  "edges": [
+   {
+    "id": "u-app",
+    "from": "user",
+    "to": "app",
+    "label": "/login, /callback"
+   },
+   {
+    "id": "u-idp",
+    "from": "user",
+    "to": "idp",
+    "label": "authorize + PKCE"
+   },
+   {
+    "id": "app-idp",
+    "from": "app",
+    "to": "idp",
+    "label": "/token, /revoke"
+   },
+   {
+    "id": "app-db",
+    "from": "app",
+    "to": "db",
+    "label": "find user by sub"
+   },
+   {
+    "id": "app-sess",
+    "from": "app",
+    "to": "sess",
+    "label": "SET sid"
+   },
+   {
+    "id": "app-api",
+    "from": "app",
+    "to": "api",
+    "label": "Bearer access token"
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "login",
+   "name": "Login: code + PKCE",
+   "desc": "The browser carries a code; the backend swaps it for tokens.",
+   "steps": [
+    {
+     "edge": "u-app",
+     "note": "The user clicks Log in. The app stores <code>state</code>, <code>nonce</code> and a random <code>code_verifier</code> against a short-lived pre-login cookie."
+    },
+    {
+     "edge": "u-idp",
+     "note": "Redirect to the IdP's authorize endpoint with <code>client_id</code>, the registered <code>redirect_uri</code>, <code>scope=openid</code>, <code>state</code>, <code>nonce</code> and <code>code_challenge</code> (SHA-256 of the verifier)."
+    },
+    {
+     "node": "idp",
+     "note": "The user authenticates at the IdP, for example by scanning a QR code with an authenticator app. Your app never handles their credentials."
+    },
+    {
+     "edge": "u-idp",
+     "rev": true,
+     "note": "The IdP redirects back with a one-time <code>code</code> that expires in about a minute, plus the same <code>state</code>."
+    },
+    {
+     "edge": "u-app",
+     "note": "The browser hits <code>/callback?code=...&amp;state=...</code>. Reject it if <code>state</code> does not match: that is a forged login."
+    },
+    {
+     "edge": "app-idp",
+     "note": "Back channel: POST the code, the <code>code_verifier</code> and the app's client authentication to the token endpoint. The IdP checks SHA-256(verifier) equals the challenge."
+    },
+    {
+     "edge": "app-idp",
+     "rev": true,
+     "note": "The IdP returns an ID token (and possibly access and refresh tokens). Verify the signature with the IdP's JWKS, then <code>iss</code>, <code>aud</code>, <code>exp</code> and <code>nonce</code>."
+    },
+    {
+     "edge": "app-db",
+     "note": "Map the token's stable <code>sub</code> to a local user, creating one on first login. Key on <code>sub</code>, not on an email that can change."
+    },
+    {
+     "edge": "app-sess",
+     "note": "Create a session: a random 128-bit id in Redis with an idle timeout. The browser gets it in an <code>HttpOnly; Secure; SameSite=Lax</code> cookie."
+    }
+   ]
+  },
+  {
+   "id": "use",
+   "name": "Using the session",
+   "desc": "Cookie to the app, short-lived token to APIs.",
+   "steps": [
+    {
+     "edge": "u-app",
+     "note": "Each request carries the session cookie. JavaScript cannot read it, which limits what an XSS bug can steal."
+    },
+    {
+     "edge": "app-sess",
+     "note": "One Redis lookup, under 1 ms, confirms the session is still valid. This lookup is what makes instant logout possible."
+    },
+    {
+     "edge": "app-api",
+     "note": "To call a downstream API, the backend sends a short-lived access token (5 to 15 min). The API verifies it locally with a public key: signature, <code>aud</code>, <code>exp</code>, scopes."
+    },
+    {
+     "edge": "app-api",
+     "rev": true,
+     "note": "The API answers without calling the IdP. That is the point of a self-contained token, and also why it cannot be revoked early without extra checks."
+    },
+    {
+     "edge": "app-idp",
+     "note": "When the access token expires, the backend uses the refresh token. The IdP returns a new pair and invalidates the old refresh token (rotation)."
+    }
+   ]
+  },
+  {
+   "id": "revoke",
+   "name": "Logout and revocation",
+   "desc": "Taking access back.",
+   "steps": [
+    {
+     "edge": "u-app",
+     "note": "The user clicks Log out, or an admin disables a compromised account."
+    },
+    {
+     "edge": "app-sess",
+     "note": "Delete the session id. The very next request with that cookie fails. With sessions, revocation is immediate."
+    },
+    {
+     "edge": "app-idp",
+     "note": "Revoke the refresh token so no new access tokens can be minted, and optionally end the IdP session too."
+    },
+    {
+     "node": "api",
+     "note": "An access token already issued stays valid until <code>exp</code>. Keep that window short, or have APIs check a denylist of revoked token ids for sensitive actions."
+    }
+   ]
+  }
+ ],
+ "tradeoffs": [
+  {
+   "option": "Server-side session (opaque cookie)",
+   "pro": "Instant revocation, small cookie, nothing sensitive on the client.",
+   "con": "A lookup per request and a shared session store to run and keep available."
+  },
+  {
+   "option": "Self-contained JWT",
+   "pro": "Any service verifies it locally; no central lookup on the hot path.",
+   "con": "Cannot be revoked before <code>exp</code> without a denylist; larger on every request; claims go stale."
+  },
+  {
+   "option": "Short access token + rotated refresh token",
+   "pro": "Revocation lag is bounded by the access token TTL; stolen refresh tokens are detectable on reuse.",
+   "con": "More moving parts: refresh endpoint, rotation, reuse detection, clock skew."
+  },
+  {
+   "option": "Tokens in localStorage vs HttpOnly cookie",
+   "pro": "localStorage is easy for SPAs to attach as a header.",
+   "con": "Any XSS can read localStorage. An HttpOnly cookie cannot be read by script, but needs SameSite and CSRF care."
+  }
+ ],
+ "numbers": [
+  "Authorization code lifetime: one use, about <b>30 to 60 s</b> in practice (the spec recommends at most <b>10 min</b>).",
+  "Access token TTL: <b>5 to 15 min</b>. That is also the worst-case revocation lag for a JWT with no denylist.",
+  "Refresh token / session lifetime: hours to <b>30 days</b>, with an idle timeout (for example <b>15 to 30 min</b> for government services).",
+  "PKCE <code>code_verifier</code>: <b>43 to 128</b> characters of high-entropy randomness; method <b>S256</b>.",
+  "Session id: at least <b>128 bits</b> of randomness. Redis lookup: under <b>1 ms</b>. A JWT with a few claims: about <b>0.5 to 1 KB</b> on every request."
+ ],
+ "say": [
+  "I'll use OIDC authorization code flow with PKCE: the browser only carries a one-time code, and my backend swaps it for tokens with the verifier and its client credentials.",
+  "I verify the ID token's signature, issuer, audience, expiry and nonce, then key the local user on the stable subject, not the email.",
+  "For the app I'll use a server-side session in an HttpOnly cookie so logout is immediate; downstream APIs get short-lived access tokens, with refresh tokens rotated on every use."
+ ],
+ "pitfalls": [
+  "Skipping <code>state</code> or <code>nonce</code> checks. Without them an attacker can log a victim into the attacker's account, or replay an old ID token.",
+  "Trusting a JWT without checking <code>aud</code>, or accepting <code>alg: none</code> or any algorithm the token names. Pin the algorithm and verify every claim.",
+  "Long-lived JWTs (days) with no way to revoke them. A stolen token is valid until it expires.",
+  "Allowing wildcard or open redirect URIs. The code is then delivered to an attacker's page. Register exact URIs.",
+  "Using the implicit flow or putting tokens in URLs. They leak through history, logs and referrer headers; use the code flow with PKCE."
+ ],
+ "quiz": [
+  {
+   "q": "What does PKCE protect against?",
+   "options": [
+    "Password guessing at the IdP",
+    "Expired JWTs",
+    "An intercepted authorization code being exchanged by someone else",
+    "Cross-site scripting"
+   ],
+   "answer": 2,
+   "why": "The token endpoint only accepts the code with the original <code>code_verifier</code>, which never left the app. A stolen code alone is useless."
+  },
+  {
+   "q": "An account is compromised and must lose access immediately. Which design makes that easiest?",
+   "options": [
+    "Server-side sessions: delete the session row",
+    "24-hour JWTs with no denylist",
+    "Storing the access token in localStorage",
+    "Longer refresh tokens"
+   ],
+   "answer": 0,
+   "why": "Every request checks the session store, so deleting the row ends access on the next request. A JWT stays valid until it expires unless you add a denylist."
+  },
+  {
+   "q": "Which ID token check stops a token minted for another app from logging into yours?",
+   "options": [
+    "<code>exp</code>",
+    "<code>iat</code>",
+    "<code>sub</code>",
+    "<code>aud</code> must equal your client id"
+   ],
+   "answer": 3,
+   "why": "The audience says which client the token was issued to. Without the check, any token from the same IdP would be accepted."
+  },
+  {
+   "q": "A refresh token that was already used once is presented again. What should the server do?",
+   "options": [
+    "Issue new tokens as normal",
+    "Treat it as theft and revoke the whole token family",
+    "Extend its expiry",
+    "Ignore it silently"
+   ],
+   "answer": 1,
+   "why": "With rotation each refresh token is single use. Reuse means two parties hold it, so revoke the family and make the user log in again."
+  }
+ ],
+ "used_in": [
+  "otp-login",
+  "form-builder",
+  "voucher-redemption",
+  "vaccination-booking",
+  "url-shortener",
+  "llm-guardrails"
+ ]
+}

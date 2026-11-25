@@ -1,0 +1,997 @@
+{
+ "families": [
+  {
+   "track": "py",
+   "name": "Holding values",
+   "edges": [
+    [
+     "py-basics",
+     "py-lists",
+     "Many values in one name, in order, numbered from 0."
+    ],
+    [
+     "py-lists",
+     "py-strings",
+     "Like a list of characters, but you can't change it in place."
+    ],
+    [
+     "py-lists",
+     "py-tuples",
+     "A list you can't change, so it can be a dict key."
+    ],
+    [
+     "py-lists",
+     "py-dicts-sets",
+     "Look up by key instead of by position."
+    ],
+    [
+     "py-dicts-sets",
+     "py-collections",
+     "Ready-made upgrades: Counter, defaultdict, deque."
+    ],
+    [
+     "py-lists",
+     "py-heapq",
+     "A list kept so the smallest item is always at index 0."
+    ]
+   ]
+  },
+  {
+   "track": "py",
+   "name": "Doing things",
+   "edges": [
+    [
+     "py-basics",
+     "py-loops",
+     "Run the same lines for each item."
+    ],
+    [
+     "py-loops",
+     "py-comprehensions",
+     "A loop that builds a list in one line."
+    ],
+    [
+     "py-lists",
+     "py-sorting",
+     "Put a list in order, by any rule you give it."
+    ],
+    [
+     "py-basics",
+     "py-math",
+     "The number tricks interviews use: //, %, infinity."
+    ],
+    [
+     "py-basics",
+     "py-functions",
+     "Name a block of code and reuse it."
+    ],
+    [
+     "py-functions",
+     "py-classes",
+     "Bundle data with the functions that use it."
+    ],
+    [
+     "py-lists",
+     "py-gotchas",
+     "Where names, copies and shared lists bite."
+    ]
+   ]
+  },
+  {
+   "track": "ds",
+   "name": "Things in a row",
+   "edges": [
+    [
+     "array",
+     "string",
+     "An array of characters that you can't change in place."
+    ],
+    [
+     "array",
+     "linked-list",
+     "Same order, but each item points to the next. Cheap to insert in the middle, no indexes."
+    ],
+    [
+     "array",
+     "stack",
+     "An array where you only add and remove at the end."
+    ],
+    [
+     "stack",
+     "queue",
+     "Add at the back, but remove from the front instead."
+    ],
+    [
+     "queue",
+     "deque",
+     "Add and remove at both ends."
+    ],
+    [
+     "array",
+     "grid",
+     "An array of arrays: rows and columns."
+    ]
+   ]
+  },
+  {
+   "track": "ds",
+   "name": "Find by key",
+   "edges": [
+    [
+     "array",
+     "hash-map",
+     "Look up by any key, not only by position 0, 1, 2."
+    ],
+    [
+     "hash-map",
+     "hash-set",
+     "Keys only, no values: is it in there or not."
+    ],
+    [
+     "hash-map",
+     "lru-cache",
+     "A hash map that also remembers the order you used things."
+    ]
+   ]
+  },
+  {
+   "track": "ds",
+   "name": "Trees and graphs",
+   "edges": [
+    [
+     "linked-list",
+     "binary-tree",
+     "Each node points to two children instead of one next."
+    ],
+    [
+     "binary-tree",
+     "bst",
+     "Add a rule: left is smaller, right is bigger."
+    ],
+    [
+     "binary-tree",
+     "heap",
+     "Add a rule: a parent is never bigger than its children."
+    ],
+    [
+     "binary-tree",
+     "trie",
+     "Each step down is one letter of a word."
+    ],
+    [
+     "binary-tree",
+     "graph",
+     "Any node can link to any node, and loops are allowed."
+    ],
+    [
+     "graph",
+     "union-find",
+     "Forget the edges; only track which group each node is in."
+    ]
+   ]
+  },
+  {
+   "track": "algo",
+   "name": "Pointers on a list",
+   "edges": [
+    [
+     "big-o",
+     "binary-search",
+     "Halve the list each step: O(log n) instead of O(n)."
+    ],
+    [
+     "binary-search",
+     "two-pointers",
+     "Still a sorted list, but one pointer at each end walking inward."
+    ],
+    [
+     "two-pointers",
+     "sliding-window",
+     "Both pointers move right; track what is between them."
+    ],
+    [
+     "two-pointers",
+     "fast-slow-pointers",
+     "Both start at the head; one moves twice as fast."
+    ],
+    [
+     "sliding-window",
+     "prefix-sums",
+     "Precompute running totals so any range sum is one subtraction."
+    ]
+   ]
+  },
+  {
+   "track": "algo",
+   "name": "Sorting",
+   "edges": [
+    [
+     "big-o",
+     "sorting-overview",
+     "Most sorts are O(n log n); sort first, then the problem is easy."
+    ],
+    [
+     "sorting-overview",
+     "insertion-sort",
+     "Like sorting cards in your hand: slide each into place."
+    ],
+    [
+     "sorting-overview",
+     "merge-sort",
+     "Split in half, sort each half, merge the two."
+    ],
+    [
+     "merge-sort",
+     "quick-sort",
+     "Split around a pivot instead of the middle; no merge step."
+    ],
+    [
+     "sorting-overview",
+     "counting-sort",
+     "Count each value instead of comparing pairs."
+    ],
+    [
+     "sorting-overview",
+     "merge-intervals",
+     "Sort ranges by start, then join the ones that overlap in one pass."
+    ]
+   ]
+  },
+  {
+   "track": "algo",
+   "name": "Walking a graph",
+   "edges": [
+    [
+     "bfs",
+     "dfs",
+     "Same walk with a stack instead of a queue: go deep first."
+    ],
+    [
+     "bfs",
+     "dijkstra",
+     "BFS with a heap, for when steps cost different amounts."
+    ],
+    [
+     "bfs",
+     "topological-sort",
+     "BFS that only visits a node once all its arrows-in are done."
+    ]
+   ]
+  },
+  {
+   "track": "algo",
+   "name": "Try choices smartly",
+   "edges": [
+    [
+     "big-o",
+     "recursion",
+     "A function that calls itself on a smaller input."
+    ],
+    [
+     "recursion",
+     "backtracking",
+     "Recursion that undoes each choice after exploring it."
+    ],
+    [
+     "recursion",
+     "dynamic-programming",
+     "Recursion that remembers answers it already worked out."
+    ],
+    [
+     "dynamic-programming",
+     "dp-1d",
+     "Fill a list left to right instead of recursing."
+    ],
+    [
+     "dp-1d",
+     "dp-2d",
+     "Two inputs, so fill a table instead of a list."
+    ],
+    [
+     "dp-1d",
+     "kadane",
+     "Keep only the best sum ending here, not a whole list."
+    ],
+    [
+     "dynamic-programming",
+     "greedy",
+     "Take the best-looking choice now and never go back."
+    ]
+   ]
+  },
+  {
+   "track": "algo",
+   "name": "Smart containers",
+   "edges": [
+    [
+     "big-o",
+     "monotonic-stack",
+     "A stack kept in order: pop everything the new item beats."
+    ],
+    [
+     "big-o",
+     "top-k-heap",
+     "Keep only k items in a heap and drop the smallest."
+    ],
+    [
+     "big-o",
+     "bit-manipulation",
+     "Treat a number as a row of 0/1 switches."
+    ]
+   ]
+  },
+  {
+   "track": "sd",
+   "name": "Serve more users",
+   "edges": [
+    [
+     "client-server",
+     "dns",
+     "How the client finds the server's address first."
+    ],
+    [
+     "client-server",
+     "load-balancer",
+     "Many copies of the server, one front door."
+    ],
+    [
+     "load-balancer",
+     "horizontal-scaling",
+     "Add more copies when traffic grows."
+    ],
+    [
+     "load-balancer",
+     "health-checks",
+     "Stop sending traffic to a copy that stopped answering."
+    ],
+    [
+     "load-balancer",
+     "api-gateway",
+     "A front door that also checks logins and limits."
+    ],
+    [
+     "api-gateway",
+     "auth-tokens",
+     "How the gateway knows who is calling."
+    ]
+   ]
+  },
+  {
+   "track": "sd",
+   "name": "Make reads fast",
+   "edges": [
+    [
+     "client-server",
+     "caching",
+     "Keep a copy of hot answers in memory."
+    ],
+    [
+     "caching",
+     "cdn",
+     "A cache placed near the user, for files and images."
+    ],
+    [
+     "caching",
+     "database-index",
+     "A sorted shortcut inside the database instead of a scan."
+    ],
+    [
+     "database-index",
+     "search-index",
+     "An index from words to the documents that contain them."
+    ],
+    [
+     "database-index",
+     "geohash",
+     "An index for places: nearby points share a prefix."
+    ]
+   ]
+  },
+  {
+   "track": "sd",
+   "name": "Store more data",
+   "edges": [
+    [
+     "client-server",
+     "sql-vs-nosql",
+     "Pick the database shape before anything else."
+    ],
+    [
+     "sql-vs-nosql",
+     "blob-storage",
+     "Big files go to a file store, not the database."
+    ],
+    [
+     "sql-vs-nosql",
+     "replication",
+     "Keep copies of the same data on more machines."
+    ],
+    [
+     "replication",
+     "sharding",
+     "Split the data across machines instead of copying it all."
+    ],
+    [
+     "sharding",
+     "consistent-hashing",
+     "Shard so adding a machine moves little data."
+    ],
+    [
+     "replication",
+     "cap-theorem",
+     "When copies can't talk: answer now, or wait to be correct."
+    ],
+    [
+     "replication",
+     "leader-election",
+     "Copies agree on which one takes writes."
+    ]
+   ]
+  },
+  {
+   "track": "sd",
+   "name": "Do work later, safely",
+   "edges": [
+    [
+     "client-server",
+     "message-queue",
+     "Drop work in a queue; a worker picks it up later."
+    ],
+    [
+     "message-queue",
+     "pub-sub",
+     "Every subscriber gets each message, not one worker."
+    ],
+    [
+     "message-queue",
+     "batch-vs-stream",
+     "Process work in big scheduled chunks, or as it arrives."
+    ],
+    [
+     "message-queue",
+     "idempotency",
+     "Make a retried message safe to run twice."
+    ],
+    [
+     "rate-limiting",
+     "circuit-breaker",
+     "Limit calls to a failing service, not from a noisy user."
+    ],
+    [
+     "client-server",
+     "rate-limiting",
+     "Cap how often one caller may hit you."
+    ]
+   ]
+  },
+  {
+   "track": "sd",
+   "name": "Parts that talk",
+   "edges": [
+    [
+     "client-server",
+     "rest-api",
+     "The usual request and response, named by URLs."
+    ],
+    [
+     "rest-api",
+     "websockets",
+     "Keep the line open so the server can push."
+    ],
+    [
+     "rest-api",
+     "microservices",
+     "Split one big server into small ones that call each other."
+    ],
+    [
+     "microservices",
+     "observability",
+     "Logs, metrics and traces to see what happened where."
+    ],
+    [
+     "client-server",
+     "back-of-envelope",
+     "Rough numbers that tell you which parts you need."
+    ]
+   ]
+  }
+ ],
+ "compare": [
+  {
+   "title": "List vs tuple vs set vs dict",
+   "items": [
+    "py-lists",
+    "py-tuples",
+    "py-dicts-sets"
+   ],
+   "rows": [
+    [
+     "Looks like",
+     "[1, 2, 3]",
+     "(1, 2, 3)",
+     "{1, 2} / {\"a\": 1}"
+    ],
+    [
+     "Change it?",
+     "Yes",
+     "No",
+     "Yes"
+    ],
+    [
+     "x in it",
+     "O(n)",
+     "O(n)",
+     "O(1)"
+    ],
+    [
+     "Use for",
+     "Things in order",
+     "Fixed pairs, dict keys",
+     "Seen-before checks, lookups"
+    ]
+   ]
+  },
+  {
+   "title": "sort() vs sorted()",
+   "items": [
+    "py-sorting",
+    "py-lists"
+   ],
+   "rows": [
+    [
+     "Call",
+     "nums.sort()",
+     "sorted(nums)"
+    ],
+    [
+     "Changes the list",
+     "Yes, in place",
+     "No, returns a new list"
+    ],
+    [
+     "Returns",
+     "None",
+     "The new sorted list"
+    ],
+    [
+     "Works on",
+     "Lists only",
+     "Anything you can loop over"
+    ]
+   ]
+  },
+  {
+   "title": "list vs deque",
+   "items": [
+    "py-lists",
+    "py-collections"
+   ],
+   "rows": [
+    [
+     "Add or remove at the end",
+     "O(1)",
+     "O(1)"
+    ],
+    [
+     "Add or remove at the front",
+     "O(n): insert(0, x), pop(0)",
+     "O(1): appendleft, popleft"
+    ],
+    [
+     "Index in the middle",
+     "O(1)",
+     "O(n)"
+    ],
+    [
+     "Use for",
+     "Most things",
+     "Queues, BFS, sliding windows"
+    ]
+   ]
+  },
+  {
+   "title": "/ vs // vs %",
+   "items": [
+    "py-math",
+    "py-basics"
+   ],
+   "rows": [
+    [
+     "7 and 2",
+     "7 / 2 = 3.5",
+     "7 // 2 = 3, 7 % 2 = 1"
+    ],
+    [
+     "-7 and 2",
+     "-7 / 2 = -3.5",
+     "-7 // 2 = -4, -7 % 2 = 1"
+    ],
+    [
+     "Gives",
+     "Always a float",
+     "// whole part rounded down, % remainder"
+    ]
+   ]
+  },
+  {
+   "title": "Stack vs queue vs deque",
+   "items": [
+    "stack",
+    "queue",
+    "deque"
+   ],
+   "rows": [
+    [
+     "Removes first",
+     "The newest item",
+     "The oldest item",
+     "Either end"
+    ],
+    [
+     "Picture",
+     "A pile of plates",
+     "A line at a shop",
+     "A line you can join or leave at both ends"
+    ],
+    [
+     "Python",
+     "list: append / pop",
+     "deque: append / popleft",
+     "deque: both"
+    ],
+    [
+     "Typical use",
+     "Undo, brackets, DFS",
+     "BFS, order of arrival",
+     "Sliding window max"
+    ]
+   ]
+  },
+  {
+   "title": "Array vs linked list",
+   "items": [
+    "array",
+    "linked-list"
+   ],
+   "rows": [
+    [
+     "Get item i",
+     "O(1)",
+     "O(n), walk from the head"
+    ],
+    [
+     "Insert in the middle",
+     "O(n), shift everything",
+     "O(1) once you are there"
+    ],
+    [
+     "Memory",
+     "One block",
+     "Nodes scattered, plus pointers"
+    ],
+    [
+     "Interviews",
+     "Most problems",
+     "Reverse, merge, cycle problems"
+    ]
+   ]
+  },
+  {
+   "title": "Hash map vs hash set",
+   "items": [
+    "hash-map",
+    "hash-set"
+   ],
+   "rows": [
+    [
+     "Stores",
+     "key -> value",
+     "Keys only"
+    ],
+    [
+     "Answers",
+     "What is the value for this key?",
+     "Have I seen this?"
+    ],
+    [
+     "Python",
+     "dict, Counter",
+     "set"
+    ]
+   ]
+  },
+  {
+   "title": "BST vs heap",
+   "items": [
+    "bst",
+    "heap"
+   ],
+   "rows": [
+    [
+     "Rule",
+     "Left < node < right",
+     "Parent <= children"
+    ],
+    [
+     "Fast at",
+     "Find any value, keep everything sorted",
+     "Get the smallest, again and again"
+    ],
+    [
+     "Python",
+     "No built-in; sortedcontainers or bisect",
+     "heapq"
+    ],
+    [
+     "Use for",
+     "Ranges, k-th smallest, in-order",
+     "Top k, merge lists, scheduling"
+    ]
+   ]
+  },
+  {
+   "title": "BFS vs DFS",
+   "items": [
+    "bfs",
+    "dfs"
+   ],
+   "rows": [
+    [
+     "Container",
+     "Queue",
+     "Stack (or recursion)"
+    ],
+    [
+     "Visits",
+     "Level by level",
+     "One path all the way, then back up"
+    ],
+    [
+     "Finds",
+     "Fewest steps first",
+     "Any path; all paths with backtracking"
+    ],
+    [
+     "Use for",
+     "Shortest path, nearest",
+     "Islands, cycles, connected parts"
+    ]
+   ]
+  },
+  {
+   "title": "Two pointers vs sliding window vs fast and slow",
+   "items": [
+    "two-pointers",
+    "sliding-window",
+    "fast-slow-pointers"
+   ],
+   "rows": [
+    [
+     "Pointers start",
+     "Both ends",
+     "Both at the left",
+     "Both at the head"
+    ],
+    [
+     "They move",
+     "Toward each other",
+     "Both right; left catches up",
+     "Same way, fast moves 2"
+    ],
+    [
+     "Question words",
+     "Sorted, pair, palindrome",
+     "Longest or shortest substring or subarray",
+     "Cycle, middle of a list"
+    ]
+   ]
+  },
+  {
+   "title": "Greedy vs DP vs backtracking",
+   "items": [
+    "greedy",
+    "dp-1d",
+    "backtracking"
+   ],
+   "rows": [
+    [
+     "Choices",
+     "Take the best now, never undo",
+     "Try all, but remember results",
+     "Try all, undo and try the next"
+    ],
+    [
+     "Speed",
+     "Fastest",
+     "Polynomial",
+     "Exponential"
+    ],
+    [
+     "Question words",
+     "Most, fewest, schedule",
+     "Count ways, min cost, max value",
+     "List every combination"
+    ],
+    [
+     "Check",
+     "Can a counterexample break it?",
+     "Do subproblems repeat?",
+     "Is n small (about 20)?"
+    ]
+   ]
+  },
+  {
+   "title": "Merge sort vs quick sort",
+   "items": [
+    "merge-sort",
+    "quick-sort"
+   ],
+   "rows": [
+    [
+     "Splits by",
+     "The middle",
+     "A pivot value"
+    ],
+    [
+     "Hard work",
+     "Merging after",
+     "Partitioning before"
+    ],
+    [
+     "Worst case",
+     "O(n log n)",
+     "O(n^2) with bad pivots"
+    ],
+    [
+     "Extra memory",
+     "O(n)",
+     "O(log n)"
+    ]
+   ]
+  },
+  {
+   "title": "BFS vs Dijkstra",
+   "items": [
+    "bfs",
+    "dijkstra"
+   ],
+   "rows": [
+    [
+     "Edges",
+     "All cost the same",
+     "Different costs"
+    ],
+    [
+     "Container",
+     "Queue",
+     "Heap ordered by distance"
+    ],
+    [
+     "Speed",
+     "O(V + E)",
+     "O(E log V)"
+    ]
+   ]
+  },
+  {
+   "title": "Caching vs CDN",
+   "items": [
+    "caching",
+    "cdn"
+   ],
+   "rows": [
+    [
+     "Where",
+     "Next to your servers",
+     "Near the user, in many cities"
+    ],
+    [
+     "Holds",
+     "Hot data and query results",
+     "Images, video, scripts"
+    ],
+    [
+     "Saves",
+     "Database work",
+     "Distance and bandwidth"
+    ]
+   ]
+  },
+  {
+   "title": "Replication vs sharding",
+   "items": [
+    "replication",
+    "sharding"
+   ],
+   "rows": [
+    [
+     "Each machine has",
+     "All the data",
+     "A slice of the data"
+    ],
+    [
+     "Helps",
+     "Reads and staying up",
+     "Writes and data size"
+    ],
+    [
+     "Cost",
+     "Copies can lag behind",
+     "Queries across slices get hard"
+    ]
+   ]
+  },
+  {
+   "title": "Message queue vs pub/sub",
+   "items": [
+    "message-queue",
+    "pub-sub"
+   ],
+   "rows": [
+    [
+     "Each message goes to",
+     "One worker",
+     "Every subscriber"
+    ],
+    [
+     "Use for",
+     "Jobs: send email, resize photo",
+     "Events: order placed, notify many"
+    ],
+    [
+     "Example",
+     "SQS, RabbitMQ",
+     "Kafka topics, SNS"
+    ]
+   ]
+  },
+  {
+   "title": "Rate limiting vs circuit breaker",
+   "items": [
+    "rate-limiting",
+    "circuit-breaker"
+   ],
+   "rows": [
+    [
+     "Protects",
+     "You, from a noisy caller",
+     "You, from a failing dependency"
+    ],
+    [
+     "Trigger",
+     "Too many calls",
+     "Too many failures"
+    ],
+    [
+     "Answer",
+     "429 Too Many Requests",
+     "Fail fast, try again later"
+    ]
+   ]
+  },
+  {
+   "title": "REST vs WebSockets",
+   "items": [
+    "rest-api",
+    "websockets"
+   ],
+   "rows": [
+    [
+     "Connection",
+     "One per request",
+     "Stays open"
+    ],
+    [
+     "Who starts",
+     "The client asks",
+     "Either side can send"
+    ],
+    [
+     "Use for",
+     "Most APIs",
+     "Chat, live scores, games"
+    ]
+   ]
+  }
+ ]
+}

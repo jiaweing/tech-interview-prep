@@ -1,0 +1,181 @@
+{
+ "id": "quick-sort",
+ "track": "algo",
+ "order": 10,
+ "title": "Quick sort",
+ "short": "Pick a pivot, put smaller left and bigger right, repeat.",
+ "what": "Choose one value, the pivot. Move everything smaller than it to its left and everything bigger to its right. The pivot is now in its final place. Do the same to the left part and the right part until every part is tiny.",
+ "analogy": "Sorting a class by height. Pick one student; everyone shorter stands on their left, everyone taller on their right. That student is now in the right spot, and each side repeats on its own.",
+ "viz": {
+  "kind": "bars",
+  "frames": [
+   {
+    "label": "quick sort, pivot 5",
+    "vals": [
+     7,
+     2,
+     9,
+     4,
+     3,
+     8,
+     5
+    ],
+    "hi": [
+     6
+    ],
+    "say": "Pick a pivot: the last value, 5. Goal: smaller values on its left, bigger on its right."
+   },
+   {
+    "label": "quick sort, pivot 5",
+    "vals": [
+     2,
+     7,
+     9,
+     4,
+     3,
+     8,
+     5
+    ],
+    "hi": [
+     6
+    ],
+    "ok": [
+     0
+    ],
+    "swap": [
+     0,
+     1
+    ],
+    "say": "Scan from the left. 7 is bigger, skip. 2 is smaller, so swap it to the front. Green is the smaller zone."
+   },
+   {
+    "label": "quick sort, pivot 5",
+    "vals": [
+     2,
+     4,
+     9,
+     7,
+     3,
+     8,
+     5
+    ],
+    "hi": [
+     6
+    ],
+    "ok": [
+     0,
+     1
+    ],
+    "swap": [
+     1,
+     3
+    ],
+    "say": "9 is bigger, skip. 4 is smaller: swap it into the next spot of the smaller zone."
+   },
+   {
+    "label": "quick sort, pivot 5",
+    "vals": [
+     2,
+     4,
+     3,
+     7,
+     9,
+     8,
+     5
+    ],
+    "hi": [
+     6
+    ],
+    "ok": [
+     0,
+     1,
+     2
+    ],
+    "swap": [
+     2,
+     4
+    ],
+    "say": "3 is smaller: swap it in too. 8 is bigger, skip. The scan is done."
+   },
+   {
+    "label": "quick sort, pivot 5",
+    "vals": [
+     2,
+     4,
+     3,
+     5,
+     9,
+     8,
+     7
+    ],
+    "ok": [
+     3
+    ],
+    "swap": [
+     3,
+     6
+    ],
+    "say": "Swap the pivot into the spot right after the smaller zone. 5 is now in its final place and never moves again."
+   },
+   {
+    "label": "quick sort, pivot 5",
+    "vals": [
+     2,
+     3,
+     4,
+     5,
+     7,
+     8,
+     9
+    ],
+    "ok": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ],
+    "say": "Repeat on each side: 2, 4, 3 becomes 2, 3, 4 and 9, 8, 7 becomes 7, 8, 9. Sorted, without an extra list."
+   }
+  ]
+ },
+ "when": [
+  "Sort in place with little extra memory",
+  "Find the k-th smallest without a full sort (quickselect)",
+  "Split items around a value (partition)",
+  "Average speed matters more than the worst case"
+ ],
+ "python": "def quick_sort(a, lo, hi):\n    if lo >= hi:\n        return\n    pivot, i = a[hi], lo\n    for j in range(lo, hi):\n        if a[j] < pivot:\n            a[i], a[j] = a[j], a[i]\n            i += 1\n    a[i], a[hi] = a[hi], a[i]\n    quick_sort(a, lo, i - 1)\n    quick_sort(a, i + 1, hi)\n\nnums = [7, 2, 9, 4, 3, 8, 5]\nquick_sort(nums, 0, len(nums) - 1)\nprint(nums)",
+ "output": "[2, 3, 4, 5, 7, 8, 9]",
+ "cost": [
+  [
+   "Average",
+   "O(n log n)"
+  ],
+  [
+   "Worst (bad pivots, sorted input)",
+   "O(n²)"
+  ],
+  [
+   "Extra memory",
+   "O(log n)"
+  ]
+ ],
+ "watch": [
+  "Always taking the last value as pivot is O(n²) on already sorted input. Pick a random pivot.",
+  "It is not stable: equal items can swap order.",
+  "For the k-th smallest, recurse into only one side: O(n) on average."
+ ],
+ "interview": [
+  "LC 215 Kth Largest Element in an Array",
+  "LC 75 Sort Colors",
+  "LC 912 Sort an Array"
+ ],
+ "related": [
+  "merge-sort",
+  "recursion",
+  "top-k-heap"
+ ]
+}

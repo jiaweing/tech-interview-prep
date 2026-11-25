@@ -1,0 +1,87 @@
+[
+ {
+  "id": "grl-agent-memory",
+  "title": "Design a knowledge base and memory layer for government AI agents",
+  "source": "govtech",
+  "evidence_tag": "Role-specific practice",
+  "evidence": "This mirrors a product GovTech's Giant Robots Labs lists publicly (GovBrain, \"an agent memory and knowledge base for managing government knowledge\"); it is practice, not a reported interview question.",
+  "design": "agent-memory",
+  "minutes": 45,
+  "prompt": "<p>\"Officers across agencies are starting to use AI agents. Design the knowledge base and memory those agents use: they should answer from agency documents with citations, and remember things about the officer between sessions.\"</p><p>The interviewer will push on who can see what, and on how you would know it works.</p>",
+  "clarify": [
+   {
+    "q": "Which sources, and how many documents?",
+    "a": "Shared drives, wikis and intranet sites from several agencies. Assume about 10 million documents."
+   },
+   {
+    "q": "Who uses it, and how much?",
+    "a": "Up to 150k officers through agents; assume 30% active on a given day, about 10 questions each."
+   },
+   {
+    "q": "What is the highest classification allowed?",
+    "a": "RESTRICTED / SENSITIVE NORMAL. Anything higher must not enter the system."
+   },
+   {
+    "q": "Do permissions differ per user?",
+    "a": "Yes. Each source has its own access lists, and an officer must only ever see what they could open at the source."
+   },
+   {
+    "q": "What should memory cover?",
+    "a": "Preferences and facts about the officer, and summaries of past tasks. Officers must be able to see and delete them."
+   },
+   {
+    "q": "How fast must changes and deletions show up?",
+    "a": "Edits within a few minutes. A deleted document must stop appearing in answers almost immediately."
+   }
+  ],
+  "steps": [
+   {
+    "title": "Requirements",
+    "minutes": "5 min",
+    "ask": "<p>List functional and non-functional requirements. Which one shapes the design most?</p>",
+    "model": "<ul><li><b>Functional</b>: ingest and sync many sources; answer with citations or say \"not found\"; agents read and write memories via a tool API (MCP); deletes propagate; users see and delete their memories.</li><li><b>Non-functional</b>: per-user access enforced at retrieval; retrieval p95 &lt; 300 ms, answer p95 &lt; 4 s; edits searchable in ~2 min; data within the RESTRICTED / SENSITIVE NORMAL ceiling and in-region; every access audited.</li></ul><p>Say: \"Access control shapes everything. I'll enforce it in the retrieval query, never in the prompt.\"</p>"
+   },
+   {
+    "title": "Estimates",
+    "minutes": "5 min",
+    "ask": "<p>Size the index, the query rate and the embedding cost.</p>",
+    "model": "<ul><li>10M docs × 20 chunks = <b>200M chunks</b>; 1,024-dim float32 = <b>~820 GB</b>, ~205 GB with int8.</li><li>150k × 30% × 10 = <b>450k questions/day</b>, ~5/s average, <b>~150 searches/s</b> at peak with agents searching 3 times per task.</li><li>Backfill: 200M × 400 tokens = 80B tokens, about <b>$1,600</b> at $0.02 per 1M tokens. Daily churn is ~200k chunks.</li></ul><p>Conclusion: embedding is cheap; the index size and the reranker and LLM GPUs are the real costs.</p>"
+   },
+   {
+    "title": "API & data model",
+    "minutes": "7 min",
+    "ask": "<p>Define the tool API agents call and the main tables.</p>",
+    "model": "<ul><li><code>search_knowledge</code> (<code>POST /v1/search</code>), <code>answer</code>, <code>remember</code>, <code>recall</code>, <code>forget</code>. ACL comes from the caller's delegated token, never the request body.</li><li><b>documents</b>: doc_id, source_uri, owner_agency, classification, acl_groups[], version, content_hash, deleted_at.</li><li><b>chunks</b>: chunk_id, doc_id, version, text, heading_path, embedding, classification, acl_groups[].</li><li><b>memories</b>: memory_id, owner_user_id, type (preference | fact | episode), content, embedding, source_refs[], expires_at, superseded_by.</li><li>Session buffer in Redis with a 24 h TTL.</li></ul>"
+   },
+   {
+    "title": "High-level design",
+    "minutes": "10 min",
+    "ask": "<p>Draw the components. Walk one ingest and one question end to end.</p>",
+    "model": "<p><b>Ingest</b>: connectors (webhooks + nightly listing) → queue keyed by (doc_id, version) → workers parse, chunk ~400 tokens with heading paths, stamp ACL and classification, embed changed chunks only → Postgres (source of truth) and a hybrid index (BM25 + vectors + ACL fields).</p><p><b>Question</b>: agent → MCP gateway (authn, audit) → resolve user groups → hybrid search with the ACL filter inside the query, ~50 candidates each, fused with RRF → cross-encoder rerank to 8 → LLM answers only from those 8 and cites them, or abstains. User memories are recalled in the same step, filtered by owner.</p>"
+   },
+   {
+    "title": "Deep dive",
+    "minutes": "12 min",
+    "ask": "<p>Go deep on access control and deletion, then on how you evaluate quality.</p>",
+    "model": "<p><b>Access</b>: pre-filter in the query, not post-filter (post-filtering can return nothing and leaks counts). The agent acts with the officer's token. ACL changes re-stamp chunk metadata without re-embedding; group caches live minutes.</p><p><b>Deletion</b>: tombstone first so answers stop in seconds, then delete chunks, vectors, caches and memories whose <code>source_refs</code> point at the doc; hard-delete rows after a retention window. Public agencies follow the Public Sector (Governance) Act and government data rules rather than the PDPA, but the duty is the same: every derived copy must go.</p><p><b>Evals</b>: a golden set of ~400 questions with acting users and expected doc ids. Measure recall@8, groundedness, abstention and a zero-tolerance leak test on every change to chunking, models, prompts or ranking; block releases on regression.</p>"
+   },
+   {
+    "title": "Bottlenecks & trade-offs",
+    "minutes": "6 min",
+    "ask": "<p>Name the risks and trade-offs.</p>",
+    "model": "<ul><li><b>Prompt injection via documents</b>: treat retrieved text as data, flag instruction-like text at ingest, no side-effecting tools in the answer step, confirmation for agent actions.</li><li><b>Latency</b>: reranker and LLM dominate; rerank only 50, stream, cache per (query, ACL group set).</li><li><b>Backfill</b>: separate low-priority queue, build a new index behind an alias.</li><li><b>Memory quality</b>: typed writes, de-duplication, expiry and a user-visible list, versus free-form notes that drift.</li></ul>"
+   }
+  ],
+  "rubric": [
+   "Enforces per-user access inside the retrieval query and says the prompt is not a control.",
+   "Stamps ACL, owner agency and classification on every chunk at ingest.",
+   "Uses hybrid retrieval (BM25 + vectors) and explains what each catches, with a reranker on a small candidate set.",
+   "Answers with citations to retrieved chunks and abstains when the answer is not found.",
+   "Distinguishes short-term, long-term and episodic memory, scoped per user and visible to the user.",
+   "Handles deletion with a tombstone and propagates it to vectors, caches and derived memories.",
+   "Defines evals (golden set, recall@k, groundedness, leak test) run on every change.",
+   "Names prompt injection through ingested documents and a concrete defence.",
+   "Respects the classification ceiling (e.g. RESTRICTED / SENSITIVE NORMAL) and keeps data in-region."
+  ]
+ }
+]

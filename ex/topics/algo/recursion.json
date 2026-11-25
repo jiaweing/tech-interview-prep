@@ -1,0 +1,131 @@
+{
+ "id": "recursion",
+ "track": "algo",
+ "order": 2,
+ "title": "Recursion",
+ "short": "Solve a problem by calling yourself on a smaller piece.",
+ "what": "A recursive function calls itself on a smaller version of the same problem, until it reaches a case so small it knows the answer right away: the base case. Each call waits on a stack until the smaller call returns, then finishes its own work.",
+ "analogy": "Asking the person in front of you in a line what number they are. They ask the person in front of them, and so on, until the first person says 1. The answers then pass back, each person adding 1.",
+ "viz": {
+  "kind": "stack",
+  "frames": [
+   {
+    "items": [
+     "fact(4) = 4 * ?"
+    ],
+    "hi": [
+     0
+    ],
+    "label": "call stack",
+    "say": "Call fact(4). It needs fact(3) before it can answer, so it waits on the call stack."
+   },
+   {
+    "items": [
+     "fact(4) = 4 * ?",
+     "fact(3) = 3 * ?"
+    ],
+    "hi": [
+     1
+    ],
+    "label": "call stack",
+    "say": "fact(3) also needs a smaller answer. It calls fact(2) and waits on top of fact(4)."
+   },
+   {
+    "items": [
+     "fact(4) = 4 * ?",
+     "fact(3) = 3 * ?",
+     "fact(2) = 2 * ?"
+    ],
+    "hi": [
+     2
+    ],
+    "label": "call stack",
+    "say": "fact(2) calls fact(1). Three calls are now paused, each holding its own n."
+   },
+   {
+    "items": [
+     "fact(4) = 4 * ?",
+     "fact(3) = 3 * ?",
+     "fact(2) = 2 * ?",
+     "fact(1) = 1"
+    ],
+    "ok": [
+     3
+    ],
+    "label": "call stack",
+    "say": "fact(1) is the base case: it returns 1 without calling anything. This is what stops the chain."
+   },
+   {
+    "items": [
+     "fact(4) = 4 * ?",
+     "fact(3) = 3 * ?",
+     "fact(2) = 2 * 1 = 2"
+    ],
+    "ok": [
+     2
+    ],
+    "label": "call stack",
+    "say": "fact(1) is popped off. fact(2) gets its 1 back and finishes: 2 * 1 = 2."
+   },
+   {
+    "items": [
+     "fact(4) = 4 * ?",
+     "fact(3) = 3 * 2 = 6"
+    ],
+    "ok": [
+     1
+    ],
+    "label": "call stack",
+    "say": "Pop again. fact(3) gets 2 and returns 3 * 2 = 6."
+   },
+   {
+    "items": [
+     "fact(4) = 4 * 6 = 24"
+    ],
+    "ok": [
+     0
+    ],
+    "label": "call stack",
+    "out": "fact(4) -> 24",
+    "say": "fact(4) gets 6 and returns 24. The stack went 4 calls deep, so memory is O(n) too."
+   }
+  ]
+ },
+ "when": [
+  "The problem contains a smaller copy of itself",
+  "Trees and nested structures",
+  "Try every choice, then undo (backtracking)",
+  "Split in half and combine (merge sort)"
+ ],
+ "python": "def factorial(n):\n    if n <= 1:        # base case: stop here\n        return 1\n    return n * factorial(n - 1)\n\ndef total(nums):\n    if not nums:\n        return 0\n    return nums[0] + total(nums[1:])\n\nprint(factorial(4))\nprint(total([3, 1, 4]))",
+ "output": "24\n8",
+ "cost": [
+  [
+   "Each call",
+   "one stack frame"
+  ],
+  [
+   "factorial(n) time",
+   "O(n)"
+  ],
+  [
+   "factorial(n) memory",
+   "O(n) stack"
+  ]
+ ],
+ "watch": [
+  "No base case, or one you never reach, means RecursionError.",
+  "Python stops at about 1000 calls deep. For long lists, use a loop.",
+  "Calls that repeat the same work (like naive Fibonacci) need a cache: functools.cache."
+ ],
+ "interview": [
+  "LC 509 Fibonacci Number",
+  "LC 206 Reverse Linked List",
+  "LC 104 Maximum Depth of Binary Tree"
+ ],
+ "related": [
+  "stack",
+  "dfs",
+  "backtracking"
+ ]
+}

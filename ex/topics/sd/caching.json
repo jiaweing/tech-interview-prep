@@ -1,0 +1,442 @@
+{
+ "id": "caching",
+ "track": "sd",
+ "order": 5,
+ "title": "Caching",
+ "short": "Keep hot answers in fast memory so you don't redo slow work.",
+ "what": "A cache is a small, fast store, usually memory, that keeps copies of answers you already worked out. Before doing the slow thing (a database query, an API call), you check the cache. Most apps read the same few things again and again, so most reads become fast.",
+ "analogy": "Keys in a bowl by the front door instead of a drawer upstairs. What you use all the time lives close at hand.",
+ "viz": {
+  "kind": "sd",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "u",
+      "label": "Readers",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "a",
+      "label": "App server",
+      "x": 45,
+      "y": 50
+     },
+     {
+      "id": "c",
+      "label": "Cache",
+      "sub": "in memory, ~1 ms",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "db",
+      "label": "Database",
+      "sub": "~50 ms per query",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "u",
+      "a"
+     ],
+     [
+      "a",
+      "c"
+     ],
+     [
+      "a",
+      "db"
+     ]
+    ],
+    "say": "A news site. Every visit needs the top 10 stories, and that database query takes 50 ms. A memory cache sits beside the app."
+   },
+   {
+    "nodes": [
+     {
+      "id": "u",
+      "label": "Readers",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "a",
+      "label": "App server",
+      "x": 45,
+      "y": 50
+     },
+     {
+      "id": "c",
+      "label": "Cache",
+      "sub": "miss: empty",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "db",
+      "label": "Database",
+      "sub": "~50 ms per query",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "u",
+      "a"
+     ],
+     [
+      "a",
+      "c",
+      "get top10"
+     ],
+     [
+      "a",
+      "db"
+     ]
+    ],
+    "hi": [
+     "a"
+    ],
+    "bad": [
+     "c"
+    ],
+    "edgeHi": [
+     [
+      "u",
+      "a"
+     ],
+     [
+      "a",
+      "c"
+     ]
+    ],
+    "say": "The first reader arrives. The app checks the cache for the key top10. Nothing there: a cache miss."
+   },
+   {
+    "nodes": [
+     {
+      "id": "u",
+      "label": "Readers",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "a",
+      "label": "App server",
+      "x": 45,
+      "y": 50
+     },
+     {
+      "id": "c",
+      "label": "Cache",
+      "sub": "empty",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "db",
+      "label": "Database",
+      "sub": "~50 ms per query",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "u",
+      "a"
+     ],
+     [
+      "a",
+      "c"
+     ],
+     [
+      "a",
+      "db",
+      "query"
+     ]
+    ],
+    "hi": [
+     "db"
+    ],
+    "edgeHi": [
+     [
+      "a",
+      "db"
+     ]
+    ],
+    "say": "So it runs the slow query on the database. 50 ms."
+   },
+   {
+    "nodes": [
+     {
+      "id": "u",
+      "label": "Readers",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "a",
+      "label": "App server",
+      "x": 45,
+      "y": 50
+     },
+     {
+      "id": "c",
+      "label": "Cache",
+      "sub": "top10, 60 s left",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "db",
+      "label": "Database",
+      "sub": "~50 ms per query",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "u",
+      "a"
+     ],
+     [
+      "a",
+      "c",
+      "save, 60 s"
+     ],
+     [
+      "a",
+      "db"
+     ]
+    ],
+    "ok": [
+     "c"
+    ],
+    "edgeHi": [
+     [
+      "a",
+      "c"
+     ]
+    ],
+    "say": "It saves the result in the cache with a 60-second expiry, the TTL, then answers the reader."
+   },
+   {
+    "nodes": [
+     {
+      "id": "u",
+      "label": "Readers",
+      "sub": "10,000 per min",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "a",
+      "label": "App server",
+      "x": 45,
+      "y": 50
+     },
+     {
+      "id": "c",
+      "label": "Cache",
+      "sub": "hit, ~1 ms",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "db",
+      "label": "Database",
+      "sub": "resting",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "u",
+      "a"
+     ],
+     [
+      "a",
+      "c",
+      "hit"
+     ],
+     [
+      "a",
+      "db"
+     ]
+    ],
+    "ok": [
+     "c"
+    ],
+    "dim": [
+     "db"
+    ],
+    "edgeHi": [
+     [
+      "u",
+      "a"
+     ],
+     [
+      "a",
+      "c"
+     ]
+    ],
+    "say": "The next 9,999 readers that minute get it from the cache in 1 ms. The database runs 1 query instead of 10,000."
+   },
+   {
+    "nodes": [
+     {
+      "id": "u",
+      "label": "Readers",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "a",
+      "label": "App server",
+      "x": 45,
+      "y": 50
+     },
+     {
+      "id": "c",
+      "label": "Cache",
+      "sub": "old top10",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "db",
+      "label": "Database",
+      "sub": "new story saved",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "u",
+      "a"
+     ],
+     [
+      "a",
+      "c"
+     ],
+     [
+      "a",
+      "db"
+     ]
+    ],
+    "hi": [
+     "db"
+    ],
+    "bad": [
+     "c"
+    ],
+    "say": "An editor publishes a new story. Until the 60 s run out, readers still see the old list. That's the price: data can be a little stale."
+   },
+   {
+    "nodes": [
+     {
+      "id": "u",
+      "label": "Readers",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "a",
+      "label": "App server",
+      "x": 45,
+      "y": 50
+     },
+     {
+      "id": "c",
+      "label": "Cache",
+      "sub": "fresh top10",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "db",
+      "label": "Database",
+      "sub": "~50 ms per query",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "u",
+      "a"
+     ],
+     [
+      "a",
+      "c",
+      "delete top10"
+     ],
+     [
+      "a",
+      "db"
+     ]
+    ],
+    "ok": [
+     "c"
+    ],
+    "edgeHi": [
+     [
+      "a",
+      "c"
+     ]
+    ],
+    "say": "Fix: when a story is published, delete top10 from the cache. The next reader misses, reloads it, and everyone sees the new list."
+   }
+  ]
+ },
+ "when": [
+  "The same data is read far more often than it changes",
+  "A slow query or API call repeats",
+  "The database is the bottleneck",
+  "Reads may be a few seconds out of date"
+ ],
+ "python": "cache, CAPACITY = {}, 2\n\ndef get(key):\n    if key in cache:\n        cache[key] = cache.pop(key)          # move to the end: most recently used\n        return \"hit\"\n    if len(cache) >= CAPACITY:\n        oldest = next(iter(cache))           # first key = least recently used\n        del cache[oldest]\n        print(\"  evict\", oldest)\n    cache[key] = f\"page for {key}\"           # pretend this was a 50 ms database query\n    return \"miss\"\n\nfor key in [\"home\", \"sports\", \"home\", \"world\", \"sports\"]:\n    print(key, get(key))",
+ "output": "home miss\nsports miss\nhome hit\n  evict sports\nworld miss\n  evict home\nsports miss",
+ "cost": [
+  [
+   "Read from a memory cache",
+   "~0.1-1 ms"
+  ],
+  [
+   "Read from a database",
+   "~5-50 ms"
+  ],
+  [
+   "Look up one key",
+   "O(1)"
+  ],
+  [
+   "Good hit rate",
+   "90% or more"
+  ]
+ ],
+ "watch": [
+  "Stale data: decide how old is acceptable, set the TTL, and delete keys when the data changes.",
+  "When a hot key expires, thousands of requests can hit the database at once (a stampede).",
+  "Never store one user's private data under a key that other users can read."
+ ],
+ "interview": [
+  "Design a news feed",
+  "Design a URL shortener",
+  "LC 146 LRU Cache"
+ ],
+ "related": [
+  "lru-cache",
+  "cdn",
+  "database-index",
+  "load-balancer"
+ ]
+}

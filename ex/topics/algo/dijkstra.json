@@ -1,0 +1,563 @@
+{
+ "id": "dijkstra",
+ "track": "algo",
+ "order": 14,
+ "title": "Dijkstra's shortest path",
+ "short": "Find the cheapest route when roads have different costs.",
+ "what": "BFS finds the fewest hops, but real roads have lengths. Dijkstra keeps a best-known cost for every node and always settles the cheapest unsettled node next. Once a node is settled, nothing can beat its cost, because all roads cost zero or more.",
+ "analogy": "Spilling water at the start of a maze of pipes. It reaches the nearest junctions first and spreads outward in order of distance.",
+ "viz": {
+  "kind": "graph",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "x": 0,
+      "y": 45
+     },
+     {
+      "id": "B",
+      "x": 25,
+      "y": 5
+     },
+     {
+      "id": "C",
+      "x": 50,
+      "y": 80
+     },
+     {
+      "id": "D",
+      "x": 70,
+      "y": 45
+     },
+     {
+      "id": "E",
+      "x": 100,
+      "y": 45
+     }
+    ],
+    "edges": [
+     [
+      "A",
+      "B",
+      4
+     ],
+     [
+      "A",
+      "C",
+      1
+     ],
+     [
+      "B",
+      "C",
+      2
+     ],
+     [
+      "B",
+      "D",
+      1
+     ],
+     [
+      "C",
+      "D",
+      5
+     ],
+     [
+      "D",
+      "E",
+      3
+     ]
+    ],
+    "directed": false,
+    "dist": {
+     "A": "0",
+     "B": "∞",
+     "C": "∞",
+     "D": "∞",
+     "E": "∞"
+    },
+    "hi": [
+     "A"
+    ],
+    "label": "from A",
+    "say": "Find the cheapest route from A to every node. Numbers on roads are costs. A costs 0; the rest start at ∞, not reached yet."
+   },
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "x": 0,
+      "y": 45
+     },
+     {
+      "id": "B",
+      "x": 25,
+      "y": 5
+     },
+     {
+      "id": "C",
+      "x": 50,
+      "y": 80
+     },
+     {
+      "id": "D",
+      "x": 70,
+      "y": 45
+     },
+     {
+      "id": "E",
+      "x": 100,
+      "y": 45
+     }
+    ],
+    "edges": [
+     [
+      "A",
+      "B",
+      4
+     ],
+     [
+      "A",
+      "C",
+      1
+     ],
+     [
+      "B",
+      "C",
+      2
+     ],
+     [
+      "B",
+      "D",
+      1
+     ],
+     [
+      "C",
+      "D",
+      5
+     ],
+     [
+      "D",
+      "E",
+      3
+     ]
+    ],
+    "directed": false,
+    "dist": {
+     "A": "0",
+     "B": "4",
+     "C": "1",
+     "D": "∞",
+     "E": "∞"
+    },
+    "hi": [
+     "A"
+    ],
+    "edgeHi": [
+     [
+      "A",
+      "B"
+     ],
+     [
+      "A",
+      "C"
+     ]
+    ],
+    "label": "settle A",
+    "say": "Settle the cheapest open node: A. Its roads give B = 0 + 4 = 4 and C = 0 + 1 = 1. Write those down."
+   },
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "x": 0,
+      "y": 45
+     },
+     {
+      "id": "B",
+      "x": 25,
+      "y": 5
+     },
+     {
+      "id": "C",
+      "x": 50,
+      "y": 80
+     },
+     {
+      "id": "D",
+      "x": 70,
+      "y": 45
+     },
+     {
+      "id": "E",
+      "x": 100,
+      "y": 45
+     }
+    ],
+    "edges": [
+     [
+      "A",
+      "B",
+      4
+     ],
+     [
+      "A",
+      "C",
+      1
+     ],
+     [
+      "B",
+      "C",
+      2
+     ],
+     [
+      "B",
+      "D",
+      1
+     ],
+     [
+      "C",
+      "D",
+      5
+     ],
+     [
+      "D",
+      "E",
+      3
+     ]
+    ],
+    "directed": false,
+    "dist": {
+     "A": "0",
+     "B": "3",
+     "C": "1",
+     "D": "6",
+     "E": "∞"
+    },
+    "ok": [
+     "A"
+    ],
+    "hi": [
+     "C"
+    ],
+    "edgeHi": [
+     [
+      "C",
+      "B"
+     ],
+     [
+      "C",
+      "D"
+     ]
+    ],
+    "label": "settle C",
+    "say": "The cheapest open node is C (1). Through C, B costs 1 + 2 = 3, better than 4, so B drops to 3. D gets 1 + 5 = 6."
+   },
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "x": 0,
+      "y": 45
+     },
+     {
+      "id": "B",
+      "x": 25,
+      "y": 5
+     },
+     {
+      "id": "C",
+      "x": 50,
+      "y": 80
+     },
+     {
+      "id": "D",
+      "x": 70,
+      "y": 45
+     },
+     {
+      "id": "E",
+      "x": 100,
+      "y": 45
+     }
+    ],
+    "edges": [
+     [
+      "A",
+      "B",
+      4
+     ],
+     [
+      "A",
+      "C",
+      1
+     ],
+     [
+      "B",
+      "C",
+      2
+     ],
+     [
+      "B",
+      "D",
+      1
+     ],
+     [
+      "C",
+      "D",
+      5
+     ],
+     [
+      "D",
+      "E",
+      3
+     ]
+    ],
+    "directed": false,
+    "dist": {
+     "A": "0",
+     "B": "3",
+     "C": "1",
+     "D": "4",
+     "E": "∞"
+    },
+    "ok": [
+     "A",
+     "C"
+    ],
+    "hi": [
+     "B"
+    ],
+    "edgeHi": [
+     [
+      "B",
+      "D"
+     ]
+    ],
+    "label": "settle B",
+    "say": "Next cheapest is B (3). Through B, D costs 3 + 1 = 4, better than 6. A longer path with cheap roads won."
+   },
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "x": 0,
+      "y": 45
+     },
+     {
+      "id": "B",
+      "x": 25,
+      "y": 5
+     },
+     {
+      "id": "C",
+      "x": 50,
+      "y": 80
+     },
+     {
+      "id": "D",
+      "x": 70,
+      "y": 45
+     },
+     {
+      "id": "E",
+      "x": 100,
+      "y": 45
+     }
+    ],
+    "edges": [
+     [
+      "A",
+      "B",
+      4
+     ],
+     [
+      "A",
+      "C",
+      1
+     ],
+     [
+      "B",
+      "C",
+      2
+     ],
+     [
+      "B",
+      "D",
+      1
+     ],
+     [
+      "C",
+      "D",
+      5
+     ],
+     [
+      "D",
+      "E",
+      3
+     ]
+    ],
+    "directed": false,
+    "dist": {
+     "A": "0",
+     "B": "3",
+     "C": "1",
+     "D": "4",
+     "E": "7"
+    },
+    "ok": [
+     "A",
+     "B",
+     "C"
+    ],
+    "hi": [
+     "D"
+    ],
+    "edgeHi": [
+     [
+      "D",
+      "E"
+     ]
+    ],
+    "label": "settle D",
+    "say": "Settle D (4). Its road to E gives 4 + 3 = 7. B and C are settled already, so they can't improve."
+   },
+   {
+    "nodes": [
+     {
+      "id": "A",
+      "x": 0,
+      "y": 45
+     },
+     {
+      "id": "B",
+      "x": 25,
+      "y": 5
+     },
+     {
+      "id": "C",
+      "x": 50,
+      "y": 80
+     },
+     {
+      "id": "D",
+      "x": 70,
+      "y": 45
+     },
+     {
+      "id": "E",
+      "x": 100,
+      "y": 45
+     }
+    ],
+    "edges": [
+     [
+      "A",
+      "B",
+      4
+     ],
+     [
+      "A",
+      "C",
+      1
+     ],
+     [
+      "B",
+      "C",
+      2
+     ],
+     [
+      "B",
+      "D",
+      1
+     ],
+     [
+      "C",
+      "D",
+      5
+     ],
+     [
+      "D",
+      "E",
+      3
+     ]
+    ],
+    "directed": false,
+    "dist": {
+     "A": "0",
+     "B": "3",
+     "C": "1",
+     "D": "4",
+     "E": "7"
+    },
+    "ok": [
+     "A",
+     "B",
+     "C",
+     "D",
+     "E"
+    ],
+    "edgeHi": [
+     [
+      "A",
+      "C"
+     ],
+     [
+      "C",
+      "B"
+     ],
+     [
+      "B",
+      "D"
+     ],
+     [
+      "D",
+      "E"
+     ]
+    ],
+    "label": "done",
+    "out": "A to E costs 7",
+    "say": "Settle E (7). Done. The lit roads are the cheapest routes from A. The direct road A to B (4) was never the best."
+   }
+  ]
+ },
+ "when": [
+  "Shortest path where edges have weights or costs",
+  "Cheapest flight, fastest route, lowest delay",
+  "Every weight is zero or positive",
+  "Plain BFS would count hops, but hops aren't equal"
+ ],
+ "python": "import heapq\nroads = {\"A\": {\"B\": 4, \"C\": 1}, \"B\": {\"A\": 4, \"C\": 2, \"D\": 1}, \"C\": {\"A\": 1, \"B\": 2, \"D\": 5},\n         \"D\": {\"B\": 1, \"C\": 5, \"E\": 3}, \"E\": {\"D\": 3}}\ndef dijkstra(start):\n    dist = {start: 0}\n    heap = [(0, start)]  # (cost so far, node), cheapest pops first\n    while heap:\n        d, node = heapq.heappop(heap)\n        if d > dist[node]:\n            continue  # an old entry, we already found cheaper\n        for nxt, w in roads[node].items():\n            if d + w < dist.get(nxt, float(\"inf\")):\n                dist[nxt] = d + w\n                heapq.heappush(heap, (d + w, nxt))\n    return dist\nprint(dijkstra(\"A\"))",
+ "output": "{'A': 0, 'B': 3, 'C': 1, 'D': 4, 'E': 7}",
+ "cost": [
+  [
+   "With a heap",
+   "O((V + E) log V)"
+  ],
+  [
+   "Memory",
+   "O(V)"
+  ],
+  [
+   "Pick the next node",
+   "O(log V)"
+  ]
+ ],
+ "watch": [
+  "It breaks with negative weights. Use Bellman-Ford for those.",
+  "Skip stale heap entries (d > dist[node]) or you redo work.",
+  "If every edge costs the same, plain BFS is simpler and faster."
+ ],
+ "interview": [
+  "LC 743 Network Delay Time",
+  "LC 1631 Path With Minimum Effort",
+  "LC 787 Cheapest Flights Within K Stops"
+ ],
+ "related": [
+  "bfs",
+  "heap",
+  "graph",
+  "top-k-heap"
+ ]
+}

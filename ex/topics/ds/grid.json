@@ -1,0 +1,509 @@
+{
+ "id": "grid",
+ "track": "ds",
+ "order": 14,
+ "title": "Grid",
+ "short": "A 2D board where every cell has up to 4 neighbors.",
+ "what": "A grid is a list of rows: grid[r][c] is the cell in row r, column c. Many problems treat it as a graph where each cell is a node joined to the cells up, down, left and right of it. Then the usual graph walks (BFS, DFS) work on it.",
+ "analogy": "A chessboard or a spreadsheet. Each square has an address, row and column, and you can step to the squares that touch it.",
+ "viz": {
+  "kind": "grid",
+  "frames": [
+   {
+    "cells": [
+     [
+      1,
+      1,
+      0,
+      0,
+      0
+     ],
+     [
+      1,
+      0,
+      0,
+      1,
+      0
+     ],
+     [
+      0,
+      0,
+      1,
+      1,
+      0
+     ],
+     [
+      0,
+      0,
+      0,
+      0,
+      1
+     ]
+    ],
+    "label": "grid",
+    "say": "4 rows, 5 columns. 1 is land and 0 is water. How many islands are there? An island is land joined up, down, left or right."
+   },
+   {
+    "cells": [
+     [
+      1,
+      1,
+      0,
+      0,
+      0
+     ],
+     [
+      1,
+      0,
+      0,
+      1,
+      0
+     ],
+     [
+      0,
+      0,
+      1,
+      1,
+      0
+     ],
+     [
+      0,
+      0,
+      0,
+      0,
+      1
+     ]
+    ],
+    "label": "neighbors of (1, 1)",
+    "hi": [
+     [
+      1,
+      1
+     ]
+    ],
+    "ok": [
+     [
+      0,
+      1
+     ],
+     [
+      2,
+      1
+     ],
+     [
+      1,
+      0
+     ],
+     [
+      1,
+      2
+     ]
+    ],
+    "say": "The neighbors of (1, 1) are (0, 1), (2, 1), (1, 0) and (1, 2). Add (-1, 0), (1, 0), (0, -1), (0, 1) to find them."
+   },
+   {
+    "cells": [
+     [
+      1,
+      1,
+      0,
+      0,
+      0
+     ],
+     [
+      1,
+      0,
+      0,
+      1,
+      0
+     ],
+     [
+      0,
+      0,
+      1,
+      1,
+      0
+     ],
+     [
+      0,
+      0,
+      0,
+      0,
+      1
+     ]
+    ],
+    "label": "grid",
+    "hi": [
+     [
+      0,
+      0
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      0
+     ]
+    ],
+    "vals": [
+     [
+      "A",
+      "A",
+      null,
+      null,
+      null
+     ],
+     [
+      "A",
+      null,
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null,
+      null
+     ]
+    ],
+    "out": "islands = 1",
+    "say": "Scan row by row. (0, 0) is land: island A. Spread to every land neighbor, and theirs, marking them as seen."
+   },
+   {
+    "cells": [
+     [
+      1,
+      1,
+      0,
+      0,
+      0
+     ],
+     [
+      1,
+      0,
+      0,
+      1,
+      0
+     ],
+     [
+      0,
+      0,
+      1,
+      1,
+      0
+     ],
+     [
+      0,
+      0,
+      0,
+      0,
+      1
+     ]
+    ],
+    "label": "grid",
+    "ok": [
+     [
+      0,
+      0
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      0
+     ]
+    ],
+    "hi": [
+     [
+      1,
+      3
+     ],
+     [
+      2,
+      3
+     ],
+     [
+      2,
+      2
+     ]
+    ],
+    "vals": [
+     [
+      "A",
+      "A",
+      null,
+      null,
+      null
+     ],
+     [
+      "A",
+      null,
+      null,
+      "B",
+      null
+     ],
+     [
+      null,
+      null,
+      "B",
+      "B",
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null,
+      null
+     ]
+    ],
+    "out": "islands = 2",
+    "say": "Keep scanning. (0, 1) and (1, 0) are already seen, so skip them. (1, 3) is new land: island B spreads to 2 more cells."
+   },
+   {
+    "cells": [
+     [
+      1,
+      1,
+      0,
+      0,
+      0
+     ],
+     [
+      1,
+      0,
+      0,
+      1,
+      0
+     ],
+     [
+      0,
+      0,
+      1,
+      1,
+      0
+     ],
+     [
+      0,
+      0,
+      0,
+      0,
+      1
+     ]
+    ],
+    "label": "grid",
+    "ok": [
+     [
+      0,
+      0
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      0
+     ],
+     [
+      1,
+      3
+     ],
+     [
+      2,
+      3
+     ],
+     [
+      2,
+      2
+     ]
+    ],
+    "hi": [
+     [
+      3,
+      4
+     ]
+    ],
+    "vals": [
+     [
+      "A",
+      "A",
+      null,
+      null,
+      null
+     ],
+     [
+      "A",
+      null,
+      null,
+      "B",
+      null
+     ],
+     [
+      null,
+      null,
+      "B",
+      "B",
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null,
+      "C"
+     ]
+    ],
+    "out": "islands = 3",
+    "say": "(3, 4) is land no one has seen. Its neighbors are all water, so island C is a single cell."
+   },
+   {
+    "cells": [
+     [
+      1,
+      1,
+      0,
+      0,
+      0
+     ],
+     [
+      1,
+      0,
+      0,
+      1,
+      0
+     ],
+     [
+      0,
+      0,
+      1,
+      1,
+      0
+     ],
+     [
+      0,
+      0,
+      0,
+      0,
+      1
+     ]
+    ],
+    "label": "grid",
+    "ok": [
+     [
+      0,
+      0
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      0
+     ],
+     [
+      1,
+      3
+     ],
+     [
+      2,
+      3
+     ],
+     [
+      2,
+      2
+     ],
+     [
+      3,
+      4
+     ]
+    ],
+    "vals": [
+     [
+      "A",
+      "A",
+      null,
+      null,
+      null
+     ],
+     [
+      "A",
+      null,
+      null,
+      "B",
+      null
+     ],
+     [
+      null,
+      null,
+      "B",
+      "B",
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null,
+      "C"
+     ]
+    ],
+    "out": "3 islands",
+    "say": "Scan done: 3 islands. Each cell was looked at a few times at most, so the cost is O(rows x cols)."
+   }
+  ]
+ },
+ "when": [
+  "A 2D map, board or matrix",
+  "Count islands or regions",
+  "Shortest path through a maze",
+  "Something spreads cell by cell each minute"
+ ],
+ "python": "grid = [[1, 1, 0, 0, 0], [1, 0, 0, 1, 0],\n        [0, 0, 1, 1, 0], [0, 0, 0, 0, 1]]\nrows, cols = len(grid), len(grid[0])\ndef sink(r, c):\n    if 0 <= r < rows and 0 <= c < cols and grid[r][c] == 1:\n        grid[r][c] = 0                # mark as seen\n        for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:\n            sink(r + dr, c + dc)\nislands = 0\nfor r in range(rows):\n    for c in range(cols):\n        if grid[r][c] == 1:\n            islands += 1\n            sink(r, c)\nprint(islands)",
+ "output": "3",
+ "cost": [
+  [
+   "Visit every cell",
+   "O(rows x cols)"
+  ],
+  [
+   "Neighbors of one cell",
+   "O(1), at most 4"
+  ],
+  [
+   "A seen set for every cell",
+   "O(rows x cols) memory"
+  ]
+ ],
+ "watch": [
+  "Check the bounds before reading grid[r][c]. In Python grid[-1] quietly reads the last row.",
+  "Row first, then column: grid[r][c], not grid[x][y].",
+  "[[0] * cols] * rows repeats one row object. Build it with [[0] * cols for _ in range(rows)]."
+ ],
+ "interview": [
+  "LC 200 Number of Islands",
+  "LC 994 Rotting Oranges",
+  "LC 79 Word Search"
+ ],
+ "related": [
+  "graph",
+  "bfs",
+  "dfs",
+  "union-find",
+  "array"
+ ]
+}

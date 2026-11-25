@@ -1,0 +1,546 @@
+{
+ "id": "kv-store",
+ "title": "Distributed key-value store",
+ "tagline": "A Dynamo-style store that stays writable when nodes die, using a hash ring, quorums and background repair.",
+ "govtech": false,
+ "featured": true,
+ "difficulty": "hard",
+ "summary": "<p>Build a store with two calls, <code>get(key)</code> and <code>put(key, value)</code>, that keeps taking writes while nodes fail. Keys go on a <b>consistent-hash ring</b> with virtual nodes; each key lives on <b>N = 3</b> replicas. Any node can coordinate a request and waits for <b>W</b> write acks or <b>R</b> read replies. There is no leader, so conflicts are possible and you need a rule to settle them: <b>vector clocks</b> or <b>last-write-wins</b>. Failures are handled in layers: <b>gossip</b> spots dead nodes, <b>hinted handoff</b> covers short outages, <b>read repair</b> and <b>Merkle-tree anti-entropy</b> fix whatever is left.</p>",
+ "requirements": {
+  "functional": [
+   "<code>put(key, value, context)</code> and <code>get(key)</code> for keys up to 256 B and values up to 1 MB",
+   "Tunable consistency per request through N, R and W",
+   "Add or remove nodes without downtime",
+   "Return conflicting versions to the client, or resolve them with a fixed rule"
+  ],
+  "nonfunctional": [
+   "Always writable: a write succeeds while any W reachable nodes are up",
+   "p99 under 10 ms for reads and writes inside one data centre",
+   "100k ops/s and 10 TB of data, growing by adding commodity nodes",
+   "No single point of failure and no special master node"
+  ],
+  "out_of_scope": [
+   "Multi-key transactions and secondary indexes",
+   "Range scans across keys (the hash ring scatters them)",
+   "Cross-region replication (mention as a follow-up)"
+  ]
+ },
+ "estimates": [
+  {
+   "label": "Traffic",
+   "calc": "given: 80% reads, 20% writes",
+   "value": "80k reads/s, 20k writes/s"
+  },
+  {
+   "label": "Replica operations",
+   "calc": "80k × R=2 + 20k × N=3 (reads sent to all 3 make it 300k)",
+   "value": "~220k/s cluster-wide"
+  },
+  {
+   "label": "Data with replication",
+   "calc": "10 TB × 3 replicas",
+   "value": "30 TB"
+  },
+  {
+   "label": "Node count",
+   "calc": "30 TB ÷ 2 TB per node (4 TB SSD, half full)",
+   "value": "~15 nodes, run 18"
+  },
+  {
+   "label": "Load per node",
+   "calc": "220k ÷ 18 nodes",
+   "value": "~12k ops/s each"
+  },
+  {
+   "label": "Tokens on the ring",
+   "calc": "18 nodes × 256 vnodes (or × 16 = 288)",
+   "value": "~4.6k ranges"
+  }
+ ],
+ "api": [
+  {
+   "method": "PUT",
+   "path": "/kv/{key} {value, context}",
+   "desc": "Context is the vector clock from the last read. Returns once W replicas ack."
+  },
+  {
+   "method": "GET",
+   "path": "/kv/{key}",
+   "desc": "Returns {values[], context}. More than one value means concurrent writes the client must merge."
+  },
+  {
+   "method": "DELETE",
+   "path": "/kv/{key} {context}",
+   "desc": "Writes a tombstone; real removal happens at compaction after a grace period."
+  },
+  {
+   "method": "POST",
+   "path": "/admin/nodes {host, tokens}",
+   "desc": "Join a node; it streams its new ranges before taking reads."
+  }
+ ],
+ "data": [
+  {
+   "name": "commit log",
+   "store": "Local SSD, append-only",
+   "fields": [
+    "key",
+    "value",
+    "vector clock",
+    "timestamp"
+   ],
+   "note": "fsync per batch before acking. Replayed into the memtable after a crash."
+  },
+  {
+   "name": "memtable → SSTables",
+   "store": "LSM tree per node",
+   "fields": [
+    "sorted key → (value, clock)",
+    "Bloom filter per SSTable",
+    "tombstones"
+   ],
+   "note": "Writes are sequential appends; compaction merges files and drops old versions."
+  },
+  {
+   "name": "hints",
+   "store": "Local table on the stand-in node",
+   "fields": [
+    "intended_node",
+    "key",
+    "value + clock",
+    "created_at"
+   ],
+   "note": "Replayed when the intended node returns; dropped after ~3 h, after which anti-entropy takes over."
+  },
+  {
+   "name": "ring state",
+   "store": "Every node, spread by gossip",
+   "fields": [
+    "node id",
+    "tokens",
+    "status up/down/joining",
+    "heartbeat version"
+   ],
+   "note": "Each node knows the whole ring, so any node can route any key in one hop."
+  }
+ ],
+ "diagram": {
+  "w": 960,
+  "h": 520,
+  "groups": [
+   {
+    "label": "Replicas of k",
+    "x": 560,
+    "y": 20,
+    "w": 180,
+    "h": 330
+   }
+  ],
+  "nodes": [
+   {
+    "id": "app",
+    "label": "App server",
+    "kind": "client",
+    "x": 90,
+    "y": 250,
+    "sub": "client library"
+   },
+   {
+    "id": "coord",
+    "label": "Coordinator",
+    "kind": "service",
+    "x": 360,
+    "y": 250,
+    "sub": "any node, by key hash"
+   },
+   {
+    "id": "gossip",
+    "label": "Gossip membership",
+    "kind": "service",
+    "x": 360,
+    "y": 90,
+    "sub": "heartbeat every 1 s"
+   },
+   {
+    "id": "a",
+    "label": "Node A",
+    "kind": "nosql",
+    "x": 650,
+    "y": 80,
+    "sub": "replica 1"
+   },
+   {
+    "id": "b",
+    "label": "Node B",
+    "kind": "nosql",
+    "x": 650,
+    "y": 195,
+    "sub": "replica 2"
+   },
+   {
+    "id": "c",
+    "label": "Node C",
+    "kind": "nosql",
+    "x": 650,
+    "y": 310,
+    "sub": "replica 3"
+   },
+   {
+    "id": "dn",
+    "label": "Node D",
+    "kind": "nosql",
+    "x": 650,
+    "y": 445,
+    "sub": "next on the ring"
+   },
+   {
+    "id": "lsm",
+    "label": "Storage engine",
+    "kind": "db",
+    "x": 860,
+    "y": 80,
+    "sub": "WAL, memtable, SST"
+   },
+   {
+    "id": "anti",
+    "label": "Anti-entropy",
+    "kind": "worker",
+    "x": 860,
+    "y": 255,
+    "sub": "Merkle tree diff"
+   }
+  ],
+  "edges": [
+   {
+    "id": "ap-co",
+    "from": "app",
+    "to": "coord",
+    "label": "put(k, v)"
+   },
+   {
+    "id": "co-g",
+    "from": "coord",
+    "to": "gossip",
+    "label": "who is up?",
+    "dashed": true,
+    "bi": true
+   },
+   {
+    "id": "co-a",
+    "from": "coord",
+    "to": "a",
+    "label": "put / get"
+   },
+   {
+    "id": "co-b",
+    "from": "coord",
+    "to": "b",
+    "label": "put / get"
+   },
+   {
+    "id": "co-c",
+    "from": "coord",
+    "to": "c",
+    "label": "put / get"
+   },
+   {
+    "id": "co-d",
+    "from": "coord",
+    "to": "dn",
+    "label": "write + hint"
+   },
+   {
+    "id": "a-l",
+    "from": "a",
+    "to": "lsm",
+    "label": "append"
+   },
+   {
+    "id": "d-c",
+    "from": "dn",
+    "to": "c",
+    "label": "hand off",
+    "dashed": true
+   },
+   {
+    "id": "an-b",
+    "from": "anti",
+    "to": "b",
+    "label": "diff",
+    "dashed": true
+   },
+   {
+    "id": "an-c",
+    "from": "anti",
+    "to": "c",
+    "label": "repair",
+    "dashed": true
+   }
+  ]
+ },
+ "flows": [
+  {
+   "id": "write",
+   "name": "Quorum write (W = 2)",
+   "desc": "All replicas up.",
+   "steps": [
+    {
+     "edge": "ap-co",
+     "note": "The client library hashes the key with MD5 to a point on the ring and sends <code>put</code> to a node that owns it (or to any node through a load balancer; that node forwards)."
+    },
+    {
+     "node": "coord",
+     "note": "The coordinator walks clockwise from the key's position and takes the first 3 <b>distinct physical</b> nodes: A, B, C. That is the preference list. It increments its own entry in the vector clock."
+    },
+    {
+     "edge": "co-a",
+     "note": "Send the write to all three replicas in parallel, not one after another. Latency is the 2nd fastest reply, not the sum."
+    },
+    {
+     "edge": "a-l",
+     "note": "Each replica appends to its commit log, then updates the in-memory memtable. A sequential append on SSD takes well under a millisecond."
+    },
+    {
+     "edge": "co-b",
+     "note": "B gets the same write at the same time."
+    },
+    {
+     "edge": "co-c",
+     "note": "C is slow today (a long GC pause). That is fine."
+    },
+    {
+     "edge": "co-a",
+     "rev": true,
+     "note": "A acks. One ack so far."
+    },
+    {
+     "edge": "co-b",
+     "rev": true,
+     "note": "B acks: W = 2 reached. C will catch up when its write lands, or through repair if it never does."
+    },
+    {
+     "edge": "ap-co",
+     "rev": true,
+     "note": "Return success with the new context. With N = 3, W = 2, R = 2 we have R + W > N, so every read quorum overlaps the latest write quorum in at least one node."
+    }
+   ]
+  },
+  {
+   "id": "read",
+   "name": "Quorum read and read repair (R = 2)",
+   "desc": "One replica is stale.",
+   "steps": [
+    {
+     "edge": "ap-co",
+     "note": "<code>get(k)</code> reaches a coordinator."
+    },
+    {
+     "edge": "co-a",
+     "note": "Ask the replicas (often all three, using the first 2 replies). A returns v2 with clock <code>[A:2]</code>."
+    },
+    {
+     "edge": "co-c",
+     "note": "C missed the last write and returns v1 with clock <code>[A:1]</code>."
+    },
+    {
+     "node": "coord",
+     "note": "Compare clocks. <code>[A:2]</code> descends from <code>[A:1]</code>, so v2 wins outright. If neither descended from the other (say <code>[A:2]</code> vs <code>[A:1, B:1]</code>), both are returned as siblings."
+    },
+    {
+     "edge": "co-c",
+     "note": "<b>Read repair</b>: write v2 back to C in the background. Hot keys repair themselves this way within seconds."
+    },
+    {
+     "edge": "ap-co",
+     "rev": true,
+     "note": "Return v2 plus its clock as the context for the next write."
+    }
+   ]
+  },
+  {
+   "id": "hint",
+   "name": "Node C down: sloppy quorum + hinted handoff",
+   "desc": "Stay writable during an outage.",
+   "steps": [
+    {
+     "edge": "co-g",
+     "note": "Gossip says C has missed heartbeats for 10 s and is suspected down. Each node gossips its state to a few random peers every second, so news reaches all 18 nodes in a few rounds."
+    },
+    {
+     "edge": "co-a",
+     "note": "Write to A as usual."
+    },
+    {
+     "edge": "co-b",
+     "note": "Write to B as usual."
+    },
+    {
+     "edge": "co-d",
+     "note": "Instead of failing, send C's copy to the next healthy node on the ring, D, tagged with a <b>hint</b>: \"this belongs to C\". The write still has 3 copies (A, B, D), and W = 2 is met."
+    },
+    {
+     "edge": "d-c",
+     "note": "When gossip shows C back, D replays its hints to C and deletes them. The cost of a sloppy quorum: if a partition pushes writes onto stand-ins outside A, B, C, a read from the home replicas can miss them until the hints land. R + W &gt; N no longer guarantees overlap."
+    }
+   ]
+  },
+  {
+   "id": "ae",
+   "name": "Anti-entropy with Merkle trees",
+   "desc": "Background repair for keys nobody reads.",
+   "steps": [
+    {
+     "edge": "an-b",
+     "note": "For each key range, B keeps a Merkle tree: leaves hash buckets of keys, parents hash their children. B and C exchange root hashes for a range they share."
+    },
+    {
+     "node": "anti",
+     "note": "Roots differ, so walk down only the branches whose hashes differ. A tree of depth 15 has 2^15 = 32,768 leaves; finding one bad bucket takes 15 levels of comparisons instead of streaming millions of keys."
+    },
+    {
+     "edge": "an-c",
+     "note": "Stream only the keys in the differing leaves to C. Run this on a schedule and after a node returns from a long outage."
+    },
+    {
+     "node": "c",
+     "note": "C now matches B for this range. A full pass over every range must finish within the tombstone grace period (say 10 days), or a replica that missed a delete can bring the data back."
+    }
+   ]
+  }
+ ],
+ "deep": [
+  {
+   "title": "Partitioning: the ring and virtual nodes",
+   "html": "<p>Hash each key to a 128-bit position on a ring. A key belongs to the first node clockwise from it, and its replicas are the next N-1 distinct nodes. Adding a node moves only the keys between it and its predecessor, about 1/N of the data, instead of reshuffling everything as <code>hash % nodes</code> would.</p><p>With one point per node the arcs are uneven, and a joining node takes all its data from one neighbour. <b>Virtual nodes</b> fix both: each physical node owns many small arcs (16 to 256) scattered round the ring, so load evens out and a new node pulls a little from everyone. Bigger machines can take more vnodes. Try adding and removing nodes in the sim and watch how few keys move.</p>",
+   "sim": "ring"
+  },
+  {
+   "title": "Replication and quorums",
+   "html": "<p>Pick N, R and W per use case:</p><ul><li><b>N=3, W=2, R=2</b>: R + W > N, so read and write quorums overlap. The usual default.</li><li><b>W=1, R=3</b>: fastest writes, slow reads. Good for logging-style data.</li><li><b>W=3, R=1</b>: fast reads, but one slow replica blocks every write.</li></ul><p>Overlapping quorums are not linearizability. With sloppy quorums, concurrent writes and replicas catching up at different speeds, a read can still return an old value for a short time. Watch how lag works in the sim: a replica that is 200 ms behind serves stale reads for 200 ms after each write. Cassandra calls the overlapping setting <code>QUORUM</code>; DynamoDB exposes a simpler choice of eventually or strongly consistent reads.</p>",
+   "sim": "replica"
+  },
+  {
+   "title": "Conflicts: vector clocks or last-write-wins",
+   "html": "<p>With no leader, two clients can write the same key at the same time through different coordinators.</p><ul><li><b>Last-write-wins</b> (Cassandra): every value carries a timestamp, the highest wins. Simple, no siblings, but clock skew of even 50 ms silently drops a write.</li><li><b>Vector clocks</b> (the 2007 Dynamo paper): a list of <code>[node: counter]</code>. If one clock descends from the other, keep the newer. If neither does, keep <b>both</b> and let the application merge, as Amazon did for shopping carts by taking the union of items. Clocks are pruned when they grow past ~10 entries.</li><li><b>CRDTs</b> (counters, sets) merge automatically and are a good middle ground for counters and flags.</li></ul><p>Say which you would pick and why: for user profiles LWW is usually fine; for a cart or a balance, losing a write is a bug.</p>"
+  },
+  {
+   "title": "Failure detection and repair in layers",
+   "html": "<ol><li><b>Gossip</b>: each node bumps a heartbeat counter and swaps its membership table with 1-3 random peers every second. A node whose counter stops moving for ~10 s is suspected down; a phi-accrual detector turns \"how late is this heartbeat\" into a probability instead of a fixed timeout.</li><li><b>Hinted handoff</b>: covers outages of minutes to hours, from the stand-in node.</li><li><b>Read repair</b>: fixes keys as they are read.</li><li><b>Merkle anti-entropy</b>: finds everything else, cheaply, by comparing hash trees per key range.</li></ol><p>Permanent removal is an <b>operator</b> decision, not an automatic one: a flapping network link should not trigger terabytes of data movement.</p>"
+  }
+ ],
+ "tradeoffs": [
+  {
+   "choice": "Leaderless (Dynamo) or leader per shard (Raft)?",
+   "pick": "Leaderless, for this brief",
+   "why": "The requirement is \"always writable\". Leaderless keeps taking writes while any W nodes are up, at the cost of conflicts. Raft gives linearizable reads and writes but a shard pauses for a few seconds during leader election and rejects writes without a majority."
+  },
+  {
+   "choice": "Strict or sloppy quorum?",
+   "pick": "Sloppy, with hinted handoff",
+   "why": "Strict quorums fail writes when 2 of the 3 home replicas are unreachable. Sloppy quorums accept them on stand-ins, at the cost of weaker read guarantees during the outage."
+  },
+  {
+   "choice": "Vector clocks or last-write-wins?",
+   "pick": "Depends on the data",
+   "why": "LWW is simpler for clients and fine for caches and profiles. Vector clocks (or CRDTs) are needed when two concurrent writes must both survive."
+  },
+  {
+   "choice": "How many vnodes per node?",
+   "pick": "16-256, depending on cluster size",
+   "why": "More vnodes even out load and spread rebuild work, but grow ring metadata and make repair touch more ranges. Cassandra 4.0 lowered its default from 256 to 16 and added smarter token allocation to keep balance."
+  }
+ ],
+ "bottlenecks": [
+  {
+   "issue": "One hot key gets 50k reads/s and saturates its 3 replicas",
+   "fix": "Cache it in the client or a front cache; for writes, split the key into sub-keys (<code>counter#0..15</code>) and sum on read."
+  },
+  {
+   "issue": "Tail latency from one slow replica",
+   "fix": "Send to all N and use the first R or W replies; add speculative retries to another replica after the p95 latency."
+  },
+  {
+   "issue": "Tombstones pile up and slow reads",
+   "fix": "Compaction purges tombstones after a grace period (say 10 days). Run a full repair more often than that, or a replica that missed the delete can bring the data back."
+  }
+ ],
+ "followups": [
+  {
+   "q": "How does a new node join?",
+   "a": "<p>It picks its tokens (random, or chosen to balance load), gossips its intent, and streams the ranges it now owns from the current replicas. Until streaming finishes it receives writes for those ranges but does not serve reads. Old replicas drop the moved data afterwards.</p>"
+  },
+  {
+   "q": "Can this give strongly consistent reads?",
+   "a": "<p>Not fully. R + W > N with strict quorums gives read-your-writes in the common case, but concurrent writes and LWW clock skew can still break linearizability. For that you need consensus (Paxos or Raft per key range) or a compare-and-set built on it.</p>"
+  },
+  {
+   "q": "How would you replicate across two regions?",
+   "a": "<p>Place replicas per region (say 3 + 3) and use <code>LOCAL_QUORUM</code> so requests wait only for the local region; replicate to the other region asynchronously. Conflicts across regions are settled by the same rule (LWW or clocks).</p>"
+  },
+  {
+   "q": "Why an LSM tree and not a B-tree?",
+   "a": "<p>Writes become sequential appends to a log and a memtable, which suits a write-heavy store. Reads may check several SSTables, so each has a Bloom filter to skip files that do not hold the key, and compaction keeps the file count low.</p>"
+  },
+  {
+   "q": "What happens if the client sends a stale context?",
+   "a": "<p>The new value's clock does not descend from the current one, so it is stored as a sibling. The next read returns both and the client merges. With LWW the later timestamp simply wins.</p>"
+  }
+ ],
+ "quiz": [
+  {
+   "q": "With N = 3, which setting guarantees read and write quorums overlap?",
+   "options": [
+    "R = 1, W = 1",
+    "R = 1, W = 2",
+    "R = 2, W = 2",
+    "R = 1, W = 1 with vnodes"
+   ],
+   "answer": 2,
+   "why": "Overlap needs R + W > N: 2 + 2 = 4 > 3."
+  },
+  {
+   "q": "What is the main reason to use virtual nodes?",
+   "options": [
+    "To encrypt keys",
+    "To spread load and rebuild work evenly across physical nodes",
+    "To avoid the need for replication",
+    "To make range scans fast"
+   ],
+   "answer": 1,
+   "why": "Many small arcs per node even out ownership and let a new or recovering node exchange data with many peers at once."
+  },
+  {
+   "q": "Node C is down for 20 minutes. What keeps writes to its keys at 3 copies?",
+   "options": [
+    "Read repair",
+    "Hinted handoff to the next healthy node",
+    "Gossip",
+    "Compaction"
+   ],
+   "answer": 1,
+   "why": "The stand-in node stores C's writes with a hint and replays them when C returns."
+  },
+  {
+   "q": "Two clocks are [A:2, B:1] and [A:1, B:2]. What should the store do?",
+   "options": [
+    "Keep [A:2, B:1] because A is first",
+    "Keep the one with the later wall-clock time, always",
+    "Keep both as siblings: neither descends from the other",
+    "Reject both writes"
+   ],
+   "answer": 2,
+   "why": "Each clock is ahead on one entry, so the writes were concurrent. A vector-clock store returns both for the client to merge."
+  },
+  {
+   "q": "Why compare Merkle trees instead of every key?",
+   "options": [
+    "Equal hashes prove whole ranges match, so you only walk and stream the branches that differ",
+    "Merkle trees encrypt data in transit",
+    "It avoids the need for gossip",
+    "It makes writes faster"
+   ],
+   "answer": 0,
+   "why": "Matching roots prove whole ranges are equal; only differing subtrees are explored and streamed."
+  }
+ ]
+}

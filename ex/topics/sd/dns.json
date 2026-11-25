@@ -1,0 +1,533 @@
+{
+ "id": "dns",
+ "track": "sd",
+ "order": 2,
+ "title": "DNS",
+ "short": "Turn a name like shop.example.com into a server address.",
+ "what": "Computers find each other by IP address, a number like 93.184.216.34. DNS (the Domain Name System) is the internet's phone book: you give it a name, it gives back the address. Answers are cached for a set time, so most lookups never leave your machine.",
+ "analogy": "Your phone's contacts. You tap Mom and it dials her number. If a number isn't saved, you ask directory enquiries once, then save it.",
+ "viz": {
+  "kind": "sd",
+  "frames": [
+   {
+    "nodes": [
+     {
+      "id": "b",
+      "label": "Your browser",
+      "sub": "cache: empty",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "r",
+      "label": "Resolver",
+      "sub": "your ISP",
+      "x": 45,
+      "y": 50
+     },
+     {
+      "id": "root",
+      "label": "Root server",
+      "sub": "knows .com",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "com",
+      "label": ".com server",
+      "sub": "knows example.com",
+      "x": 100,
+      "y": 50
+     },
+     {
+      "id": "ns",
+      "label": "Name server",
+      "sub": "example.com",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "b",
+      "r"
+     ],
+     [
+      "r",
+      "root"
+     ],
+     [
+      "r",
+      "com"
+     ],
+     [
+      "r",
+      "ns"
+     ]
+    ],
+    "say": "You type shop.example.com. Computers connect by number (an IP address), so your browser must look the name up first. Its cache is empty."
+   },
+   {
+    "nodes": [
+     {
+      "id": "b",
+      "label": "Your browser",
+      "sub": "cache: empty",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "r",
+      "label": "Resolver",
+      "sub": "your ISP",
+      "x": 45,
+      "y": 50
+     },
+     {
+      "id": "root",
+      "label": "Root server",
+      "sub": "knows .com",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "com",
+      "label": ".com server",
+      "sub": "knows example.com",
+      "x": 100,
+      "y": 50
+     },
+     {
+      "id": "ns",
+      "label": "Name server",
+      "sub": "example.com",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "b",
+      "r"
+     ],
+     [
+      "r",
+      "root"
+     ],
+     [
+      "r",
+      "com"
+     ],
+     [
+      "r",
+      "ns"
+     ]
+    ],
+    "hi": [
+     "b",
+     "r"
+    ],
+    "edgeHi": [
+     [
+      "b",
+      "r"
+     ]
+    ],
+    "say": "The browser asks a resolver, a server run by your internet provider whose job is to find answers. The resolver hasn't seen this name either."
+   },
+   {
+    "nodes": [
+     {
+      "id": "b",
+      "label": "Your browser",
+      "sub": "cache: empty",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "r",
+      "label": "Resolver",
+      "sub": "your ISP",
+      "x": 45,
+      "y": 50
+     },
+     {
+      "id": "root",
+      "label": "Root server",
+      "sub": "knows .com",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "com",
+      "label": ".com server",
+      "sub": "knows example.com",
+      "x": 100,
+      "y": 50
+     },
+     {
+      "id": "ns",
+      "label": "Name server",
+      "sub": "example.com",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "b",
+      "r"
+     ],
+     [
+      "r",
+      "root",
+      "who has .com?"
+     ],
+     [
+      "r",
+      "com"
+     ],
+     [
+      "r",
+      "ns"
+     ]
+    ],
+    "hi": [
+     "root"
+    ],
+    "edgeHi": [
+     [
+      "r",
+      "root"
+     ]
+    ],
+    "say": "The resolver starts at the top. It asks a root server: who handles .com? The root points it to the .com servers."
+   },
+   {
+    "nodes": [
+     {
+      "id": "b",
+      "label": "Your browser",
+      "sub": "cache: empty",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "r",
+      "label": "Resolver",
+      "sub": "your ISP",
+      "x": 45,
+      "y": 50
+     },
+     {
+      "id": "root",
+      "label": "Root server",
+      "sub": "knows .com",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "com",
+      "label": ".com server",
+      "sub": "knows example.com",
+      "x": 100,
+      "y": 50
+     },
+     {
+      "id": "ns",
+      "label": "Name server",
+      "sub": "example.com",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "b",
+      "r"
+     ],
+     [
+      "r",
+      "root"
+     ],
+     [
+      "r",
+      "com",
+      "example?"
+     ],
+     [
+      "r",
+      "ns"
+     ]
+    ],
+    "hi": [
+     "com"
+    ],
+    "dim": [
+     "root"
+    ],
+    "edgeHi": [
+     [
+      "r",
+      "com"
+     ]
+    ],
+    "say": "It asks a .com server: who handles example.com? The answer is example.com's own name server."
+   },
+   {
+    "nodes": [
+     {
+      "id": "b",
+      "label": "Your browser",
+      "sub": "cache: empty",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "r",
+      "label": "Resolver",
+      "sub": "your ISP",
+      "x": 45,
+      "y": 50
+     },
+     {
+      "id": "root",
+      "label": "Root server",
+      "sub": "knows .com",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "com",
+      "label": ".com server",
+      "sub": "knows example.com",
+      "x": 100,
+      "y": 50
+     },
+     {
+      "id": "ns",
+      "label": "Name server",
+      "sub": "93.184.216.34",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "b",
+      "r"
+     ],
+     [
+      "r",
+      "root"
+     ],
+     [
+      "r",
+      "com"
+     ],
+     [
+      "r",
+      "ns",
+      "shop?"
+     ]
+    ],
+    "ok": [
+     "ns"
+    ],
+    "dim": [
+     "root",
+     "com"
+    ],
+    "edgeHi": [
+     [
+      "r",
+      "ns"
+     ]
+    ],
+    "say": "The name server holds the real record: shop is at 93.184.216.34, valid for 300 seconds. That lifetime is called the TTL."
+   },
+   {
+    "nodes": [
+     {
+      "id": "b",
+      "label": "Your browser",
+      "sub": "93.184.216.34",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "r",
+      "label": "Resolver",
+      "sub": "cached for 300 s",
+      "x": 45,
+      "y": 50
+     },
+     {
+      "id": "root",
+      "label": "Root server",
+      "sub": "knows .com",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "com",
+      "label": ".com server",
+      "sub": "knows example.com",
+      "x": 100,
+      "y": 50
+     },
+     {
+      "id": "ns",
+      "label": "Name server",
+      "sub": "example.com",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "r",
+      "b",
+      "IP address"
+     ],
+     [
+      "r",
+      "root"
+     ],
+     [
+      "r",
+      "com"
+     ],
+     [
+      "r",
+      "ns"
+     ]
+    ],
+    "ok": [
+     "b"
+    ],
+    "dim": [
+     "root",
+     "com",
+     "ns"
+    ],
+    "edgeHi": [
+     [
+      "r",
+      "b"
+     ]
+    ],
+    "say": "The resolver saves the answer and hands it to your browser, which connects to that IP. This first lookup took about 80 ms."
+   },
+   {
+    "nodes": [
+     {
+      "id": "b",
+      "label": "Your browser",
+      "sub": "cache hit",
+      "x": 0,
+      "y": 50
+     },
+     {
+      "id": "r",
+      "label": "Resolver",
+      "sub": "cache hit",
+      "x": 45,
+      "y": 50
+     },
+     {
+      "id": "root",
+      "label": "Root server",
+      "sub": "knows .com",
+      "x": 100,
+      "y": 0
+     },
+     {
+      "id": "com",
+      "label": ".com server",
+      "sub": "knows example.com",
+      "x": 100,
+      "y": 50
+     },
+     {
+      "id": "ns",
+      "label": "Name server",
+      "sub": "example.com",
+      "x": 100,
+      "y": 100
+     }
+    ],
+    "edges": [
+     [
+      "b",
+      "r"
+     ],
+     [
+      "r",
+      "root"
+     ],
+     [
+      "r",
+      "com"
+     ],
+     [
+      "r",
+      "ns"
+     ]
+    ],
+    "ok": [
+     "b",
+     "r"
+    ],
+    "dim": [
+     "root",
+     "com",
+     "ns"
+    ],
+    "say": "Next page on the same site: the browser already knows the IP, 0 ms. Your neighbour on the same ISP gets it from the resolver in about 5 ms."
+   }
+  ]
+ },
+ "when": [
+  "A question starts with typing a URL",
+  "You move a site to new servers",
+  "Users in different countries should hit different servers",
+  "Something is down but the servers look fine"
+ ],
+ "python": "records = {\"shop.example.com\": (\"93.184.216.34\", 300)}   # the name server's answer and its TTL\ncache = {}\n\ndef resolve(name, now):\n    if name in cache and cache[name][1] > now:\n        return cache[name][0], \"from cache\"\n    ip, ttl = records[name]               # the slow trip: root, then .com, then name server\n    cache[name] = (ip, now + ttl)\n    return ip, \"asked the name servers\"\n\nfor now in [0, 10, 299, 301]:\n    print(f\"t={now}s\", *resolve(\"shop.example.com\", now))",
+ "output": "t=0s 93.184.216.34 asked the name servers\nt=10s 93.184.216.34 from cache\nt=299s 93.184.216.34 from cache\nt=301s 93.184.216.34 asked the name servers",
+ "cost": [
+  [
+   "Browser or OS cache hit",
+   "~0 ms"
+  ],
+  [
+   "Resolver cache hit",
+   "~5-20 ms"
+  ],
+  [
+   "Full lookup: root, .com, name server",
+   "~50-150 ms"
+  ],
+  [
+   "How long an answer is reused",
+   "its TTL, e.g. 300 s"
+  ]
+ ],
+ "watch": [
+  "Changes spread slowly: old answers live until their TTL runs out. Lower the TTL a day before you move servers.",
+  "If your DNS provider goes down, nobody can find your site even though your servers are fine.",
+  "One name can return several IPs, a cheap first layer of load balancing."
+ ],
+ "interview": [
+  "What happens when you type a URL and press Enter?",
+  "Move a website to new servers with no downtime",
+  "Design a CDN"
+ ],
+ "related": [
+  "client-server",
+  "cdn",
+  "caching",
+  "load-balancer"
+ ]
+}

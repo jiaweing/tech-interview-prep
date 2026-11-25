@@ -1,0 +1,259 @@
+{
+ "id": "py-collections",
+ "track": "py",
+ "order": 11,
+ "title": "collections: Counter, deque",
+ "short": "Counter, defaultdict and deque save you lines and bugs.",
+ "what": "The collections module has three tools interviews use all the time. Counter counts things. defaultdict fills in a starting value for a missing key. deque is a list that is fast at both ends, the right type for a queue.",
+ "analogy": "A tally sheet that adds a new row by itself the first time a name shows up, and a ticket line where people can join or leave at either end.",
+ "viz": {
+  "kind": "map",
+  "frames": [
+   {
+    "rows": [
+     [
+      "\"b\"",
+      "1"
+     ],
+     [
+      "\"a\"",
+      "1"
+     ],
+     [
+      "\"n\"",
+      "1"
+     ]
+    ],
+    "heads": [
+     "letter",
+     "count"
+    ],
+    "hi": [
+     0,
+     1,
+     2
+    ],
+    "label": "Counter(\"banana\")",
+    "say": "Counter(\"banana\") counts the letters for you in one pass. Here it has read b, a, n: each new letter starts at 1."
+   },
+   {
+    "rows": [
+     [
+      "\"b\"",
+      "1"
+     ],
+     [
+      "\"a\"",
+      "3"
+     ],
+     [
+      "\"n\"",
+      "2"
+     ]
+    ],
+    "heads": [
+     "letter",
+     "count"
+    ],
+    "hi": [
+     1,
+     2
+    ],
+    "label": "Counter(\"banana\")",
+    "out": "c[\"z\"] -> 0",
+    "say": "The rest, \"ana\", bumps a to 3 and n to 2. No get(), no KeyError: a missing letter reads as 0."
+   },
+   {
+    "rows": [
+     [
+      "\"b\"",
+      "1"
+     ],
+     [
+      "\"a\"",
+      "3"
+     ],
+     [
+      "\"n\"",
+      "2"
+     ]
+    ],
+    "heads": [
+     "letter",
+     "count"
+    ],
+    "ok": [
+     1,
+     2
+    ],
+    "dim": [
+     0
+    ],
+    "label": "c.most_common(2)",
+    "out": "[('a', 3), ('n', 2)]",
+    "say": "most_common(2) returns the 2 biggest counts, largest first. That is the \"top k frequent\" step in one call."
+   },
+   {
+    "rows": [
+     [
+      "3",
+      "[\"cat\"]"
+     ]
+    ],
+    "heads": [
+     "key",
+     "value"
+    ],
+    "hi": [
+     0
+    ],
+    "label": "groups = defaultdict(list)",
+    "say": "defaultdict(list) makes an empty list the first time you touch a key. groups[len(w)].append(w) needs no check."
+   },
+   {
+    "rows": [
+     [
+      "3",
+      "[\"cat\", \"dog\"]"
+     ],
+     [
+      "2",
+      "[\"ox\"]"
+     ]
+    ],
+    "heads": [
+     "key",
+     "value"
+    ],
+    "ok": [
+     0,
+     1
+    ],
+    "label": "groups[len(w)].append(w)",
+    "say": "\"ox\" makes a new key 2; \"dog\" finds key 3 and joins \"cat\". Words are now grouped by length."
+   },
+   {
+    "rows": [
+     [
+      "3",
+      "[\"cat\", \"dog\"]"
+     ],
+     [
+      "2",
+      "[\"ox\"]"
+     ],
+     [
+      "9",
+      "[]"
+     ]
+    ],
+    "heads": [
+     "key",
+     "value"
+    ],
+    "bad": [
+     2
+    ],
+    "label": "print(groups[9])",
+    "say": "Careful: even reading groups[9] creates the key with []. Use 9 in groups to check without adding."
+   },
+   {
+    "rows": [
+     [
+      "\"a\"",
+      "1"
+     ]
+    ],
+    "heads": [
+     "key",
+     "value"
+    ],
+    "ok": [
+     0
+    ],
+    "label": "deg = defaultdict(int)",
+    "out": "deg[\"a\"] += 1 -> 1",
+    "say": "defaultdict(int) starts every new key at 0, so deg[\"a\"] += 1 works with no check. Handy for counting in-degrees."
+   },
+   {
+    "rows": [
+     [
+      "append(4)",
+      "[1, 2, 3, 4]"
+     ],
+     [
+      "appendleft(0)",
+      "[0, 1, 2, 3, 4]"
+     ],
+     [
+      "popleft() -> 0",
+      "[1, 2, 3, 4]"
+     ],
+     [
+      "pop() -> 4",
+      "[1, 2, 3]"
+     ]
+    ],
+    "heads": [
+     "call",
+     "q after it"
+    ],
+    "hi": [
+     1,
+     2
+    ],
+    "label": "q = deque([1, 2, 3])",
+    "say": "deque is fast at both ends: append and pop work on the right, appendleft and popleft on the left. All O(1)."
+   }
+  ]
+ },
+ "when": [
+  "Count how often each item appears",
+  "Top k most frequent",
+  "Group items into lists by a key",
+  "A queue for BFS",
+  "Add or remove at both ends"
+ ],
+ "python": "from collections import Counter, defaultdict, deque\nc = Counter(\"banana\")\nprint(c, c[\"z\"], c.most_common(2))\ngroups = defaultdict(list)\nfor w in [\"cat\", \"ox\", \"dog\"]:\n    groups[len(w)].append(w)\nprint(dict(groups), 9 in groups)\ndeg = defaultdict(int)\ndeg[\"a\"] += 1\nprint(dict(deg))\nq = deque([1, 2, 3])\nq.append(4)\nq.appendleft(0)\nprint(q.popleft(), q.pop(), q)",
+ "output": "Counter({'a': 3, 'n': 2, 'b': 1}) 0 [('a', 3), ('n', 2)]\n{3: ['cat', 'dog'], 2: ['ox']} False\n{'a': 1}\n0 4 deque([1, 2, 3])",
+ "cost": [
+  [
+   "Counter(items)",
+   "O(n)"
+  ],
+  [
+   "most_common(k)",
+   "O(n log k)"
+  ],
+  [
+   "defaultdict read or write",
+   "O(1)"
+  ],
+  [
+   "deque append / popleft",
+   "O(1)"
+  ],
+  [
+   "list.pop(0), for contrast",
+   "O(n)"
+  ]
+ ],
+ "watch": [
+  "Reading a missing key in a defaultdict creates it. Check with key in d first.",
+  "A BFS queue should be a deque with popleft(). list.pop(0) is O(n) each time.",
+  "Counter subtraction (c1 - c2) drops every count that falls to 0 or below."
+ ],
+ "interview": [
+  "LC 347 Top K Frequent Elements",
+  "LC 49 Group Anagrams",
+  "LC 102 Binary Tree Level Order Traversal"
+ ],
+ "related": [
+  "hash-map",
+  "deque",
+  "queue",
+  "bfs",
+  "py-dicts-sets",
+  "top-k-heap"
+ ]
+}
