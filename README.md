@@ -201,6 +201,40 @@ Questions can also be `{"lc": "<leetcode-slug>", ...}` for a LeetCode problem or
 
 `kind` is `coding`, `design` or `behavioural`; the mock interviewer uses the matching round's name, length and description. `problem` is the id of a problem in `app/content/problems/` (the file name without `.json`). `tag` is `reported` for a candidate's own report, or `listed` for a prep site's list. Only add what a public source supports, and link it.
 
+## Your own interview
+
+A pack can also describe one specific interview: when and where it is, who is on the panel, what each person is likely to probe, the questions to expect with your answer for each, questions to ask them, a table, and a list of things to fix before the day. Add an `interview` object to the pack:
+
+```json
+"interview": {
+  "when": "Thu 10 Dec · 3:00 to 4:00pm", "where": "Level 8 lobby", "arrive": "Arrive 10 minutes early",
+  "people": [
+    { "tag": "PE", "role": "Principal software engineer", "voice": "rounded",
+      "lens": "Architecture, ownership and trade-offs.",
+      "probe": ["Why this design over the obvious alternative"],
+      "qs": [["Walk me through your architecture.", "Your answer, in a sentence or two."]],
+      "ask": ["How do you decide a product is ready to hand over?"] }
+  ],
+  "table": { "title": "A table you want to remember", "head": ["Column"], "rows": [["Cell"]] },
+  "fix": ["Things to sort out before the day"]
+}
+```
+
+The pack page then shows **Your interview**, and **Start the panel mock** runs the deep dive with the whole panel: the interviewer plays each person in turn, each with their own voice (`voice` is one of `rounded`, `glassy`, `airy` or `buttery`).
+
+Keep personal material out of this repository with a private overlay, a folder anywhere on your machine:
+
+```
+my-prep/
+  config.json      {"title": "My prep", "exclude_packs": ["some-company"], "default_pack": "acme"}
+  packs/*.json     your own packs, or a pack with the same id as a public one to replace it
+  mine.json        your deep-dive project notes, which fill the worksheet and the mock interviewer
+```
+
+```sh
+cd app && python3 build.py --private /path/to/my-prep   # writes my-prep/dist/index.html and artifact.html
+```
+
 ## License
 
 The code and the written content are released under the [MIT License](LICENSE). Bundled and linked third-party code keeps its own license: see [THIRD_PARTY.md](THIRD_PARTY.md). LeetCode is a trademark of its owner; this project is not affiliated with LeetCode, GovTech, AppLovin, Anthropic or any company it mentions. Linked videos belong to their creators.

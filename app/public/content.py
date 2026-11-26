@@ -65,10 +65,16 @@ def deepdive(dd):
 def gt_data(gt):
     return dict(gt, stages=STAGES, tips=TIPS)
 
-def packs(problems):
-    """Company packs. A pack lists rounds and reported tasks with where they were reported."""
+def packs(problems, private=None):
+    """Company packs. A pack lists rounds and reported tasks with where they were reported.
+    A private overlay (build.py --private DIR) can add packs or replace one with the same id (DIR/packs/*.json)
+    and leave packs out (exclude_packs in DIR/config.json)."""
+    files = {os.path.basename(f): f for f in glob.glob(os.path.join(HERE, 'packs', '*.json'))}
+    if private:
+        files.update({os.path.basename(f): f for f in glob.glob(os.path.join(private['dir'], 'packs', '*.json'))})
+        for x in private.get('exclude_packs', []): files.pop(x + '.json', None)
     out = []
-    for f in sorted(glob.glob(os.path.join(HERE, 'packs', '*.json'))):
+    for f in sorted(files.values()):
         P = json.load(open(f, encoding='utf-8'))
         if P.get('problems_from') == 'govtech':
             ids = [p['id'] for p in problems if p.get('govtech')]

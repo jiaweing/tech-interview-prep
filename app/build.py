@@ -8,6 +8,13 @@ B = os.path.dirname(os.path.abspath(__file__))
 P = lambda *a: os.path.join(B, *a)
 # --public builds the generic edition (no personal notes, company packs, LeetCode list, self-hosted AI)
 PUBLIC = True
+# --private DIR adds a personal overlay that never goes into this repository: DIR/config.json
+# ({title, exclude_packs, default_pack}), DIR/packs/*.json (extra or replacement company packs, which can
+# describe your own interview and panel) and DIR/mine.json (your deep-dive project notes). Output goes to DIR/dist/.
+PRIVATE = None
+if '--private' in sys.argv:
+    _pd = os.path.abspath(sys.argv[sys.argv.index('--private') + 1])
+    PRIVATE = dict(json.load(open(os.path.join(_pd, 'config.json'), encoding='utf-8')), dir=_pd)
 if PUBLIC:
     sys.path.insert(0, P('public'))
     import content as PUB
@@ -119,8 +126,8 @@ GT = json.load(open(P('gt-data.json'), encoding='utf-8'))
 if PUBLIC: GT = PUB.gt_data(GT)
 def js_json(o): return json.dumps(o, ensure_ascii=False).replace('</', '<\\/')
 inject = ['<script>', 'window.SD_DATA = ' + js_json(SD) + ';', 'window.GT_DATA = ' + js_json(GT) + ';', '</script>',
-          '<script>', open(P('sd.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('gt.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('sheet.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('al.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('cheats.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('patterns.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('flow.js'), encoding='utf-8').read(), '</script>', '<script>window.EXPLAIN_TOPICS = ', EX_TOPICS, '; window.EXPLAIN_REL = ', open(P('../ex/relations.json'), encoding='utf-8').read(), ';</script>', '<script>', open(P('../ex/explain.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('../ex/which.js'), encoding='utf-8').read(), '</script>', '<script>window.PAT_FINE = ', js_json(dict(json.load(open(P('content/extra/pattern_fine.json'), encoding='utf-8')), **{p['id']: p['fine'] for p in DATA['problems'] if p.get('fine')})), ';</script>', '<script>window.VIDEO_DATA = ', open(P('content/extra/videos.json'), encoding='utf-8').read(), ';</script>', '<script>', open(P('videos.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('icons.js'), encoding='utf-8').read(), '</script>', '<script>', 'window.DD_DATA = ' + js_json(dict(PUB.deepdive(json.load(open(P('content/extra/deepdive.json'), encoding='utf-8'))), mine={'projects': [], 'stories': {}})) + ';', open(P('dd.js'), encoding='utf-8').read(), '</script>']
-if PUBLIC: inject += ['<script>', 'window.LC_DATA = ' + open(P('public/leetcode.json'), encoding='utf-8').read().replace('</', '<\\/') + ';', 'window.PACKS = ' + js_json(PUB.packs(DATA['problems'])) + ';', '</script>']
+          '<script>', open(P('sd.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('gt.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('sheet.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('al.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('cheats.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('patterns.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('flow.js'), encoding='utf-8').read(), '</script>', '<script>window.EXPLAIN_TOPICS = ', EX_TOPICS, '; window.EXPLAIN_REL = ', open(P('../ex/relations.json'), encoding='utf-8').read(), ';</script>', '<script>', open(P('../ex/explain.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('../ex/which.js'), encoding='utf-8').read(), '</script>', '<script>window.PAT_FINE = ', js_json(dict(json.load(open(P('content/extra/pattern_fine.json'), encoding='utf-8')), **{p['id']: p['fine'] for p in DATA['problems'] if p.get('fine')})), ';</script>', '<script>window.VIDEO_DATA = ', open(P('content/extra/videos.json'), encoding='utf-8').read(), ';</script>', '<script>', open(P('videos.js'), encoding='utf-8').read(), '</script>', '<script>', open(P('icons.js'), encoding='utf-8').read(), '</script>', '<script>', 'window.DD_DATA = ' + js_json(dict(PUB.deepdive(json.load(open(P('content/extra/deepdive.json'), encoding='utf-8'))), mine=json.load(open(os.path.join(PRIVATE['dir'], 'mine.json'), encoding='utf-8')) if PRIVATE and os.path.exists(os.path.join(PRIVATE['dir'], 'mine.json')) else {'projects': [], 'stories': {}})) + ';', open(P('dd.js'), encoding='utf-8').read(), '</script>']
+if PUBLIC: inject += ['<script>', 'window.LC_DATA = ' + open(P('public/leetcode.json'), encoding='utf-8').read().replace('</', '<\\/') + ';', 'window.DEFAULT_PACK = ' + js_json((PRIVATE or {}).get('default_pack', '')) + ';', 'window.PACKS = ' + js_json(PUB.packs(DATA['problems'], PRIVATE)) + ';', '</script>']
 lines[2271:2272] = ['</script>', '<!--SDINJECT-->']
 
 # ---------- css ----------
@@ -138,13 +145,17 @@ html = once(html, 'family=Caveat:wght@500;700&family=Geist:wght@400;500;600;700&
 html = once(html, '/*SDCSS*/', open(P('sd.css'), encoding='utf-8').read() + '\n' + open(P('../ex/explain.css'), encoding='utf-8').read() + '\n.ex-page .ex-blk, .ex-page .ex-card, .ex-page .ex-fam, .ex-page .wh-col { box-shadow: none; }\n.ex-from-sheet { display: inline-flex !important; width: fit-content; margin: 0 20px 10px; }\n.sec-b > .ex-mini { margin: 0 20px 12px; }\n.ex-page .ex-wide { width: auto; left: 0; transform: none; }\n.ex-page .ex-index { max-width: none; }\n')
 if PUBLIC: exec(open(P('public/patch.py'), encoding='utf-8').read())
 OUT_FULL, OUT_PAGE = '../index.html', 'dist/artifact.html'
+if PRIVATE:
+    OUT_FULL, OUT_PAGE = os.path.join(PRIVATE['dir'], 'dist', 'index.html'), os.path.join(PRIVATE['dir'], 'dist', 'artifact.html')
+    os.makedirs(os.path.dirname(OUT_FULL), exist_ok=True)
+    if PRIVATE.get('title'): html = html.replace('<title>Tech Interview Prep</title>', '<title>' + PRIVATE['title'] + '</title>', 1)
 os.makedirs(P('dist'), exist_ok=True)
 open(P(OUT_FULL), 'w', encoding='utf-8').write(html)
-print('wrote index.html', len(html.encode('utf-8')), 'bytes;', len(DATA['problems']), 'problems;', len(SD['designs']), 'designs;', len(SD['concepts']), 'concepts;', len(SD['practice']), 'practice;', len(SD['drill']), 'drill')
+print('wrote', OUT_FULL, len(html.encode('utf-8')), 'bytes;', len(DATA['problems']), 'problems;', len(SD['designs']), 'designs;', len(SD['concepts']), 'concepts;', len(SD['practice']), 'practice;', len(SD['drill']), 'drill')
 
 # page file to publish: drop the skeleton the artifact service adds around every page
 body = html[html.index('<body>\n') + len('<body>\n'):]
 body = body[:body.rindex('</body></html>')].rstrip() + '\n'
-assert body.startswith('<title>' + ('Tech Interview Prep' if PUBLIC else '$10k') + '</title>')
+assert body.startswith('<title>' + ((PRIVATE or {}).get('title') or 'Tech Interview Prep') + '</title>')
 open(P(OUT_PAGE), 'w', encoding='utf-8').write(body)
 print('wrote', OUT_PAGE, len(body.encode('utf-8')), 'bytes')

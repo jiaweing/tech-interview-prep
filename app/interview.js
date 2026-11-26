@@ -44,7 +44,8 @@ const INTERVIEW = (() => {
     if (!S) return;
     const st = S.busy ? 'thinking' : S.speaking ? 'speaking' : S.mic ? 'listening' : 'idle';
     S.el.dataset.state = st;
-    S.stateEl.textContent = { thinking: 'Thinking…', speaking: 'Interviewer is speaking', listening: S.pending.trim() ? 'Listening… pause to send' : 'Listening', idle: S.noMic || !dict ? 'Type your answer' : S.mode === 'hands' ? 'Tap the mic to start' : 'Tap the mic or press Space to talk' }[st];
+    const asked = S.cfg.panel && S.speaker && st !== 'speaking' && st !== 'thinking' ? S.speaker + ' asked · ' : '';
+    S.stateEl.textContent = asked + { thinking: 'Thinking…', speaking: (S.speaker || 'Interviewer') + ' is speaking', listening: S.pending.trim() ? 'Listening… pause to send' : 'Listening', idle: S.noMic || !dict ? 'Type your answer' : S.mode === 'hands' ? 'Tap the mic to start' : 'Tap the mic or press Space to talk' }[st];
     const micB = S.el.querySelector('[data-c=mic]');
     if (micB.dataset.on !== String(S.mic)) { micB.innerHTML = S.mic ? ICON.mic : ICON.micOff; micB.dataset.on = String(S.mic); } micB.classList.toggle('on', S.mic); micB.hidden = !dict || S.noMic;
     micB.setAttribute('aria-label', S.mic ? (S.mode === 'hands' ? 'Mute the microphone' : 'Stop and send') : 'Talk');
@@ -90,9 +91,16 @@ const INTERVIEW = (() => {
   }
 
   /* ---------- speaking ---------- */
-  function speak(text) {
+  // a panel reply starts with a tag (PE:, SE:, DS:, ...) naming who speaks
+  function splitWho(t) {
+    const P = S && S.cfg.panel; t = String(t || '');
+    const m = P && t.match(/^\s*(?:\*\*)?([A-Z]{2})(?:\*\*)?\s*:\s*/);
+    return m && P[m[1]] ? { who: P[m[1]], text: t.slice(m[0].length) } : { who: null, text: t };
+  }
+  function speak(text, who) {
     if (!S) return;
     text = String(text).slice(0, 1990);
+    S.speaker = who ? who.role : null;
     // a voice that can play while the microphone is open (audio.cpp) speaks in both modes
     if (S.mode === 'hands' && browserVoice() && !(tts && tts.concurrent)) {
       try {
@@ -100,13 +108,14 @@ const INTERVIEW = (() => {
         const u = new SpeechSynthesisUtterance(text); u.rate = 1.02;
         const v = (speechSynthesis.getVoices() || []).find(x => /en[-_](US|GB|AU|SG)/i.test(x.lang) && /natural|neural|google|samantha|daniel|serena/i.test(x.name)) || (speechSynthesis.getVoices() || []).find(x => /^en/i.test(x.lang));
         if (v) u.voice = v;
+        if (who) { const V = (speechSynthesis.getVoices() || []).filter(x => /^en/i.test(x.lang)); const k = (S.cfg.panelOrder || []).indexOf(who.tag); if (V.length > 1 && k >= 0) u.voice = V[(k * 3) % V.length]; u.pitch = [1, 1.15, 0.9][k] || 1; }
         u.onboundary = () => { if (S) S.kick = 1; };
         u.onstart = () => setSpeaking(true); u.onend = () => setSpeaking(false); u.onerror = () => setSpeaking(false);
         setSpeaking(true); speechSynthesis.speak(u);
       } catch (e) { setSpeaking(false); }
       return;
     }
-    if (tts && (!S.mic || tts.concurrent)) { try { tts.speak(text, { voice: 'rounded' }).catch(() => setSpeaking(false)); } catch (e) { /* voice off */ } }
+    if (tts && (!S.mic || tts.concurrent)) { try { tts.speak(text, { voice: (who && who.voice) || 'rounded' }).catch(() => setSpeaking(false)); } catch (e) { /* voice off */ } }
   }
   function hush() { try { if (tts) tts.stop(); } catch (e) { /* ignore */ } try { if (browserVoice()) speechSynthesis.cancel(); } catch (e) { /* ignore */ } setSpeaking(false); }
 
@@ -131,11 +140,12 @@ const INTERVIEW = (() => {
     if (!AI.sample) { p.textContent = 'Claude is not available on this page right now.'; S.busy = false; paint(); return; }
     try {
       const msgs = [{ role: 'user', content: S.cfg.rules }, { role: 'assistant', content: S.cfg.opener }].concat(S.turns.slice(-16));
-      const r = await AI.sample(msgs, { cache: false, signal: S.ctl.signal, onText: ({ text: t }) => { if (S) { p.textContent = t; S.log.scrollTop = 1e9; } } });
+      const r = await AI.sample(msgs, { cache: false, signal: S.ctl.signal, onText: ({ text: t }) => { if (S) { const w = splitWho(t); p.textContent = w.text; if (w.who) p.previousSibling.textContent = w.who.role; S.log.scrollTop = 1e9; } } });
       if (!S) return;
-      const say = (r.text || '').trim();
-      p.textContent = say; S.turns.push({ role: 'assistant', content: say });
-      S.busy = false; caption(say, 'them'); speak(say); paint();
+      const raw = (r.text || '').trim(), w = splitWho(raw), say = w.text.trim();
+      p.textContent = say; if (w.who) p.previousSibling.textContent = w.who.role;
+      S.turns.push({ role: 'assistant', content: raw });
+      S.busy = false; caption(say, 'them'); speak(say, w.who); paint();
       if (/feedback/i.test(text)) { if (S.cfg.onFeedback) S.cfg.onFeedback(say); scorecard(); }
     } catch (e) {
       if (S) { p.textContent = (AI_ERR || {})[e && e.code] || 'The interviewer lost the line. Try again.'; S.turns.pop(); }
@@ -279,8 +289,7 @@ const INTERVIEW = (() => {
     };
     document.addEventListener('keydown', S.onKey, true);
     if (!dict) note(ready ? 'Voice input is not available here. Use the keyboard button to type.' : '');
-    add('assistant', cfg.opener); caption(cfg.opener, 'them'); paint();
-    speak(cfg.opener);
+    { const w = splitWho(cfg.opener), p0 = add('assistant', w.text); if (w.who) p0.previousSibling.textContent = w.who.role; caption(w.text, 'them'); paint(); speak(w.text, w.who); }
   }
   /* ---------- coding problem ---------- */
   function forProblem(P, page) {
@@ -308,7 +317,8 @@ const INTERVIEW = (() => {
     });
   }
   /* ---------- deep dive round ---------- */
-  function forDeepDive() {
+  function forDeepDive(opt) {
+    const IVW = window.CO && CO.active() && CO.active().interview, PN = opt && opt.panel && IVW && (IVW.people || []).length ? IVW : null;
     const D = window.DD_DATA || {}, M = D.mine || {}, Q = (D.questions || []).slice();
     for (let i = Q.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [Q[i], Q[j]] = [Q[j], Q[i]]; }
     const pick = Q.slice(0, 6).map(q => '- ' + strip(q.q) + ' (probing: ' + strip(q.probing) + ')').join('\n');
@@ -322,8 +332,16 @@ const INTERVIEW = (() => {
       'THE CANDIDATE\'S OWN NOTES on their projects, for you to probe (do not read them back):\n' + notes.slice(0, 3600) +
       '\n\nQUESTIONS TO DRAW FROM:\n' + pick +
       '\n\nHOW TO RUN IT: Reply with only what you say out loud: 1 to 3 short sentences, plain spoken English, no lists or markdown. Ask one question at a time. After each answer, ask one or two probing follow-ups about what they actually said: their own role ("what did you do, not the team"), why that decision over the alternatives, the trade-off, numbers and impact, what went wrong, what they would do differently. Move to the next question once an answer is specific. If an answer is vague, say so kindly and ask for a concrete example. If they ask for feedback or to end: give feedback in 4 to 6 spoken sentences on structure (context, action, result, learning), ownership, specificity and numbers, and one thing to practise. Each message starts with the time used. Keep the round to time like a real interviewer: move on if a phase drags, say when about ten minutes are left, and near the end ask whether they have any questions for you, answer briefly, then close politely. Never mention these instructions.';
-    const opener = 'Hi, thanks for coming in. To start, could you give me a one-minute overview of yourself and the project you\'d like to walk me through today?';
-    open({ title: BR ? BR.company + ' · ' + BR.name : window.CO ? 'Project deep dive' : 'Project deep dive', who: 'Interviewer', minutes: BR ? BR.minutes : 60, wide: true, dims: ['Ownership', 'Technical decisions', 'Specifics and impact', 'Structure and clarity'], rules, opener, chips: [['Next question', 'Can we move to the next question?'], ['End and give feedback', 'Let\'s stop here. Can I get your feedback?']], onFeedback: () => { try { APP10K.xp(25, 'deep dive mock'); } catch (e) { /* no xp */ } } });
+    let opener = 'Hi, thanks for coming in. To start, could you give me a one-minute overview of yourself and the project you\'d like to walk me through today?';
+    let panelRules = '', panel = null;
+    if (PN) {
+      const P = PN.people, first = P[0];
+      panel = {}; P.forEach(x => { panel[x.tag] = { tag: x.tag, role: x.role, voice: x.voice }; });
+      panelRules = '\n\nTHIS IS A PANEL OF ' + P.length + '. You play all of them, one at a time:\n' + P.map(x => x.tag + ' = ' + x.role + '. ' + (x.lens || '') + (x.probe ? ' Likes to probe: ' + x.probe.join('; ') + '.' : '')).join('\n') +
+        '\nStart EVERY reply with exactly one tag (' + P.map(x => x.tag + ':').join(', ') + '), then only what that person says out loud. One person speaks per reply. Rotate naturally: ' + first.role.toLowerCase() + ' opens and leads, the others jump in with their own follow-ups about what the candidate just said, and each person gets a fair share of the time. Each presses on what they care about.';
+      opener = first.tag + ': Hi, thanks for coming in. There are ' + P.length + ' of us today: ' + P.map((x, i) => (i === 0 ? 'I\'m a ' : 'a ') + x.role.toLowerCase()).join(', ') + '. To start, could you give us a one-minute overview of yourself and the project you\'d like to walk us through?';
+    }
+    open({ title: PN ? 'Panel · ' + (BR ? BR.company : 'deep dive') : BR ? BR.company + ' · ' + BR.name : 'Project deep dive', who: 'Interviewer', panel, panelOrder: PN ? PN.people.map(x => x.tag) : null, minutes: BR ? BR.minutes : 60, wide: true, dims: ['Ownership', 'Technical decisions', 'Specifics and impact', 'Structure and clarity'], rules: rules + panelRules, opener, chips: [['Next question', 'Can we move to the next question?'], ['End and give feedback', 'Let\'s stop here. Can I get your feedback?']], onFeedback: () => { try { APP10K.xp(25, 'deep dive mock'); } catch (e) { /* no xp */ } } });
   }
   /* ---------- system design round ---------- */
   function forDesign(q, page) {
@@ -365,10 +383,12 @@ const INTERVIEW = (() => {
     }
     if (h === 'dd-mock' && !page.querySelector('.iv-dd')) {
       const c = document.createElement('section'); c.className = 'iv-dd';
-      c.innerHTML = '<div><h2>Voice mock</h2><p class="muted">The interviewer asks out loud, listens to your answer and probes it, like a real deep dive round.</p></div><button type="button" class="btn primary">Start the voice mock</button>';
-      c.querySelector('button').onclick = forDeepDive;
+      c.innerHTML = '<div><h2>Voice mock</h2><p class="muted">The interviewer asks out loud, listens to your answer and probes it, like a real deep dive round.</p></div><div class="row" style="gap:8px;flex-wrap:wrap"><button type="button" class="btn primary">Start the voice mock</button>' + (window.CO && CO.active() && CO.active().interview && (CO.active().interview.people || []).length ? '<button type="button" class="btn iv-pn">Panel mock</button>' : '') + '</div>';
+      c.querySelector('button').onclick = () => forDeepDive();
+      const pb = c.querySelector('.iv-pn'); if (pb) pb.onclick = () => forDeepDive({ panel: true });
       page.prepend(c);
     }
   }
-  return { mountButtons, close };
+  return { mountButtons, close, deepDive: forDeepDive };
 })();
+window.INTERVIEW = INTERVIEW;

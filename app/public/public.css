@@ -97,3 +97,14 @@ a.co-card:hover { background: var(--sunk); text-decoration: none; }
 .crs > .nextup { margin: 4px 0 6px; }
 .sh-dlg .sh-chk { flex-direction: row; align-items: center; gap: 8px; }
 .sh-dlg .lv-status { min-height: 1.2em; font-size: 13px; }
+
+/* a pack's own interview */
+.co-ivw .sd-chips { margin: 4px 0 6px; }
+.co-person { margin: 18px 0 0; }
+.co-person > h3 { margin: 0 0 4px; font: 600 16px/1.3 var(--f-display); }
+.pn-lens { margin: 0 0 10px; color: var(--fg2); font-size: 14.5px; max-width: 75ch; }
+.pn-qs { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.pn-qs .sd-more p { margin: 0; font-size: 14.5px; line-height: 1.55; }
+.pn-t { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.pn-t th, .pn-t td { padding: 8px 10px; text-align: left; vertical-align: top; border-top: 1px solid var(--line); }
+.pn-t th { font-weight: 600; color: var(--fg2); border-top: 0; }
