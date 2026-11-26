@@ -129,6 +129,70 @@
   }
   if (fab) { placeFab(); phone.addEventListener('change', placeFab); }
 
+  /* ---------- desktop: a header tab with modes (Practice) opens them in a dropdown on hover ---------- */
+  const wide = window.matchMedia('(min-width: 561px)');
+  let tmenu = null, tmTimer = 0;
+  function tmClose() { clearTimeout(tmTimer); if (tmenu) { tmenu.tab.setAttribute('aria-expanded', 'false'); tmenu.el.remove(); tmenu = null; } }
+  function tmModes(tab) {
+    const nav = tab.closest('.tnav'), modes = nav && (window.MODES || {})[nav.dataset.realm];
+    const h = (tab.getAttribute('href') || '').slice(1);
+    return modes && modes.length > 1 && modes.some(m => m[0] === h) ? modes : null;
+  }
+  function tmOpen(tab, focus) {
+    if (!wide.matches) return;
+    const modes = tmModes(tab); if (!modes) return;
+    clearTimeout(tmTimer); if (tmenu && tmenu.tab === tab) return;
+    tmClose();
+    const cur = location.hash.slice(1), el = document.createElement('div'); el.className = 'ui-select-menu tn-menu'; el.setAttribute('role', 'menu');
+    el.innerHTML = modes.map(m => '<a class="ui-select-item" role="menuitem" href="#' + m[0] + '"' + (m[0] === cur ? ' aria-current="page"' : '') + '><span></span>' + CHECK + '</a>').join('');
+    el.querySelectorAll('span').forEach((x, i) => { x.textContent = modes[i][1]; });
+    document.body.appendChild(el);
+    const r = tab.getBoundingClientRect();
+    el.style.minWidth = Math.max(r.width, 180) + 'px';
+    el.style.left = Math.max(8, Math.min(r.left + r.width / 2 - el.offsetWidth / 2, window.innerWidth - el.offsetWidth - 8)) + 'px';
+    el.style.top = (r.bottom + 6) + 'px';
+    tab.setAttribute('aria-expanded', 'true'); tmenu = { el, tab };
+    el.addEventListener('mouseenter', () => clearTimeout(tmTimer));
+    el.addEventListener('mouseleave', () => { tmTimer = setTimeout(tmClose, 160); });
+    el.addEventListener('click', e => { if (e.target.closest('a')) tmClose(); });
+    el.addEventListener('keydown', e => {
+      const items = Array.from(el.children), i = items.indexOf(document.activeElement);
+      if (e.key === 'ArrowDown') { e.preventDefault(); (items[i + 1] || items[0]).focus(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); (items[i - 1] || items[items.length - 1]).focus(); }
+      else if (e.key === 'Escape') { e.preventDefault(); const t = tab; tmClose(); t.focus(); }
+      else if (e.key === 'Tab') tmClose();
+    });
+    if (focus) el.firstElementChild.focus();
+  }
+  function tmMark() {
+    document.querySelectorAll('.tnav a').forEach(a => {
+      if (!tmModes(a)) return;
+      if (a.classList.contains('has-menu')) return;
+      a.classList.add('has-menu'); a.setAttribute('aria-haspopup', 'menu'); a.setAttribute('aria-expanded', 'false'); a.insertAdjacentHTML('beforeend', CHEV.replace('<svg ', '<svg class="tn-chev" '));
+    });
+  }
+  document.addEventListener('mouseover', e => { const a = e.target.closest && e.target.closest('.tnav a.has-menu'); if (a) tmOpen(a); }, true);
+  document.addEventListener('mouseout', e => { const a = e.target.closest && e.target.closest('.tnav a.has-menu'); if (a && tmenu && tmenu.tab === a && !(e.relatedTarget && tmenu.el.contains(e.relatedTarget))) tmTimer = setTimeout(tmClose, 160); }, true);
+  document.addEventListener('keydown', e => { const a = e.target.closest && e.target.closest('.tnav a.has-menu'); if (a && e.key === 'ArrowDown') { e.preventDefault(); tmOpen(a, true); } });
+  window.addEventListener('hashchange', tmClose); window.addEventListener('resize', tmClose);
+
+  /* ---------- a page title that repeats a label already on screen (its tab, its mode pill) is hidden ---------- */
+  const norm = t => (t || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+  const shown = e => !!(e && e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden');
+  function dedupeTitle() {
+    const page = document.querySelector('#main .page'), h1 = page && page.querySelector('h1');
+    document.querySelectorAll('h1.dup-title').forEach(x => { if (x !== h1) x.classList.remove('dup-title'); });
+    if (!h1 || h1.classList.contains('sr-only')) return;
+    const labels = [];
+    document.querySelectorAll('.tnav:not([hidden]) a.on').forEach(a => { const t = a.querySelector('.tab-text') || a; if (shown(t)) labels.push(norm(t.textContent)); });
+    page.querySelectorAll('.modes-bar .mode.on').forEach(m => { if (shown(m)) labels.push(norm(m.textContent)); });
+    const t = norm(h1.textContent), first = x => x.split(' ')[0];
+    h1.classList.toggle('dup-title', !!t && labels.some(l => l && (l === t || t.startsWith(l + ' ') || l.startsWith(t + ' ') || first(l) === first(t))));
+  }
+  let dupRaf = 0; const dedupeSoon = () => { cancelAnimationFrame(dupRaf); dupRaf = requestAnimationFrame(() => { dedupeTitle(); tmMark(); }); };
+  window.addEventListener('hashchange', dedupeSoon); wide.addEventListener('change', dedupeSoon);
+  window.UI_dedupe = dedupeTitle;
+
   /* ---------- apply to everything, now and as pages render ---------- */
   function scan(root) {
     if (!root.querySelectorAll) return;
@@ -137,7 +201,7 @@
     if (root.type === 'range') fill(root);
     root.querySelectorAll('input[type=range]').forEach(fill);
   }
-  new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(n => { if (n.nodeType === 1) scan(n); }))).observe(document.documentElement, { childList: true, subtree: true });
-  scan(document.body || document.documentElement);
+  new MutationObserver(ms => { ms.forEach(m => m.addedNodes.forEach(n => { if (n.nodeType === 1) scan(n); })); dedupeSoon(); }).observe(document.documentElement, { childList: true, subtree: true });
+  scan(document.body || document.documentElement); dedupeSoon();
   window.UI = { confirm: confirmDialog, enhanceSelect };
 })();

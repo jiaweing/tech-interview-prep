@@ -1061,3 +1061,14 @@ body.ai-open .ai-fab.in-bar:not([hidden]) { display: inline-flex; }
   .modes-bar .mode-note { display: none; }
   .page > .modes-bar + * { margin-top: 10px; }
 }
+
+/* desktop: practice modes live in the header tab's dropdown (ui.js), so the pill row is phone-only */
+@media (min-width: 561px) { .page > .modes-bar { display: none; } }
+.tnav a .tn-chev { width: 12px; height: 12px; margin-left: -2px; opacity: .55; flex: none; }
+@media (max-width: 560px) { .tnav a .tn-chev { display: none; } }
+.tn-menu { z-index: 60; }
+.tn-menu .ui-select-item { text-decoration: none; color: var(--fg); }
+.tn-menu .ui-select-item[aria-current="page"] svg { visibility: visible; }
+/* a title that repeats its tab or mode pill (ui.js) */
+h1.dup-title { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.sd-head:has(> h1.dup-title:only-child), .co-head:has(> h1.dup-title:only-child) { margin: 0 !important; padding: 0 !important; min-height: 0 !important; }
