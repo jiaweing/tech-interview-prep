@@ -136,6 +136,8 @@ Self-hosted, your progress, ticks, notes and worksheet stay in your browser. Not
 
 4. Open the app. Served from `localhost` or opened as a file, it finds the server by itself. On any other address, turn it on under Profile, **Voice**, which also lets you change the server address and the voices (Kokoro voice ids such as `am_michael`, `bf_emma`, `am_fenrir`; the first is the interviewer, the next two the rest of a panel).
 
+Speed depends on your machine. Transcription is fast even on a CPU (about 0.3 s for a 5-second answer with Moonshine tiny). Kokoro speaks one sentence at a time, so the first sentence plays while the next is generated; on a slow CPU each sentence can take several seconds, so a GPU backend (`--backend metal`, `cuda` or `vulkan`) helps.
+
 `cors_origins: "*"` lets a web page call the server. audio.cpp marks it experimental and meant for trusted local use: keep the server on `127.0.0.1`, not on a shared network.
 
 ## How accurate is it?
