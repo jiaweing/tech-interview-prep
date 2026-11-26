@@ -2681,6 +2681,9 @@ body.iv-full-on { overflow: hidden; }
 .m-back .btn { margin: 0 !important; }
 /* phones: the label is hidden, so centre the icon */
 @media (max-width: 600px) { .yt-btn { padding: 0 7px; gap: 0; } }
+.pat.pat-stack { display: flex; flex-direction: column; gap: 4px; }
+.pat.pat-stack .ex { color: var(--fg2); line-height: 1.5; }
+.pat.pat-stack .pat-ans { color: var(--fg); }
 
 /* Explained: shared styles. Uses the host's tokens: --bg --subtle --sunk --fg --fg2 --muted --accent --ok --ok-soft --bad --bad-soft --hi --hi-soft --hair2 --f-display --f-body --f-code */
 .ex-index, .ex-topic { max-width: 1080px; margin: 0 auto; }
@@ -4982,7 +4985,10 @@ window.addEventListener('resize', () => { const box = current(); if (!box || rl 
 // card content helpers
 const H = {
   facts: rows => '<div class="facts">' + rows.map(r => '<div class="fact"><div class="n">' + r[0] + '</div><div class="t">' + r[1] + (r[2] ? '<i>' + r[2] + '</i>' : '') + '</div></div>').join('') + '</div>',
-  pairs: rows => '<div class="pats">' + rows.map(r => '<div class="pat"><div class="ph">' + r[0] + '</div><div class="sc">' + r[1] + '</div>' + (r[2] ? '<div class="ex">' + r[2] + '</div>' : '') + '</div>').join('') + '</div>',
+  // a short answer sits in a pill on the right; a sentence goes on its own line under the label
+  pairs: rows => '<div class="pats">' + rows.map(r => String(r[1]).replace(/<[^>]+>/g, '').length > 28
+    ? '<div class="pat pat-stack"><div class="ph">' + r[0] + '</div><div class="ex pat-ans">' + r[1] + '</div>' + (r[2] ? '<div class="ex">' + r[2] + '</div>' : '') + '</div>'
+    : '<div class="pat"><div class="ph">' + r[0] + '</div><div class="sc">' + r[1] + '</div>' + (r[2] ? '<div class="ex">' + r[2] + '</div>' : '') + '</div>').join('') + '</div>',
   list: items => '<ul class="rlist">' + items.map(x => '<li>' + x + '</li>').join('') + '</ul>',
 };
 window.SHEET = { mount, H, focus: (host, t) => focusCard(host, t) };

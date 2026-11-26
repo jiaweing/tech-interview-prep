@@ -955,3 +955,6 @@ body.iv-full-on { overflow: hidden; }
 .m-back .btn { margin: 0 !important; }
 /* phones: the label is hidden, so centre the icon */
 @media (max-width: 600px) { .yt-btn { padding: 0 7px; gap: 0; } }
+.pat.pat-stack { display: flex; flex-direction: column; gap: 4px; }
+.pat.pat-stack .ex { color: var(--fg2); line-height: 1.5; }
+.pat.pat-stack .pat-ans { color: var(--fg); }

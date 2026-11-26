@@ -294,7 +294,10 @@ window.addEventListener('resize', () => { const box = current(); if (!box || rl 
 // card content helpers
 const H = {
   facts: rows => '<div class="facts">' + rows.map(r => '<div class="fact"><div class="n">' + r[0] + '</div><div class="t">' + r[1] + (r[2] ? '<i>' + r[2] + '</i>' : '') + '</div></div>').join('') + '</div>',
-  pairs: rows => '<div class="pats">' + rows.map(r => '<div class="pat"><div class="ph">' + r[0] + '</div><div class="sc">' + r[1] + '</div>' + (r[2] ? '<div class="ex">' + r[2] + '</div>' : '') + '</div>').join('') + '</div>',
+  // a short answer sits in a pill on the right; a sentence goes on its own line under the label
+  pairs: rows => '<div class="pats">' + rows.map(r => String(r[1]).replace(/<[^>]+>/g, '').length > 28
+    ? '<div class="pat pat-stack"><div class="ph">' + r[0] + '</div><div class="ex pat-ans">' + r[1] + '</div>' + (r[2] ? '<div class="ex">' + r[2] + '</div>' : '') + '</div>'
+    : '<div class="pat"><div class="ph">' + r[0] + '</div><div class="sc">' + r[1] + '</div>' + (r[2] ? '<div class="ex">' + r[2] + '</div>' : '') + '</div>').join('') + '</div>',
   list: items => '<ul class="rlist">' + items.map(x => '<li>' + x + '</li>').join('') + '</ul>',
 };
 window.SHEET = { mount, H, focus: (host, t) => focusCard(host, t) };
