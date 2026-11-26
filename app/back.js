@@ -1,6 +1,7 @@
 /* One back button rule for every page: go to the page you came from in this realm, else the page's parent. Runs inside the main IIFE. */
 const BACK = (() => {
-  const ROOTS = new Set(['home', 'problems', 'cheatsheet', 'drill', 'rush', 'cards', 'mock', 'sd', 'sd-practice', 'sd-cheat', 'sd-drill', 'sd-board', 'dd', 'dd-questions', 'dd-mock', 'al', 'al-practice', 'dd-cheat', 'al-cheat', 'me', 'trophies', 'me-rounds', 'me-trophies', 'ex-py', 'ex-ds', 'ex-algo', 'ex-sd', 'ex-which']);
+  // top-level tab pages: no back button
+  const ROOTS = new Set(['home', 'problems', 'leetcode', 'co', 'cheatsheet', 'drill', 'rush', 'cards', 'mock', 'sd', 'sd-practice', 'sd-cheat', 'sd-drill', 'sd-board', 'dd', 'dd-questions', 'dd-mock', 'al', 'al-practice', 'dd-cheat', 'al-cheat', 'me', 'trophies', 'me-rounds', 'me-trophies', 'ex-py', 'ex-ds', 'ex-algo', 'ex-sd', 'ex-which']);
   const NAMES = { home: 'Learn', problems: 'Practice', cheatsheet: 'Cheatsheet', mock: 'Mock test', drill: 'Pattern drill', rush: '60s rush', cards: 'Flashcards', testday: 'Interview day', trophies: 'Trophies', sd: 'System design', 'sd-practice': 'Practice', 'sd-designs': 'Designs', 'sd-cheat': 'Cheatsheet', 'sd-drill': 'Quick drill', 'sd-board': 'Whiteboard', dd: 'Prep', 'dd-questions': 'Questions', 'dd-mock': 'Mock', al: 'Prep', 'al-practice': 'Practice', 'dd-cheat': 'Cheatsheet', 'al-cheat': 'Cheatsheet', 'ex-py': 'Python', 'ex-ds': 'Data structures', 'ex-algo': 'Algorithms', 'ex-sd': 'System design', 'ex-which': 'Which one?' };
   let stack = [], stackRealm = '';
   const find = (arr, id) => (arr || []).find(x => x.id === id) || {};

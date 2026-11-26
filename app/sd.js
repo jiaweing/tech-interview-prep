@@ -631,7 +631,7 @@ function mountBoard(host, key, ref, refTitle) {
     if (k === 'delE') { st.edges.splice(selE, 1); selE = null; save(); draw(); }
     if (k === 'flip') { const x = st.edges[selE]; [x.from, x.to] = [x.to, x.from]; save(); draw(); }
     if (k === 'dash') { st.edges[selE].dashed = !st.edges[selE].dashed; save(); draw(); }
-    if (k === 'clear' && confirm('Clear the whiteboard?')) { st.nodes = []; st.edges = []; sel = null; selE = null; save(); draw(); }
+    if (k === 'clear') (window.UI ? UI.confirm('Clear the whiteboard?', { detail: 'Every box and arrow on this board will be removed.', ok: 'Clear', danger: true }) : Promise.resolve(confirm('Clear the whiteboard?'))).then(yes => { if (yes) { st.nodes = []; st.edges = []; sel = null; selE = null; save(); draw(); } });
     if (k === 'cmp') compare();
   });
   insp.addEventListener('input', e => { const f = e.target.dataset.f; if (!f) return; if (f === 'elabel') st.edges[selE].label = e.target.value; else { const n = st.nodes.find(x => x.id === sel); if (n) n[f] = e.target.value; } save(); const keep = document.activeElement === e.target; const v = e.target.value; sc.innerHTML = ''; draw(); if (keep) { const inp = $('[data-f="' + f + '"]', insp); if (inp) { inp.focus(); inp.setSelectionRange(v.length, v.length); } } });
