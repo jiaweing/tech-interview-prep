@@ -26,13 +26,197 @@ new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
 `);if(this.baseURL=h.baseURL,this._baseURLIsExplicit=s.__baseURLIsExplicit??!!r,this.timeout=h.timeout??Fp.DEFAULT_TIMEOUT,this.logger=h.logger??console,this.logLevel=Ui,this.logLevel=ic(h.logLevel,"ClientOptions.logLevel",N(this))??ic(z("ANTHROPIC_LOG"),"process.env['ANTHROPIC_LOG']",N(this))??Ui,f?.apiKey!=null&&f.authToken!=null&&!ff)ff=!0,N(this).warn("Anthropic: ANTHROPIC_API_KEY and ANTHROPIC_AUTH_TOKEN are both set. Using ANTHROPIC_API_KEY.");this.fetchOptions=h.fetchOptions,this.maxRetries=Ha("maxRetries",h.maxRetries??2);let b=this._instrumentationScope();g(this,tr,$_(h.openTelemetry),"f"),h.openTelemetry=o(this,tr,"f"),this._tracer=q(this,()=>U_(o(this,tr,"f"),b.version,b.platform)),this.fetch=h.fetch??i_(),g(this,Vu,s_,"f"),this.middleware=[...h.middleware??[]];let w=z("ANTHROPIC_CUSTOM_HEADERS");if(w){let P={};for(let x of w.split(`
 `)){let R=x.indexOf(":");if(R>=0)P[x.substring(0,R).trim()]=x.substring(R+1).trim()}h.defaultHeaders=h.defaultHeaders instanceof Headers||Array.isArray(h.defaultHeaders)?l([P,h.defaultHeaders]):{...P,...h.defaultHeaders}}let v=s.__auth;if(delete h.__auth,delete h.__baseURLIsExplicit,this._options=h,this.apiKey=typeof h.apiKey==="string"?h.apiKey:null,g(this,Pi,typeof h.apiKey==="function"?h.apiKey:null,"f"),this.authToken=h.authToken??null,this.webhookKey=n,v){if(this._authState=v,!this._baseURLIsExplicit&&v.baseURL)this.baseURL=v.baseURL}else switch(this._authState={provider:null,tokenCache:null,resolution:null,error:null,extraHeaders:{}},m.type){case"apiKey":case"authToken":break;case"credentials":this._authState.provider=m.value,this._authState.tokenCache=this._makeTokenCache(m.value);break;case"config":{let P=qp(m.value,this._credentialResolverOptions());this._authState.provider=P.provider,this._authState.tokenCache=this._makeTokenCache(P.provider),this._authState.extraHeaders=P.extraHeaders,this._applyCredentialBaseURL(P.baseURL);break}case"profile":this._authState.resolution=this._resolveDefaultCredentials(m.value);break;case"defaultChain":if(this._shouldResolveDefaultCredentials())this._authState.resolution=this._resolveDefaultCredentials();break;default:qe(m)}}_shouldResolveDefaultCredentials(){return!0}_applyCredentialBaseURL(r){if(!r)return;let t=r.replace(/\/+$/,"");if(this._authState.baseURL=t,!this._baseURLIsExplicit)this.baseURL=t}_credentialResolverOptions(){return{baseURL:this.baseURL,fetch:this._credentialsFetch(),userAgent:this.getUserAgent(),onCacheWriteError:(r)=>{N(this).debug("credential cache write failed (best-effort)",r)},onSafetyWarning:(r)=>{N(this).warn(r)}}}_credentialsFetch(){return Op(this.fetch,this.middleware,void 0,this)}_makeTokenCache(r){return new Np(r,(t)=>{N(this).debug("advisory token refresh failed; serving cached token",t)})}withOptions(r){r={...r};for(let s of Lt)if(r[s]===void 0)delete r[s];let t=Lt.some((s)=>(s in r)),i=Lt.some((s)=>r[s]!=null),n={...this._options,...this._baseURLIsExplicit?{baseURL:this.baseURL}:{},maxRetries:this.maxRetries,timeout:this.timeout,logger:this.logger,logLevel:this.logLevel,fetch:this.fetch,fetchOptions:this.fetchOptions,middleware:this.middleware,apiKey:this.apiKey??o(this,Pi,"f"),authToken:this.authToken,webhookKey:this.webhookKey,...i?Object.fromEntries(Lt.map((s)=>[s,null])):{},...r,openTelemetry:r.openTelemetry??o(this,tr,"f"),__auth:t?void 0:this._authState,__baseURLIsExplicit:"baseURL"in r?!0:this._baseURLIsExplicit};return new this.constructor(n)}async _resolveDefaultCredentials(r){try{let t=await uf(this._credentialResolverOptions(),r);if(t)this._authState.provider=t.provider,this._authState.tokenCache=this._makeTokenCache(t.provider),this._authState.extraHeaders=t.extraHeaders,this._applyCredentialBaseURL(t.baseURL);else if(r!=null)throw new k(`Profile "${r}" could not be resolved (no <config_dir>/configs/${r}.json found).`)}catch(t){this._authState.error=t}finally{this._authState.resolution=null}}defaultQuery(){return this._options.defaultQuery}validateHeaders({values:r,nulls:t}){if(r.get("x-api-key")||r.get("authorization"))return;if(this._authState.error)throw this._authState.error;if(this._authState.tokenCache||this._authState.resolution)return;if(this.apiKey&&r.get("authorization"))return;if(t.has("authorization"))return;if(this.authToken&&r.get("authorization"))return;if(t.has("authorization"))return;throw Error('Could not resolve authentication method. Expected one of apiKey, authToken, credentials, config, or profile to be set. Or for the "Authorization" header to be explicitly omitted')}_authFlags(r){let t=this._requestAuthFlags.get(r);if(!t)t={usedTokenCache:!1,didRefreshFor401:!1},this._requestAuthFlags.set(r,t);return t}async authHeaders(r){if(this._authState.resolution)await this._authState.resolution;if(this._authState.error)return;if(o(this,Pi,"f")&&this.apiKey==null){let t;try{t=await o(this,Pi,"f").call(this)}catch(i){throw new k(`The \`apiKey\` function failed: ${ft(i).message}`,{cause:i})}if(!t)throw new k(`The \`apiKey\` function must return a non-empty string. It returned ${JSON.stringify(t)}.`);return l([{Authorization:`Bearer ${t}`}])}if(this._authState.tokenCache&&this.apiKey==null){let t=await this._authState.tokenCache.getToken();return this._authFlags(r).usedTokenCache=!0,l([{Authorization:`Bearer ${t}`}])}return l([await this.bearerAuth(r),await this.apiKeyAuth(r)])}async apiKeyAuth(r){if(this.apiKey==null)return;return l([{Authorization:`Bearer ${this.apiKey}`}])}async bearerAuth(r){if(this.authToken==null)return;return l([{Authorization:`Bearer ${this.authToken}`}])}stringifyQuery(r){return th(r)}getUserAgent(){return`Anthropic/JS ${Se}`}makeStatusError(r,t,i,n){let c=(t??{}).error?.details?.error_code,d=typeof c==="string"?Vm.get(`${r} ${c}`):void 0;if(d)return new d(r,t,i,n);return L.generate(r,t,i,n)}buildURL(r,t,i){let n=!o(this,Up,"m",mf).call(this)&&i||this.baseURL,s=Gp(r)?new URL(r):new URL(n+(n.endsWith("/")&&r.startsWith("/")?r.slice(1):r)),c=this.defaultQuery(),d=Object.fromEntries(s.searchParams);if(!id(c)||!id(d))t={...d,...c,...t};if(typeof t==="object"&&t&&!Array.isArray(t))s.search=this.stringifyQuery(t);return s.toString()}_calculateNonstreamingTimeout(r){if(3600*r/128000>600)throw new k("Streaming is required for operations that may take longer than 10 minutes. See https://platform.claude.com/docs/en/cli-sdks-libraries/sdks/typescript#streaming-responses for more details");return 600000}async prepareOptions(r){}async prepareRequest(r,{url:t,options:i}){if(this._authState.tokenCache&&this.apiKey==null){let n=r.headers instanceof Headers?r.headers:new Headers(r.headers);for(let[c,d]of Object.entries(this._authState.extraHeaders))if(!n.has(c))n.set(c,d);let s=n.get("anthropic-beta")?.split(",").map((c)=>c.trim());if(!s?.includes(er))n.set("anthropic-beta",[...s??[],er].join(","));r.headers=n}}backendMiddleware(){return[]}get(r,t){return this.methodRequest("get",r,t)}post(r,t){return this.methodRequest("post",r,t)}patch(r,t){return this.methodRequest("patch",r,t)}put(r,t){return this.methodRequest("put",r,t)}delete(r,t){return this.methodRequest("delete",r,t)}methodRequest(r,t,i){return this.request(Promise.resolve(i).then((n)=>({method:r,path:t,...n})))}request(r,t=null){if(!this._tracer)return new St(this,this.makeRequest(r,t,void 0));return new St(this,this.makeTracedRequest(r,t))}async makeTracedRequest(r,t){let i=await r,n=i.__span?.span;if(!n)return this.makeRequest(i,t,void 0);try{return await te.with(Ae.setSpan(te.active(),n),()=>this.makeRequest(i,t,void 0,n))}catch(s){let c={status:"error",options:i,error:s};throw q(this,()=>kt(n,c)),s}}async makeRequest(r,t,i,n){let s=await r,c=Ha("maxRetries",s.maxRetries??this.maxRetries);if(this.isStreamBody(s.body))c=0;if(t==null)t=c,this._requestAuthFlags.delete(s);await this.prepareOptions(s);let{req:d,url:_,timeout:f}=await this.buildRequest(s,{retryCount:c-t}),m="log_"+(Math.random()*16777216|0).toString(16).padStart(6,"0"),h=i===void 0?"":`, retryOf: ${i}`;if(n&&this.openTelemetry.propagation)d.headers=q(this,()=>j_(n,d.headers))??d.headers;let b=Date.now();if(s.signal?.aborted)throw new oe;let w=new AbortController,v=await this.fetchWithTimeout(_,d,f,w,s,{requestLogID:m,retryOfRequestLogID:i}).catch(ft),P=Date.now();if(v instanceof globalThis.Error){Ve(w);let S=`retrying, ${t} attempts remaining`;if(s.signal?.aborted)throw new oe;let C=ke(v)||/timed? ?out/i.test(String(v)+("cause"in v?String(v.cause):"")),A=this.middleware.length>0||!!s.middleware?.length||this.backendMiddleware().length>0;if(A&&!C&&!_f(v))throw N(this).info(`[${m}] middleware error (not retryable)`),Je(N(this),`[${m}] middleware error (not retryable)`,{retryOfRequestLogID:i,url:_,durationMs:P-b,message:v.message}),v;if(t)return N(this).info(`[${m}] connection ${C?"timed out":"failed"} - ${S}`),Je(N(this),`[${m}] connection ${C?"timed out":"failed"} (${S})`,{retryOfRequestLogID:i,url:_,durationMs:P-b,message:v.message}),this.retryRequest(s,t,i??m,n);if(N(this).info(`[${m}] connection ${C?"timed out":"failed"} - error; no more retries left`),Je(N(this),`[${m}] connection ${C?"timed out":"failed"} (error; no more retries left)`,{retryOfRequestLogID:i,url:_,durationMs:P-b,message:v.message}),C)throw new Ri;if(A&&!Bp(v))throw v;throw new at({cause:v})}let x=[...v.headers.entries()].filter(([S])=>S==="request-id"||S==="anthropic-workspace-id").map(([S,C])=>", "+S+": "+JSON.stringify(C)).join(""),R=`[${m}${h}${x}] ${d.method} ${_} ${v.ok?"succeeded":"failed"} with status ${v.status} in ${P-b}ms`;if(!v.ok){let S=await this.shouldRetry(v,s);if(t&&S){let F=`retrying, ${t} attempts remaining`;return await n_(v.body),Ve(w),N(this).info(`${R} - ${F}`),Je(N(this),`[${m}] response error (${F})`,{retryOfRequestLogID:i,url:v.url,status:v.status,headers:v.headers,durationMs:P-b}),this.retryRequest(s,t,i??m,n,v.headers)}let C=S?"error; no more retries left":"error; not retryable";N(this).info(`${R} - ${C}`);let A=await v.text().catch((F)=>ft(F).message),T=Wa(A),O=T?void 0:A;throw Je(N(this),`[${m}] response error (${C})`,{retryOfRequestLogID:i,url:v.url,status:v.status,headers:v.headers,body:T??A,durationMs:Date.now()-b}),Ve(w),this.makeStatusError(v.status,T,O,v.headers)}return N(this).info(R),Je(N(this),`[${m}] response start`,{retryOfRequestLogID:i,url:v.url,status:v.status,headers:v.headers,durationMs:P-b}),t_(v.body??v,w),{response:v,options:s,controller:w,requestLogID:m,retryOfRequestLogID:i,startTime:b}}getAPIList(r,t,i){return this.requestAPIList(t,i&&"then"in i?i.then((n)=>({method:"get",path:r,...n})):{method:"get",path:r,...i})}requestAPIList(r,t){if(!this._tracer){let n=this.makeRequest(t,null,void 0);return new Ld(this,n,r)}let i=this.makeTracedRequest(t,null);return new Ld(this,i,r)}async fetchWithTimeout(r,t,i,n,s,c){let{signal:d,method:_,...f}=t||{},m=this._makeAbort(n);if(d)d.addEventListener("abort",m,{once:!0}),e_(n,d,m);let h=globalThis.ReadableStream&&f.body instanceof globalThis.ReadableStream||typeof f.body==="object"&&f.body!==null&&Symbol.asyncIterator in f.body,b={signal:n.signal,...h?{duplex:"half"}:{},method:"GET",...f};if(_)b.method=_.toUpperCase();let w=this.fetch,v=async(C,A)=>{let T=setTimeout(m,i);try{return await w.call(void 0,C,A)}finally{clearTimeout(T)}},P=s===void 0?v:async(C,A={})=>{let T=typeof C==="string"?C:C instanceof URL?C.href:C.url;A.headers=A.headers instanceof Headers?A.headers:new Headers(A.headers);let O=[];if(s.__span)A.headers=new Headers(A.headers),O=gc(A.headers);if(await this.prepareRequest(A,{url:T,options:s}),O.length)A.headers=l([A.headers,O]).values;let U=s.__span;if(U)q(this,()=>W_(U,A.method??"GET",T,this.openTelemetry.traces.contentMode==="content"));if(c)Je(N(this),`[${c.requestLogID}] sending request`,{retryOfRequestLogID:c.retryOfRequestLogID,method:A.method,url:T,options:s,headers:A.headers});return v(C,A)},x=s?.middleware,R=s?.__span?this.backendMiddleware().map(Nd):this.backendMiddleware(),S=x?.length||R.length?[...this.middleware,...x??[],...R]:this.middleware;return await Op(P,S,s,this)(r,b)}async shouldRetry(r,t){let i=this._authFlags(t);if(r.status===401&&this._authState.tokenCache&&i.usedTokenCache&&!i.didRefreshFor401)return i.didRefreshFor401=!0,this._authState.tokenCache.invalidate(),!0;let n=r.headers.get("x-should-retry");if(n==="true")return!0;if(n==="false")return!1;if(r.status===408)return!0;if(r.status===409)return!0;if(r.status===429)return!0;if(r.status>=500)return!0;return!1}async retryRequest(r,t,i,n,s){let c,d=s?.get("retry-after-ms");if(d){let f=parseFloat(d);if(!Number.isNaN(f))c=f}let _=s?.get("retry-after");if(_&&!c){let f=parseFloat(_);if(!Number.isNaN(f))c=f*1000;else c=Date.parse(_)-Date.now()}if(c===void 0||!(c>0&&c<=2147483647)){let f=r.maxRetries??this.maxRetries;c=this.calculateDefaultRetryTimeoutMillis(t,f)}return await Ue(c,r.signal??void 0),this.makeRequest(r,t-1,i,n)}calculateDefaultRetryTimeoutMillis(r,t){let s=t-r,c=Math.min(0.5*Math.pow(2,s),8),d=1-Math.random()*0.25;return c*d*1000}calculateNonstreamingTimeout(r,t){if(3600000*r/128000>600000||t!=null&&r>t)throw new k("Streaming is required for operations that may take longer than 10 minutes. See https://platform.claude.com/docs/en/cli-sdks-libraries/sdks/typescript#long-requests for more details");return 600000}async buildRequest(r,{retryCount:t=0}={}){let i={...r},{method:n,path:s,query:c,defaultBaseURL:d}=i;if(this._authState.resolution)await this._authState.resolution;if(!this._baseURLIsExplicit&&this._authState.baseURL&&this.baseURL!==this._authState.baseURL)this.baseURL=this._authState.baseURL;let _=this.buildURL(s,c,d);if("timeout"in i)Ha("timeout",i.timeout);i.timeout=i.timeout??this.timeout;let{bodyHeaders:f,body:m}=this.buildBody({options:i}),h=await this.buildHeaders({options:r,method:n,bodyHeaders:f,retryCount:t,timeout:i.timeout});return{req:{method:n,headers:h,...i.signal&&{signal:i.signal},...globalThis.ReadableStream&&m instanceof globalThis.ReadableStream&&{duplex:"half"},...m&&{body:m},...this.fetchOptions??{},...i.fetchOptions??{}},url:_,timeout:i.timeout}}async buildHeaders({options:r,method:t,bodyHeaders:i,retryCount:n,timeout:s}){let c=l([{Accept:"application/json","User-Agent":this.getUserAgent(),"X-Stainless-Retry-Count":String(n),"X-Stainless-Timeout":String(Math.trunc(s/1000)),...zi(),...this._options.dangerouslyAllowBrowser?{"anthropic-dangerous-direct-browser-access":"true"}:void 0,"anthropic-version":"2026-10-21"},await this.authHeaders(r),this._options.defaultHeaders,i,r.headers]);return this.validateHeaders(c),c.values}_makeAbort(r){return()=>r.abort()}buildBody({options:{body:r,headers:t}}){if(!r)return{bodyHeaders:void 0,body:void 0};let i=l([t]);if(ArrayBuffer.isView(r)||r instanceof ArrayBuffer||r instanceof DataView||typeof r==="string"&&i.values.has("content-type")||globalThis.Blob&&r instanceof globalThis.Blob||r instanceof FormData||r instanceof URLSearchParams||globalThis.ReadableStream&&r instanceof globalThis.ReadableStream)return{bodyHeaders:void 0,body:r};else if(this.isStreamBody(r))return{bodyHeaders:void 0,body:Da(r)};else if(typeof r==="object"&&i.values.get("content-type")==="application/x-www-form-urlencoded")return{bodyHeaders:{"content-type":"application/x-www-form-urlencoded"},body:this.stringifyQuery(r)};else return o(this,Vu,"f").call(this,{body:r,headers:i})}isStreamBody(r){if(globalThis.ReadableStream&&r instanceof globalThis.ReadableStream)return!0;return typeof r==="object"&&r!==null&&((Symbol.asyncIterator in r)||(Symbol.iterator in r)&&("next"in r)&&typeof r.next==="function")}}return Fp=e,Vu=new WeakMap,Pi=new WeakMap,tr=new WeakMap,Up=new WeakSet,mf=function(){return this.baseURL!=="https://api.anthropic.com"},e.Anthropic=Fp,e.DEFAULT_TIMEOUT=600000,e.AnthropicError=k,e.APIError=L,e.APIConnectionError=at,e.APIConnectionTimeoutError=Ri,e.APIUserAbortError=oe,e.NotFoundError=ue,e.ConflictError=D,e.RateLimitError=Bt,e.BadRequestError=E,e.OverloadedError=Ii,e.AuthenticationError=Yu,e.RequestTimeoutError=Qu,e.InternalServerError=Ot,e.NotImplementedError=td,e.GatewayTimeoutError=rd,e.PaymentRequiredError=rr,e.ContentTooLargeError=Ci,e.PermissionDeniedError=J,e.PreconditionFailedError=Ti,e.ServiceUnavailableError=ge,e.UnprocessableEntityError=Xu,e.ClientClosedRequestError=ed,e.RequestHeaderFieldsTooLargeError=Zu,e.toFile=$p,e})(),Hp=(()=>{class e extends Vw{constructor(){super(...arguments);this._supportsMessageThreads=!0,this.messages=new Yo(this),this.models=new Ai(this),this.files=new Qi(this),this.skills=new Oa(this),this.userProfiles=new $a(this),this.organization=new qa(this),this.beta=new Ho(this)}}return e.Messages=Yo,e.AvailableToolsLimitExceededError=Xr,e.CompactionBlockAmbiguousError=Zr,e.CompactionBlockMisplacedError=ei,e.CompactionContentMismatchError=ti,e.CompactionIncompleteTurnError=ri,e.CompactionNothingToSummarizeError=ii,e.CompactionSignatureInvalidError=ni,e.CompactionTooManyToolReferencesError=si,e.CompactionToolChangesMismatchError=oi,e.ImageDimensionsTooLargeError=ai,e.ThreadAlreadyContinuedError=ci,e.ThreadContinueInFlightError=li,e.ThreadFingerprintMismatchError=ui,e.ThreadUnsupportedRequestError=di,e.ToolNameConflictError=pi,e.ToolReferenceUnresolvedError=_i,e.ThreadNotFoundError=hi,e.CompactionUnavailableError=mi,e.Models=Ai,e.Files=Qi,e.FileNotDownloadableError=dr,e.StorageQuotaExceededError=pr,e.FileExpiredError=_r,e.Skills=Oa,e.SkillReadBlockedUndecryptableError=vi,e.UserProfiles=$a,e.UserProfileNotFoundError=wi,e.UserProfileRequiredError=Ei,e.UserProfileBillingNotAuthorizedError=ki,e.UserProfileNotBillableError=Si,e.Organization=qa,e.OrgMemberLimitExceededError=fi,e.RBACRoleNotFoundError=gi,e.ConcurrentMembershipChangeError=bi,e.ChangeOutcomeUnknownError=yi,e.Beta=Ho,e.BetaCMEKNotApprovedError=Fr,e.BetaExternalKeyNotFoundError=Hr,e.BetaExternalKeyProviderMismatchError=Wr,e.BetaGCPProjectNotVerifiedError=jr,e.BetaOrganizationNotEnrolledInBetaError=Dr,e.BetaRegionNotSupportedError=Kr,e.BetaRequestBodyTimeoutError=Gr,e.BetaStorageNotApprovedError=Vr,e.BetaUnsupportedCharsetError=Jr,e.BetaGCPProjectControlledByAnotherOrganizationError=Yr,e.BetaStorageInUseError=Qr,e.ClaudeCodeKeyCreatorNotMemberError=Sc,e.ClaudeCodeVersionTooOldError=xc,e.CMEKKeyDisabledError=Ac,e.CMEKKeyNetworkBlockedError=Pc,e.OrganizationOnHoldError=Rc,e.OrganizationTypeNotSupportedError=Tc,e.ParentOrganizationRequiredError=Cc,e.RequestBodyEncodingInvalidError=Ic,e.RequestBodyEncodingUnsupportedError=Nc,e.WorkspaceHumanReviewDisabledError=zc,e.LinkedOrganizationBillingUnavailableError=Mc,e.LinkedOrganizationSpendLimitReachedError=qc,e.SandboxEgressRestrictedError=Bc,e.RequestBodyTooLargeAfterDecodingError=Oc,e.ContractSpendLimitReachedError=Lc,e.EnforcedSpendLimitReachedError=$c,e.RampLimitExceededError=Uc,e.CMEKContextUnavailableError=Fc,e.CMEKKeyUnreachableError=Hc,e})();window.ANTHROPIC_SDK={Anthropic:Hp};})();
 </script>
+<script>/* Local voice through audio.cpp (https://github.com/0xShug0/audio.cpp), for self-hosted copies.
+   When an audio.cpp server is running (audiocpp_server --cors-origins "*"), the page uses it for both directions:
+   - speech out: POST /v1/audio/speech with a TTS model such as Kokoro; each panel member gets their own voice.
+   - speech in: the page records the microphone itself, finds where you stop talking from the audio level
+     (voice activity detection), and sends each stretch of speech to POST /v1/audio/transcriptions.
+   It exposes the same shapes as the claude.ai tts and dictation capabilities, so the interviewer code is unchanged.
+   Settings live in localStorage under "tip:audiocpp". Loaded before selfhost.js. */
+(() => {
+  const KEY = 'tip:audiocpp';
+  const DEF = { on: false, url: 'http://127.0.0.1:8080', voices: 'am_michael,bf_emma,am_fenrir', language: 'en' };
+  const settings = () => { try { return Object.assign({}, DEF, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { return Object.assign({}, DEF); } };
+  const save = v => { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) { /* storage blocked */ } };
+  const fail = (code, message) => Object.assign(new Error(message || code), { code });
+  const local = () => /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) || location.protocol === 'file:';
+
+  // find a running server and its speech (tts) and transcription (asr) models
+  async function probe(force) {
+    const c = settings();
+    if (!force && !c.on && !local()) return null;   // a hosted page only looks for a local server once you turn it on
+    const url = String(c.url || DEF.url).replace(/\/+$/, '');
+    const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 1500);
+    try {
+      const r = await fetch(url + '/v1/models', { signal: ctl.signal });
+      if (!r.ok) return null;
+      const M = (await r.json()).data || [];
+      const tts = M.find(m => m.task === 'tts'), asr = M.find(m => m.task === 'asr');
+      if (!tts && !asr) return null;
+      return { url, tts: tts ? tts.id : null, asr: asr ? asr.id : null, models: M.map(m => m.id + ' (' + m.task + ')'),
+        voices: String(c.voices || '').split(',').map(s => s.trim()).filter(Boolean), language: c.language || '' };
+    } catch (e) { return null; } finally { clearTimeout(t); }
+  }
+
+  /* ---------- speech out ---------- */
+  function makeTTS(L) {
+    const subs = new Set(), emit = s => subs.forEach(f => { try { f(s); } catch (e) { /* listener */ } });
+    let ctl = null, audio = null, rate = 1;
+    const VOICE = { rounded: 0, buttery: 0, glassy: 1, airy: 2 };   // the Claude voice names the app asks for
+    const pick = v => L.voices.length ? L.voices[(VOICE[v] || 0) % L.voices.length] : undefined;
+    // short pieces so the first one plays while the next is generated
+    const pieces = t => (String(t).match(/[^.!?]+[.!?]+["')\]]*\s*|[^.!?]+$/g) || [String(t)]).reduce((a, s) => { if (a.length && (a[a.length - 1] + s).length < 160) a[a.length - 1] += s; else a.push(s); return a; }, []).map(s => s.trim()).filter(Boolean);
+    async function synth(text, voice, signal) {
+      const body = { model: L.tts, input: text }; if (voice) body.voice = voice; if (rate !== 1) body.speed = rate;
+      const r = await fetch(L.url + '/v1/audio/speech', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal });
+      if (!r.ok) throw fail('error', 'audio.cpp speech failed: ' + r.status + ' ' + (await r.text()).slice(0, 200));
+      return URL.createObjectURL(await r.blob());
+    }
+    const play = (src, signal) => new Promise((res, rej) => {
+      audio = new Audio(src);
+      const done = () => { URL.revokeObjectURL(src); res(); };
+      audio.onended = done; audio.onerror = () => { URL.revokeObjectURL(src); rej(fail('error', 'could not play the audio')); };
+      signal.addEventListener('abort', () => { audio.pause(); URL.revokeObjectURL(src); rej(fail('stopped')); }, { once: true });
+      audio.play().then(() => emit({ state: 'speaking' })).catch(e => rej(fail('error', e.message)));
+    });
+    return {
+      concurrent: true,   // it is ordinary page audio, so it can play while the microphone is open
+      speak(text, o) {
+        if (ctl) ctl.abort();
+        const my = ctl = new AbortController(), voice = pick(o && o.voice);
+        const parts = Array.isArray(text) ? text.map(l => l.text) : pieces(text);
+        emit({ state: 'starting' });
+        return (async () => {
+          let next = synth(parts[0], voice, my.signal);
+          for (let i = 0; i < parts.length; i++) {
+            const src = await next;
+            next = i + 1 < parts.length ? synth(parts[i + 1], voice, my.signal) : null;
+            if (next) next.catch(() => {});
+            await play(src, my.signal);
+          }
+          if (ctl === my) emit({ state: 'idle', reason: 'completed' });
+        })().catch(e => { if (ctl === my) emit({ state: 'idle', reason: e && e.code === 'stopped' ? 'stopped' : 'error' }); throw e; });
+      },
+      stop() { if (ctl) ctl.abort(); ctl = null; if (audio) audio.pause(); emit({ state: 'idle', reason: 'stopped' }); },
+      setRate(r) { rate = r; },
+      onState(f) { subs.add(f); return () => subs.delete(f); }
+    };
+  }
+
+  /* ---------- speech in ---------- */
+  // 16 kHz mono 16-bit WAV, which every audio.cpp ASR model accepts
+  function wav(samples, rate) {
+    const ratio = rate / 16000, n = Math.floor(samples.length / ratio), buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+    const str = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+    str(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); str(8, 'WAVE'); str(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, 16000, true); v.setUint32(28, 32000, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); str(36, 'data'); v.setUint32(40, n * 2, true);
+    for (let i = 0; i < n; i++) { const a = Math.floor(i * ratio), b = Math.min(samples.length, Math.floor((i + 1) * ratio)); let s = 0; for (let j = a; j < b; j++) s += samples[j]; s = b > a ? s / (b - a) : 0; v.setInt16(44 + i * 2, Math.max(-1, Math.min(1, s)) * 0x7fff, true); }
+    return new Blob([buf], { type: 'audio/wav' });
+  }
+  function makeDictation(L) {
+    const cb = { partial: new Set(), final: new Set(), state: new Set(), level: new Set() };
+    const emit = (k, v) => cb[k].forEach(f => { try { f(v); } catch (e) { /* listener */ } });
+    const END_MS = 1100, PARTIAL_MS = 1400, MAX_MS = 30000;
+    let st = null;
+    async function transcribe(chunks, rate) {
+      const n = chunks.reduce((a, c) => a + c.length, 0), all = new Float32Array(n); let o = 0; chunks.forEach(c => { all.set(c, o); o += c.length; });
+      const fd = new FormData(); fd.append('model', L.asr); fd.append('file', wav(all, rate), 'speech.wav'); if (L.language) fd.append('language', L.language);
+      const r = await fetch(L.url + '/v1/audio/transcriptions', { method: 'POST', body: fd });
+      if (!r.ok) throw fail('error', 'audio.cpp transcription failed: ' + r.status);
+      const j = await r.json(); return String(j.text || '').trim();
+    }
+    function frame(x, s) {
+      let e = 0; for (let i = 0; i < x.length; i++) e += x[i] * x[i];
+      const rms = Math.sqrt(e / x.length), now = performance.now();
+      emit('level', { level: Math.min(1, rms * 12) });
+      if (!s.talking) s.noise = s.noise * 0.95 + rms * 0.05;            // track the room's background level between utterances
+      const loud = rms > Math.max(0.01, s.noise * 3);
+      s.pre.push(x); if (s.pre.length > 4) s.pre.shift();                  // keep the start of a word
+      if (!s.talking) {
+        s.hits = loud ? s.hits + 1 : 0;
+        if (s.hits >= 2) { s.talking = true; s.utter = s.pre.slice(); s.began = now; s.lastLoud = now; s.lastPartial = now; }
+        return;
+      }
+      s.utter.push(x); if (loud) s.lastLoud = now;
+      if (now - s.lastLoud > END_MS || now - s.began > MAX_MS) { finish(s); return; }
+      if (now - s.lastPartial > PARTIAL_MS && !s.busy) {
+        s.lastPartial = now; s.busy = true;
+        transcribe(s.utter.slice(), s.rate).then(t => { if (t && s.talking) emit('partial', { text: t }); }).catch(() => {}).finally(() => { s.busy = false; });
+      }
+    }
+    function finish(s) {
+      const chunks = s.utter; s.talking = false; s.utter = []; s.hits = 0;
+      const job = transcribe(chunks, s.rate).then(t => { if (t) emit('final', { text: t }); }).catch(e => emit('partial', { text: '' }));
+      s.jobs.push(job); return job;
+    }
+    return {
+      vad: true,   // finals arrive at the end of each stretch of speech, found from the audio itself
+      start() {
+        if (st) return Promise.resolve();
+        // the AudioContext is created inside the click or key press, so the browser lets it run
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const s = st = { ctx, stream: null, pre: [], utter: [], talking: false, hits: 0, noise: 0.005, jobs: [], rate: ctx.sampleRate };
+        emit('state', { state: 'listening' });
+        return navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 } }).then(stream => {
+          if (st !== s) { stream.getTracks().forEach(t => t.stop()); return; }
+          s.stream = stream;
+          const src = ctx.createMediaStreamSource(stream), proc = ctx.createScriptProcessor(2048, 1, 1), mute = ctx.createGain();
+          mute.gain.value = 0; src.connect(proc); proc.connect(mute); mute.connect(ctx.destination);
+          proc.onaudioprocess = e => { if (st === s) frame(new Float32Array(e.inputBuffer.getChannelData(0)), s); };
+          s.proc = proc;
+        }).catch(e => { st = null; ctx.close(); emit('state', { state: 'idle', reason: 'not_granted' }); throw fail('not_granted', e.message); });
+      },
+      async stop() {
+        const s = st; if (!s) return;
+        emit('state', { state: 'finishing' });
+        st = null;
+        if (s.talking && s.utter.length) finish(s);
+        if (s.proc) s.proc.onaudioprocess = null;
+        if (s.stream) s.stream.getTracks().forEach(t => t.stop());
+        await Promise.all(s.jobs).catch(() => {});
+        s.ctx.close().catch(() => {});
+        emit('state', { state: 'idle', reason: 'stopped' });
+      },
+      onPartial(f) { cb.partial.add(f); return () => cb.partial.delete(f); },
+      onFinal(f) { cb.final.add(f); return () => cb.final.delete(f); },
+      onState(f) { cb.state.add(f); return () => cb.state.delete(f); },
+      onLevel(f) { cb.level.add(f); return () => cb.level.delete(f); }
+    };
+  }
+
+  // settings dialog: turn it on, the server address, the voices for the interviewer and the panel
+  function dialog() {
+    if (document.querySelector('.sh-dlg')) return;
+    const c = settings(), d = document.createElement('dialog'); d.className = 'sh-dlg';
+    d.innerHTML = '<form method="dialog"><h2>Local voice with audio.cpp</h2>' +
+      '<p>Run an <a href="https://github.com/0xShug0/audio.cpp" target="_blank" rel="noopener">audio.cpp</a> server on this computer with a speech model and a transcription model, started with <code>--cors-origins "*"</code>. The interviewer then speaks and listens through it; nothing leaves your machine.</p>' +
+      '<label class="sh-chk"><input type="checkbox" class="lv-on"> Use audio.cpp for voice</label>' +
+      '<label>Server address<input class="lv-url" spellcheck="false"></label>' +
+      '<label>Voices (interviewer, then the panel)<input class="lv-voices" spellcheck="false" placeholder="am_michael,bf_emma,am_fenrir"></label>' +
+      '<p class="lv-status muted"></p>' +
+      '<div class="sh-row"><button type="button" class="btn small lv-test">Test</button><span class="sh-sp"></span><button value="cancel" class="btn small">Cancel</button><button value="save" class="btn small primary">Save</button></div></form>';
+    const $ = q => d.querySelector(q);
+    $('.lv-on').checked = !!c.on; $('.lv-url').value = c.url; $('.lv-voices').value = c.voices;
+    const read = () => ({ on: $('.lv-on').checked, url: $('.lv-url').value.trim() || DEF.url, voices: $('.lv-voices').value.trim(), language: c.language });
+    $('.lv-test').onclick = async () => {
+      const prev = settings(); save(read()); $('.lv-status').textContent = 'Looking for the server…';
+      const L = await probe(true); save(prev);
+      $('.lv-status').textContent = L ? 'Found: ' + L.models.join(', ') + (L.tts ? '' : '. No speech model.') + (L.asr ? '' : ' No transcription model.') : 'No audio.cpp server answered at that address. Is it running with --cors-origins "*"?';
+    };
+    d.addEventListener('close', () => { if (d.returnValue === 'save') { save(read()); location.reload(); } d.remove(); });
+    document.body.appendChild(d); d.showModal();
+  }
+
+  window.LOCALVOICE = { probe, makeTTS, makeDictation, dialog, settings };
+})();
+</script>
 <script>/* Self-hosted mode. Inside a claude.ai artifact the viewer supplies window.claude (sample, tts, dictation,
    downloads) before any script runs, and this file does nothing. Anywhere else (a saved file, GitHub Pages,
    your own server) it supplies the same four capabilities:
    - sample: the Anthropic API through the official SDK (bundled as window.ANTHROPIC_SDK), with an API key
      the visitor pastes in. The key stays in this browser's localStorage and is sent only to api.anthropic.com.
-   - tts: the browser's speechSynthesis.
-   - dictation: the browser's SpeechRecognition (Chrome, Edge, Safari).
+   - tts and dictation: a local audio.cpp server when one is set up (localvoice.js), otherwise the browser's
+     speechSynthesis and SpeechRecognition (Chrome, Edge, Safari).
    - downloads: a plain file download. */
 (() => {
   if (window.claude) return;
@@ -172,9 +356,16 @@ new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
     }
   };
 
-  const caps = { sample, tts: makeTTS(), dictation: makeDictation(), downloads };
-  window.claude = { use: name => Promise.resolve(caps[name] || null) };
-  window.SELFHOST = { keyDialog, hasKey: () => !!read(KEY) };
+  // voice: a local audio.cpp server when one is set up (localvoice.js), otherwise the browser's own speech
+  let localVoice = null;
+  const capsReady = (window.LOCALVOICE ? window.LOCALVOICE.probe() : Promise.resolve(null)).then(L => {
+    localVoice = L;
+    return { sample, downloads,
+      tts: L && L.tts ? window.LOCALVOICE.makeTTS(L) : makeTTS(),
+      dictation: L && L.asr ? window.LOCALVOICE.makeDictation(L) : makeDictation() };
+  });
+  window.claude = { use: name => capsReady.then(c => c[name] || null) };
+  window.SELFHOST = { keyDialog, hasKey: () => !!read(KEY), voiceDialog: () => window.LOCALVOICE && window.LOCALVOICE.dialog(), localVoice: () => localVoice };
 })();
 </script>
 <style>/* LeetCode list */
@@ -274,6 +465,8 @@ a.co-card:hover { background: var(--sunk); text-decoration: none; }
 @media (max-width: 700px) { .crs-b { padding: 0 12px 14px; } }
 .crs > * { order: 0 !important; }
 .crs > .nextup { margin: 4px 0 6px; }
+.sh-dlg .sh-chk { flex-direction: row; align-items: center; gap: 8px; }
+.sh-dlg .lv-status { min-height: 1.2em; font-size: 13px; }
 .realm-sub:empty { display: none; }
 </style>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -10967,7 +11160,7 @@ function refreshMe() {
 }
 function viewProfile(page, h) {
   viewProfile0(page, h);
-  if (window.SELFHOST && h === 'me') { const s = document.createElement('section'); s.className = 'sd-sec sh-sec'; s.innerHTML = '<div class="day-h"><h2>Claude</h2></div><p class="muted">' + (SELFHOST.hasKey() ? 'Using your Anthropic API key, kept in this browser.' : 'Add an Anthropic API key to turn on the mock interviewer, grading and chat.') + '</p><button type="button" class="btn small">' + (SELFHOST.hasKey() ? 'Change key' : 'Add key') + '</button>'; s.querySelector('button').onclick = () => SELFHOST.keyDialog(''); page.appendChild(s); }
+  if (window.SELFHOST && h === 'me') { const s = document.createElement('section'); s.className = 'sd-sec sh-sec'; s.innerHTML = '<div class="day-h"><h2>Claude</h2></div><p class="muted">' + (SELFHOST.hasKey() ? 'Using your Anthropic API key, kept in this browser.' : 'Add an Anthropic API key to turn on the mock interviewer, grading and chat.') + '</p><div class="row" style="gap:8px"><button type="button" class="btn small sh-k">' + (SELFHOST.hasKey() ? 'Change key' : 'Add key') + '</button><button type="button" class="btn small sh-v">' + (SELFHOST.localVoice() ? 'Voice: audio.cpp' : 'Voice: browser') + '</button></div>'; s.querySelector('.sh-k').onclick = () => SELFHOST.keyDialog(''); s.querySelector('.sh-v').onclick = () => SELFHOST.voiceDialog(); page.appendChild(s); }
 }
 function viewProfile0(page, h) {
   page.classList.add('narrow');
@@ -12076,10 +12269,12 @@ const INTERVIEW = (() => {
     if (!(window.claude && window.claude.use)) return;
     tts = await window.claude.use('tts').catch(() => null);
     dict = await window.claude.use('dictation').catch(() => null);
-    if (tts) try { tts.onState(({ state }) => { if (S && S.mode === 'claude') setSpeaking(state === 'speaking' || state === 'starting'); }); } catch (e) { /* no state */ }
+    if (tts) try { tts.onState(({ state }) => { if (S && (S.mode === 'claude' || tts.concurrent)) setSpeaking(state === 'speaking' || state === 'starting'); }); } catch (e) { /* no state */ }
     if (dict) {
       dict.onPartial(({ text }) => heard(text, false));
       dict.onFinal(({ text }) => heard(text, true));
+      // a local recogniser (audio.cpp) also reports the real microphone level: the glow follows your voice
+      if (dict.onLevel) dict.onLevel(({ level }) => { if (S && S.mic && !S.ignoring()) S.lv = Math.max(S.lv || 0, level * 1.4); });
       dict.onState(({ state, reason }) => { if (!S) return; S.mic = state === 'listening' || state === 'starting'; paint(); if (state === 'idle') { if (reason === 'not_granted' || reason === 'unavailable') { S.noMic = true; S.mode = 'claude'; note('Microphone is off for this page. Type your answers.'); paint(); } else if (S.mode === 'claude' && (S.pending + S.partial).trim()) endTurn(); } });
     }
     ready = true;
@@ -12112,7 +12307,7 @@ const INTERVIEW = (() => {
     const micB = S.el.querySelector('[data-c=mic]');
     if (micB.dataset.on !== String(S.mic)) { micB.innerHTML = S.mic ? ICON.mic : ICON.micOff; micB.dataset.on = String(S.mic); } micB.classList.toggle('on', S.mic); micB.hidden = !dict || S.noMic;
     micB.setAttribute('aria-label', S.mic ? (S.mode === 'hands' ? 'Mute the microphone' : 'Stop and send') : 'Talk');
-    const hb = S.el.querySelector('[data-c=mode]'); hb.hidden = !dict || S.noMic || !browserVoice() || !tts;
+    const hb = S.el.querySelector('[data-c=mode]'); hb.hidden = !dict || S.noMic || !browserVoice() || !tts || !!tts.concurrent;   // with audio.cpp both modes are the same
     if (hb.dataset.m !== S.mode) { hb.dataset.m = S.mode; hb.innerHTML = S.mode === 'hands' ? ICON.hands : ICON.spark; }
     hb.title = S.mode === 'hands' ? 'Hands-free: the mic stays open and the browser voice speaks. Click for the Claude voice (tap to talk)' : 'Claude voice: tap the mic for each answer. Click for hands-free'; hb.setAttribute('aria-label', hb.title);
     S.el.querySelector('[data-c=size] ').innerHTML = S.full ? ICON.shrink : ICON.expand;
@@ -12145,7 +12340,8 @@ const INTERVIEW = (() => {
     const ig = S.ignoring(); if (ig !== S.wasIgnoring) { S.wasIgnoring = ig; paint(); }
     if (S.busy || S.speaking || !S.mic) return;
     const live = (S.pending + ' ' + S.partial).trim();
-    const now = Date.now(), done = S.stream ? now - S.lastLoud > 1000 && now - S.lastHeard > 600 : now - S.lastHeard > PAUSE_MS;
+    // a recogniser with its own voice detection sends a final only after you stop talking, so end the turn right after it
+    const now = Date.now(), done = dict.vad ? !!S.pending && !S.partial && now - S.lastHeard > 250 : S.stream ? now - S.lastLoud > 1000 && now - S.lastHeard > 600 : now - S.lastHeard > PAUSE_MS;
     if (live && done) {
       if (S.mode === 'claude') { dict.stop().catch(() => {}); }   // idle state then sends
       else endTurn();
@@ -12156,7 +12352,8 @@ const INTERVIEW = (() => {
   function speak(text) {
     if (!S) return;
     text = String(text).slice(0, 1990);
-    if (S.mode === 'hands' && browserVoice()) {
+    // a voice that can play while the microphone is open (audio.cpp) speaks in both modes
+    if (S.mode === 'hands' && browserVoice() && !(tts && tts.concurrent)) {
       try {
         speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(text); u.rate = 1.02;
@@ -12168,7 +12365,7 @@ const INTERVIEW = (() => {
       } catch (e) { setSpeaking(false); }
       return;
     }
-    if (tts && !S.mic) { try { tts.speak(text, { voice: 'rounded' }).catch(() => setSpeaking(false)); } catch (e) { /* voice off */ } }
+    if (tts && (!S.mic || tts.concurrent)) { try { tts.speak(text, { voice: 'rounded' }).catch(() => setSpeaking(false)); } catch (e) { /* voice off */ } }
   }
   function hush() { try { if (tts) tts.stop(); } catch (e) { /* ignore */ } try { if (browserVoice()) speechSynthesis.cancel(); } catch (e) { /* ignore */ } setSpeaking(false); }
 
@@ -12312,7 +12509,7 @@ const INTERVIEW = (() => {
     document.body.appendChild(el); document.body.classList.add('iv-on');
     S = { cfg, el, log: el.querySelector('.iv-log'), input: el.querySelector('.iv-type input'), capEl: el.querySelector('.iv-cap'), stateEl: el.querySelector('.iv-state'), noteEl: el.querySelector('.iv-note'), bars: Array.from(el.querySelectorAll('.iv-viz i')), fv: [], lv: 0, lastLoud: 0, stream: undefined, cardHost: el.querySelector('.iv-cardhost'),
       turns: [], echo: false, busy: false, speaking: false, mic: false, noMic: false, pending: '', partial: '', lastHeard: 0, quietUntil: 0, start: Date.now(), full: !!cfg.wide,
-      mode: browserVoice() && dict ? 'hands' : 'claude' };
+      mode: dict && (browserVoice() || (tts && tts.concurrent)) ? 'hands' : 'claude' };
     // the mic only overlaps the interviewer's voice in hands-free mode; there, words heard while it talks are its own
     S.ignoring = () => S.busy || (S.mode === 'hands' && (S.speaking || Date.now() < S.quietUntil));
     S.tick = setInterval(() => { if (!S) return; const s = Math.floor((Date.now() - S.start) / 1000); el.querySelector('.iv-time').textContent = String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); }, 1000);

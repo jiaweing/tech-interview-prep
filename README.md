@@ -91,10 +91,52 @@ GitHub Pages works too: set the Pages source to the default branch and the root 
 Outside claude.ai the page brings its own versions of those capabilities:
 
 - **Claude**: paste an [Anthropic API key](https://console.anthropic.com/settings/keys) when asked, or under Profile. It is kept in your browser's local storage and sent only to `api.anthropic.com`, through the official Anthropic SDK. Requests use `claude-opus-5-5` with server-side fallbacks enabled, so a declined request is retried on a fallback model. Usage is billed to your key.
-- **Voice**: the browser's own speech recognition and speech synthesis (Chrome, Edge and Safari).
+- **Voice**: [audio.cpp](https://github.com/0xShug0/audio.cpp) on your own computer when you set it up (below), otherwise the browser's own speech recognition and speech synthesis (Chrome, Edge and Safari).
 - **Python**: runs in the browser with Brython, loaded from a CDN, so the editor needs a connection the first time.
 
 Self-hosted, your progress, ticks, notes and worksheet stay in your browser. Nothing is sent anywhere except the requests you make to Claude.
+
+### Local voice with audio.cpp
+
+[audio.cpp](https://github.com/0xShug0/audio.cpp) runs speech models on your own machine. With it, the interviewer speaks with a Kokoro voice (a different one for each person on a panel), and the page listens through your microphone, finds where you stop talking from the sound itself, and has audio.cpp transcribe each answer. Nothing leaves your computer.
+
+1. Install audio.cpp (`brew install audio-cpp` after `brew tap 0xShug0/audio-cpp`, or a release build) and download a speech model and a transcription model:
+
+   ```sh
+   audiocpp_model_manager install kokoro_82m_q8_0 --models-root models
+   ```
+
+   ```sh
+   audiocpp_model_manager install moonshine_streaming_tiny_q8_0 --models-root models
+   ```
+
+2. Save this as `server.json`, with absolute paths to the two files:
+
+   ```json
+   {
+     "host": "127.0.0.1",
+     "port": 8080,
+     "backend": "cpu",
+     "cors_origins": "*",
+     "models": [
+       { "id": "kokoro", "family": "kokoro_tts", "task": "tts", "mode": "offline",
+         "path": "/absolute/path/models/Kokoro-82M-GGUF/kokoro-82m-q8_0.gguf",
+         "default_voice_preset": { "voice_id": "am_michael" } },
+       { "id": "moonshine", "family": "moonshine_asr", "task": "asr", "mode": "offline",
+         "path": "/absolute/path/models/Moonshine-Streaming-GGUF/moonshine-streaming-tiny-q8_0.gguf" }
+     ]
+   }
+   ```
+
+3. Start it and keep it running:
+
+   ```sh
+   audiocpp_server --config server.json
+   ```
+
+4. Open the app. Served from `localhost` or opened as a file, it finds the server by itself. On any other address, turn it on under Profile, **Voice**, which also lets you change the server address and the voices (Kokoro voice ids such as `am_michael`, `bf_emma`, `am_fenrir`; the first is the interviewer, the next two the rest of a panel).
+
+`cors_origins: "*"` lets a web page call the server. audio.cpp marks it experimental and meant for trusted local use: keep the server on `127.0.0.1`, not on a shared network.
 
 ## How accurate is it?
 

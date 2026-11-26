@@ -3,8 +3,8 @@
    your own server) it supplies the same four capabilities:
    - sample: the Anthropic API through the official SDK (bundled as window.ANTHROPIC_SDK), with an API key
      the visitor pastes in. The key stays in this browser's localStorage and is sent only to api.anthropic.com.
-   - tts: the browser's speechSynthesis.
-   - dictation: the browser's SpeechRecognition (Chrome, Edge, Safari).
+   - tts and dictation: a local audio.cpp server when one is set up (localvoice.js), otherwise the browser's
+     speechSynthesis and SpeechRecognition (Chrome, Edge, Safari).
    - downloads: a plain file download. */
 (() => {
   if (window.claude) return;
@@ -144,7 +144,14 @@
     }
   };
 
-  const caps = { sample, tts: makeTTS(), dictation: makeDictation(), downloads };
-  window.claude = { use: name => Promise.resolve(caps[name] || null) };
-  window.SELFHOST = { keyDialog, hasKey: () => !!read(KEY) };
+  // voice: a local audio.cpp server when one is set up (localvoice.js), otherwise the browser's own speech
+  let localVoice = null;
+  const capsReady = (window.LOCALVOICE ? window.LOCALVOICE.probe() : Promise.resolve(null)).then(L => {
+    localVoice = L;
+    return { sample, downloads,
+      tts: L && L.tts ? window.LOCALVOICE.makeTTS(L) : makeTTS(),
+      dictation: L && L.asr ? window.LOCALVOICE.makeDictation(L) : makeDictation() };
+  });
+  window.claude = { use: name => capsReady.then(c => c[name] || null) };
+  window.SELFHOST = { keyDialog, hasKey: () => !!read(KEY), voiceDialog: () => window.LOCALVOICE && window.LOCALVOICE.dialog(), localVoice: () => localVoice };
 })();

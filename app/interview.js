@@ -10,10 +10,12 @@ const INTERVIEW = (() => {
     if (!(window.claude && window.claude.use)) return;
     tts = await window.claude.use('tts').catch(() => null);
     dict = await window.claude.use('dictation').catch(() => null);
-    if (tts) try { tts.onState(({ state }) => { if (S && S.mode === 'claude') setSpeaking(state === 'speaking' || state === 'starting'); }); } catch (e) { /* no state */ }
+    if (tts) try { tts.onState(({ state }) => { if (S && (S.mode === 'claude' || tts.concurrent)) setSpeaking(state === 'speaking' || state === 'starting'); }); } catch (e) { /* no state */ }
     if (dict) {
       dict.onPartial(({ text }) => heard(text, false));
       dict.onFinal(({ text }) => heard(text, true));
+      // a local recogniser (audio.cpp) also reports the real microphone level: the glow follows your voice
+      if (dict.onLevel) dict.onLevel(({ level }) => { if (S && S.mic && !S.ignoring()) S.lv = Math.max(S.lv || 0, level * 1.4); });
       dict.onState(({ state, reason }) => { if (!S) return; S.mic = state === 'listening' || state === 'starting'; paint(); if (state === 'idle') { if (reason === 'not_granted' || reason === 'unavailable') { S.noMic = true; S.mode = 'claude'; note('Microphone is off for this page. Type your answers.'); paint(); } else if (S.mode === 'claude' && (S.pending + S.partial).trim()) endTurn(); } });
     }
     ready = true;
@@ -46,7 +48,7 @@ const INTERVIEW = (() => {
     const micB = S.el.querySelector('[data-c=mic]');
     if (micB.dataset.on !== String(S.mic)) { micB.innerHTML = S.mic ? ICON.mic : ICON.micOff; micB.dataset.on = String(S.mic); } micB.classList.toggle('on', S.mic); micB.hidden = !dict || S.noMic;
     micB.setAttribute('aria-label', S.mic ? (S.mode === 'hands' ? 'Mute the microphone' : 'Stop and send') : 'Talk');
-    const hb = S.el.querySelector('[data-c=mode]'); hb.hidden = !dict || S.noMic || !browserVoice() || !tts;
+    const hb = S.el.querySelector('[data-c=mode]'); hb.hidden = !dict || S.noMic || !browserVoice() || !tts || !!tts.concurrent;   // with audio.cpp both modes are the same
     if (hb.dataset.m !== S.mode) { hb.dataset.m = S.mode; hb.innerHTML = S.mode === 'hands' ? ICON.hands : ICON.spark; }
     hb.title = S.mode === 'hands' ? 'Hands-free: the mic stays open and the browser voice speaks. Click for the Claude voice (tap to talk)' : 'Claude voice: tap the mic for each answer. Click for hands-free'; hb.setAttribute('aria-label', hb.title);
     S.el.querySelector('[data-c=size] ').innerHTML = S.full ? ICON.shrink : ICON.expand;
@@ -79,7 +81,8 @@ const INTERVIEW = (() => {
     const ig = S.ignoring(); if (ig !== S.wasIgnoring) { S.wasIgnoring = ig; paint(); }
     if (S.busy || S.speaking || !S.mic) return;
     const live = (S.pending + ' ' + S.partial).trim();
-    const now = Date.now(), done = S.stream ? now - S.lastLoud > 1000 && now - S.lastHeard > 600 : now - S.lastHeard > PAUSE_MS;
+    // a recogniser with its own voice detection sends a final only after you stop talking, so end the turn right after it
+    const now = Date.now(), done = dict.vad ? !!S.pending && !S.partial && now - S.lastHeard > 250 : S.stream ? now - S.lastLoud > 1000 && now - S.lastHeard > 600 : now - S.lastHeard > PAUSE_MS;
     if (live && done) {
       if (S.mode === 'claude') { dict.stop().catch(() => {}); }   // idle state then sends
       else endTurn();
@@ -90,7 +93,8 @@ const INTERVIEW = (() => {
   function speak(text) {
     if (!S) return;
     text = String(text).slice(0, 1990);
-    if (S.mode === 'hands' && browserVoice()) {
+    // a voice that can play while the microphone is open (audio.cpp) speaks in both modes
+    if (S.mode === 'hands' && browserVoice() && !(tts && tts.concurrent)) {
       try {
         speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(text); u.rate = 1.02;
@@ -102,7 +106,7 @@ const INTERVIEW = (() => {
       } catch (e) { setSpeaking(false); }
       return;
     }
-    if (tts && !S.mic) { try { tts.speak(text, { voice: 'rounded' }).catch(() => setSpeaking(false)); } catch (e) { /* voice off */ } }
+    if (tts && (!S.mic || tts.concurrent)) { try { tts.speak(text, { voice: 'rounded' }).catch(() => setSpeaking(false)); } catch (e) { /* voice off */ } }
   }
   function hush() { try { if (tts) tts.stop(); } catch (e) { /* ignore */ } try { if (browserVoice()) speechSynthesis.cancel(); } catch (e) { /* ignore */ } setSpeaking(false); }
 
@@ -246,7 +250,7 @@ const INTERVIEW = (() => {
     document.body.appendChild(el); document.body.classList.add('iv-on');
     S = { cfg, el, log: el.querySelector('.iv-log'), input: el.querySelector('.iv-type input'), capEl: el.querySelector('.iv-cap'), stateEl: el.querySelector('.iv-state'), noteEl: el.querySelector('.iv-note'), bars: Array.from(el.querySelectorAll('.iv-viz i')), fv: [], lv: 0, lastLoud: 0, stream: undefined, cardHost: el.querySelector('.iv-cardhost'),
       turns: [], echo: false, busy: false, speaking: false, mic: false, noMic: false, pending: '', partial: '', lastHeard: 0, quietUntil: 0, start: Date.now(), full: !!cfg.wide,
-      mode: browserVoice() && dict ? 'hands' : 'claude' };
+      mode: dict && (browserVoice() || (tts && tts.concurrent)) ? 'hands' : 'claude' };
     // the mic only overlaps the interviewer's voice in hands-free mode; there, words heard while it talks are its own
     S.ignoring = () => S.busy || (S.mode === 'hands' && (S.speaking || Date.now() < S.quietUntil));
     S.tick = setInterval(() => { if (!S) return; const s = Math.floor((Date.now() - S.start) / 1000); el.querySelector('.iv-time').textContent = String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); }, 1000);

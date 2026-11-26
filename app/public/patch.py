@@ -12,6 +12,7 @@ def _sub1(pat, new, s, flags=0):
 
 # ---------- title, self-hosted AI, styles ----------
 SH = ('<script>' + open(P('public/vendor/anthropic-sdk.js'), encoding='utf-8').read().replace('</script', '<\\/script') + '</script>\n'
+      '<script>' + open(P('public/localvoice.js'), encoding='utf-8').read() + '</script>\n'
       '<script>' + open(P('public/selfhost.js'), encoding='utf-8').read() + '</script>\n'
       '<style>' + open(P('public/public.css'), encoding='utf-8').read() + '</style>')
 html = once(html, '<a class="brand" href="#home"><span class="brand-mark">$</span><b>$10k</b></a>', '<a class="brand" href="#home"><span class="brand-mark">&gt;_</span><b>Interview Prep</b></a>')
@@ -61,7 +62,7 @@ html = _sub1(r"You review live-coding results for a G[^'\"]*?\.(?= )", "You revi
 html = once(html, "const AI_ERR = { ", "const AI_ERR = { needs_key: 'Add your Anthropic API key to use Claude here.', offline: 'Could not reach the Anthropic API. Check your connection.', bad_json: 'Claude did not return the expected format. Try again.', error: 'Something went wrong. Try again.', ")
 
 # ---------- Profile: the API key when self-hosted ----------
-html = once(html, "function viewProfile(page, h) {", "function viewProfile(page, h) {\n  viewProfile0(page, h);\n  if (window.SELFHOST && h === 'me') { const s = document.createElement('section'); s.className = 'sd-sec sh-sec'; s.innerHTML = '<div class=\"day-h\"><h2>Claude</h2></div><p class=\"muted\">' + (SELFHOST.hasKey() ? 'Using your Anthropic API key, kept in this browser.' : 'Add an Anthropic API key to turn on the mock interviewer, grading and chat.') + '</p><button type=\"button\" class=\"btn small\">' + (SELFHOST.hasKey() ? 'Change key' : 'Add key') + '</button>'; s.querySelector('button').onclick = () => SELFHOST.keyDialog(''); page.appendChild(s); }\n}\nfunction viewProfile0(page, h) {")
+html = once(html, "function viewProfile(page, h) {", "function viewProfile(page, h) {\n  viewProfile0(page, h);\n  if (window.SELFHOST && h === 'me') { const s = document.createElement('section'); s.className = 'sd-sec sh-sec'; s.innerHTML = '<div class=\"day-h\"><h2>Claude</h2></div><p class=\"muted\">' + (SELFHOST.hasKey() ? 'Using your Anthropic API key, kept in this browser.' : 'Add an Anthropic API key to turn on the mock interviewer, grading and chat.') + '</p><div class=\"row\" style=\"gap:8px\"><button type=\"button\" class=\"btn small sh-k\">' + (SELFHOST.hasKey() ? 'Change key' : 'Add key') + '</button><button type=\"button\" class=\"btn small sh-v\">' + (SELFHOST.localVoice() ? 'Voice: audio.cpp' : 'Voice: browser') + '</button></div>'; s.querySelector('.sh-k').onclick = () => SELFHOST.keyDialog(''); s.querySelector('.sh-v').onclick = () => SELFHOST.voiceDialog(); page.appendChild(s); }\n}\nfunction viewProfile0(page, h) {")
 
 # ---------- the new patterns: badges, colours, and Explained step-throughs as their animation ----------
 NEWPAT = [('linked-list', 'LL', '#0090FF', '#52A9FF'), ('trees', 'T', '#46A758', '#71D083'), ('heap', 'Hp', '#E54666', '#FF7A93'), ('trie', 'Tr', '#AB4ABA', '#D07CE0'),

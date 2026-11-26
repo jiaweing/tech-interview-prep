@@ -95,3 +95,5 @@ a.co-card:hover { background: var(--sunk); text-decoration: none; }
 @media (max-width: 700px) { .crs-b { padding: 0 12px 14px; } }
 .crs > * { order: 0 !important; }
 .crs > .nextup { margin: 4px 0 6px; }
+.sh-dlg .sh-chk { flex-direction: row; align-items: center; gap: 8px; }
+.sh-dlg .lv-status { min-height: 1.2em; font-size: 13px; }
