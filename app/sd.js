@@ -689,6 +689,9 @@ function mountBoard(host, key, ref, refTitle, opt) {
     // fade the palette's edges while it has more icons to scroll to
     const palEl = $('.wb-bar .wb-pal', wb), edge = () => { const max = palEl.scrollWidth - palEl.clientWidth; palEl.classList.toggle('fl', palEl.scrollLeft > 2); palEl.classList.toggle('fr', palEl.scrollLeft < max - 2); };
     palEl.addEventListener('scroll', edge, { passive: true }); requestAnimationFrame(edge);
+    // phones: the bar lines up with the bottom nav, edge to edge
+    const fl = $('.wb-float', wb), matchNav = () => { const nav = document.querySelector('.topbar .tb-in'), r = nav && nav.getBoundingClientRect(); fl.style.width = window.matchMedia('(max-width: 700px)').matches && r && r.width ? r.width + 'px' : ''; edge(); };
+    requestAnimationFrame(matchNav); window.addEventListener('resize', matchNav); offs.push(() => window.removeEventListener('resize', matchNav));
     window.addEventListener('resize', onResize); window.addEventListener('resize', edge); document.addEventListener('keydown', onKey);
     offs.push(() => window.removeEventListener('resize', edge));
     offs.push(() => window.removeEventListener('resize', onResize), () => document.removeEventListener('keydown', onKey));
@@ -699,7 +702,7 @@ function mountBoard(host, key, ref, refTitle, opt) {
 
 function viewBoard(page, cleanup) {
   page.classList.add('wide', 'wb-page'); document.body.classList.add('wb-on');
-  page.innerHTML = '<div class="sd-head"><h1>Whiteboard</h1></div><div class="wb-host"></div>';
+  page.innerHTML = '<h1 class="sr-only">Whiteboard</h1><div class="wb-host"></div>';
   cleanup.push(mountBoard($('.wb-host', page), 'sdboard:free', null, '', { full: true }), () => document.body.classList.remove('wb-on'));
 }
 

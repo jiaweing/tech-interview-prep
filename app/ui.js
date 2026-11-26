@@ -120,6 +120,15 @@
     });
   }
 
+  /* ---------- phones: Ask Claude sits in the bottom icon bar instead of floating ---------- */
+  const fab = document.getElementById('aiFab'), home = fab && fab.parentNode, phone = window.matchMedia('(max-width: 560px)');
+  function placeFab() {
+    const bar = document.querySelector('.topbar .tb-in'); if (!fab || !bar) return;
+    if (phone.matches) { if (fab.parentNode !== bar) bar.appendChild(fab); fab.classList.add('in-bar'); fab.dataset.tip = 'Ask Claude'; }
+    else if (fab.parentNode !== home) { home.appendChild(fab); fab.classList.remove('in-bar'); delete fab.dataset.tip; }
+  }
+  if (fab) { placeFab(); phone.addEventListener('change', placeFab); }
+
   /* ---------- apply to everything, now and as pages render ---------- */
   function scan(root) {
     if (!root.querySelectorAll) return;

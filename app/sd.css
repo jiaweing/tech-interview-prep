@@ -1027,7 +1027,7 @@ body.wb-on { overflow: hidden; }
 .wb-bar .wb-pal { margin: 0 !important; flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; overflow-x: auto; padding: 0; gap: 2px; scrollbar-width: none; }
 .wb-bar .wb-pal::-webkit-scrollbar { display: none; }
 .wb-bar .wb-pal .sep { height: 18px; margin: 0 3px; background: var(--hair); }
-.wb-bar .wb-pal .btn, .wb-tool { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 34px; padding: 0; border: 0; border-radius: 9px !important; background: transparent !important; color: var(--fg2); box-shadow: none; cursor: pointer; }
+.wb-bar .wb-pal .btn, .wb-tool { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 31px; height: 34px; padding: 0; border: 0; border-radius: 9px !important; background: transparent !important; color: var(--fg2); box-shadow: none; cursor: pointer; }
 .wb-bar .wb-pal .btn:hover, .wb-tool:hover { background: var(--sunk) !important; }
 .wb-bar .wb-pal .btn svg { width: 18px; height: 18px; }
 .wb-tool svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
@@ -1042,5 +1042,22 @@ body.wb-on { overflow: hidden; }
 .wb-insp .ui-select-trigger { height: 30px; border-radius: 999px; border: 1px solid var(--line); background: var(--subtle); padding: 0 10px 0 12px; font: 13px var(--f-body); min-width: 130px; box-shadow: none; }
 .wb-full .wb-insp:not(:has(input)) { padding: 6px 12px; border-radius: 999px; }
 @media (max-width: 700px) {
-  .wb-float { max-width: calc(100vw - 24px); bottom: calc(118px + env(safe-area-inset-bottom, 0px)); }
+  .wb-float { max-width: calc(100vw - 16px); bottom: calc(74px + env(safe-area-inset-bottom, 0px)); }
+  .wb-float .wb-bar, .wb-float .wb-insp { width: 100%; box-sizing: border-box; }
+}
+
+/* phones: Ask Claude is an icon in the bottom bar (ui.js moves it there) */
+.ai-fab.in-bar { position: static; flex: none; width: 40px; height: 40px; padding: 0; justify-content: center; gap: 0; border-radius: 999px; background: transparent; color: var(--fg); box-shadow: none; }
+.ai-fab.in-bar:hover { background: var(--sunk); }
+.ai-fab.in-bar span { display: none; }
+.ai-fab.in-bar .cl-logo { width: 20px; height: 20px; }
+body.ai-open .ai-fab.in-bar:not([hidden]) { display: inline-flex; }
+
+/* phones: the practice mode toggles sit in the empty top row, beside the profile button */
+@media (max-width: 560px) {
+  .modes-bar, .wb-page .modes-bar { position: absolute; top: 12px; left: 10px; right: 58px; z-index: 30; flex-wrap: nowrap; gap: 4px; overflow-x: auto; scrollbar-width: none; margin: 0 !important; }
+  .modes-bar::-webkit-scrollbar { display: none; }
+  .modes-bar .mode { flex: none; height: 36px; padding: 0 12px; font-size: 13.5px; }
+  .modes-bar .mode-note { display: none; }
+  .page > .modes-bar + * { margin-top: 10px; }
 }
