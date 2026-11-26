@@ -1010,3 +1010,37 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 .ui-alert-row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
 .ui-alert .btn.ui-danger:not(.primary), .ui-alert .btn.ui-danger:not(.primary):hover { background: #dc2626 !important; border-color: #dc2626 !important; color: #fff !important; }
 .ui-alert .btn.ui-danger:hover { filter: brightness(.92); }
+
+/* full-page whiteboard (#sd-board): the canvas fills the viewport, the header floats over it, tools sit in a bar at the bottom */
+body.wb-on { overflow: hidden; }
+.wb-page .modes-bar, .wb-page .sd-head { position: relative; z-index: 5; pointer-events: none; }
+.wb-page .modes-bar > *, .wb-page .sd-head a, .wb-page .sd-head button { pointer-events: auto; }
+.wb.wb-full { position: fixed; inset: 0; z-index: 1; border: 0 !important; border-radius: 0 !important; background: var(--subtle); box-shadow: none !important; }
+.wb-full .sdg { position: absolute; inset: 0; border: 0 !important; border-radius: 0 !important; background: none; box-shadow: none !important; }
+.wb-full .sdg-scroll { width: 100%; height: 100%; overflow: auto; scrollbar-width: none; }
+.wb-full .sdg-scroll::-webkit-scrollbar { display: none; }
+.wb-full .sdg-svg { max-width: none; }
+.wb-float { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 30; display: flex; flex-direction: column; align-items: center; gap: 8px; width: max-content; max-width: calc(100vw - 360px); pointer-events: none; }
+.wb-float > * { pointer-events: auto; max-width: 100%; }
+.wb-bar { display: flex; align-items: center; gap: 2px; padding: 5px; border-radius: 14px; background: var(--bg); border: 1px solid var(--line); box-shadow: 0 10px 32px rgba(0,0,0,.12), 0 1px 3px rgba(0,0,0,.06); }
+.wb-bar .sep { display: block !important; flex: none; width: 1px; height: 22px; background: var(--hair2); margin: 0 4px; }
+.wb-bar .wb-pal { margin: 0 !important; flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; overflow-x: auto; padding: 0; gap: 2px; scrollbar-width: none; }
+.wb-bar .wb-pal::-webkit-scrollbar { display: none; }
+.wb-bar .wb-pal .sep { height: 18px; margin: 0 3px; background: var(--hair); }
+.wb-bar .wb-pal .btn, .wb-tool { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 34px; padding: 0; border: 0; border-radius: 9px !important; background: transparent !important; color: var(--fg2); box-shadow: none; cursor: pointer; }
+.wb-bar .wb-pal .btn:hover, .wb-tool:hover { background: var(--sunk) !important; }
+.wb-bar .wb-pal .btn svg { width: 18px; height: 18px; }
+.wb-tool svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.wb-tool.on, .wb-tool.on:hover { background: var(--fg) !important; color: var(--bg); }
+.wb-tool:focus-visible, .wb-bar .wb-pal .btn:focus-visible { outline: 2px solid var(--fg); outline-offset: -2px; }
+.wb-modes { display: flex; gap: 2px; flex: none; }
+.wb-full .wb-insp { min-height: 0; padding: 6px 8px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line); box-shadow: 0 6px 24px rgba(0,0,0,.1); }
+.wb-full .wb-insp:empty { display: none; }
+.wb-bar .wb-pal.fl { mask-image: linear-gradient(90deg, transparent, #000 28px); -webkit-mask-image: linear-gradient(90deg, transparent, #000 28px); }
+.wb-bar .wb-pal.fr { mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); }
+.wb-bar .wb-pal.fl.fr { mask-image: linear-gradient(90deg, transparent, #000 28px, #000 calc(100% - 28px), transparent); -webkit-mask-image: linear-gradient(90deg, transparent, #000 28px, #000 calc(100% - 28px), transparent); }
+.wb-insp .ui-select-trigger { height: 30px; border-radius: 999px; border: 1px solid var(--line); background: var(--subtle); padding: 0 10px 0 12px; font: 13px var(--f-body); min-width: 130px; box-shadow: none; }
+.wb-full .wb-insp:not(:has(input)) { padding: 6px 12px; border-radius: 999px; }
+@media (max-width: 700px) {
+  .wb-float { max-width: calc(100vw - 24px); bottom: calc(118px + env(safe-area-inset-bottom, 0px)); }
+}

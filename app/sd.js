@@ -587,26 +587,49 @@ function mountAIGrade(sec, q, saved, save, onRubric) {
 }
 
 /* ---------------- whiteboard ---------------- */
-function mountBoard(host, key, ref, refTitle) {
+const MODE_IC = {
+  move: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.04 4.65a.5.5 0 0 1 .61-.61l15.5 5.83a.5.5 0 0 1-.04.95l-6.53 1.8a1.5 1.5 0 0 0-1.05 1.05l-1.8 6.53a.5.5 0 0 1-.95.04z"/></svg>',
+  link: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19 19 5"/><path d="M10 5h9v9"/></svg>',
+  clear: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'
+};
+/* The whiteboard. Inline (inside a practice question) it is a card with the palette on top.
+   With opt.full it fills the viewport: the page header floats over it and the tools sit in a bar at the bottom. */
+function mountBoard(host, key, ref, refTitle, opt) {
+  const full = !!(opt && opt.full);
   const st = store.get(key, null) || { nodes: [], edges: [] };
   let sel = null, selE = null, mode = 'move', from = null, drag = null, nid = st.nodes.reduce((m, n) => Math.max(m, +(n.id.slice(1)) || 0), 0) + 1;
-  const W = 960, H = 520;
-  host.innerHTML = '<div class="wb"><div class="wb-pal">' + KIND_GROUP.map(([g, ks]) => ks.map(k => '<button class="btn small ghost k-' + k + '" data-add="' + k + '" title="Add ' + esc(KIND_NAME[k]) + '">' + iconSvg(k) + esc(KIND_NAME[k]) + '</button>').join('')).join('<span class="sep"></span>') + '</div><div class="wb-pal" style="padding-top:0"><button class="chip on" data-mode="move">Move</button><button class="chip" data-mode="link">Connect</button><span class="sp" style="flex:1"></span>' + (ref ? '<button class="btn small" data-a="cmp">Compare with reference</button>' : '') + '<button class="btn small ghost" data-a="clear">Clear</button></div><div class="sdg"><div class="sdg-scroll"></div></div><div class="wb-insp"></div><div class="wb-cmp" hidden></div></div>';
+  let W = 960, H = 520;
+  const addBtn = k => '<button class="btn small ghost k-' + k + '" data-add="' + k + '" title="Add ' + esc(KIND_NAME[k]) + '"' + (full ? ' aria-label="Add ' + esc(KIND_NAME[k]) + '"' : '') + '>' + iconSvg(k) + (full ? '' : esc(KIND_NAME[k])) + '</button>';
+  const pal = KIND_GROUP.map(([g, ks]) => ks.map(addBtn).join('')).join('<span class="sep"></span>');
+  const modes = full
+    ? '<div class="wb-modes" role="group" aria-label="Tool"><button class="wb-tool on" data-mode="move" title="Move (V)" aria-label="Move" aria-pressed="true">' + MODE_IC.move + '</button><button class="wb-tool" data-mode="link" title="Connect (C)" aria-label="Connect" aria-pressed="false">' + MODE_IC.link + '</button></div>'
+    : '<button class="chip on" data-mode="move">Move</button><button class="chip" data-mode="link">Connect</button>';
+  host.innerHTML = full
+    ? '<div class="wb wb-full"><div class="sdg"><div class="sdg-scroll"></div></div><div class="wb-float"><div class="wb-insp"></div><div class="wb-bar" role="toolbar" aria-label="Whiteboard tools">' + modes + '<span class="sep"></span><div class="wb-pal">' + pal + '</div><span class="sep"></span><button class="wb-tool" data-a="clear" title="Clear the board" aria-label="Clear the board">' + MODE_IC.clear + '</button></div></div><div class="wb-cmp" hidden></div></div>'
+    : '<div class="wb"><div class="wb-pal">' + pal + '</div><div class="wb-pal" style="padding-top:0">' + modes + '<span class="sp" style="flex:1"></span>' + (ref ? '<button class="btn small" data-a="cmp">Compare with reference</button>' : '') + '<button class="btn small ghost" data-a="clear">Clear</button></div><div class="sdg"><div class="sdg-scroll"></div></div><div class="wb-insp"></div><div class="wb-cmp" hidden></div></div>';
   const wb = $('.wb', host), sc = $('.sdg-scroll', wb), insp = $('.wb-insp', wb), cmp = $('.wb-cmp', wb);
   const save = () => store.set(key, st);
+  // full page: the canvas is the viewport, and grows past it when boxes sit further out (then it scrolls)
+  function size() {
+    if (!full) return;
+    W = Math.max(sc.clientWidth || window.innerWidth, ...st.nodes.map(n => n.x + 90));
+    H = Math.max(sc.clientHeight || window.innerHeight, ...st.nodes.map(n => n.y + 60));
+  }
   function draw() {
+    size();
     sc.innerHTML = diagramSVG({ w: W, h: H, nodes: st.nodes, edges: st.edges.map((e, i) => Object.assign({ id: 'w' + i }, e)) }, { label: 'Your whiteboard' });
     const svg = $('svg', sc); svg.style.minWidth = '0';
+    if (full) { svg.style.width = W + 'px'; svg.style.height = H + 'px'; }
     if (sel) { const el = $('[data-n="' + cssEsc(sel) + '"]', svg); if (el) el.classList.add('sel'); }
     if (selE != null) { const el = $('[data-e="w' + selE + '"]', svg); if (el) el.classList.add('sel'); }
-    if (!st.nodes.length) svg.insertAdjacentHTML('beforeend', '<text x="480" y="260" text-anchor="middle" style="font:500 14px var(--f-body);fill:var(--muted)">Add components from the palette above</text>');
+    if (!st.nodes.length) svg.insertAdjacentHTML('beforeend', '<text x="' + Math.round(full ? sc.scrollLeft + sc.clientWidth / 2 : W / 2) + '" y="' + Math.round(full ? sc.scrollTop + sc.clientHeight / 2 : 260) + '" text-anchor="middle" style="font:500 14px var(--f-body);fill:var(--muted)">' + (full ? 'Add components from the toolbar below' : 'Add components from the palette above') + '</text>');
     paintInsp();
   }
   function paintInsp() {
     const n = st.nodes.find(x => x.id === sel);
     if (n) { insp.innerHTML = '<input value="' + esc(n.label) + '" data-f="label" aria-label="Label"><input value="' + esc(n.sub || '') + '" data-f="sub" placeholder="detail (e.g. Postgres)" aria-label="Detail"><select data-f="kind" aria-label="Kind">' + Object.keys(KIND_NAME).map(k => '<option value="' + k + '"' + (k === n.kind ? ' selected' : '') + '>' + KIND_NAME[k] + '</option>').join('') + '</select><button class="btn small ghost" data-a="del">Delete</button>'; return; }
     if (selE != null && st.edges[selE]) { const e = st.edges[selE]; insp.innerHTML = '<input value="' + esc(e.label || '') + '" data-f="elabel" placeholder="label, e.g. HTTPS" aria-label="Edge label"><button class="btn small ghost" data-a="flip">Flip</button><button class="btn small ghost" data-a="dash">' + (e.dashed ? 'Solid' : 'Async (dashed)') + '</button><button class="btn small ghost" data-a="delE">Delete arrow</button>'; return; }
-    insp.innerHTML = mode === 'link' ? (from ? 'Now click the target component.' : 'Click the component the arrow starts from.') : 'Drag to move. Click a component or arrow to edit it.';
+    insp.innerHTML = mode === 'link' ? (from ? 'Now click the target component.' : 'Click the component the arrow starts from.') : full ? '' : 'Drag to move. Click a component or arrow to edit it.';
   }
   const pt = e => { const svg = $('svg', sc), r = svg.getBoundingClientRect(); return { x: (e.clientX - r.left) * W / r.width, y: (e.clientY - r.top) * H / r.height }; };
   sc.addEventListener('pointerdown', e => {
@@ -623,8 +646,8 @@ function mountBoard(host, key, ref, refTitle) {
   sc.addEventListener('pointerup', () => { if (drag) { drag = null; save(); draw(); } });
   wb.addEventListener('click', e => {
     const add = e.target.closest('[data-add]'), m = e.target.closest('[data-mode]'), a = e.target.closest('[data-a]');
-    if (add) { const k = add.dataset.add, i = st.nodes.length; st.nodes.push({ id: 'n' + nid++, kind: k, label: KIND_NAME[k], x: 110 + (i * 170) % 760, y: 70 + Math.floor(i * 170 / 760) * 100 % 420 }); sel = st.nodes[st.nodes.length - 1].id; selE = null; save(); draw(); }
-    if (m) { mode = m.dataset.mode; from = null; wb.classList.toggle('connecting', mode === 'link'); $$('[data-mode]', wb).forEach(b => b.classList.toggle('on', b === m)); paintInsp(); }
+    if (add) { const k = add.dataset.add, i = st.nodes.length; st.nodes.push(Object.assign({ id: 'n' + nid++, kind: k, label: KIND_NAME[k] }, full ? fullSpot(i) : { x: 110 + (i * 170) % 760, y: 70 + Math.floor(i * 170 / 760) * 100 % 420 })); sel = st.nodes[st.nodes.length - 1].id; selE = null; save(); draw(); }
+    if (m) setMode(m.dataset.mode);
     if (!a) return;
     const k = a.dataset.a;
     if (k === 'del') { st.edges = st.edges.filter(x => x.from !== sel && x.to !== sel); st.nodes = st.nodes.filter(x => x.id !== sel); sel = null; save(); draw(); }
@@ -647,14 +670,37 @@ function mountBoard(host, key, ref, refTitle) {
       '<div class="ref-host"></div>';
     mountDiagram($('.ref-host', cmp), ref, [], { label: 'Reference' });
   }
+  function setMode(v) { mode = v; from = null; wb.classList.toggle('connecting', mode === 'link'); $$('[data-mode]', wb).forEach(b => { const on = b.dataset.mode === v; b.classList.toggle('on', on); if (b.hasAttribute('aria-pressed')) b.setAttribute('aria-pressed', String(on)); }); paintInsp(); }
+  // a new box in full mode lands in a grid in the middle of what is on screen, clear of the floating header
+  function fullSpot(i) {
+    const cols = Math.max(1, Math.min(5, Math.floor((sc.clientWidth - 40) / 170))), cx = sc.scrollLeft + sc.clientWidth / 2, top = sc.scrollTop + Math.max(190, sc.clientHeight * 0.28);
+    return { x: Math.round((cx + ((i % cols) - (cols - 1) / 2) * 170) / 10) * 10, y: Math.round((top + (Math.floor(i / cols) % 4) * 100) / 10) * 10 };
+  }
+  const offs = [];
+  if (full) {
+    const onResize = () => draw();
+    const onKey = e => {
+      if (e.target.closest && e.target.closest('input, textarea, select, [contenteditable], dialog')) return;
+      if (e.key === 'v' || e.key === 'V') setMode('move');
+      else if (e.key === 'c' || e.key === 'C') setMode('link');
+      else if (e.key === 'Escape') { sel = null; selE = null; from = null; draw(); }
+      else if ((e.key === 'Delete' || e.key === 'Backspace') && (sel || selE != null)) { e.preventDefault(); const b = $(sel ? '[data-a=del]' : '[data-a=delE]', insp); if (b) b.click(); }
+    };
+    // fade the palette's edges while it has more icons to scroll to
+    const palEl = $('.wb-bar .wb-pal', wb), edge = () => { const max = palEl.scrollWidth - palEl.clientWidth; palEl.classList.toggle('fl', palEl.scrollLeft > 2); palEl.classList.toggle('fr', palEl.scrollLeft < max - 2); };
+    palEl.addEventListener('scroll', edge, { passive: true }); requestAnimationFrame(edge);
+    window.addEventListener('resize', onResize); window.addEventListener('resize', edge); document.addEventListener('keydown', onKey);
+    offs.push(() => window.removeEventListener('resize', edge));
+    offs.push(() => window.removeEventListener('resize', onResize), () => document.removeEventListener('keydown', onKey));
+  }
   draw();
-  return () => save();
+  return () => { save(); offs.forEach(f => f()); };
 }
 
 function viewBoard(page, cleanup) {
-  page.classList.add('wide');
+  page.classList.add('wide', 'wb-page'); document.body.classList.add('wb-on');
   page.innerHTML = '<div class="sd-head"><h1>Whiteboard</h1></div><div class="wb-host"></div>';
-  cleanup.push(mountBoard($('.wb-host', page), 'sdboard:free', null, ''));
+  cleanup.push(mountBoard($('.wb-host', page), 'sdboard:free', null, '', { full: true }), () => document.body.classList.remove('wb-on'));
 }
 
 /* ---------------- drill ---------------- */
